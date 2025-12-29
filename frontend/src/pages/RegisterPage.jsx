@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { UserPlus } from 'lucide-react';
+import Logo from '../components/Logo';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -52,16 +53,15 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-500 to-primary-700 px-4 py-12">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">⚽ Bet Insight</h1>
-          <p className="text-primary-100">Crie sua conta e comece a ganhar</p>
+          <div className="flex justify-center mb-4">
+            <Logo variant="happy" size="xl" showText={false} />
+          </div>
+          <h1 className="text-4xl font-bold text-white mb-2">BetInsight</h1>
+          <p className="text-primary-100">Junte-se e comece a ganhar com IA</p>
         </div>
 
         <div className="card">
-          <div className="flex items-center justify-center mb-6">
-            <UserPlus className="w-12 h-12 text-primary-600" />
-          </div>
-          
-          <h2 className="text-2xl font-bold text-center mb-6">Criar Conta</h2>
+          <h2 className="text-2xl font-bold text-center mb-6 text-gray-900">Criar Conta</h2>
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">

@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext';
 import { Calendar, TrendingUp, Target, Star } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
+import EmptyState from '../components/EmptyState';
+import LoadingMascot from '../components/LoadingMascot';
 
 export default function MyAnalysesPage() {
   const navigate = useNavigate();
@@ -56,8 +58,8 @@ export default function MyAnalysesPage() {
     return (
       <div className="page-container">
         <Header title="Minhas Análises" />
-        <div className="page-content text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="page-content">
+          <LoadingMascot message="Carregando suas análises..." />
         </div>
       </div>
     );
@@ -100,23 +102,19 @@ export default function MyAnalysesPage() {
 
         {/* Analyses List */}
         {analyses.length === 0 ? (
-          <div className="card text-center py-16 animate-slide-up">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <TrendingUp className="w-10 h-10 text-gray-400" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
-              Nenhuma análise ainda
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Comece a analisar partidas para ver seu histórico aqui
-            </p>
-            <button
-              onClick={() => navigate('/')}
-              className="btn-primary"
-            >
-              Ver Partidas
-            </button>
-          </div>
+          <EmptyState
+            variant="no-analyses"
+            title="Nenhuma análise ainda"
+            description="Comece a analisar partidas para ver seu histórico aqui. Suas análises ajudam a melhorar suas apostas!"
+            action={
+              <button
+                onClick={() => navigate('/')}
+                className="btn-primary"
+              >
+                Ver Partidas Disponíveis
+              </button>
+            }
+          />
         ) : (
           <div className="space-y-4">
             {analyses.map((analysis) => (

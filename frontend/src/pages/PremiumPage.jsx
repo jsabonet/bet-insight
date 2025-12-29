@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Check, Star, Zap, TrendingUp, Shield, Bell } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
+import Logo from '../components/Logo';
 
 export default function PremiumPage() {
   const navigate = useNavigate();
@@ -115,7 +116,10 @@ export default function PremiumPage() {
       <Header title="Seja Premium" subtitle="Análises ilimitadas e recursos exclusivos" />
 
       <div className="page-content">
-
+        {/* Premium Mascot */}
+        <div className="flex justify-center mb-6 animate-slide-up">
+          <Logo variant="premium" size="xl" showText={false} />
+        </div>
 
         {/* Plans */}
         <div className="grid grid-cols-1 gap-4 mb-8">

@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
 from apps.matches.models import League, Team, Match
+from apps.users.models import User
 
 
 class Command(BaseCommand):
@@ -9,6 +10,39 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         self.stdout.write('Criando dados de teste...')
+        
+        # Criar usuários de teste
+        self.stdout.write('Criando usuários...')
+        
+        # Usuário normal
+        user_normal, created = User.objects.get_or_create(
+            username='joao',
+            defaults={
+                'email': 'joao@example.com',
+                'phone': '+258843334444',
+                'is_premium': False
+            }
+        )
+        if created:
+            user_normal.set_password('senha123')
+            user_normal.save()
+            self.stdout.write(self.style.SUCCESS(f'✓ Usuário normal criado: joao/senha123'))
+        
+        # Usuário premium
+        user_premium, created = User.objects.get_or_create(
+            username='maria',
+            defaults={
+                'email': 'maria@example.com',
+                'phone': '+258844445555',
+                'is_premium': True
+            }
+        )
+        if created:
+            user_premium.set_password('senha123')
+            user_premium.save()
+            self.stdout.write(self.style.SUCCESS(f'✓ Usuário premium criado: maria/senha123'))
+        
+        self.stdout.write(self.style.SUCCESS(f'✓ {User.objects.count()} usuários no sistema'))
         
         # Criar Ligas
         premier_league = League.objects.create(
@@ -37,25 +71,81 @@ class Command(BaseCommand):
         
         self.stdout.write(self.style.SUCCESS(f'✓ {League.objects.count()} ligas criadas'))
         
-        # Criar Times - Premier League
-        man_city = Team.objects.create(name='Manchester City', country='Inglaterra')
-        liverpool = Team.objects.create(name='Liverpool', country='Inglaterra')
-        arsenal = Team.objects.create(name='Arsenal', country='Inglaterra')
-        chelsea = Team.objects.create(name='Chelsea', country='Inglaterra')
-        man_utd = Team.objects.create(name='Manchester United', country='Inglaterra')
-        tottenham = Team.objects.create(name='Tottenham', country='Inglaterra')
+        # Criar Times - Premier League com logos
+        man_city = Team.objects.create(
+            name='Manchester City', 
+            country='Inglaterra',
+            logo='https://crests.football-data.org/65.png'
+        )
+        liverpool = Team.objects.create(
+            name='Liverpool', 
+            country='Inglaterra',
+            logo='https://crests.football-data.org/64.png'
+        )
+        arsenal = Team.objects.create(
+            name='Arsenal', 
+            country='Inglaterra',
+            logo='https://crests.football-data.org/57.png'
+        )
+        chelsea = Team.objects.create(
+            name='Chelsea', 
+            country='Inglaterra',
+            logo='https://crests.football-data.org/61.png'
+        )
+        man_utd = Team.objects.create(
+            name='Manchester United', 
+            country='Inglaterra',
+            logo='https://crests.football-data.org/66.png'
+        )
+        tottenham = Team.objects.create(
+            name='Tottenham', 
+            country='Inglaterra',
+            logo='https://crests.football-data.org/73.png'
+        )
         
-        # Times - La Liga
-        real_madrid = Team.objects.create(name='Real Madrid', country='Espanha')
-        barcelona = Team.objects.create(name='Barcelona', country='Espanha')
-        atletico = Team.objects.create(name='Atlético Madrid', country='Espanha')
-        sevilla = Team.objects.create(name='Sevilla', country='Espanha')
+        # Times - La Liga com logos
+        real_madrid = Team.objects.create(
+            name='Real Madrid', 
+            country='Espanha',
+            logo='https://crests.football-data.org/86.png'
+        )
+        barcelona = Team.objects.create(
+            name='Barcelona', 
+            country='Espanha',
+            logo='https://crests.football-data.org/81.png'
+        )
+        atletico = Team.objects.create(
+            name='Atlético Madrid', 
+            country='Espanha',
+            logo='https://crests.football-data.org/78.png'
+        )
+        sevilla = Team.objects.create(
+            name='Sevilla', 
+            country='Espanha',
+            logo='https://crests.football-data.org/559.png'
+        )
         
-        # Times - Serie A
-        inter = Team.objects.create(name='Inter Milan', country='Itália')
-        juventus = Team.objects.create(name='Juventus', country='Itália')
-        milan = Team.objects.create(name='AC Milan', country='Itália')
-        napoli = Team.objects.create(name='Napoli', country='Itália')
+        # Times - Serie A com logos
+        inter = Team.objects.create(
+            name='Inter Milan', 
+            country='Itália',
+            logo='https://crests.football-data.org/108.png'
+        )
+        juventus = Team.objects.create(
+            name='Juventus', 
+            country='Itália',
+            logo='https://crests.football-data.org/109.png'
+        )
+        milan = Team.objects.create(
+            name='AC Milan', 
+            country='Itália',
+            logo='https://crests.football-data.org/98.png'
+        )
+        napoli = Team.objects.create(
+            name='Napoli', 
+            country='Itália',
+            logo='https://crests.football-data.org/113.png'
+        )
         
         self.stdout.write(self.style.SUCCESS(f'✓ {Team.objects.count()} times criados'))
         

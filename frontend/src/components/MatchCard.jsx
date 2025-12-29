@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Zap } from 'lucide-react';
+import { TeamLogo, LeagueLogo } from '../utils/logos';
 
 export default function MatchCard({ match, onAnalyze }) {
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ export default function MatchCard({ match, onAnalyze }) {
       {/* Header - Liga */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 text-sm">
-          <MapPin className="w-4 h-4 text-gray-400" />
+          <LeagueLogo league={match.league} size="sm" />
           <span className="text-gray-600 font-medium">{match.league.name}</span>
         </div>
         <span className={badge.className}>
@@ -57,13 +58,7 @@ export default function MatchCard({ match, onAnalyze }) {
       <div className="space-y-3 mb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1">
-            <div className="w-10 h-10 bg-gradient-to-br from-primary-100 to-primary-200 rounded-xl flex items-center justify-center text-xl border border-primary-200">
-              {match.home_team.logo ? (
-                <img src={match.home_team.logo} alt="" className="w-6 h-6" />
-              ) : (
-                '🏠'
-              )}
-            </div>
+            <TeamLogo team={match.home_team} size="md" />
             <span className="font-bold text-gray-900 text-base">{match.home_team.name}</span>
           </div>
           {match.home_score !== null && (
@@ -73,21 +68,15 @@ export default function MatchCard({ match, onAnalyze }) {
           )}
         </div>
 
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center my-2">
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
-          <span className="px-3 text-gray-400 text-xs font-semibold">VS</span>
+          <span className="px-3 py-1 text-gray-700 text-sm font-bold">VS</span>
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
         </div>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center text-xl border border-blue-200">
-              {match.away_team.logo ? (
-                <img src={match.away_team.logo} alt="" className="w-6 h-6" />
-              ) : (
-                '✈️'
-              )}
-            </div>
+            <TeamLogo team={match.away_team} size="md" />
             <span className="font-bold text-gray-900 text-base">{match.away_team.name}</span>
           </div>
           {match.away_score !== null && (

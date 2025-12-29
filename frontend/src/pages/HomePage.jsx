@@ -4,6 +4,8 @@ import { Clock, Flame, CalendarDays, Sparkles } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
 import MatchCard from '../components/MatchCard';
+import EmptyState from '../components/EmptyState';
+import LoadingMascot from '../components/LoadingMascot';
 
 export default function HomePage() {
   const [matches, setMatches] = useState([]);
@@ -48,10 +50,7 @@ export default function HomePage() {
 
   return (
     <div className="page-container">
-      <Header 
-        title="Partidas" 
-        subtitle={`${matches.length} ${filter === 'live' ? 'ao vivo' : 'disponíveis'}`}
-      />
+      <Header showLogo={true} />
 
       <div className="page-content">
         {/* Filter Chips */}
@@ -74,32 +73,23 @@ export default function HomePage() {
 
         {/* Matches List */}
         {loading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="relative">
-              <div className="w-16 h-16 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-8 h-8 bg-primary-600 rounded-full animate-pulse"></div>
-              </div>
-            </div>
-          </div>
+          <LoadingMascot message="Carregando partidas..." />
         ) : matches.length === 0 ? (
-          <div className="card text-center py-16 animate-slide-up">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CalendarDays className="w-10 h-10 text-gray-400" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
-              Nenhuma partida {filter === 'live' ? 'ao vivo' : 'encontrada'}
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Tente selecionar outro filtro
-            </p>
-            <button
-              onClick={() => setFilter('all')}
-              className="btn-primary mx-auto"
-            >
-              Ver Todas
-            </button>
-          </div>
+          <EmptyState
+            variant="no-matches"
+            title={`Nenhuma partida ${filter === 'live' ? 'ao vivo' : 'encontrada'}`}
+            description="Não há jogos disponíveis no momento. Tente outro filtro ou volte mais tarde."
+            action={
+              filter !== 'all' && (
+                <button
+                  onClick={() => setFilter('all')}
+                  className="btn-primary"
+                >
+                  Ver Todas as Partidas
+                </button>
+              )
+            }
+          />
         ) : (
           <div className="space-y-4">
             {matches.map((match) => (

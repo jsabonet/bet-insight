@@ -4,6 +4,7 @@ import { matchesAPI, analysisAPI } from '../services/api';
 import { ArrowLeft, TrendingUp, Target, Brain, Star, AlertCircle } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
+import { TeamLogo, LeagueLogo } from '../utils/logos';
 
 export default function MatchDetailPage() {
   const { id } = useParams();
@@ -82,8 +83,12 @@ export default function MatchDetailPage() {
         </button>
 
         {/* Card da Partida */}
-        <div className="card animate-slide-up mb-6">\n          <div className="text-center mb-6">
-            <span className="badge badge-info mb-3">{match.league.name}</span>
+        <div className="card animate-slide-up mb-6">
+          <div className="text-center mb-6">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <LeagueLogo league={match.league} size="md" />
+              <span className="badge badge-info">{match.league.name}</span>
+            </div>
             <h1 className="text-2xl font-bold text-gray-900 mt-2">
               {match.home_team.name} vs {match.away_team.name}
             </h1>
@@ -93,13 +98,19 @@ export default function MatchDetailPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-6 mb-6">
-            <div className="text-center p-4 bg-gradient-to-br from-primary-50 to-primary-100 rounded-2xl">
-              <div className="text-5xl mb-2">🏠</div>
+            <div className="text-center p-6 bg-gradient-to-br from-primary-50 to-primary-100 rounded-2xl">
+              <div className="flex justify-center mb-3">
+                <TeamLogo team={match.home_team} size="xl" />
+              </div>
               <h3 className="font-bold text-lg">{match.home_team.name}</h3>
+              <p className="text-sm text-gray-600 mt-1">Casa</p>
             </div>
-            <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl">
-              <div className="text-5xl mb-2">✈️</div>
+            <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl">
+              <div className="flex justify-center mb-3">
+                <TeamLogo team={match.away_team} size="xl" />
+              </div>
               <h3 className="font-bold text-lg">{match.away_team.name}</h3>
+              <p className="text-sm text-gray-600 mt-1">Visitante</p>
             </div>
           </div>
 
