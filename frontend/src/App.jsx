@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
@@ -7,6 +8,26 @@ import MatchDetailPage from './pages/MatchDetailPage';
 import MyAnalysesPage from './pages/MyAnalysesPage';
 import ProfilePage from './pages/ProfilePage';
 import PremiumPage from './pages/PremiumPage';
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsers from './pages/admin/AdminUsers';
+
+// AdminRoute component - Apenas superusuários
+function AdminRoute({ children }) {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
+      </div>
+    );
+  }
+  
+  if (!user) return <Navigate to="/login" />;
+  if (!user.is_superuser) return <Navigate to="/" />;
+  
+  return children;
+}
 
 // ProtectedRoute component
 function ProtectedRoute({ children }) {
@@ -73,6 +94,24 @@ function App() {
               <ProtectedRoute>
                 <PremiumPage />
               </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            }
+          />
+          
+          <Route
+            path="/admin/users"
+            element={
+              <AdminRoute>
+                <AdminUsers />
+              </AdminRoute>
             }
           />
           

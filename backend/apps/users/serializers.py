@@ -49,11 +49,12 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'email', 'username', 'phone', 'is_premium', 'premium_until',
             'daily_analysis_count', 'total_analyses', 'successful_predictions',
-            'success_rate', 'can_analyze_today', 'remaining_analyses', 'push_enabled'
+            'success_rate', 'can_analyze_today', 'remaining_analyses', 'push_enabled',
+            'is_staff', 'is_superuser'
         ]
         read_only_fields = [
             'id', 'is_premium', 'premium_until', 'daily_analysis_count',
-            'total_analyses', 'successful_predictions'
+            'total_analyses', 'successful_predictions', 'is_staff', 'is_superuser'
         ]
     
     def get_success_rate(self, obj):

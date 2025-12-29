@@ -1,13 +1,103 @@
 # 🧪 TESTES DE API - BET INSIGHT MOZAMBIQUE
 
+## ✅ STATUS DAS APIS CONFIGURADAS
+
+- ✅ **Google Gemini AI:** AIzaSyDB9SM-BbrUrconIrv7NrqjQTydEdetfLs
+- ✅ **API-Football:** e80d6c82ac7c1d03170757f605d83531
+- ✅ **Football-Data.org:** 3745081689ca426b8d95c8d00290d729
+- ✅ **PaySuite:** 1193|4iu77r4TUkd0nsB3MP8Qjr1uYVvM7d0Y0lpOgwETc153d048
+
+---
+
 ## 📋 Pré-requisitos
 - Servidor Django rodando: `python manage.py runserver`
 - Usuário de teste criado
 - Banco populado com partidas
+- Variáveis de ambiente configuradas no `.env`
 
 ---
 
-## 1️⃣ AUTENTICAÇÃO
+## 🧪 TESTES DE APIS EXTERNAS
+
+### 1. Google Gemini AI
+
+**Teste Rápido Python:**
+```python
+import google.generativeai as genai
+
+genai.configure(api_key="AIzaSyDB9SM-BbrUrconIrv7NrqjQTydEdetfLs")
+model = genai.GenerativeModel('gemini-pro')
+response = model.generate_content("Analise: Barcelona vs Real Madrid")
+print(response.text)
+```
+
+**Via cURL:**
+```bash
+curl -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyDB9SM-BbrUrconIrv7NrqjQTydEdetfLs" \
+-H "Content-Type: application/json" \
+-d '{"contents": [{"parts": [{"text": "Analise uma partida de futebol"}]}]}'
+```
+
+---
+
+### 2. API-Football
+
+**Partidas de Hoje:**
+```bash
+curl -X GET "https://v3.football.api-sports.io/fixtures?date=2025-12-29" \
+-H "x-apisports-key: e80d6c82ac7c1d03170757f605d83531"
+```
+
+**Previsões:**
+```bash
+curl -X GET "https://v3.football.api-sports.io/predictions?fixture=FIXTURE_ID" \
+-H "x-apisports-key: e80d6c82ac7c1d03170757f605d83531"
+```
+
+**Status da API:**
+```bash
+curl -X GET "https://v3.football.api-sports.io/status" \
+-H "x-apisports-key: e80d6c82ac7c1d03170757f605d83531"
+```
+
+---
+
+### 3. Football-Data.org
+
+**Competições:**
+```bash
+curl -X GET "https://api.football-data.org/v4/competitions" \
+-H "X-Auth-Token: 3745081689ca426b8d95c8d00290d729"
+```
+
+**Partidas Premier League:**
+```bash
+curl -X GET "https://api.football-data.org/v4/competitions/PL/matches" \
+-H "X-Auth-Token: 3745081689ca426b8d95c8d00290d729"
+```
+
+---
+
+### 4. PaySuite
+
+**Criar Pagamento Teste:**
+```bash
+curl -X POST "https://paysuite.co.mz/api/v1/payment" \
+-H "Authorization: Bearer 1193|4iu77r4TUkd0nsB3MP8Qjr1uYVvM7d0Y0lpOgwETc153d048" \
+-H "Content-Type: application/json" \
+-d '{
+  "amount": 299.00,
+  "phone": "+258840000000",
+  "reference": "TEST-001",
+  "description": "Teste Assinatura Premium",
+  "method": "mpesa",
+  "currency": "MZN"
+}'
+```
+
+---
+
+## 🔐 TESTES DE AUTENTICAÇÃO (BACKEND)
 
 ### Registro de Usuário
 ```bash

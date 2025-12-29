@@ -76,6 +76,11 @@ export const matchesAPI = {
   getToday: () => api.get('/matches/today/'),
   getLive: () => api.get('/matches/live/'),
   getDetail: (id) => api.get(`/matches/${id}/`),
+  
+  // Novos endpoints - Integração com APIs externas
+  getFromAPI: (date) => api.get('/matches/from_api/', { params: { date } }),
+  analyzeMatch: (matchId) => api.post(`/matches/${matchId}/analyze/`),
+  quickAnalyze: (data) => api.post('/matches/quick_analyze/', data),
 };
 
 // Leagues endpoints
@@ -86,6 +91,7 @@ export const leaguesAPI = {
 // Analysis endpoints
 export const analysisAPI = {
   getAll: (params) => api.get('/analyses/', { params }),
+  getUserAnalyses: () => api.get('/analyses/'),
   requestAnalysis: (matchId) => api.post('/analyses/request_analysis/', { match_id: matchId }),
   getMyStats: () => api.get('/analyses/my_stats/'),
 };

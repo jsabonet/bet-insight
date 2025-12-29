@@ -1,14 +1,29 @@
+"""
+Serviço de análise com Google Gemini AI
+Gera análises preditivas e recomendações de apostas
+"""
+import google.generativeai as genai
+from django.conf import settings
+from typing import Dict
+import logging
 import json
+
+logger = logging.getLogger(__name__)
 
 
 class AIAnalyzer:
-    """Serviço de análise com IA (simulado por enquanto)"""
+    """Serviço de análise com IA (Google Gemini)"""
     
     def __init__(self):
-        # TODO: Integrar com Google Gemini API quando disponível
-        pass
+        genai.configure(api_key=settings.GOOGLE_GEMINI_API_KEY)
+        # Detectar modelo disponível automaticamente
+        models = genai.list_models()
+        available = [m.name for m in models if 'generateContent' in m.supported_generation_methods]
+        model_name = available[0].replace('models/', '') if available else 'gemini-2.5-flash'
+        self.model = genai.GenerativeModel(model_name)
+        logger.info(f"AI Analyzer inicializado com modelo: {model_name}")
     
-    def analyze_match(self, match_data):
+    def analyze_match(self, match_data: Dict) -> Dict:
         """
         Analisa uma partida e retorna predição
         
@@ -19,15 +34,55 @@ class AIAnalyzer:
         - league: str
         - date: str
         """
-        
-        # Por enquanto, retorna análise simulada
-        # Na Fase 6, será integrado com Google Gemini
-        
-        return self._get_simulated_analysis(match_data)
+        try:
+            prompt = self._build_analysis_prompt(match_data)
+            logger.info(f"Analisando: {match_data.get('home_team', {}).get('name')} vs {match_data.get('away_team', {}).get('name')}")
+            
+            response = self.model.generate_content(prompt)
+            
+            return {
+                'success': True,
+                'analysis': response.text,
+                'confidence': self._extract_confidence(response.text)
+            }
+        except Exception as e:
+            logger.error(f"Erro na análise: {e}")
+            return {'success': False, 'error': str(e)}
     
-    def _get_simulated_analysis(self, data):
-        """Análise simulada para testes"""
-        import random
+    def _build_analysis_prompt(self, data: Dict) -> str:
+        """Construir prompt para análise"""
+        home = data.get('home_team', {}).get('name', 'Time A')
+        away = data.get('away_team', {}).get('name', 'Time B')
+        league = data.get('league', 'Liga')
+        
+        return f"""
+Você é um especialista em análise de apostas de futebol. Analise esta partida:
+
+**PARTIDA:** {home} vs {away}
+**LIGA:** {league}
+
+Forneça:
+1. Análise tática (pontos fortes/fracos)
+2. Probabilidades: Vitória Casa / Empate / Vitória Fora
+3. Previsão de gols (Over/Under 2.5)
+4. Recomendação de aposta principal
+5. Nível de confiança (1-5 estrelas)
+
+Seja objetivo e baseie-se em lógica futebolística.
+Responda em português de Moçambique.
+"""
+    
+    def _extract_confidence(self, text: str) -> int:
+        """Extrair nível de confiança da análise"""
+        if '5 estrelas' in text.lower() or '★★★★★' in text:
+            return 5
+        elif '4 estrelas' in text.lower() or '★★★★' in text:
+            return 4
+        elif '3 estrelas' in text.lower() or '★★★' in text:
+            return 3
+        elif '2 estrelas' in text.lower() or '★★' in text:
+            return 2
+        return 1
         
         # Gerar probabilidades aleatórias mas realistas
         base = random.uniform(30, 50)

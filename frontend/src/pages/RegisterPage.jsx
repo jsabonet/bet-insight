@@ -50,18 +50,18 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-500 to-primary-700 px-4 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-500 to-primary-700 dark:from-primary-900 dark:to-gray-900 px-4 py-12">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <Logo variant="happy" size="xl" showText={false} />
           </div>
           <h1 className="text-4xl font-bold text-white mb-2">BetInsight</h1>
-          <p className="text-primary-100">Junte-se e comece a ganhar com IA</p>
+          <p className="text-primary-100 dark:text-primary-300">Junte-se e comece a ganhar com IA</p>
         </div>
 
         <div className="card">
-          <h2 className="text-2xl font-bold text-center mb-6 text-gray-900">Criar Conta</h2>
+          <h2 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-gray-100">Criar Conta</h2>
 
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
@@ -71,7 +71,7 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Usuário *
               </label>
               <input
@@ -86,7 +86,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Email *
               </label>
               <input
@@ -101,7 +101,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Telefone
               </label>
               <input
@@ -115,7 +115,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Senha *
               </label>
               <input
@@ -131,7 +131,7 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Confirmar Senha *
               </label>
               <input
@@ -155,9 +155,9 @@ export default function RegisterPage() {
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               Já tem uma conta?{' '}
-              <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+              <Link to="/login" className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium">
                 Faça login
               </Link>
             </p>

@@ -203,10 +203,21 @@ CELERY_TIMEZONE = 'Africa/Maputo'
 
 # External APIs
 FOOTBALL_DATA_API_KEY = os.getenv('FOOTBALL_DATA_API_KEY', '')
+FOOTBALL_DATA_URL = os.getenv('FOOTBALL_DATA_URL', 'https://api.football-data.org/v4')
+
 API_FOOTBALL_KEY = os.getenv('API_FOOTBALL_KEY', '')
+API_FOOTBALL_HOST = os.getenv('API_FOOTBALL_HOST', 'v3.football.api-sports.io')
+API_FOOTBALL_URL = os.getenv('API_FOOTBALL_URL', 'https://v3.football.api-sports.io')
+
 GOOGLE_GEMINI_API_KEY = os.getenv('GOOGLE_GEMINI_API_KEY', '')
 
-# M-Pesa Configuration
+# PaySuite Configuration (M-Pesa + E-Mola + Outros)
+PAYSUITE_API_TOKEN = os.getenv('PAYSUITE_API_TOKEN', '')
+PAYSUITE_WEBHOOK_SECRET = os.getenv('PAYSUITE_WEBHOOK_SECRET', '')
+PAYSUITE_API_URL = os.getenv('PAYSUITE_API_URL', 'https://paysuite.co.mz/api')
+PAYSUITE_WEBHOOK_URL = os.getenv('PAYSUITE_WEBHOOK_URL', '')
+
+# M-Pesa Configuration (Legado - usar PaySuite)
 MPESA_API_HOST = os.getenv('MPESA_API_HOST', '')
 MPESA_API_KEY = os.getenv('MPESA_API_KEY', '')
 MPESA_PUBLIC_KEY = os.getenv('MPESA_PUBLIC_KEY', '')

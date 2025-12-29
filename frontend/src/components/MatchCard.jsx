@@ -6,7 +6,19 @@ export default function MatchCard({ match, onAnalyze }) {
   const navigate = useNavigate();
   
   const formatDate = (dateString) => {
+    // Se não houver data válida, retornar valores padrão
+    if (!dateString) {
+      return { day: 'A definir', time: '--:--' };
+    }
+
+    // Tentar criar a data (suporta ISO 8601 e timestamps)
     const date = new Date(dateString);
+    
+    // Verificar se a data é válida
+    if (isNaN(date.getTime())) {
+      return { day: 'Data inválida', time: '--:--' };
+    }
+
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -38,15 +50,22 @@ export default function MatchCard({ match, onAnalyze }) {
   };
 
   const badge = getStatusBadge(match.status);
-  const { day, time } = formatDate(match.match_date);
+  // Aceitar tanto match_date (banco de dados) quanto date (API externa)
+  const matchDate = match.match_date || match.date;
+  const { day, time } = formatDate(matchDate);
+
+  // Aceitar múltiplos formatos de times
+  const homeTeam = match.home_team || { name: match.home_team_name || 'Time Casa' };
+  const awayTeam = match.away_team || { name: match.away_team_name || 'Time Visitante' };
+  const league = match.league || { name: match.league_name || 'Liga' };
 
   return (
-    <div className="match-card group animate-slide-up" onClick={() => navigate(`/match/${match.id}`)}>
+    <div className="match-card group animate-slide-up" onClick={() => match.id && navigate(`/match/${match.id}`)}>
       {/* Header - Liga */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 text-sm">
-          <LeagueLogo league={match.league} size="sm" />
-          <span className="text-gray-600 font-medium">{match.league.name}</span>
+          <LeagueLogo league={league} size="sm" />
+          <span className="text-gray-600 dark:text-gray-400 font-medium">{league.name || league}</span>
         </div>
         <span className={badge.className}>
           {match.status === 'LIVE' && <span className="w-2 h-2 bg-white rounded-full animate-pulse mr-1.5"></span>}
@@ -58,29 +77,29 @@ export default function MatchCard({ match, onAnalyze }) {
       <div className="space-y-3 mb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1">
-            <TeamLogo team={match.home_team} size="md" />
-            <span className="font-bold text-gray-900 text-base">{match.home_team.name}</span>
+            <TeamLogo team={homeTeam} size="md" />
+            <span className="font-bold text-gray-900 dark:text-gray-100 text-base">{homeTeam.name || homeTeam}</span>
           </div>
-          {match.home_score !== null && (
-            <span className="text-2xl font-bold text-primary-600 ml-2">
+          {match.home_score !== null && match.home_score !== undefined && (
+            <span className="text-2xl font-bold text-primary-600 dark:text-primary-400 ml-2">
               {match.home_score}
             </span>
           )}
         </div>
 
         <div className="flex items-center justify-center my-2">
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
-          <span className="px-3 py-1 text-gray-700 text-sm font-bold">VS</span>
-          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent"></div>
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent"></div>
+          <span className="px-3 py-1 text-gray-700 dark:text-gray-300 text-sm font-bold">VS</span>
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent"></div>
         </div>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1">
-            <TeamLogo team={match.away_team} size="md" />
-            <span className="font-bold text-gray-900 text-base">{match.away_team.name}</span>
+            <TeamLogo team={awayTeam} size="md" />
+            <span className="font-bold text-gray-900 dark:text-gray-100 text-base">{awayTeam.name || awayTeam}</span>
           </div>
-          {match.away_score !== null && (
-            <span className="text-2xl font-bold text-blue-600 ml-2">
+          {match.away_score !== null && match.away_score !== undefined && (
+            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400 ml-2">
               {match.away_score}
             </span>
           )}
@@ -88,19 +107,22 @@ export default function MatchCard({ match, onAnalyze }) {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-        <div className="flex items-center gap-2 text-sm text-gray-600">
+      <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
+        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
           <Calendar className="w-4 h-4" />
           <span className="font-medium">{day}</span>
-          <span className="text-gray-400">•</span>
+          <span className="text-gray-400 dark:text-gray-600">•</span>
           <span>{time}</span>
         </div>
 
         <button 
           onClick={(e) => {
             e.stopPropagation();
-            if (onAnalyze) onAnalyze(match.id);
-            else navigate(`/match/${match.id}`);
+            if (onAnalyze && match.id) {
+              onAnalyze(match.id);
+            } else if (match.id) {
+              navigate(`/match/${match.id}`);
+            }
           }}
           className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl text-sm font-semibold hover:from-primary-700 hover:to-primary-800 transition-all group-hover:scale-105 shadow-md shadow-primary-600/30 active:scale-95"
         >

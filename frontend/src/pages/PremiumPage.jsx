@@ -88,13 +88,13 @@ export default function PremiumPage() {
         
         <div className="page-content">
           <div className="card text-center py-12">
-            <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Star className="w-10 h-10 text-yellow-600" />
+            <div className="w-20 h-20 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Star className="w-10 h-10 text-yellow-600 dark:text-yellow-400 fill-yellow-600 dark:fill-yellow-400" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
               Você já é Premium! 🎉
             </h1>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
               Aproveite todas as funcionalidades exclusivas
             </p>
             <button
@@ -128,36 +128,36 @@ export default function PremiumPage() {
               key={plan.id}
               className={`card cursor-pointer transition-all animate-slide-up ${
                 selectedPlan === plan.id
-                  ? 'ring-2 ring-primary-600 shadow-xl scale-[1.02]'
-                  : 'hover:shadow-lg'
-              } ${plan.popular ? 'border-2 border-primary-600' : ''}`}
+                  ? 'ring-2 ring-primary-600 dark:ring-primary-500 shadow-xl dark:shadow-black/30 scale-[1.02]'
+                  : 'hover:shadow-lg dark:hover:shadow-black/30'
+              } ${plan.popular ? 'border-2 border-primary-600 dark:border-primary-500' : ''}`}
               onClick={() => setSelectedPlan(plan.id)}
             >
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-primary-600 text-white px-4 py-1 rounded-full text-sm font-semibold">
+                  <span className="bg-primary-600 dark:bg-primary-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg">
                     Mais Popular
                   </span>
                 </div>
               )}
 
               <div className="text-center mb-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                   {plan.name}
                 </h3>
-                <p className="text-sm text-gray-600 mb-4">{plan.description}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{plan.description}</p>
                 
                 <div className="mb-2">
-                  <span className="text-4xl font-bold text-gray-900">
+                  <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">
                     {plan.price}
                   </span>
-                  <span className="text-gray-600 ml-2">MZN</span>
+                  <span className="text-gray-600 dark:text-gray-400 ml-2">MZN</span>
                 </div>
                 
-                <p className="text-sm text-gray-600">por {plan.period}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">por {plan.period}</p>
                 
                 {plan.savings && (
-                  <p className="text-sm text-green-600 font-medium mt-2">
+                  <p className="text-sm text-green-600 dark:text-green-400 font-medium mt-2">
                     {plan.savings}
                   </p>
                 )}
@@ -165,8 +165,8 @@ export default function PremiumPage() {
 
               <div className={`w-6 h-6 rounded-full border-2 mx-auto ${
                 selectedPlan === plan.id
-                  ? 'border-primary-600 bg-primary-600'
-                  : 'border-gray-300'
+                  ? 'border-primary-600 dark:border-primary-500 bg-primary-600 dark:bg-primary-500'
+                  : 'border-gray-300 dark:border-gray-600'
               }`}>
                 {selectedPlan === plan.id && (
                   <Check className="w-5 h-5 text-white" />
@@ -178,7 +178,7 @@ export default function PremiumPage() {
 
         {/* Features Comparison */}
         <div className="card mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
             Recursos Premium
           </h2>
 
@@ -186,22 +186,22 @@ export default function PremiumPage() {
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-xl transition-colors"
+                className="flex items-start gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-xl transition-colors"
               >
-                <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <feature.icon className="w-5 h-5 text-primary-600" />
+                <div className="w-10 h-10 bg-primary-100 dark:bg-primary-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <feature.icon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 </div>
                 
                 <div className="flex-1">
-                  <h3 className="font-bold text-gray-900 text-sm mb-1">
+                  <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-1">
                     {feature.title}
                   </h3>
-                  <p className="text-xs text-gray-600">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
                     {feature.description}
                   </p>
                 </div>
 
-                <div className="text-primary-600 font-semibold text-lg flex-shrink-0">
+                <div className="text-primary-600 dark:text-primary-400 font-semibold text-lg flex-shrink-0">
                   ✓
                 </div>
               </div>
@@ -210,11 +210,11 @@ export default function PremiumPage() {
         </div>
 
         {/* CTA */}
-        <div className="card bg-gradient-to-br from-primary-600 to-primary-700 text-white text-center">
+        <div className="card bg-gradient-to-br from-primary-600 to-primary-700 dark:from-primary-700 dark:to-primary-800 text-white text-center border-none shadow-xl dark:shadow-black/30">
           <h2 className="text-xl font-bold mb-2">
             Pronto para começar?
           </h2>
-          <p className="text-primary-100 mb-6 text-sm">
+          <p className="text-primary-100 dark:text-primary-200 mb-6 text-sm">
             Faça upgrade agora e aproveite análises ilimitadas
           </p>
           

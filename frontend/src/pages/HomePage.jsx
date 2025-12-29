@@ -6,11 +6,15 @@ import BottomNav from '../components/BottomNav';
 import MatchCard from '../components/MatchCard';
 import EmptyState from '../components/EmptyState';
 import LoadingMascot from '../components/LoadingMascot';
+import AnalysisModal from '../components/AnalysisModal';
 
 export default function HomePage() {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('upcoming');
+  const [analyzing, setAnalyzing] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState(null);
+  const [analysis, setAnalysis] = useState(null);
 
   useEffect(() => {
     loadMatches();
@@ -19,26 +23,44 @@ export default function HomePage() {
   const loadMatches = async () => {
     setLoading(true);
     try {
-      let response;
-      switch (filter) {
-        case 'today':
-          response = await matchesAPI.getToday();
-          break;
-        case 'live':
-          response = await matchesAPI.getLive();
-          break;
-        case 'upcoming':
-          response = await matchesAPI.getUpcoming();
-          break;
-        default:
-          response = await matchesAPI.getAll();
-      }
-      setMatches(response.data.results || response.data);
+      // Sempre buscar partidas reais da API externa
+      const today = new Date().toISOString().split('T')[0];
+      const response = await matchesAPI.getFromAPI(today);
+      setMatches(response.data.matches || []);
     } catch (error) {
       console.error('Erro ao carregar partidas:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAnalyze = async (matchId) => {
+    setAnalyzing(true);
+    try {
+      // Encontrar a partida para exibir no modal
+      const match = matches.find(m => m.id === matchId);
+      setSelectedMatch(match);
+
+      // Usar quick_analyze para partidas da API (não consome limite)
+      if (match) {
+        const response = await matchesAPI.quickAnalyze({
+          home_team: match.home_team.name || match.home_team,
+          away_team: match.away_team.name || match.away_team,
+          league: match.league.name || match.league
+        });
+        setAnalysis(response.data);
+      }
+    } catch (error) {
+      console.error('Erro ao analisar partida:', error);
+      alert(error.response?.data?.error || 'Erro ao gerar análise. Tente novamente.');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const closeModal = () => {
+    setSelectedMatch(null);
+    setAnalysis(null);
   };
 
   const filters = [
@@ -62,7 +84,7 @@ export default function HomePage() {
               className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-semibold whitespace-nowrap transition-all duration-200 ${
                 filter === f.id
                   ? 'bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-600/30 scale-105'
-                  : 'bg-white text-gray-700 hover:bg-gray-50 shadow-md border border-gray-100'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 shadow-md border border-gray-100 dark:border-gray-700'
               }`}
             >
               <f.icon className="w-4 h-4" />
@@ -93,7 +115,7 @@ export default function HomePage() {
         ) : (
           <div className="space-y-4">
             {matches.map((match) => (
-              <MatchCard key={match.id} match={match} />
+              <MatchCard key={match.id} match={match} onAnalyze={handleAnalyze} />
             ))}
           </div>
         )}
@@ -106,6 +128,27 @@ export default function HomePage() {
       </div>
 
       <BottomNav />
+
+      {/* Analysis Modal */}
+      {analysis && (
+        <AnalysisModal
+          match={selectedMatch}
+          analysis={analysis}
+          onClose={closeModal}
+        />
+      )}
+
+      {/* Analyzing Overlay */}
+      {analyzing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl max-w-sm mx-4">
+            <LoadingMascot message="Gerando análise com IA..." />
+            <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-4">
+              Isso pode levar alguns segundos...
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
