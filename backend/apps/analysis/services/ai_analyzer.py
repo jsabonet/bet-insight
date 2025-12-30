@@ -3,6 +3,7 @@ Serviço de análise com Google Gemini AI
 Gera análises preditivas e recomendações de apostas
 """
 import google.generativeai as genai
+from google.api_core import exceptions as google_exceptions
 from django.conf import settings
 from typing import Dict
 import logging
@@ -15,12 +16,47 @@ class AIAnalyzer:
     """Serviço de análise com IA (Google Gemini)"""
     
     def __init__(self):
-        genai.configure(api_key=settings.GOOGLE_GEMINI_API_KEY)
-        # Detectar modelo disponível automaticamente
-        models = genai.list_models()
-        available = [m.name for m in models if 'generateContent' in m.supported_generation_methods]
-        model_name = available[0].replace('models/', '') if available else 'gemini-2.5-flash'
-        self.model = genai.GenerativeModel(model_name)
+        api_key = settings.GOOGLE_GEMINI_API_KEY
+        if not api_key:
+            logger.error("Chave da API do Gemini não configurada.")
+            # Inicializa um modelo nulo para evitar crashes; chamadas retornarão erro estruturado
+            self.model = None
+            return
+
+        genai.configure(api_key=api_key)
+        # Selecionar um modelo suportado dinamicamente via list_models
+        model_name = None
+        try:
+            available = list(genai.list_models())
+            supported = [m for m in available if hasattr(m, 'supported_generation_methods') and ('generateContent' in m.supported_generation_methods)]
+            # Ordenar preferência: gemini-2.5 > gemini-1.5 > gemini-1.0 > gemini-pro
+            def score(m):
+                n = getattr(m, 'name', getattr(m, 'model', '')).lower()
+                if 'gemini-2.5' in n:
+                    return 0
+                if 'gemini-1.5' in n:
+                    return 1
+                if 'gemini-1.0' in n:
+                    return 2
+                if 'gemini-pro' in n:
+                    return 3
+                return 4
+            supported.sort(key=score)
+            chosen = supported[0] if supported else None
+            if chosen:
+                chosen_name = getattr(chosen, 'name', getattr(chosen, 'model', None)) or 'gemini-pro'
+                # Aceitar tanto 'models/...' quanto nome simples
+                if isinstance(chosen_name, str) and chosen_name.startswith('models/'):
+                    chosen_name = chosen_name.replace('models/', '')
+                self.model = genai.GenerativeModel(chosen_name)
+                model_name = chosen_name
+            else:
+                logger.error("Nenhum modelo com suporte a generateContent disponível para esta chave/API.")
+                self.model = None
+        except Exception as e:
+            logger.error(f"Falha ao listar modelos do Gemini: {e}")
+            self.model = None
+        
         logger.info(f"AI Analyzer inicializado com modelo: {model_name}")
     
     def analyze_match(self, match_data: Dict) -> Dict:
@@ -35,19 +71,51 @@ class AIAnalyzer:
         - date: str
         """
         try:
+            if not self.model:
+                return {
+                    'success': False,
+                    'error': 'API key do Gemini não configurada.',
+                    'error_code': 'API_KEY_MISSING',
+                    'http_status': 400
+                }
             prompt = self._build_analysis_prompt(match_data)
             logger.info(f"Analisando: {match_data.get('home_team', {}).get('name')} vs {match_data.get('away_team', {}).get('name')}")
             
-            response = self.model.generate_content(prompt)
+            try:
+                response = self.model.generate_content(prompt)
+            except google_exceptions.NotFound as e:
+                logger.error(f"Modelo do Gemini não encontrado/sem suporte: {e}")
+                return {
+                    'success': False,
+                    'error': 'Modelo do Gemini não encontrado ou sem suporte para generateContent.',
+                    'error_code': 'MODEL_NOT_FOUND',
+                    'details': str(e),
+                    'http_status': 404
+                }
             
             return {
                 'success': True,
                 'analysis': response.text,
                 'confidence': self._extract_confidence(response.text)
             }
+        except google_exceptions.InvalidArgument as e:
+            # Erros de chave inválida/expirada retornam como InvalidArgument (400)
+            logger.error(f"Erro na análise (API key inválida/expirada): {e}")
+            return {
+                'success': False,
+                'error': 'API key do Gemini inválida ou expirada. Atualize a chave.',
+                'error_code': 'API_KEY_INVALID',
+                'details': str(e),
+                'http_status': 400
+            }
         except Exception as e:
             logger.error(f"Erro na análise: {e}")
-            return {'success': False, 'error': str(e)}
+            return {
+                'success': False,
+                'error': 'Falha ao gerar a análise. Tente novamente mais tarde.',
+                'details': str(e),
+                'http_status': 500
+            }
     
     def _build_analysis_prompt(self, data: Dict) -> str:
         """Construir prompt para análise"""
@@ -83,85 +151,3 @@ Responda em português de Moçambique.
         elif '2 estrelas' in text.lower() or '★★' in text:
             return 2
         return 1
-        
-        # Gerar probabilidades aleatórias mas realistas
-        base = random.uniform(30, 50)
-        home_prob = round(base, 1)
-        away_prob = round(100 - base - random.uniform(20, 30), 1)
-        draw_prob = round(100 - home_prob - away_prob, 1)
-        
-        # Determinar predição baseada nas probabilidades
-        probs = {'home': home_prob, 'away': away_prob, 'draw': draw_prob}
-        prediction = max(probs, key=probs.get)
-        
-        # Confiança baseada na diferença de probabilidade
-        max_prob = max(probs.values())
-        if max_prob > 50:
-            confidence = 4
-        elif max_prob > 45:
-            confidence = 3
-        else:
-            confidence = 2
-        
-        home_team = data['home_team']['name']
-        away_team = data['away_team']['name']
-        
-        return {
-            'prediction': prediction,
-            'confidence': confidence,
-            'home_probability': home_prob,
-            'draw_probability': draw_prob,
-            'away_probability': away_prob,
-            'home_xg': round(random.uniform(0.8, 2.5), 1),
-            'away_xg': round(random.uniform(0.8, 2.5), 1),
-            'reasoning': f'Análise baseada em estatísticas recentes. {home_team} enfrenta {away_team} em confronto equilibrado. Considerando forma atual, histórico e fator casa.',
-            'key_factors': [
-                f'Forma recente favorece {home_team if prediction == "home" else away_team}',
-                'Histórico direto equilibrado',
-                'Fator casa pode ser decisivo'
-            ],
-            'analysis_breakdown': {
-                'form': {'home': round(random.uniform(50, 80), 1), 'away': round(random.uniform(50, 80), 1)},
-                'home_away': {'advantage': 65},
-                'h2h': {'score': round(random.uniform(40, 60), 1)},
-                'stats': {'home': round(random.uniform(50, 75), 1), 'away': round(random.uniform(50, 75), 1)}
-            }
-        }
-    
-    def _parse_response(self, response_text):
-        """Parsear resposta da IA"""
-        try:
-            if '```json' in response_text:
-                response_text = response_text.split('```json')[1].split('```')[0]
-            elif '```' in response_text:
-                response_text = response_text.split('```')[1].split('```')[0]
-            
-            result = json.loads(response_text.strip())
-            
-            required = ['prediction', 'confidence', 'home_probability', 
-                       'draw_probability', 'away_probability', 'reasoning']
-            
-            for field in required:
-                if field not in result:
-                    raise ValueError(f"Campo {field} ausente")
-            
-            return result
-            
-        except Exception as e:
-            print(f"Erro ao parsear resposta: {e}")
-            return self._get_default_analysis()
-    
-    def _get_default_analysis(self):
-        """Análise padrão em caso de erro"""
-        return {
-            'prediction': 'draw',
-            'confidence': 2,
-            'home_probability': 33.3,
-            'draw_probability': 33.3,
-            'away_probability': 33.4,
-            'home_xg': 1.5,
-            'away_xg': 1.5,
-            'reasoning': 'Análise indisponível. Dados insuficientes.',
-            'key_factors': ['Análise em modo seguro'],
-            'analysis_breakdown': {}
-        }

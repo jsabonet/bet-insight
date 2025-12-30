@@ -4,6 +4,7 @@ import { matchesAPI, analysisAPI } from '../services/api';
 import { ArrowLeft, TrendingUp, Target, Brain, Star, AlertCircle } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
+import LoadingMascot from '../components/LoadingMascot';
 import { TeamLogo, LeagueLogo } from '../utils/logos';
 
 export default function MatchDetailPage() {
@@ -15,6 +16,7 @@ export default function MatchDetailPage() {
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState('');
+  const [isExternalMatch, setIsExternalMatch] = useState(false);
 
   useEffect(() => {
     loadMatchDetails();
@@ -22,11 +24,25 @@ export default function MatchDetailPage() {
 
   const loadMatchDetails = async () => {
     try {
+      // Tentar buscar do banco de dados primeiro
       const response = await matchesAPI.getDetail(id);
       setMatch(response.data);
+      setIsExternalMatch(false);
     } catch (error) {
-      console.error('Erro ao carregar partida:', error);
-      setError('Erro ao carregar detalhes da partida');
+      // Se 404, tentar buscar da API externa
+      if (error.response?.status === 404) {
+        try {
+          const apiResponse = await matchesAPI.getApiDetail(id);
+          setMatch(apiResponse.data.match);
+          setIsExternalMatch(true);
+        } catch (apiError) {
+          console.error('Erro ao carregar partida da API:', apiError);
+          setError('Erro ao carregar detalhes da partida');
+        }
+      } else {
+        console.error('Erro ao carregar partida:', error);
+        setError('Erro ao carregar detalhes da partida');
+      }
     } finally {
       setLoading(false);
     }
@@ -37,8 +53,19 @@ export default function MatchDetailPage() {
     setAnalyzing(true);
 
     try {
-      const response = await analysisAPI.requestAnalysis(id);
-      setAnalysis(response.data.analysis);
+      if (isExternalMatch) {
+        // Usar quick_analyze para partidas externas
+        const response = await matchesAPI.quickAnalyze({
+          home_team: match.home_team?.name || match.home_team,
+          away_team: match.away_team?.name || match.away_team,
+          league: match.league?.name || match.league
+        });
+        setAnalysis(response.data.analysis);
+      } else {
+        // Usar request_analysis para partidas do DB
+        const response = await analysisAPI.requestAnalysis(id);
+        setAnalysis(response.data.analysis);
+      }
     } catch (err) {
       const errorMsg = err.response?.data?.error || 'Erro ao gerar análise';
       setError(errorMsg);
@@ -51,8 +78,8 @@ export default function MatchDetailPage() {
     return (
       <div className="page-container">
         <Header title="Carregando..." />
-        <div className="page-content text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
+        <div className="page-content">
+          <LoadingMascot message="Carregando detalhes da partida..." />
         </div>
       </div>
     );
@@ -87,10 +114,10 @@ export default function MatchDetailPage() {
           <div className="text-center mb-6">
             <div className="flex items-center justify-center gap-2 mb-3">
               <LeagueLogo league={match.league} size="md" />
-              <span className="badge badge-info">{match.league.name}</span>
+              <span className="badge badge-info">{match.league?.name || match.league}</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">
-              {match.home_team.name} vs {match.away_team.name}
+              {match.home_team?.name || match.home_team} vs {match.away_team?.name || match.away_team}
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
               {new Date(match.match_date).toLocaleString('pt-PT')}
@@ -102,14 +129,14 @@ export default function MatchDetailPage() {
               <div className="flex justify-center mb-3">
                 <TeamLogo team={match.home_team} size="xl" />
               </div>
-              <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">{match.home_team.name}</h3>
+              <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">{match.home_team?.name || match.home_team}</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Casa</p>
             </div>
             <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-2xl border border-transparent dark:border-blue-700/30">
               <div className="flex justify-center mb-3">
                 <TeamLogo team={match.away_team} size="xl" />
               </div>
-              <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">{match.away_team.name}</h3>
+              <h3 className="font-bold text-lg text-gray-900 dark:text-gray-100">{match.away_team?.name || match.away_team}</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Visitante</p>
             </div>
           </div>
@@ -136,6 +163,20 @@ export default function MatchDetailPage() {
         {/* Análise */}
         {analysis && (
           <div className="space-y-4 animate-slide-up">
+            {typeof analysis === 'string' ? (
+              /* Análise simples (quick_analyze) */
+              <div className="card">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                  <Brain className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                  Análise com IA
+                </h3>
+                <div className="prose dark:prose-invert max-w-none">
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{analysis}</p>
+                </div>
+              </div>
+            ) : (
+              /* Análise estruturada (request_analysis) */
+              <>
             {/* Predição Principal */}
             <div className="card bg-gradient-to-br from-primary-600 to-primary-700 dark:from-primary-700 dark:to-primary-800 text-white border-none shadow-xl dark:shadow-black/30">
               <div className="text-center">
@@ -226,7 +267,7 @@ export default function MatchDetailPage() {
               
               <h4 className="font-bold mb-2 text-gray-900 dark:text-gray-100">Fatores Chave:</h4>
               <ul className="space-y-2">
-                {analysis.key_factors.map((factor, index) => (
+                {analysis.key_factors?.map((factor, index) => (
                   <li key={index} className="flex items-start gap-2">
                     <span className="text-primary-600 dark:text-primary-400 mt-1">✓</span>
                     <span className="text-gray-700 dark:text-gray-300">{factor}</span>
@@ -234,6 +275,8 @@ export default function MatchDetailPage() {
                 ))}
               </ul>
             </div>
+              </>
+            )}
           </div>
         )}
       </div>

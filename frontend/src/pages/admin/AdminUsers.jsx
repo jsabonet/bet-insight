@@ -13,6 +13,7 @@ import {
   UserX
 } from 'lucide-react';
 import Header from '../../components/Header';
+import LoadingMascot from '../../components/LoadingMascot';
 import BottomNav from '../../components/BottomNav';
 import UserAvatar from '../../components/UserAvatar';
 
@@ -91,8 +92,8 @@ export default function AdminUsers() {
     return (
       <div className="page-container">
         <Header title="Usuários" />
-        <div className="page-content text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 dark:border-primary-400"></div>
+        <div className="page-content">
+          <LoadingMascot message="Carregando usuários..." />
         </div>
       </div>
     );

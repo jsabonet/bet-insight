@@ -49,11 +49,11 @@ export default function AnalysisModal({ match, analysis, onClose }) {
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mt-4">
               <div className="flex items-center justify-between text-white">
                 <div className="text-center flex-1">
-                  <p className="font-bold text-lg">{match.home_team}</p>
+                  <p className="font-bold text-lg">{match.home_team?.name || match.home_team}</p>
                 </div>
                 <div className="px-4 py-1 bg-white/20 rounded-lg font-bold">VS</div>
                 <div className="text-center flex-1">
-                  <p className="font-bold text-lg">{match.away_team}</p>
+                  <p className="font-bold text-lg">{match.away_team?.name || match.away_team}</p>
                 </div>
               </div>
             </div>
