@@ -12,137 +12,97 @@ export default function AnalysisModal({ match, analysis, onClose, metadata }) {
   const analysisText = typeof analysis === 'string' ? analysis : analysis.analysis;
   const confidence = typeof analysis === 'string' ? 3 : (analysis.confidence || 3);
 
-  // Formatar texto da análise agrupando em parágrafos
+  // Extrair pontos-chave de forma inteligente
+  const extractKeyPoints = (text) => {
+    if (!text) return [];
+    
+    // Palavras-chave importantes
+    const keywords = ['recomendo', 'importante', 'destaque', 'atenção', 'crucial', 'fundamental', 'decisivo', 'vantagem', 'favorito'];
+    
+    const sentences = text
+      .split(/[.!?]+/)
+      .map(s => s.trim())
+      .filter(s => s.length > 20);
+    
+    // Pontuar cada frase
+    const scored = sentences.map(sentence => {
+      let score = 0;
+      const lower = sentence.toLowerCase();
+      
+      // Contém palavra-chave? +3 pontos
+      if (keywords.some(kw => lower.includes(kw))) score += 3;
+      
+      // Contém números/percentuais? +2 pontos
+      if (/\d+%|\d+\.\d+|\d+ gol/.test(sentence)) score += 2;
+      
+      // Começa com marcador? +2 pontos
+      if (/^[•\-\d+]/.test(sentence.trim())) score += 2;
+      
+      // Contém emoji de análise? +1 ponto
+      if (/[🔥⚡⭐💪🎯]/.test(sentence)) score += 1;
+      
+      // Frases introdutórias genéricas? -2 pontos
+      if (/^(boas|como|vamos|olá)/i.test(sentence)) score -= 2;
+      
+      return { sentence, score };
+    });
+    
+    // Ordenar por pontuação e pegar top 3
+    return scored
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map(item => item.sentence);
+  };
+
+  // Formatar texto da análise com seções
   const formatAnalysisText = (text) => {
     if (!text) return [];
     
+    const sections = [];
     const lines = text.split('\n');
-    const paragraphs = [];
-    let currentParagraph = [];
+    let currentSection = null;
     
     lines.forEach(line => {
       const trimmed = line.trim();
+      if (!trimmed) return;
       
-      // Ignorar separadores
-      if (/^[-=]+$/.test(trimmed)) return;
+      // Detectar títulos de seção
+      if (/^[═]+$/.test(trimmed)) return; // Pular separadores
       
-      // Se linha vazia E temos conteúdo acumulado, fechar parágrafo
-      if (!trimmed) {
-        if (currentParagraph.length > 0) {
-          paragraphs.push(currentParagraph.join('\n'));
-          currentParagraph = [];
-        }
-        return;
-      }
-      
-      // Adicionar linha ao parágrafo atual
-      currentParagraph.push(trimmed);
-    });
-    
-    // Adicionar último parágrafo se houver
-    if (currentParagraph.length > 0) {
-      paragraphs.push(currentParagraph.join('\n'));
-    }
-    
-    return paragraphs;
-  };
-
-  // Processar formatação inline (negrito, itálico, números, etc)
-  const formatInlineText = (text, homeTeam, awayTeam) => {
-    const parts = [];
-    let currentIndex = 0;
-    
-    // Obter nomes dos times
-    const homeName = homeTeam?.name || homeTeam || '';
-    const awayName = awayTeam?.name || awayTeam || '';
-    
-    // Padrões de formatação
-    const patterns = [
-      { regex: /\*\*([^*]+)\*\*/g, type: 'bold' },       // **negrito**
-      { regex: /\*([^*]+)\*/g, type: 'bullet' },          // *item de lista*
-      { regex: /(\d+%)/g, type: 'percent' },              // percentuais
-      { regex: /(\d+\.\d+|\d+:\d+)/g, type: 'number' },   // números decimais/placar
-      { regex: /(\d+\s+gol(?:s)?)/gi, type: 'number' },   // X gols
-    ];
-    
-    // Adicionar padrões para nomes de times (escapar caracteres especiais)
-    if (homeName) {
-      const escapedHome = homeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      patterns.push({ regex: new RegExp(`(${escapedHome})`, 'gi'), type: 'home_team' });
-    }
-    if (awayName) {
-      const escapedAway = awayName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      patterns.push({ regex: new RegExp(`(${escapedAway})`, 'gi'), type: 'away_team' });
-    }
-    
-    // Primeiro, detectar se a linha começa com * (item de lista)
-    const isBullet = /^\*\s+/.test(text);
-    if (isBullet) {
-      text = text.replace(/^\*\s+/, ''); // Remover * inicial
-    }
-    
-    // Processar todos os padrões
-    const matches = [];
-    patterns.forEach(({ regex, type }) => {
-      let match;
-      const r = new RegExp(regex);
-      while ((match = r.exec(text)) !== null) {
-        matches.push({
-          index: match.index,
-          length: match[0].length,
-          content: match[1] || match[0],
-          type,
-          fullMatch: match[0]
+      if (/^(1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|📊|⚽|🎯|⚠️|💡)/.test(trimmed) || /^\*\*[A-Z\s]+\*\*/.test(trimmed)) {
+        // Nova seção
+        if (currentSection) sections.push(currentSection);
+        currentSection = {
+          title: trimmed.replace(/\*\*/g, '').trim(),
+          content: [],
+          isTitle: true
+        };
+      } else if (currentSection) {
+        currentSection.content.push(trimmed);
+      } else {
+        // Texto inicial sem seção
+        sections.push({
+          title: null,
+          content: [trimmed],
+          isTitle: false
         });
       }
     });
     
-    // Ordenar por posição
-    matches.sort((a, b) => a.index - b.index);
-    
-    // Evitar overlaps
-    const validMatches = [];
-    let lastEnd = 0;
-    matches.forEach(match => {
-      if (match.index >= lastEnd) {
-        validMatches.push(match);
-        lastEnd = match.index + match.length;
-      }
-    });
-    
-    // Construir partes
-    let position = 0;
-    validMatches.forEach(match => {
-      // Texto antes do match
-      if (match.index > position) {
-        parts.push({ type: 'text', content: text.substring(position, match.index) });
-      }
-      // Match formatado
-      parts.push({ type: match.type, content: match.content });
-      position = match.index + match.length;
-    });
-    
-    // Texto final
-    if (position < text.length) {
-      parts.push({ type: 'text', content: text.substring(position) });
-    }
-    
-    return { parts: parts.length > 0 ? parts : [{ type: 'text', content: text }], isBullet };
+    if (currentSection) sections.push(currentSection);
+    return sections;
   };
 
   const renderStars = (confidence) => {
-    // Garantir que temos um número entre 1 e 5
-    const stars = Math.max(1, Math.min(5, Math.round(Number(confidence) || 3)));
-    
     return (
       <div className="flex items-center gap-1">
         {[...Array(5)].map((_, i) => (
           <Star
             key={i}
-            className={`w-5 h-5 sm:w-6 sm:h-6 transition-all ${
-              i < stars
-                ? 'fill-yellow-400 text-yellow-400 drop-shadow-lg'
-                : 'text-white/30'
+            className={`w-5 h-5 ${
+              i < confidence
+                ? 'fill-yellow-400 text-yellow-400'
+                : 'text-gray-300 dark:text-gray-600'
             }`}
           />
         ))}
@@ -152,12 +112,12 @@ export default function AnalysisModal({ match, analysis, onClose, metadata }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-slide-up">
+      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden animate-slide-up">
         {/* Header */}
-        <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-accent-600 p-4 sm:p-6">
+        <div className="relative bg-gradient-to-br from-primary-600 via-primary-700 to-accent-600 p-4 sm:p-6">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all hover:scale-110 z-10"
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all hover:scale-110"
           >
             <X className="w-5 h-5" />
           </button>
@@ -227,8 +187,8 @@ export default function AnalysisModal({ match, analysis, onClose, metadata }) {
         </div>
 
         {/* Content */}
-        <div className="p-4 sm:p-6">
-          {/* Dados Analisados */}
+        <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(90vh-220px)]">
+          {/* Dados Analisados - NOVO! */}
           {metadata && (
             <div className="mb-6 p-4 bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl border-2 border-blue-200 dark:border-blue-800 shadow-lg">
               <div className="flex items-center gap-2 mb-3">
@@ -265,9 +225,26 @@ export default function AnalysisModal({ match, analysis, onClose, metadata }) {
               </div>
             </div>
           )}
+                </div>
+                <div className="flex-1 flex flex-col items-center gap-2">
+                  <div className="w-16 h-16 bg-white rounded-full p-2 shadow-lg">
+                    <TeamLogo 
+                      team={match.away_team} 
+                      size="full"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <p className="font-bold text-base text-center">{match.away_team?.name || match.away_team}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
-          {/* Veredicto Rápido */}
-          <div className="mb-6 p-4 sm:p-6 bg-gradient-to-br from-primary-50 via-primary-100 to-accent-50 dark:from-gray-700 dark:to-gray-600 rounded-2xl border-2 border-primary-300 dark:border-primary-600 shadow-lg transition-all hover:shadow-xl">
+        {/* Content */}
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+          {/* Veredicto Rápido Visual */}
+          <div className="mb-6 p-4 sm:p-6 bg-gradient-to-br from-primary-50 via-primary-100 to-accent-50 dark:from-gray-700 dark:to-gray-600 rounded-2xl sm:rounded-3xl border-2 border-primary-300 dark:border-primary-600 shadow-lg transition-all hover:shadow-xl">
             <div className="flex items-center gap-3 mb-3">
               {confidence >= 4 ? (
                 <div className="p-2 sm:p-3 bg-green-500 rounded-full animate-pulse">
@@ -298,82 +275,72 @@ export default function AnalysisModal({ match, analysis, onClose, metadata }) {
           </div>
 
           {isSimpleAnalysis ? (
+            /* Análise simples (quick_analyze) - MELHORADO */
             <div className="space-y-4">
-              {/* Análise Completa Formatada */}
-              <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-4 sm:p-6 border-2 border-gray-200 dark:border-gray-600 shadow-lg">
+              {/* Pontos-Chave Inteligentes */}
+              <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl sm:rounded-3xl p-4 sm:p-6 border-2 border-gray-200 dark:border-gray-600 shadow-lg">
                 <div className="flex items-center gap-2 mb-4">
-                  <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-primary-500" />
-                  <h3 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white">ANÁLISE DETALHADA</h3>
+                  <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-500" />
+                  <h3 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white">PONTOS-CHAVE</h3>
                 </div>
-                <div className="space-y-4">
-                  {formatAnalysisText(analysisText).map((paragraph, idx) => {
-                    // Detectar se é um título (começa com emoji)
-                    const isTitle = /^(1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|📊|⚽|🎯|⚠️|💡|🔥|⭐|📈|📉|💪|🏆|📜|⚔️|💰)/.test(paragraph);
-                    
-                    return (
-                      <div 
-                        key={idx}
-                        className={`leading-relaxed text-sm sm:text-base animate-fade-in ${
-                          isTitle ? 'font-bold text-base sm:text-lg text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-200'
-                        }`}
-                        style={{ animationDelay: `${idx * 0.05}s` }}
-                      >
-                        {paragraph.split('\n').map((line, lidx) => {
-                          const formatted = formatInlineText(line, match?.home_team, match?.away_team);
-                          return (
-                            <div 
-                              key={lidx}
-                              className={formatted.isBullet ? 'flex items-start gap-2 ml-4 mb-1' : 'mb-1'}
-                            >
-                              {formatted.isBullet && (
-                                <span className="text-primary-500 font-bold mt-0.5">•</span>
-                              )}
-                              <span className="flex-1 flex items-center flex-wrap gap-1">
-                                {formatted.parts.map((part, pidx) => {
-                                  if (part.type === 'bold') {
-                                    return <strong key={pidx} className="font-bold text-gray-900 dark:text-white">{part.content}</strong>;
-                                  } else if (part.type === 'number' || part.type === 'percent') {
-                                    return (
-                                      <span key={pidx} className="font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30 px-1.5 py-0.5 rounded mx-0.5">
-                                        {part.content}
-                                      </span>
-                                    );
-                                  } else if (part.type === 'home_team') {
-                                    return (
-                                      <span key={pidx} className="inline-flex items-center gap-1 font-semibold text-gray-900 dark:text-white">
-                                        <span className="inline-block w-4 h-4 sm:w-5 sm:h-5">
-                                          <TeamLogo team={match?.home_team} size="full" className="w-full h-full object-contain" />
-                                        </span>
-                                        {part.content}
-                                      </span>
-                                    );
-                                  } else if (part.type === 'away_team') {
-                                    return (
-                                      <span key={pidx} className="inline-flex items-center gap-1 font-semibold text-gray-900 dark:text-white">
-                                        <span className="inline-block w-4 h-4 sm:w-5 sm:h-5">
-                                          <TeamLogo team={match?.away_team} size="full" className="w-full h-full object-contain" />
-                                        </span>
-                                        {part.content}
-                                      </span>
-                                    );
-                                  } else {
-                                    return <span key={pidx}>{part.content}</span>;
-                                  }
-                                })}
-                              </span>
-                            </div>
-                          );
-                        })}
+                <div className="space-y-3">
+                  {extractKeyPoints(analysisText).map((point, idx) => (
+                    <div 
+                      key={idx} 
+                      className="flex items-start gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border-l-4 border-primary-500 shadow-md hover:shadow-lg transition-all animate-fade-in"
+                      style={{ animationDelay: `${idx * 0.1}s` }}
+                    >
+                      <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
+                        <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-primary-600 dark:text-primary-400" />
                       </div>
-                    );
-                  })}
+                      <p className="flex-1 text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-200 leading-relaxed">
+                        {point}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
+
+              {/* Análise Formatada - NOVO! */}
+              <details className="group">
+                <summary className="cursor-pointer list-none p-4 bg-gray-100 dark:bg-gray-700 rounded-2xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-all shadow-md hover:shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                      <Brain className="w-5 h-5" />
+                      Ver Análise Completa
+                    </span>
+                    <span className="text-2xl group-open:rotate-180 transition-transform duration-300">▼</span>
+                  </div>
+                </summary>
+                <div className="mt-4 space-y-4 animate-fade-in">
+                  {formatAnalysisText(analysisText).map((section, idx) => (
+                    <div 
+                      key={idx}
+                      className={section.isTitle 
+                        ? "p-4 bg-gradient-to-r from-primary-50 to-accent-50 dark:from-primary-900/20 dark:to-accent-900/20 rounded-xl border-l-4 border-primary-500"
+                        : "p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl"
+                      }
+                    >
+                      {section.title && (
+                        <h4 className="font-black text-primary-700 dark:text-primary-300 mb-2 text-base sm:text-lg">
+                          {section.title}
+                        </h4>
+                      )}
+                      {section.content.map((text, tidx) => (
+                        <p key={tidx} className="text-gray-700 dark:text-gray-200 leading-relaxed mb-2 text-sm sm:text-base">
+                          {text}
+                        </p>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </details>
             </div>
           ) : (
+            /* Análise estruturada (request_analysis) - VISUAL */
             <div className="space-y-5">
-              {/* Predição Principal */}
-              <div className="relative bg-gradient-to-br from-primary-500 via-primary-600 to-accent-600 text-white rounded-2xl p-8 shadow-2xl overflow-hidden">
+              {/* Predição Principal - DESTAQUE VISUAL */}
+              <div className="relative bg-gradient-to-br from-primary-500 via-primary-600 to-accent-600 text-white rounded-3xl p-8 shadow-2xl overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
                 <div className="relative text-center">
@@ -390,7 +357,7 @@ export default function AnalysisModal({ match, analysis, onClose, metadata }) {
                 </div>
               </div>
 
-              {/* Probabilidades */}
+              {/* Probabilidades - RESPONSIVO */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl p-4 sm:p-5 shadow-xl text-center transform hover:scale-105 transition-all">
                   <div className="text-xs sm:text-sm font-bold mb-1 opacity-90">🏠 CASA</div>
@@ -417,9 +384,9 @@ export default function AnalysisModal({ match, analysis, onClose, metadata }) {
                 </div>
               </div>
 
-              {/* Fatores Chave */}
+              {/* Fatores Chave - ÍCONES VISUAIS */}
               {analysis.key_factors && analysis.key_factors.length > 0 && (
-                <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-6 border-2 border-primary-200 dark:border-primary-700 shadow-lg">
+                <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-3xl p-6 border-2 border-primary-200 dark:border-primary-700 shadow-lg">
                   <div className="flex items-center gap-2 mb-5">
                     <div className="p-2 bg-primary-500 rounded-lg">
                       <Zap className="w-5 h-5 text-white" />

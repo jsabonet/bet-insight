@@ -40,18 +40,40 @@ export default function MatchCard({ match, onAnalyze }) {
     };
   };
 
-  const getStatusBadge = (status) => {
+  // Aceitar tanto match_date (banco de dados) quanto date (API externa)
+  const matchDate = match.match_date || match.date;
+
+  const getStatusBadge = (status, dateString) => {
+    // Verificar se a partida já passou
+    if (dateString) {
+      const matchDateTime = new Date(dateString);
+      const now = new Date();
+      
+      // Se a partida foi há mais de 2 horas, considerar finalizada
+      const twoHoursAgo = new Date(now.getTime() - (2 * 60 * 60 * 1000));
+      
+      if (matchDateTime < twoHoursAgo && status !== 'FINISHED' && status !== 'FT' && !['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE', 'IN_PLAY'].includes(status)) {
+        status = 'FINISHED';
+      }
+    }
+    
     const badges = {
       SCHEDULED: { text: 'Agendada', className: 'badge bg-gray-100 text-gray-600 border-gray-200' },
+      NS: { text: 'Agendada', className: 'badge bg-gray-100 text-gray-600 border-gray-200' },
+      TBD: { text: 'Agendada', className: 'badge bg-gray-100 text-gray-600 border-gray-200' },
       LIVE: { text: 'Ao Vivo', className: 'badge bg-red-500 text-white border-red-600 animate-pulse-soft' },
+      '1H': { text: 'Ao Vivo', className: 'badge bg-red-500 text-white border-red-600 animate-pulse-soft' },
+      '2H': { text: 'Ao Vivo', className: 'badge bg-red-500 text-white border-red-600 animate-pulse-soft' },
+      HT: { text: 'Intervalo', className: 'badge bg-orange-500 text-white border-orange-600' },
       FINISHED: { text: 'Finalizada', className: 'badge badge-success' },
+      FT: { text: 'Finalizada', className: 'badge badge-success' },
+      AET: { text: 'Finalizada', className: 'badge badge-success' },
+      PEN: { text: 'Finalizada', className: 'badge badge-success' },
     };
     return badges[status] || badges.SCHEDULED;
   };
 
-  const badge = getStatusBadge(match.status);
-  // Aceitar tanto match_date (banco de dados) quanto date (API externa)
-  const matchDate = match.match_date || match.date;
+  const badge = getStatusBadge(match.status, matchDate);
   const { day, time } = formatDate(matchDate);
 
   // Aceitar múltiplos formatos de times

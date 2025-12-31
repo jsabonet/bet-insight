@@ -161,6 +161,31 @@ class FootballAPIService:
             logger.error(f"Erro ao buscar partida: {e}")
             return {'success': False, 'error': 'Erro desconhecido ao buscar partida', 'details': str(e), 'http_status': 500, 'error_code': 'UNKNOWN_ERROR'}
     
+    def get_fixture_statistics(self, fixture_id: int) -> Dict:
+        """Buscar estatísticas de uma partida específica"""
+        try:
+            response = self.session.get(
+                f'{self.base_url}/fixtures/statistics',
+                params={'fixture': fixture_id},
+                timeout=15
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            if data.get('response'):
+                return {'success': True, 'statistics': data['response']}
+            return {'success': False, 'error': 'Estatísticas não disponíveis'}
+        except requests.exceptions.HTTPError as e:
+            status_code = getattr(e.response, 'status_code', 500)
+            logger.error(f"Erro HTTP ao buscar estatísticas: {e}")
+            return {'success': False, 'error': 'Falha HTTP ao buscar estatísticas', 'details': str(e), 'http_status': status_code, 'error_code': 'HTTP_ERROR'}
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            logger.error(f"Erro de rede ao buscar estatísticas: {e}")
+            return {'success': False, 'error': 'Erro de rede ao buscar estatísticas', 'details': str(e), 'http_status': 503, 'error_code': 'NETWORK_ERROR'}
+        except Exception as e:
+            logger.error(f"Erro ao buscar estatísticas: {e}")
+            return {'success': False, 'error': 'Erro desconhecido ao buscar estatísticas', 'details': str(e), 'http_status': 500, 'error_code': 'UNKNOWN_ERROR'}
+    
     def get_predictions(self, fixture_id: int) -> Dict:
         """Buscar previsões e odds de uma partida"""
         try:

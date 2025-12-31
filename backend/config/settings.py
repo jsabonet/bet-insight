@@ -104,6 +104,29 @@ DATABASES = {
 }
 
 
+# Cache Configuration
+# https://docs.djangoproject.com/en/5.0/topics/cache/
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'bet-insight-cache',
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000  # Máximo de 1000 entradas no cache
+        }
+    }
+}
+
+# Cache timeout (em segundos)
+CACHE_TTL = {
+    'standings': 3600,  # 1 hora (tabelas mudam raramente durante o dia)
+    'team_statistics': 3600,  # 1 hora
+    'injuries': 1800,  # 30 minutos (pode haver atualizações mais frequentes)
+    'odds': 300,  # 5 minutos (odds mudam frequentemente)
+    'fixtures': 3600,  # 1 hora
+    'fixture_details': 1800,  # 30 minutos
+}
+
+
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 

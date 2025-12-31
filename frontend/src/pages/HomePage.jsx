@@ -119,16 +119,194 @@ export default function HomePage() {
 
       // Usar quick_analyze para partidas da API (não consome limite)
       if (match) {
-        const response = await matchesAPI.quickAnalyze({
+        const payload = {
           home_team: match.home_team.name || match.home_team,
           away_team: match.away_team.name || match.away_team,
-          league: match.league.name || match.league
+          league: match.league.name || match.league,
+          date: match.date,
+          status: match.status,
+          venue: match.venue,
+          home_score: match.home_score,
+          away_score: match.away_score,
+          api_id: match.api_football_id || null,  // ID da API-Football
+          football_data_id: match.football_data_id || null  // ID da Football-Data.org (para H2H)
+        };
+
+        // LOG: Payload completo sendo enviado
+        console.log('\n' + '='.repeat(80));
+        console.log('📤 HOMEPAGE: Enviando requisição de análise');
+        console.log('='.repeat(80));
+        console.log('⏰ Timestamp:', new Date().toISOString());
+        console.log('\n📊 PAYLOAD COMPLETO:');
+        console.log('-'.repeat(80));
+        Object.entries(payload).forEach(([key, value]) => {
+          const status = value !== null && value !== undefined && value !== '' ? '✅' : '⚠️  NULL';
+          const tipo = value === null ? 'null' : typeof value;
+          console.log(`   ${status} ${key.padEnd(20)} = ${value} (${tipo})`);
         });
+        console.log('-'.repeat(80));
+        
+        // Verificar IDs das APIs
+        console.log('\n🔍 VERIFICAÇÃO DE IDs DAS APIs:');
+        console.log(`   ${payload.api_id ? '✅' : '❌'} api_id (API-Football): ${payload.api_id}`);
+        console.log(`   ${payload.football_data_id ? '✅' : '❌'} football_data_id (Football-Data.org): ${payload.football_data_id}`);
+        console.log('='.repeat(80) + '\n');
+
+        const response = await matchesAPI.quickAnalyze(payload);
+        
+        // LOG: Resposta recebida
+        console.log('\n' + '='.repeat(80));
+        console.log('📥 HOMEPAGE: Resposta da análise recebida');
+        console.log('='.repeat(80));
+        console.log('✅ Status:', response.status);
+        console.log('⭐ Confiança:', response.data.confidence, '/5');
+        if (response.data.metadata) {
+          console.log('\n📊 METADATA (dados analisados):');
+          console.log('   Previsões (API-Football):', response.data.metadata.has_predictions ? '✅' : '❌');
+          console.log('   Estatísticas ao vivo:', response.data.metadata.has_statistics ? '✅' : '❌');
+          console.log('   H2H (Football-Data):', response.data.metadata.has_h2h ? '✅' : '❌');
+          if (response.data.metadata.has_h2h) {
+            console.log('   └─ Jogos H2H analisados:', response.data.metadata.h2h_count);
+          }
+          console.log('   Detalhes da partida:', response.data.metadata.has_fixture_details ? '✅' : '❌');
+        }
+        
+        // 🔥 NOVO: Logs de dados enriquecidos
+        if (response.data.enriched_data) {
+          console.log('\n🔥 DADOS ENRIQUECIDOS RECEBIDOS:');
+          console.log('='.repeat(80));
+          const enriched = response.data.enriched_data;
+          
+          // Tabela
+          if (enriched.table_context) {
+            console.log('\n📊 POSIÇÃO NA TABELA:');
+            const home = enriched.table_context.home;
+            const away = enriched.table_context.away;
+            console.log(`   Casa: ${home.position}º lugar, ${home.points} pts (Forma: ${home.form})`);
+            console.log(`   Fora: ${away.position}º lugar, ${away.points} pts (Forma: ${away.form})`);
+          }
+          
+          // Lesões
+          if (enriched.injuries) {
+            const homeInjuries = enriched.injuries.home?.length || 0;
+            const awayInjuries = enriched.injuries.away?.length || 0;
+            console.log(`\n🚑 LESÕES/SUSPENSÕES: ${homeInjuries} (casa), ${awayInjuries} (fora)`);
+          }
+          
+          // Odds
+          if (enriched.odds) {
+            console.log('\n💰 ODDS:');
+            console.log(`   Casa: ${enriched.odds.home_win} | Empate: ${enriched.odds.draw} | Fora: ${enriched.odds.away_win}`);
+            if (enriched.odds.over_25) {
+              console.log(`   Over 2.5: ${enriched.odds.over_25} | Under 2.5: ${enriched.odds.under_25}`);
+            }
+          } else {
+            console.log('\n💰 ODDS: ⚠️ Não disponíveis para esta partida');
+          }
+          
+          // Estatísticas detalhadas
+          if (enriched.home_stats || enriched.away_stats) {
+            console.log('\n📈 ESTATÍSTICAS DOS TIMES:');
+            if (enriched.home_stats) {
+              console.log(`   Casa: ${enriched.home_stats.goals_per_game_avg?.toFixed(2)} gols/jogo`);
+            }
+            if (enriched.away_stats) {
+              console.log(`   Fora: ${enriched.away_stats.goals_per_game_avg?.toFixed(2)} gols/jogo`);
+            }
+          }
+          
+          // 🔥 TENDÊNCIAS OVER/UNDER E BTTS
+          if (enriched.trends) {
+            console.log('\n📊 TENDÊNCIAS (últimos 10 jogos):');
+            if (enriched.trends.home) {
+              console.log(`   🏠 Casa: Over 2.5: ${enriched.trends.home.over_25_pct?.toFixed(0)}% | BTTS: ${enriched.trends.home.btts_pct?.toFixed(0)}%`);
+            }
+            if (enriched.trends.away) {
+              console.log(`   ✈️ Fora: Over 2.5: ${enriched.trends.away.over_25_pct?.toFixed(0)}% | BTTS: ${enriched.trends.away.btts_pct?.toFixed(0)}%`);
+            }
+            if (enriched.trends.combined_over_25_pct) {
+              console.log(`   💡 Probabilidade combinada Over 2.5: ${enriched.trends.combined_over_25_pct?.toFixed(0)}%`);
+              console.log(`   💡 Probabilidade combinada BTTS: ${enriched.trends.combined_btts_pct?.toFixed(0)}%`);
+            }
+          }
+          
+          // ⏱️ DESCANSO ENTRE JOGOS
+          if (enriched.rest_context) {
+            console.log('\n⏱️ DESCANSO ENTRE JOGOS:');
+            console.log(`   🏠 Casa: ${enriched.rest_context.home_days_rest} dias de descanso`);
+            console.log(`   ✈️ Fora: ${enriched.rest_context.away_days_rest} dias de descanso`);
+            console.log(`   📊 Vantagem física: ${enriched.rest_context.advantage === 'home' ? '🏠 Casa' : enriched.rest_context.advantage === 'away' ? '✈️ Fora' : '⚖️ Igual'}`);
+          }
+          
+          // 🎖️ MOTIVAÇÃO
+          if (enriched.motivation) {
+            console.log('\n🎖️ MOTIVAÇÃO E CONTEXTO:');
+            if (enriched.motivation.context) {
+              console.log(`   ${enriched.motivation.context}`);
+            }
+            console.log(`   🏠 Casa: ${enriched.motivation.home?.toUpperCase()} - ${enriched.motivation.home_reason}`);
+            console.log(`   ✈️ Fora: ${enriched.motivation.away?.toUpperCase()} - ${enriched.motivation.away_reason}`);
+          }
+          
+          // 🔄 HISTÓRICO DIRETO (H2H) - FOOTBALL-DATA.ORG
+          if (enriched.h2h && Array.isArray(enriched.h2h)) {
+            console.log('\n🔄 HISTÓRICO DIRETO (H2H):');
+            console.log(`   📊 Total de confrontos: ${enriched.h2h.length} jogos`);
+            
+            // Contar vitórias
+            let homeWins = 0, awayWins = 0, draws = 0;
+            enriched.h2h.forEach(match => {
+              if (match.score?.fullTime) {
+                const homeScore = match.score.fullTime.home;
+                const awayScore = match.score.fullTime.away;
+                if (homeScore > awayScore) homeWins++;
+                else if (awayScore > homeScore) awayWins++;
+                else draws++;
+              }
+            });
+            
+            console.log(`   🏠 Vitórias Casa: ${homeWins}`);
+            console.log(`   ✈️ Vitórias Fora: ${awayWins}`);
+            console.log(`   ⚖️ Empates: ${draws}`);
+            
+            // Mostrar últimos 3 jogos
+            const recent = enriched.h2h.slice(0, 3);
+            console.log(`   📋 Últimos confrontos:`);
+            recent.forEach((match, i) => {
+              const date = new Date(match.utcDate).toLocaleDateString('pt-BR');
+              const score = match.score?.fullTime ? 
+                `${match.score.fullTime.home}-${match.score.fullTime.away}` : 
+                'N/A';
+              console.log(`      ${i+1}. ${date}: ${match.homeTeam.name} ${score} ${match.awayTeam.name}`);
+            });
+          } else if (enriched.football_data_id) {
+            console.log('\n🔄 HISTÓRICO DIRETO (H2H):');
+            console.log(`   ℹ️ football_data_id=${enriched.football_data_id} mapeado, mas H2H não disponível`);
+          } else {
+            console.log('\n🔄 HISTÓRICO DIRETO (H2H):');
+            console.log(`   ⚠️ Não disponível (football_data_id não mapeado)`);
+          }
+          
+          // Contexto da temporada
+          if (enriched.season_context) {
+            console.log(`\n📅 TEMPORADA: ${enriched.season_context.season} - ${enriched.season_context.round}`);
+          }
+        }
+        console.log('='.repeat(80) + '\n');
+        
         setAnalysis(response.data);
       }
     } catch (error) {
       console.error('Erro ao analisar partida:', error);
-      alert(error.response?.data?.error || 'Erro ao gerar análise. Tente novamente.');
+      const errorMsg = error.response?.data?.error || 'Erro ao gerar análise. Tente novamente.';
+      const errorCode = error.response?.data?.code;
+      
+      // Mensagem específica para quota excedida
+      if (errorCode === 'QUOTA_EXCEEDED' || error.response?.status === 429) {
+        alert('⚠️ Limite diário de análises atingido!\n\nO plano gratuito permite 20 análises por dia.\n\nTente novamente em algumas horas ou considere assinar o plano Premium para análises ilimitadas.');
+      } else {
+        alert(errorMsg);
+      }
     } finally {
       setAnalyzing(false);
     }
@@ -285,6 +463,7 @@ export default function HomePage() {
         <AnalysisModal
           match={selectedMatch}
           analysis={analysis}
+          metadata={analysis.metadata}
           onClose={closeModal}
         />
       )}

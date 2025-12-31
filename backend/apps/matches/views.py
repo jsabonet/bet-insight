@@ -8,6 +8,7 @@ from datetime import timedelta, datetime
 from .models import League, Team, Match
 from .serializers import LeagueSerializer, TeamSerializer, MatchListSerializer, MatchDetailSerializer
 from .services.football_api import FootballAPIService
+from .services.id_mapper import APIIDMapper
 from apps.analysis.services.ai_analyzer import AIAnalyzer
 import logging
 
@@ -186,10 +187,10 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         football_api = FootballAPIService()
         all_matches = []
         
-        # Tentar buscar partidas dos próximos 14 dias
-        logger.info("Buscando partidas reais (próximos 14 dias)...")
+        # Tentar buscar partidas dos próximos 7 dias
+        logger.info("Buscando partidas reais (próximos 7 dias)...")
         
-        for day_offset in range(15):
+        for day_offset in range(8):
             search_date = (datetime.now() + timedelta(days=day_offset)).strftime('%Y-%m-%d')
             result = football_api.get_fixtures_by_date(search_date)
             
@@ -213,7 +214,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             matches_list.sort(key=lambda x: x['fixture']['date'])
             
             logger.info(f"Total de {len(matches_list)} partidas únicas encontradas")
-            matches = self._format_api_matches(matches_list[:50])  # Limitar a 50
+            matches = self._format_api_matches(matches_list[:150])  # Limitar a 150
             
             return Response({
                 'date': date,
@@ -275,9 +276,11 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         matches = []
         for fixture in fixtures:
             match_date = fixture['fixture']['date']
+            fixture_id = fixture['fixture']['id']  # ID real da API
             
             matches.append({
-                'id': fixture['fixture']['id'],
+                'id': fixture_id,  # Usar ID real em vez de temporário
+                'api_football_id': fixture_id,  # ID para buscar dados adicionais
                 'home_team': {
                     'name': fixture['teams']['home']['name'],
                     'logo': fixture['teams']['home']['logo'],
@@ -344,7 +347,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def quick_analyze(self, request):
-        """Análise rápida sem salvar (para preview)"""
+        """Análise rápida sem salvar (para preview) - COM ENRIQUECIMENTO DE DADOS"""
         home_team = request.data.get('home_team')
         away_team = request.data.get('away_team')
         
@@ -357,8 +360,132 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         match_data = {
             'home_team': {'name': home_team},
             'away_team': {'name': away_team},
-            'league': request.data.get('league', 'Liga desconhecida')
+            'league': request.data.get('league', 'Liga desconhecida'),
+            'date': request.data.get('date'),
+            'status': request.data.get('status'),
+            'venue': request.data.get('venue'),
+            'home_score': request.data.get('home_score'),
+            'away_score': request.data.get('away_score'),
+            'api_id': request.data.get('api_id')  # Adicionar para o enricher
         }
+        
+        # Buscar dados enriquecidos das APIs se api_id fornecido
+        api_id = request.data.get('api_id')
+        football_data_id = request.data.get('football_data_id')  # ID da Football-Data.org
+        
+        # 🆕 MAPEAR FOOTBALL_DATA_ID automaticamente se não fornecido
+        if api_id and not football_data_id:
+            logger.info(f"🔍 [ID Mapper] Tentando mapear football_data_id para {match_data.get('home_team')} vs {match_data.get('away_team')}")
+            try:
+                mapper = APIIDMapper()
+                match_date_str = match_data.get('date')
+                if match_date_str:
+                    # Converter string para datetime
+                    if isinstance(match_date_str, str):
+                        match_date = datetime.fromisoformat(match_date_str.replace('Z', '+00:00'))
+                    else:
+                        match_date = match_date_str
+                    
+                    football_data_id = mapper.find_football_data_id(
+                        home_team=match_data.get('home_team'),
+                        away_team=match_data.get('away_team'),
+                        match_date=match_date
+                    )
+                    
+                    if football_data_id:
+                        logger.info(f"✅ [ID Mapper] football_data_id={football_data_id} mapeado com sucesso!")
+                        match_data['football_data_id'] = football_data_id
+                    else:
+                        logger.warning(f"⚠️ [ID Mapper] Não foi possível mapear football_data_id")
+            except Exception as e:
+                logger.error(f"❌ [ID Mapper] Erro ao mapear ID: {e}", exc_info=True)
+        
+        # 🔥 NOVO: Enriquecer dados se api_id fornecido
+        if api_id:
+            logger.info(f"\n{'='*80}")
+            logger.info(f"🚀 ENRIQUECIMENTO DE DADOS ATIVADO - API ID: {api_id}")
+            logger.info(f"{'='*80}\n")
+            
+            try:
+                from apps.analysis.services.match_enricher import MatchDataEnricher
+                enricher = MatchDataEnricher()
+                match_data = enricher.enrich(match_data)
+                
+                logger.info(f"✅ Dados enriquecidos com sucesso!")
+                logger.info(f"   Campos adicionados: {list(match_data.keys())}")
+            except Exception as e:
+                logger.error(f"❌ Erro ao enriquecer dados: {str(e)}")
+                logger.exception(e)
+        
+        # Continuar com busca normal de dados adicionais (compatibilidade)
+        if api_id:
+            logger.info(f"🔍 QUICK_ANALYZE: Buscando dados adicionais para api_id={api_id}")
+            try:
+                from .services.football_api import FootballAPIService, FootballDataService
+                api_service = FootballAPIService()
+                
+                # ===== API-FOOTBALL (RapidAPI) =====
+                # Buscar detalhes da partida
+                logger.info(f"📥 [API-Football] Buscando fixture_details...")
+                fixture_result = api_service.get_fixture_by_id(api_id)
+                if fixture_result.get('success') and fixture_result.get('fixture'):
+                    fixture = fixture_result['fixture']
+                    match_data['fixture_details'] = fixture
+                    logger.info(f"✅ [API-Football] Fixture carregado: {list(fixture.keys())[:5]}")
+                else:
+                    logger.warning(f"❌ [API-Football] Fixture falhou: {fixture_result.get('error')}")
+                
+                # Buscar estatísticas da partida (para jogos ao vivo/finalizados)
+                logger.info(f"📥 [API-Football] Buscando statistics...")
+                stats_result = api_service.get_fixture_statistics(api_id)
+                if stats_result.get('success') and stats_result.get('statistics'):
+                    match_data['statistics'] = stats_result['statistics']
+                    logger.info(f"✅ [API-Football] Statistics carregadas: {len(stats_result['statistics'])} times")
+                else:
+                    logger.warning(f"❌ [API-Football] Statistics falhou: {stats_result.get('error')}")
+                
+                # Buscar previsões/estatísticas
+                logger.info(f"📥 [API-Football] Buscando predictions...")
+                predictions_result = api_service.get_predictions(api_id)
+                if predictions_result.get('success') and predictions_result.get('predictions'):
+                    match_data['predictions'] = predictions_result['predictions']
+                    logger.info(f"✅ [API-Football] Predictions carregadas: {list(predictions_result['predictions'].keys())[:5]}")
+                else:
+                    logger.warning(f"❌ [API-Football] Predictions falhou: {predictions_result.get('error')}")
+                
+                # ===== FOOTBALL-DATA.ORG =====
+                # Buscar dados adicionais da Football-Data.org (H2H e estatísticas dos times)
+                if football_data_id:
+                    logger.info(f"📥 [Football-Data.org] Buscando dados adicionais para football_data_id={football_data_id}...")
+                    try:
+                        fd_service = FootballDataService()
+                        
+                        # Buscar H2H (histórico direto)
+                        logger.info(f"📥 [Football-Data.org] Buscando H2H...")
+                        h2h_data = fd_service.get_h2h(football_data_id)
+                        if h2h_data and 'matches' in h2h_data:
+                            match_data['h2h'] = h2h_data['matches']
+                            logger.info(f"✅ [Football-Data.org] H2H carregado: {len(h2h_data['matches'])} jogos anteriores")
+                        else:
+                            logger.warning(f"❌ [Football-Data.org] H2H não disponível")
+                        
+                        # Buscar detalhes da partida (pode ter estatísticas adicionais)
+                        logger.info(f"📥 [Football-Data.org] Buscando match details...")
+                        match_details = fd_service.get_match_details(football_data_id)
+                        if match_details:
+                            match_data['football_data_match'] = match_details
+                            logger.info(f"✅ [Football-Data.org] Match details carregados")
+                        else:
+                            logger.warning(f"❌ [Football-Data.org] Match details não disponível")
+                            
+                    except Exception as e:
+                        logger.warning(f"⚠️ [Football-Data.org] Erro ao buscar dados: {e}")
+                else:
+                    logger.info(f"ℹ️ [Football-Data.org] Sem football_data_id - pulando")
+                    
+                logger.info(f"📊 TOTAL de dados enriquecidos: fixture={bool(match_data.get('fixture_details'))}, stats={bool(match_data.get('statistics'))}, predictions={bool(match_data.get('predictions'))}, h2h={bool(match_data.get('h2h'))}, fd_match={bool(match_data.get('football_data_match'))}")
+            except Exception as e:
+                logger.error(f"❌ ERRO ao buscar dados adicionais das APIs: {e}", exc_info=True)
         
         analyzer = AIAnalyzer()
         result = analyzer.analyze_match(match_data)
@@ -369,8 +496,37 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 status=result.get('http_status', status.HTTP_500_INTERNAL_SERVER_ERROR)
             )
         
+        # Criar metadados sobre quais dados foram analisados
+        metadata = {
+            'has_predictions': bool(match_data.get('predictions')),
+            'has_statistics': bool(match_data.get('statistics')),
+            'has_h2h': bool(match_data.get('h2h')),
+            'h2h_count': len(match_data.get('h2h', [])) if match_data.get('h2h') else 0,
+            'has_fixture_details': bool(match_data.get('fixture_details')),
+            'has_football_data': bool(match_data.get('football_data_match'))
+        }
+        
+        # 🔥 Extrair dados enriquecidos para enviar ao frontend
+        enriched_data = {
+            'table_context': match_data.get('table_context'),
+            'injuries': match_data.get('injuries'),
+            'odds': match_data.get('odds'),
+            'home_stats': match_data.get('home_stats'),
+            'away_stats': match_data.get('away_stats'),
+            'rest_context': match_data.get('rest_context'),
+            'motivation': match_data.get('motivation'),
+            'trends': match_data.get('trends'),
+            'season_context': match_data.get('season_context'),
+            'fixture_details': match_data.get('fixture_details'),
+            'h2h': match_data.get('h2h'),  # 🆕 Histórico direto (Football-Data.org)
+            'football_data_id': football_data_id,  # 🆕 ID mapeado
+            'football_data_match': match_data.get('football_data_match')  # 🆕 Detalhes do Football-Data.org
+        }
+        
         return Response({
             'analysis': result['analysis'],
-            'confidence': result['confidence']
+            'confidence': result['confidence'],
+            'metadata': metadata,
+            'enriched_data': enriched_data  # 🔥 ADICIONADO!
         })
 

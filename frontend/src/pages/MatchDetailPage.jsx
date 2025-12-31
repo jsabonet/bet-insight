@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { matchesAPI, analysisAPI } from '../services/api';
-import { ArrowLeft, TrendingUp, Target, Brain, Star, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Brain, AlertCircle } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
 import LoadingMascot from '../components/LoadingMascot';
+import AnalysisModal from '../components/AnalysisModal';
 import { TeamLogo, LeagueLogo } from '../utils/logos';
 
 export default function MatchDetailPage() {
@@ -17,6 +18,7 @@ export default function MatchDetailPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState('');
   const [isExternalMatch, setIsExternalMatch] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     loadMatchDetails();
@@ -54,21 +56,199 @@ export default function MatchDetailPage() {
 
     try {
       if (isExternalMatch) {
-        // Usar quick_analyze para partidas externas
-        const response = await matchesAPI.quickAnalyze({
+        const payload = {
           home_team: match.home_team?.name || match.home_team,
           away_team: match.away_team?.name || match.away_team,
-          league: match.league?.name || match.league
+          league: match.league?.name || match.league,
+          date: match.date,
+          status: match.status,
+          venue: match.venue,
+          home_score: match.home_score,
+          away_score: match.away_score,
+          api_id: match.api_football_id || null,  // ID da API-Football
+          football_data_id: match.football_data_id || null  // ID da Football-Data.org (para H2H)
+        };
+
+        // LOG: Payload completo sendo enviado
+        console.log('\n' + '='.repeat(80));
+        console.log('📤 MATCH DETAIL PAGE: Enviando requisição de análise');
+        console.log('='.repeat(80));
+        console.log('⏰ Timestamp:', new Date().toISOString());
+        console.log('\n📊 PAYLOAD COMPLETO:');
+        console.log('-'.repeat(80));
+        Object.entries(payload).forEach(([key, value]) => {
+          const status = value !== null && value !== undefined && value !== '' ? '✅' : '⚠️  NULL';
+          const tipo = value === null ? 'null' : typeof value;
+          console.log(`   ${status} ${key.padEnd(20)} = ${value} (${tipo})`);
         });
-        setAnalysis(response.data.analysis);
+        console.log('-'.repeat(80));
+        
+        // Verificar IDs das APIs
+        console.log('\n🔍 VERIFICAÇÃO DE IDs DAS APIs:');
+        console.log(`   ${payload.api_id ? '✅' : '❌'} api_id (API-Football): ${payload.api_id}`);
+        console.log(`   ${payload.football_data_id ? '✅' : '❌'} football_data_id (Football-Data.org): ${payload.football_data_id}`);
+        console.log('='.repeat(80) + '\n');
+
+        // Usar quick_analyze para partidas externas
+        const response = await matchesAPI.quickAnalyze(payload);
+        
+        // LOG: Resposta recebida
+        console.log('\n' + '='.repeat(80));
+        console.log('📥 MATCH DETAIL PAGE: Resposta da análise recebida');
+        console.log('='.repeat(80));
+        console.log('✅ Status:', response.status);
+        console.log('⭐ Confiança:', response.data.confidence, '/5');
+        if (response.data.metadata) {
+          console.log('\n📊 METADATA (dados analisados):');
+          console.log('   Previsões (API-Football):', response.data.metadata.has_predictions ? '✅' : '❌');
+          console.log('   Estatísticas ao vivo:', response.data.metadata.has_statistics ? '✅' : '❌');
+          console.log('   H2H (Football-Data):', response.data.metadata.has_h2h ? '✅' : '❌');
+          if (response.data.metadata.has_h2h) {
+            console.log('   └─ Jogos H2H analisados:', response.data.metadata.h2h_count);
+          }
+          console.log('   Detalhes da partida:', response.data.metadata.has_fixture_details ? '✅' : '❌');
+        }
+        
+        // 🔥 NOVO: Logs de dados enriquecidos
+        if (response.data.enriched_data) {
+          console.log('\n🔥 DADOS ENRIQUECIDOS RECEBIDOS:');
+          console.log('='.repeat(80));
+          const enriched = response.data.enriched_data;
+          
+          // Tabela
+          if (enriched.table_context) {
+            console.log('\n📊 POSIÇÃO NA TABELA:');
+            const home = enriched.table_context.home;
+            const away = enriched.table_context.away;
+            console.log(`   Casa: ${home.position}º lugar, ${home.points} pts (Forma: ${home.form})`);
+            console.log(`   Fora: ${away.position}º lugar, ${away.points} pts (Forma: ${away.form})`);
+          }
+          
+          // Lesões
+          if (enriched.injuries) {
+            const homeInjuries = enriched.injuries.home?.length || 0;
+            const awayInjuries = enriched.injuries.away?.length || 0;
+            console.log(`\n🚑 LESÕES/SUSPENSÕES: ${homeInjuries} (casa), ${awayInjuries} (fora)`);
+          }
+          
+          // Odds
+          if (enriched.odds) {
+            console.log('\n💰 ODDS:');
+            console.log(`   Casa: ${enriched.odds.home_win} | Empate: ${enriched.odds.draw} | Fora: ${enriched.odds.away_win}`);
+            if (enriched.odds.over_25) {
+              console.log(`   Over 2.5: ${enriched.odds.over_25} | Under 2.5: ${enriched.odds.under_25}`);
+            }
+          } else {
+            console.log('\n💰 ODDS: ⚠️ Não disponíveis para esta partida');
+          }
+          
+          // Estatísticas detalhadas
+          if (enriched.home_stats || enriched.away_stats) {
+            console.log('\n📈 ESTATÍSTICAS DOS TIMES:');
+            if (enriched.home_stats) {
+              console.log(`   Casa: ${enriched.home_stats.goals_per_game_avg?.toFixed(2)} gols/jogo`);
+            }
+            if (enriched.away_stats) {
+              console.log(`   Fora: ${enriched.away_stats.goals_per_game_avg?.toFixed(2)} gols/jogo`);
+            }
+          }
+          
+          // 🔥 TENDÊNCIAS OVER/UNDER E BTTS
+          if (enriched.trends) {
+            console.log('\n📊 TENDÊNCIAS (últimos 10 jogos):');
+            if (enriched.trends.home) {
+              console.log(`   🏠 Casa: Over 2.5: ${enriched.trends.home.over_25_pct?.toFixed(0)}% | BTTS: ${enriched.trends.home.btts_pct?.toFixed(0)}%`);
+            }
+            if (enriched.trends.away) {
+              console.log(`   ✈️ Fora: Over 2.5: ${enriched.trends.away.over_25_pct?.toFixed(0)}% | BTTS: ${enriched.trends.away.btts_pct?.toFixed(0)}%`);
+            }
+            if (enriched.trends.combined_over_25_pct) {
+              console.log(`   💡 Probabilidade combinada Over 2.5: ${enriched.trends.combined_over_25_pct?.toFixed(0)}%`);
+              console.log(`   💡 Probabilidade combinada BTTS: ${enriched.trends.combined_btts_pct?.toFixed(0)}%`);
+            }
+          }
+          
+          // ⏱️ DESCANSO ENTRE JOGOS
+          if (enriched.rest_context) {
+            console.log('\n⏱️ DESCANSO ENTRE JOGOS:');
+            console.log(`   🏠 Casa: ${enriched.rest_context.home_days_rest} dias de descanso`);
+            console.log(`   ✈️ Fora: ${enriched.rest_context.away_days_rest} dias de descanso`);
+            console.log(`   📊 Vantagem física: ${enriched.rest_context.advantage === 'home' ? '🏠 Casa' : enriched.rest_context.advantage === 'away' ? '✈️ Fora' : '⚖️ Igual'}`);
+          }
+          
+          // 🎖️ MOTIVAÇÃO
+          if (enriched.motivation) {
+            console.log('\n🎖️ MOTIVAÇÃO E CONTEXTO:');
+            if (enriched.motivation.context) {
+              console.log(`   ${enriched.motivation.context}`);
+            }
+            console.log(`   🏠 Casa: ${enriched.motivation.home?.toUpperCase()} - ${enriched.motivation.home_reason}`);
+            console.log(`   ✈️ Fora: ${enriched.motivation.away?.toUpperCase()} - ${enriched.motivation.away_reason}`);
+          }
+          
+          // 🔄 HISTÓRICO DIRETO (H2H) - FOOTBALL-DATA.ORG
+          if (enriched.h2h && Array.isArray(enriched.h2h)) {
+            console.log('\n🔄 HISTÓRICO DIRETO (H2H):');
+            console.log(`   📊 Total de confrontos: ${enriched.h2h.length} jogos`);
+            
+            // Contar vitórias
+            let homeWins = 0, awayWins = 0, draws = 0;
+            enriched.h2h.forEach(match => {
+              if (match.score?.fullTime) {
+                const homeScore = match.score.fullTime.home;
+                const awayScore = match.score.fullTime.away;
+                if (homeScore > awayScore) homeWins++;
+                else if (awayScore > homeScore) awayWins++;
+                else draws++;
+              }
+            });
+            
+            console.log(`   🏠 Vitórias Casa: ${homeWins}`);
+            console.log(`   ✈️ Vitórias Fora: ${awayWins}`);
+            console.log(`   ⚖️ Empates: ${draws}`);
+            
+            // Mostrar últimos 3 jogos
+            const recent = enriched.h2h.slice(0, 3);
+            console.log(`   📋 Últimos confrontos:`);
+            recent.forEach((match, i) => {
+              const date = new Date(match.utcDate).toLocaleDateString('pt-BR');
+              const score = match.score?.fullTime ? 
+                `${match.score.fullTime.home}-${match.score.fullTime.away}` : 
+                'N/A';
+              console.log(`      ${i+1}. ${date}: ${match.homeTeam.name} ${score} ${match.awayTeam.name}`);
+            });
+          } else if (enriched.football_data_id) {
+            console.log('\n🔄 HISTÓRICO DIRETO (H2H):');
+            console.log(`   ℹ️ football_data_id=${enriched.football_data_id} mapeado, mas H2H não disponível`);
+          } else {
+            console.log('\n🔄 HISTÓRICO DIRETO (H2H):');
+            console.log(`   ⚠️ Não disponível (football_data_id não mapeado)`);
+          }
+          
+          // Contexto da temporada
+          if (enriched.season_context) {
+            console.log(`\n📅 TEMPORADA: ${enriched.season_context.season} - ${enriched.season_context.round}`);
+          }
+        }
+        console.log('='.repeat(80) + '\n');
+        
+        setAnalysis(response.data);
       } else {
         // Usar request_analysis para partidas do DB
         const response = await analysisAPI.requestAnalysis(id);
         setAnalysis(response.data.analysis);
       }
+      setShowModal(true);
     } catch (err) {
       const errorMsg = err.response?.data?.error || 'Erro ao gerar análise';
-      setError(errorMsg);
+      const errorCode = err.response?.data?.code;
+      
+      // Mensagem específica para quota excedida
+      if (errorCode === 'QUOTA_EXCEEDED' || err.response?.status === 429) {
+        setError('⚠️ Limite diário de análises atingido! O plano gratuito permite 20 análises por dia. Tente novamente em algumas horas ou assine o Premium para análises ilimitadas.');
+      } else {
+        setError(errorMsg);
+      }
     } finally {
       setAnalyzing(false);
     }
@@ -160,126 +340,29 @@ export default function MatchDetailPage() {
           )}
         </div>
 
-        {/* Análise */}
-        {analysis && (
-          <div className="space-y-4 animate-slide-up">
-            {typeof analysis === 'string' ? (
-              /* Análise simples (quick_analyze) */
-              <div className="card">
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                  <Brain className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                  Análise com IA
-                </h3>
-                <div className="prose dark:prose-invert max-w-none">
-                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{analysis}</p>
-                </div>
-              </div>
-            ) : (
-              /* Análise estruturada (request_analysis) */
-              <>
-            {/* Predição Principal */}
-            <div className="card bg-gradient-to-br from-primary-600 to-primary-700 dark:from-primary-700 dark:to-primary-800 text-white border-none shadow-xl dark:shadow-black/30">
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Target className="w-6 h-6" />
-                  <h2 className="text-xl font-bold">Predição</h2>
-                </div>
-                <div className="text-4xl font-bold mb-2">{analysis.prediction_display}</div>
-                <div className="flex items-center justify-center gap-1 text-yellow-300 dark:text-yellow-400 text-2xl">
-                  {analysis.confidence_display}
-                </div>
-                <p className="text-primary-100 dark:text-primary-200 mt-2">Confiança: {analysis.confidence}/5</p>
-              </div>
-            </div>
-
-            {/* Probabilidades */}
-            <div className="card">
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                <TrendingUp className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                Probabilidades
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="font-medium text-gray-900 dark:text-gray-100">Vitória Casa</span>
-                    <span className="font-bold text-primary-600 dark:text-primary-400">{analysis.home_probability}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                    <div
-                      className="bg-primary-600 dark:bg-primary-500 h-3 rounded-full transition-all"
-                      style={{ width: `${analysis.home_probability}%` }}
-                    ></div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="font-medium text-gray-900 dark:text-gray-100">Empate</span>
-                    <span className="font-bold text-gray-600 dark:text-gray-400">{analysis.draw_probability}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                    <div
-                      className="bg-gray-600 dark:bg-gray-500 h-3 rounded-full transition-all"
-                      style={{ width: `${analysis.draw_probability}%` }}
-                    ></div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-1">
-                    <span className="font-medium text-gray-900 dark:text-gray-100">Vitória Visitante</span>
-                    <span className="font-bold text-blue-600 dark:text-blue-400">{analysis.away_probability}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-                    <div
-                      className="bg-blue-600 dark:bg-blue-500 h-3 rounded-full transition-all"
-                      style={{ width: `${analysis.away_probability}%` }}
-                    ></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Expected Goals */}
-            {analysis.home_xg && analysis.away_xg && (
-              <div className="card">
-                <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-gray-100">Expected Goals (xG)</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-4 bg-primary-50 dark:bg-primary-900/20 rounded-xl border border-transparent dark:border-primary-700/30">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{match.home_team.name}</p>
-                    <p className="text-3xl font-bold text-primary-600 dark:text-primary-400">{analysis.home_xg}</p>
-                  </div>
-                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-transparent dark:border-blue-700/30">
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{match.away_team.name}</p>
-                    <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">{analysis.away_xg}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Raciocínio */}
-            <div className="card">
-              <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                <Brain className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                Análise Detalhada
-              </h3>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed mb-4">{analysis.reasoning}</p>
-              
-              <h4 className="font-bold mb-2 text-gray-900 dark:text-gray-100">Fatores Chave:</h4>
-              <ul className="space-y-2">
-                {analysis.key_factors?.map((factor, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <span className="text-primary-600 dark:text-primary-400 mt-1">✓</span>
-                    <span className="text-gray-700 dark:text-gray-300">{factor}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-              </>
-            )}
-          </div>
-        )}
       </div>
+
+      {/* Modal de Análise */}
+      {showModal && analysis && (
+        <AnalysisModal
+          match={match}
+          analysis={analysis}
+          metadata={analysis.metadata}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+
+      {/* Analyzing Overlay */}
+      {analyzing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl max-w-sm mx-4">
+            <LoadingMascot message="Gerando análise com IA..." />
+            <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-4">
+              Isso pode levar alguns segundos...
+            </p>
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>
