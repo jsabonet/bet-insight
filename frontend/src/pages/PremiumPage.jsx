@@ -1,55 +1,115 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useStats } from '../context/StatsContext';
 import { Check, Star, Zap, TrendingUp, Shield, Bell } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
 import Logo from '../components/Logo';
+import CheckoutModal from '../components/CheckoutModal';
+import api from '../services/api';
 
 export default function PremiumPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [selectedPlan, setSelectedPlan] = useState('monthly');
+  const { refreshTrigger } = useStats();
+  const [plans, setPlans] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [currentSubscription, setCurrentSubscription] = useState(null);
+  const [userStats, setUserStats] = useState(null);
 
-  const plans = [
-    {
-      id: 'monthly',
-      name: 'Mensal',
-      price: '499',
-      period: 'mês',
-      description: 'Perfeito para começar',
-    },
-    {
-      id: 'quarterly',
-      name: 'Trimestral',
-      price: '1299',
-      period: '3 meses',
-      description: 'Economize 13%',
-      savings: 'Poupe 198 MZN',
-    },
-    {
-      id: 'annual',
-      name: 'Anual',
-      price: '4799',
-      period: 'ano',
-      description: 'Melhor valor',
-      savings: 'Poupe 1189 MZN',
-      popular: true,
-    },
-  ];
+  useEffect(() => {
+    loadPlans();
+    loadCurrentSubscription();
+  }, []);
+
+  useEffect(() => {
+    // Atualizar status premium quando houver mudanças globais (análises, etc.)
+    loadCurrentSubscription();
+    loadUserStats();
+  }, [refreshTrigger]);
+
+  const loadPlans = async () => {
+    try {
+      const response = await api.get('/subscriptions/plans/');
+      setPlans(response.data);
+    } catch (error) {
+      console.error('Erro ao carregar planos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCurrentSubscription = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await api.get('/subscriptions/my-subscription/');
+      setCurrentSubscription(response.data);
+    } catch (error) {
+      console.error('Erro ao carregar assinatura:', error);
+    }
+  };
+
+  const loadUserStats = async () => {
+    if (!user) return;
+    try {
+      const response = await api.get('/users/stats/');
+      setUserStats(response.data);
+    } catch (error) {
+      console.error('Erro ao carregar estatísticas do usuário:', error);
+    }
+  };
+
+  const handleSelectPlan = (plan) => {
+    if (!user) {
+      navigate('/login', { state: { from: '/premium' } });
+      return;
+    }
+    
+    if (plan.slug === 'freemium') {
+      return; // Freemium não precisa pagamento
+    }
+    
+    setSelectedPlan(plan);
+    setShowCheckout(true);
+  };
+
+  const isCurrentPlan = (planSlug) => {
+    return currentSubscription?.plan_slug === planSlug;
+  };
+
+  // Detalhes do plano atual (nome amigável e limite diário)
+  const currentPlanName = currentSubscription?.plan_slug
+    ? (plans.find(p => p.slug === currentSubscription.plan_slug)?.name || currentSubscription.plan_slug)
+    : null;
+  const currentPlanObj = currentSubscription?.plan_slug
+    ? plans.find(p => p.slug === currentSubscription.plan_slug)
+    : null;
+  const currentDailyLimit = currentPlanObj?.daily_analysis_limit ?? userStats?.daily_limit;
+
+  // Determinar premium ativo com base na assinatura
+  const premiumActive = !!(
+    currentSubscription &&
+    currentSubscription.status === 'active' &&
+    currentSubscription.plan_slug && currentSubscription.plan_slug !== 'freemium' &&
+    (!currentSubscription.end_date || new Date(currentSubscription.end_date) > new Date())
+  );
 
   const features = [
     {
       icon: TrendingUp,
-      title: 'Análises Ilimitadas',
-      description: 'Até 100 análises por dia com IA avançada',
+      title: 'Análises Diárias',
+      description: 'Análises de IA para suas partidas favoritas',
       free: '5 por dia',
-      premium: '100 por dia',
+      premium: 'Até 150 por dia',
     },
     {
       icon: Bell,
-      title: 'Notificações SMS',
-      description: 'Receba alertas de análises direto no seu telefone',
+      title: 'Notificações',
+      description: 'Receba alertas de análises direto no app',
       free: false,
       premium: true,
     },
@@ -76,12 +136,9 @@ export default function PremiumPage() {
     },
   ];
 
-  const handleSubscribe = () => {
-    // TODO: Implement M-Pesa payment integration
-    alert('Funcionalidade de pagamento será implementada em breve!');
-  };
 
-  if (user?.is_premium) {
+
+  if (premiumActive) {
     return (
       <div className="page-container">
         <Header title="Premium" subtitle="Você já é premium!" />
@@ -94,18 +151,47 @@ export default function PremiumPage() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
               Você já é Premium! 🎉
             </h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-gray-600 dark:text-gray-400">
               Aproveite todas as funcionalidades exclusivas
             </p>
-            <button
-              onClick={() => navigate('/')}
-              className="btn-primary"
-            >
-              Ver Partidas
-            </button>
+            {currentPlanName && (
+              <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                Plano atual: <span className="font-semibold">{currentPlanName}</span>
+              </p>
+            )}
+            {currentDailyLimit !== undefined && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Limite diário: <span className="font-semibold">{currentDailyLimit}</span> análises
+              </p>
+            )}
+            {currentSubscription?.end_date && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Expira em: {new Date(currentSubscription.end_date).toLocaleString()}
+              </p>
+            )}
+            <div className="mt-6">
+              <button
+                onClick={() => navigate('/')}
+                className="btn-primary"
+              >
+                Ver Partidas
+              </button>
+            </div>
           </div>
         </div>
 
+        <BottomNav />
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="page-container">
+        <Header title="Planos" subtitle="Carregando planos..." />
+        <div className="page-content flex items-center justify-center">
+          <Logo variant="thinking" size="lg" showText={false} />
+        </div>
         <BottomNav />
       </div>
     );
@@ -123,57 +209,105 @@ export default function PremiumPage() {
 
         {/* Plans */}
         <div className="grid grid-cols-1 gap-4 mb-8">
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              className={`card cursor-pointer transition-all animate-slide-up ${
-                selectedPlan === plan.id
-                  ? 'ring-2 ring-primary-600 dark:ring-primary-500 shadow-xl dark:shadow-black/30 scale-[1.02]'
-                  : 'hover:shadow-lg dark:hover:shadow-black/30'
-              } ${plan.popular ? 'border-2 border-primary-600 dark:border-primary-500' : ''}`}
-              onClick={() => setSelectedPlan(plan.id)}
-            >
-              {plan.popular && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-primary-600 dark:bg-primary-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg">
-                    Mais Popular
-                  </span>
-                </div>
-              )}
-
-              <div className="text-center mb-6">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                  {plan.name}
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{plan.description}</p>
-                
-                <div className="mb-2">
-                  <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">
-                    {plan.price}
-                  </span>
-                  <span className="text-gray-600 dark:text-gray-400 ml-2">MZN</span>
-                </div>
-                
-                <p className="text-sm text-gray-600 dark:text-gray-400">por {plan.period}</p>
-                
-                {plan.savings && (
-                  <p className="text-sm text-green-600 dark:text-green-400 font-medium mt-2">
-                    {plan.savings}
-                  </p>
+          {plans.map((plan) => {
+            const isCurrent = isCurrentPlan(plan.slug);
+            
+            return (
+              <div
+                key={plan.slug}
+                className={`card relative transition-all animate-slide-up ${
+                  isCurrent ? 'ring-2 ring-green-500 dark:ring-green-400' : 'hover:shadow-lg dark:hover:shadow-black/30'
+                } ${plan.popular ? 'border-2 border-primary-600 dark:border-primary-500' : ''}`}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <span className="bg-primary-600 dark:bg-primary-500 text-white px-4 py-1 rounded-full text-sm font-semibold shadow-lg">
+                      ⭐ Mais Popular
+                    </span>
+                  </div>
                 )}
-              </div>
 
-              <div className={`w-6 h-6 rounded-full border-2 mx-auto ${
-                selectedPlan === plan.id
-                  ? 'border-primary-600 dark:border-primary-500 bg-primary-600 dark:bg-primary-500'
-                  : 'border-gray-300 dark:border-gray-600'
-              }`}>
-                {selectedPlan === plan.id && (
-                  <Check className="w-5 h-5 text-white" />
+                {plan.trial_days && (
+                  <div className="absolute -top-4 right-4">
+                    <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
+                      🎁 {plan.trial_days} dias grátis
+                    </span>
+                  </div>
                 )}
+
+                {isCurrent && (
+                  <div className="absolute -top-4 right-4">
+                    <span className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
+                      ✓ Plano Atual
+                    </span>
+                  </div>
+                )}
+
+                <div className="text-center mb-6">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    {plan.name}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{plan.description}</p>
+                  
+                  <div className="mb-2">
+                    {plan.price === 0 ? (
+                      <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">
+                        Grátis
+                      </span>
+                    ) : (
+                      <>
+                        <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">
+                          {plan.price}
+                        </span>
+                        <span className="text-gray-600 dark:text-gray-400 ml-2">MZN</span>
+                      </>
+                    )}
+                  </div>
+                  
+                  {plan.duration_days && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      por {plan.duration_days} dias
+                    </p>
+                  )}
+                  
+                  {plan.savings && (
+                    <p className="text-sm text-green-600 dark:text-green-400 font-medium mt-2">
+                      💰 Economize {plan.savings} MZN
+                    </p>
+                  )}
+                </div>
+
+                {/* Features List */}
+                <div className="mb-6 px-4">
+                  <div className="space-y-2">
+                    {plan.features && plan.features.map((feature, idx) => (
+                      <div key={idx} className="flex items-start gap-2 text-left">
+                        <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm text-gray-700 dark:text-gray-300">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                <button
+                  onClick={() => handleSelectPlan(plan)}
+                  disabled={isCurrent}
+                  className={`w-full py-3 rounded-2xl font-semibold transition-all ${
+                    isCurrent
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                      : plan.slug === 'freemium'
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 cursor-default'
+                      : plan.popular
+                      ? 'bg-primary-600 dark:bg-primary-500 text-white hover:bg-primary-700 dark:hover:bg-primary-600 active:scale-95'
+                      : 'bg-gray-900 dark:bg-gray-700 text-white hover:bg-gray-800 dark:hover:bg-gray-600 active:scale-95'
+                  }`}
+                >
+                  {isCurrent ? '✓ Plano Atual' : plan.slug === 'freemium' ? 'Plano Padrão' : 'Assinar Agora'}
+                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Features Comparison */}
@@ -208,29 +342,17 @@ export default function PremiumPage() {
             ))}
           </div>
         </div>
-
-        {/* CTA */}
-        <div className="card bg-gradient-to-br from-primary-600 to-primary-700 dark:from-primary-700 dark:to-primary-800 text-white text-center border-none shadow-xl dark:shadow-black/30">
-          <h2 className="text-xl font-bold mb-2">
-            Pronto para começar?
-          </h2>
-          <p className="text-primary-100 dark:text-primary-200 mb-6 text-sm">
-            Faça upgrade agora e aproveite análises ilimitadas
-          </p>
-          
-          <button
-            onClick={handleSubscribe}
-            className="bg-white text-primary-600 px-6 py-3 rounded-2xl font-semibold hover:bg-gray-100 transition-all inline-flex items-center gap-2 shadow-lg active:scale-95"
-          >
-            <Star className="w-5 h-5" />
-            Assinar por {plans.find(p => p.id === selectedPlan)?.price} MZN
-          </button>
-          
-          <p className="text-primary-100 text-sm mt-4">
-            Pagamento via M-Pesa • Cancele quando quiser
-          </p>
-        </div>
       </div>
+
+      {/* Checkout Modal */}
+      {showCheckout && selectedPlan && (
+        <CheckoutModal
+          plan={selectedPlan}
+          onClose={() => {
+            setShowCheckout(false);
+          }}
+        />
+      )}
 
       <BottomNav />
     </div>

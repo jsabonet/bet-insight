@@ -7,8 +7,8 @@ export default function AnalysisModal({ match, analysis, onClose, metadata }) {
 
   if (!analysis) return null;
 
-  // Detectar tipo de análise: string (quick_analyze) ou objeto estruturado (request_analysis)
-  const isSimpleAnalysis = typeof analysis === 'string' || (analysis.analysis && !analysis.prediction_display);
+  // Detectar tipo de análise: objeto estruturado tem prediction_display
+  const isSimpleAnalysis = !analysis.prediction_display;
   const analysisText = typeof analysis === 'string' ? analysis : analysis.analysis;
   const confidence = typeof analysis === 'string' ? 3 : (analysis.confidence || 3);
 
@@ -383,7 +383,19 @@ export default function AnalysisModal({ match, analysis, onClose, metadata }) {
                     </div>
                     <h3 className="text-2xl font-black">PREDIÇÃO</h3>
                   </div>
-                  <div className="text-5xl font-black mb-3 drop-shadow-lg">{analysis.prediction_display}</div>
+                  <div className="flex items-center justify-center gap-3 mb-3">
+                    {analysis.prediction_team === 'home' && (
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full p-2 shadow-lg">
+                        <TeamLogo team={match?.home_team} size="full" className="w-full h-full object-contain" />
+                      </div>
+                    )}
+                    {analysis.prediction_team === 'away' && (
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-full p-2 shadow-lg">
+                        <TeamLogo team={match?.away_team} size="full" className="w-full h-full object-contain" />
+                      </div>
+                    )}
+                    <div className="text-4xl sm:text-5xl font-black drop-shadow-lg">{analysis.prediction_display}</div>
+                  </div>
                   <div className="flex items-center justify-center gap-1 text-yellow-300 text-3xl mb-2">
                     {analysis.confidence_display}
                   </div>
@@ -393,7 +405,12 @@ export default function AnalysisModal({ match, analysis, onClose, metadata }) {
               {/* Probabilidades */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl p-4 sm:p-5 shadow-xl text-center transform hover:scale-105 transition-all">
-                  <div className="text-xs sm:text-sm font-bold mb-1 opacity-90">🏠 CASA</div>
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white rounded-full p-1">
+                      <TeamLogo team={match?.home_team} size="full" className="w-full h-full object-contain" />
+                    </div>
+                    <div className="text-xs sm:text-sm font-bold opacity-90 truncate">{match?.home_team?.name || match?.home_team || 'CASA'}</div>
+                  </div>
                   <div className="text-3xl sm:text-4xl font-black mb-1">{analysis.home_probability}%</div>
                   <div className="h-2 bg-white/30 rounded-full overflow-hidden">
                     <div className="h-full bg-white rounded-full transition-all duration-500" style={{ width: `${analysis.home_probability}%` }}></div>
@@ -409,7 +426,12 @@ export default function AnalysisModal({ match, analysis, onClose, metadata }) {
                 </div>
 
                 <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl p-4 sm:p-5 shadow-xl text-center transform hover:scale-105 transition-all">
-                  <div className="text-xs sm:text-sm font-bold mb-1 opacity-90">✈️ FORA</div>
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white rounded-full p-1">
+                      <TeamLogo team={match?.away_team} size="full" className="w-full h-full object-contain" />
+                    </div>
+                    <div className="text-xs sm:text-sm font-bold opacity-90 truncate">{match?.away_team?.name || match?.away_team || 'FORA'}</div>
+                  </div>
                   <div className="text-3xl sm:text-4xl font-black mb-1">{analysis.away_probability}%</div>
                   <div className="h-2 bg-white/30 rounded-full overflow-hidden">
                     <div className="h-full bg-white rounded-full transition-all duration-500" style={{ width: `${analysis.away_probability}%` }}></div>
@@ -417,48 +439,80 @@ export default function AnalysisModal({ match, analysis, onClose, metadata }) {
                 </div>
               </div>
 
-              {/* Fatores Chave */}
-              {analysis.key_factors && analysis.key_factors.length > 0 && (
-                <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-6 border-2 border-primary-200 dark:border-primary-700 shadow-lg">
-                  <div className="flex items-center gap-2 mb-5">
-                    <div className="p-2 bg-primary-500 rounded-lg">
-                      <Zap className="w-5 h-5 text-white" />
-                    </div>
-                    <h4 className="text-xl font-black text-gray-900 dark:text-white">PONTOS-CHAVE</h4>
+              {/* Análise Completa - Aberta por padrão com Formatação */}
+              {analysis.reasoning && (
+                <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-6 border-2 border-gray-200 dark:border-gray-600 shadow-lg">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-primary-500" />
+                    <h3 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white">ANÁLISE DETALHADA</h3>
                   </div>
-                  <div className="space-y-3">
-                    {analysis.key_factors.map((factor, index) => (
-                      <div key={index} className="flex items-start gap-3 p-4 bg-white dark:bg-gray-800 rounded-2xl border-l-4 border-primary-500 shadow-md hover:shadow-lg transition-shadow">
-                        <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex-shrink-0">
-                          <CheckCircle2 className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                  <div className="space-y-4">
+                    {formatAnalysisText(analysis.reasoning).map((paragraph, idx) => {
+                      // Detectar se é um título (começa com emoji ou separador)
+                      const isTitle = /^(1️⃣|2️⃣|3️⃣|4️⃣|5️⃣|📊|⚽|🎯|⚠️|💡|🔥|⭐|📈|📉|💪|🏆|📜|⚔️|💰|🏠|✈️|═|─)/.test(paragraph);
+                      const isSeparator = /^═+$/.test(paragraph);
+                      
+                      if (isSeparator) return null; // Ignorar separadores
+                      
+                      return (
+                        <div 
+                          key={idx}
+                          className={`leading-relaxed text-sm sm:text-base animate-fade-in ${
+                            isTitle ? 'font-bold text-base sm:text-lg text-gray-900 dark:text-white mt-2' : 'text-gray-700 dark:text-gray-200'
+                          }`}
+                          style={{ animationDelay: `${idx * 0.05}s` }}
+                        >
+                          {paragraph.split('\n').map((line, lidx) => {
+                            const formatted = formatInlineText(line, match?.home_team, match?.away_team);
+                            return (
+                              <div 
+                                key={lidx}
+                                className={formatted.isBullet ? 'flex items-start gap-2 ml-4 mb-1' : 'mb-1'}
+                              >
+                                {formatted.isBullet && (
+                                  <span className="text-primary-500 font-bold mt-0.5">•</span>
+                                )}
+                                <span className="flex-1 flex items-center flex-wrap gap-1">
+                                  {formatted.parts.map((part, pidx) => {
+                                    if (part.type === 'bold') {
+                                      return <strong key={pidx} className="font-bold text-gray-900 dark:text-white">{part.content}</strong>;
+                                    } else if (part.type === 'number' || part.type === 'percent') {
+                                      return (
+                                        <span key={pidx} className="font-bold text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30 px-1.5 py-0.5 rounded mx-0.5">
+                                          {part.content}
+                                        </span>
+                                      );
+                                    } else if (part.type === 'home_team') {
+                                      return (
+                                        <span key={pidx} className="inline-flex items-center gap-1 font-semibold text-gray-900 dark:text-white">
+                                          <span className="inline-block w-4 h-4 sm:w-5 sm:h-5">
+                                            <TeamLogo team={match?.home_team} size="full" className="w-full h-full object-contain" />
+                                          </span>
+                                          {part.content}
+                                        </span>
+                                      );
+                                    } else if (part.type === 'away_team') {
+                                      return (
+                                        <span key={pidx} className="inline-flex items-center gap-1 font-semibold text-gray-900 dark:text-white">
+                                          <span className="inline-block w-4 h-4 sm:w-5 sm:h-5">
+                                            <TeamLogo team={match?.away_team} size="full" className="w-full h-full object-contain" />
+                                          </span>
+                                          {part.content}
+                                        </span>
+                                      );
+                                    } else {
+                                      return <span key={pidx}>{part.content}</span>;
+                                    }
+                                  })}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
-                        <p className="flex-1 text-base font-semibold text-gray-800 dark:text-gray-200 leading-relaxed">
-                          {factor}
-                        </p>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
-              )}
-
-              {/* Raciocínio Completo - Colapsável */}
-              {analysis.reasoning && (
-                <details className="group">
-                  <summary className="cursor-pointer list-none p-4 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-2xl hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-500 transition-colors shadow-md">
-                    <div className="flex items-center justify-between">
-                      <span className="font-black text-gray-900 dark:text-white flex items-center gap-2">
-                        <Brain className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-                        ANÁLISE COMPLETA
-                      </span>
-                      <span className="text-2xl group-open:rotate-180 transition-transform">▼</span>
-                    </div>
-                  </summary>
-                  <div className="mt-4 p-6 bg-gray-50 dark:bg-gray-700/50 rounded-2xl border-2 border-gray-200 dark:border-gray-600">
-                    <p className="text-gray-700 dark:text-gray-300 text-base leading-relaxed">
-                      {analysis.reasoning}
-                    </p>
-                  </div>
-                </details>
               )}
             </div>
           )}

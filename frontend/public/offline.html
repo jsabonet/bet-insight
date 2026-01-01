@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#16a34a" />
+    <title>Offline • PlacarCerto</title>
+    <style>
+      body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; margin:0; background:#f8fafc; color:#0f172a; }
+      .container { min-height: 100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
+      .card { background:#fff; border:1px solid #e2e8f0; border-radius:24px; padding:32px; max-width:420px; box-shadow: 0 10px 20px rgba(0,0,0,0.06); }
+      .title { font-size:20px; font-weight:700; margin:12px 0 8px; }
+      .desc { font-size:14px; color:#475569; }
+      .btn { margin-top:20px; display:inline-block; background:#16a34a; color:#fff; padding:10px 16px; border-radius:12px; font-weight:600; text-decoration:none; }
+      .logo { width:72px; height:72px; display:block; margin:0 auto; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="card" role="alert" aria-live="polite">
+        <img class="logo" src="/favicon.svg" alt="PlacarCerto" />
+        <div class="title">Sem conexão à internet</div>
+        <p class="desc">Você está offline. Verifique sua conexão e tente novamente. Algumas páginas podem não estar disponíveis sem internet.</p>
+        <a class="btn" href="/">Voltar para início</a>
+      </div>
+    </div>
+  </body>
+  </html>

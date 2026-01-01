@@ -30,8 +30,8 @@ export default function BottomNav() {
     },
   ];
 
-  // Adicionar item Admin apenas para superusuários
-  const navItems = user?.is_superuser
+  // Adicionar item Admin para staff ou superusuários
+  const navItems = (user?.is_staff || user?.is_superuser)
     ? [
         ...baseNavItems.slice(0, 3),
         {

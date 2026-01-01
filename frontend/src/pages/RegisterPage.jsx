@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Check } from 'lucide-react';
 import Logo from '../components/Logo';
+import PasswordStrengthInput from '../components/PasswordStrengthInput';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -14,12 +15,21 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [passwordsMatch, setPasswordsMatch] = useState(true);
   
   const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    
+    // Check password match in real-time
+    if (name === 'password2') {
+      setPasswordsMatch(value === formData.password);
+    } else if (name === 'password') {
+      setPasswordsMatch(formData.password2 === value);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -50,17 +60,27 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-500 to-primary-700 dark:from-primary-900 dark:to-gray-900 px-4 py-12">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 dark:from-primary-900 dark:to-gray-900 px-4 py-12 relative overflow-hidden">
+      {/* Decorative elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/3 rounded-full blur-3xl"></div>
+      </div>
+
+      <div className="max-w-md w-full relative z-10">
+        <div className="text-center mb-8 animate-slide-up">
           <div className="flex justify-center mb-4">
-            <Logo variant="happy" size="xl" showText={false} />
+            <div className="relative">
+              <div className="absolute inset-0 bg-white/20 rounded-full blur-xl"></div>
+              <Logo variant="happy" size="xl" showText={false} />
+            </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">BetInsight</h1>
-          <p className="text-primary-100 dark:text-primary-300">Junte-se e comece a ganhar com IA</p>
+          <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-lg">PlacarCerto</h1>
+          <p className="text-primary-100 dark:text-primary-300 text-lg">Junte-se e comece a ganhar com IA</p>
         </div>
 
-        <div className="card">
+        <div className="card shadow-2xl animate-slide-up" style={{ animationDelay: '100ms' }}>
           <h2 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-gray-100">Criar Conta</h2>
 
           {error && (
@@ -114,43 +134,73 @@ export default function RegisterPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Senha *
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                className="input-field"
-                required
-                minLength="8"
-                placeholder="Mínimo 8 caracteres"
-              />
-            </div>
+            <PasswordStrengthInput
+              value={formData.password}
+              onChange={handleChange}
+              name="password"
+              label="Senha"
+              placeholder="Crie uma senha forte"
+              required={true}
+              showStrength={true}
+            />
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Confirmar Senha *
+                Confirmar Senha <span className="text-red-500">*</span>
               </label>
-              <input
-                type="password"
-                name="password2"
-                value={formData.password2}
-                onChange={handleChange}
-                className="input-field"
-                required
-                placeholder="Digite a senha novamente"
-              />
+              <div className="relative">
+                <input
+                  type="password"
+                  name="password2"
+                  value={formData.password2}
+                  onChange={handleChange}
+                  className={`input-field ${
+                    formData.password2 && passwordsMatch
+                      ? 'border-green-500 dark:border-green-400 focus:ring-green-500'
+                      : formData.password2 && !passwordsMatch
+                      ? 'border-red-500 dark:border-red-400 focus:ring-red-500'
+                      : ''
+                  }`}
+                  required
+                  placeholder="Digite a senha novamente"
+                />
+                {formData.password2 && passwordsMatch && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  </div>
+                )}
+              </div>
+              
+              {formData.password2 && !passwordsMatch && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                  <span className="font-medium">✗</span> As senhas não coincidem
+                </p>
+              )}
+              
+              {formData.password2 && passwordsMatch && (
+                <p className="mt-1 text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                  <Check className="w-3 h-3" />
+                  <span className="font-medium">As senhas coincidem</span>
+                </p>
+              )}
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary"
+              className="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {loading ? 'Criando conta...' : 'Criar Conta'}
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Criando conta...</span>
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-5 h-5" />
+                  <span>Criar Conta</span>
+                </>
+              )}
             </button>
           </form>
 

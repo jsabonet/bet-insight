@@ -9,10 +9,13 @@ import {
   Calendar,
   DollarSign,
   ArrowLeft,
-  BarChart3
+  BarChart3,
+  Crown
 } from 'lucide-react';
 import Header from '../../components/Header';
 import BottomNav from '../../components/BottomNav';
+import Logo from '../../components/Logo';
+import { adminAPI } from '../../services/api';
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -38,18 +41,30 @@ export default function AdminDashboard() {
 
   const loadStats = async () => {
     try {
-      // TODO: Implementar chamada à API de estatísticas admin
-      // Simulando dados por enquanto
+      const response = await adminAPI.getStats();
+      const data = response.data;
+      
       setStats({
-        totalUsers: 156,
-        premiumUsers: 23,
-        totalAnalyses: 1847,
-        todayAnalyses: 89,
-        activeMatches: 12,
-        revenue: 11477,
+        totalUsers: data.users.total,
+        premiumUsers: data.users.premium,
+        totalAnalyses: data.analyses.total,
+        todayAnalyses: data.analyses.today,
+        activeMatches: data.matches.active,
+        revenue: data.revenue.monthly_estimate,
+        newUsersToday: data.users.new_today,
+        thisWeekAnalyses: data.analyses.this_week,
       });
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
+      // Se falhar, manter dados vazios ao invés de simular
+      setStats({
+        totalUsers: 0,
+        premiumUsers: 0,
+        totalAnalyses: 0,
+        todayAnalyses: 0,
+        activeMatches: 0,
+        revenue: 0,
+      });
     } finally {
       setLoading(false);
     }
@@ -75,31 +90,13 @@ export default function AdminDashboard() {
       textColor: 'text-yellow-600 dark:text-yellow-400',
     },
     {
-      title: 'Análises Hoje',
-      value: stats.todayAnalyses,
+      title: 'Novos Hoje',
+      value: stats.newUsersToday || 0,
       icon: Activity,
       color: 'blue',
       bgLight: 'bg-blue-100',
       bgDark: 'dark:bg-blue-900/30',
       textColor: 'text-blue-600 dark:text-blue-400',
-    },
-    {
-      title: 'Total Análises',
-      value: stats.totalAnalyses,
-      icon: TrendingUp,
-      color: 'green',
-      bgLight: 'bg-green-100',
-      bgDark: 'dark:bg-green-900/30',
-      textColor: 'text-green-600 dark:text-green-400',
-    },
-    {
-      title: 'Partidas Ativas',
-      value: stats.activeMatches,
-      icon: Calendar,
-      color: 'purple',
-      bgLight: 'bg-purple-100',
-      bgDark: 'dark:bg-purple-900/30',
-      textColor: 'text-purple-600 dark:text-purple-400',
     },
     {
       title: 'Receita (MZN)',
@@ -115,24 +112,10 @@ export default function AdminDashboard() {
   const adminActions = [
     {
       title: 'Gerenciar Usuários',
-      description: 'Visualizar, editar e gerenciar usuários',
+      description: 'Visualizar, editar e gerenciar contas de usuários',
       icon: Users,
       path: '/admin/users',
       color: 'primary',
-    },
-    {
-      title: 'Partidas',
-      description: 'Gerenciar partidas e resultados',
-      icon: Calendar,
-      path: '/admin/matches',
-      color: 'blue',
-    },
-    {
-      title: 'Análises',
-      description: 'Histórico e estatísticas de análises',
-      icon: BarChart3,
-      path: '/admin/analyses',
-      color: 'green',
     },
   ];
 

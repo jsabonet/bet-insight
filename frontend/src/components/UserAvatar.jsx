@@ -6,11 +6,14 @@ import { User, Crown, Shield, Star } from 'lucide-react';
  * @param {String} size - Tamanho: 'sm', 'md', 'lg', 'xl'
  * @param {Boolean} showBadge - Mostrar badge de tipo
  */
-export default function UserAvatar({ user, size = 'md', showBadge = false }) {
+export default function UserAvatar({ user, size = 'md', showBadge = false, isPremiumOverride = undefined }) {
   // Determinar tipo de usuário
   const getUserType = () => {
     if (user?.is_superuser) return 'superuser';
     if (user?.is_staff) return 'staff';
+    if (typeof isPremiumOverride !== 'undefined') {
+      return isPremiumOverride ? 'premium' : 'free';
+    }
     if (user?.is_premium) return 'premium';
     return 'free';
   };

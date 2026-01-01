@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { matchesAPI } from '../services/api';
+import { matchesAPI, authAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useStats } from '../context/StatsContext';
 import { Clock, Flame, CalendarDays, Sparkles, Search, X } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
@@ -7,8 +9,11 @@ import MatchCard from '../components/MatchCard';
 import EmptyState from '../components/EmptyState';
 import LoadingMascot from '../components/LoadingMascot';
 import AnalysisModal from '../components/AnalysisModal';
+import LimitReachedModal from '../components/LimitReachedModal';
 
 export default function HomePage() {
+  const { user } = useAuth();
+  const { refreshStats } = useStats();
   const [allMatches, setAllMatches] = useState([]); // Armazenar todas as partidas
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +26,7 @@ export default function HomePage() {
   const [analysis, setAnalysis] = useState(null);
   const [isMockData, setIsMockData] = useState(false);
   const [dataSource, setDataSource] = useState('');
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   useEffect(() => {
     loadMatches();
@@ -111,6 +117,17 @@ export default function HomePage() {
   };
 
   const handleAnalyze = async (matchId) => {
+    // Pré-checagem: evitar abrir loading se limite já atingido
+    try {
+      const stats = await authAPI.getStats();
+      if (!stats.data.can_analyze) {
+        setShowLimitModal(true);
+        return;
+      }
+    } catch (e) {
+      // Se stats falhar, continua fluxo normal
+    }
+
     setAnalyzing(true);
     try {
       // Encontrar a partida para exibir no modal
@@ -129,7 +146,8 @@ export default function HomePage() {
           home_score: match.home_score,
           away_score: match.away_score,
           api_id: match.api_football_id || null,  // ID da API-Football
-          football_data_id: match.football_data_id || null  // ID da Football-Data.org (para H2H)
+          football_data_id: match.football_data_id || null,  // ID da Football-Data.org (para H2H)
+          save_to_history: !!user  // Salvar no histórico se usuário estiver logado
         };
 
         // LOG: Payload completo sendo enviado
@@ -294,18 +312,40 @@ export default function HomePage() {
         }
         console.log('='.repeat(80) + '\n');
         
+        // 🔥 NOVO: Log dos dados estruturados do modal completo
+        if (response.data.prediction_display) {
+          console.log('\n🎯 DADOS ESTRUTURADOS PARA MODAL COMPLETO:');
+          console.log('='.repeat(80));
+          console.log('📊 Predição:', response.data.prediction_display);
+          console.log('⭐ Confiança Display:', response.data.confidence_display);
+          console.log('📈 Probabilidades:');
+          console.log(`   🏠 Casa: ${response.data.home_probability}%`);
+          console.log(`   🤝 Empate: ${response.data.draw_probability}%`);
+          console.log(`   ✈️ Fora: ${response.data.away_probability}%`);
+          console.log('🔑 Key Factors:', response.data.key_factors?.length || 0, 'itens');
+          response.data.key_factors?.forEach((factor, i) => {
+            console.log(`   ${i+1}. ${factor}`);
+          });
+          console.log('='.repeat(80) + '\n');
+        }
+        
         setAnalysis(response.data);
+
+        // Atualizar contador no header quando salvar no histórico
+        if (response.data.analysis_id) {
+          console.log('🔄 Atualizando contador: analysis_id encontrado, chamando refreshStats()');
+          refreshStats();
+        }
       }
     } catch (error) {
       console.error('Erro ao analisar partida:', error);
-      const errorMsg = error.response?.data?.error || 'Erro ao gerar análise. Tente novamente.';
       const errorCode = error.response?.data?.code;
-      
-      // Mensagem específica para quota excedida
-      if (errorCode === 'QUOTA_EXCEEDED' || error.response?.status === 429) {
-        alert('⚠️ Limite diário de análises atingido!\n\nO plano gratuito permite 20 análises por dia.\n\nTente novamente em algumas horas ou considere assinar o plano Premium para análises ilimitadas.');
+      const statusCode = error.response?.status;
+      if (errorCode === 'QUOTA_EXCEEDED' || statusCode === 429) {
+        // Abrir modal de limite atingido (sem alert)
+        setShowLimitModal(true);
       } else {
-        alert(errorMsg);
+        // Opcional: manter silencioso ou usar outro fluxo de erro amigável
       }
     } finally {
       setAnalyzing(false);
@@ -329,21 +369,7 @@ export default function HomePage() {
       <Header showLogo={true} />
 
       <div className="page-content">
-        {/* Data Source Indicator */}
-        {!loading && (
-          <div className={`mb-4 px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 ${
-            isMockData 
-              ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800' 
-              : 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800'
-          }`}>
-            <div className={`w-2 h-2 rounded-full ${isMockData ? 'bg-amber-500' : 'bg-green-500'} animate-pulse`}></div>
-            {isMockData ? (
-              <span>📋 Dados de exemplo - Pausa de fim de ano (partidas reais voltam em Janeiro 2026)</span>
-            ) : (
-              <span>✅ Dados reais da API-Football</span>
-            )}
-          </div>
-        )}
+        {/* Data Source Indicator removed per request */}
 
         {/* Search Bar */}
         <div className="mb-4">
@@ -466,6 +492,11 @@ export default function HomePage() {
           metadata={analysis.metadata}
           onClose={closeModal}
         />
+      )}
+
+      {/* Daily Limit Reached Modal */}
+      {showLimitModal && (
+        <LimitReachedModal onClose={() => setShowLimitModal(false)} dailyLimit={3} />
       )}
 
       {/* Analyzing Overlay */}

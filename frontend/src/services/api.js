@@ -67,6 +67,28 @@ export const authAPI = {
   getProfile: () => api.get('/users/profile/'),
   updateProfile: (data) => api.patch('/users/profile/', data),
   getStats: () => api.get('/users/stats/'),
+  changePassword: (data) => api.post('/users/change-password/', data),
+  deleteAccount: (password) => api.delete('/users/delete-account/', { data: { password } }),
+};
+
+// Admin endpoints
+export const adminAPI = {
+  getStats: () => api.get('/users/admin/stats/'),
+  getUsers: (params) => api.get('/users/admin/users/', { params }),
+  getUser: (id) => api.get(`/users/admin/users/${id}/`),
+  updateUser: (id, data) => api.patch(`/users/admin/users/${id}/`, data),
+  deleteUser: (id) => api.delete(`/users/admin/users/${id}/delete/`),
+  togglePremium: (id) => api.post(`/users/admin/users/${id}/toggle_premium/`),
+  resetDailyLimit: (id) => api.post(`/users/admin/users/${id}/reset_daily_limit/`),
+  getAnalysesStats: () => api.get('/users/admin/analyses-stats/'),
+  assignSubscription: (userId, planSlug, durationDays) =>
+    api.post('/subscriptions/admin/assign-subscription/', {
+      user_id: userId,
+      plan_slug: planSlug,
+      duration_days: durationDays,
+    }),
+  removeSubscription: (userId) =>
+    api.post('/subscriptions/admin/remove-subscription/', { user_id: userId }),
 };
 
 // Matches endpoints
@@ -99,13 +121,24 @@ export const analysisAPI = {
 
 // Subscriptions endpoints
 export const subscriptionsAPI = {
-  getAll: () => api.get('/subscriptions/'),
-  getCurrent: () => api.get('/subscriptions/current/'),
-  cancel: (id) => api.post(`/subscriptions/${id}/cancel/`),
+  // Planos
+  getPlans: () => api.get('/subscriptions/plans/'),
+  getPremiumPlans: () => api.get('/subscriptions/plans/premium/'),
+  getPlanDetails: (slug) => api.get(`/subscriptions/plans/${slug}/`),
+  
+  // Assinaturas
+  getMySubscription: () => api.get('/subscriptions/my-subscription/'),
+  cancelSubscription: () => api.post('/subscriptions/cancel/'),
+  getHistory: () => api.get('/subscriptions/history/'),
+  
+  // Pagamentos
+  createPayment: (data) => api.post('/subscriptions/payments/create/', data),
+  checkPaymentStatus: (txId) => api.get(`/subscriptions/payments/check/${txId}/`),
+  getMyPayments: () => api.get('/subscriptions/payments/my-payments/'),
 };
 
-// Payments endpoints
+// Legacy payment endpoint (manter compatibilidade)
 export const paymentsAPI = {
-  getAll: () => api.get('/payments/'),
-  createPayment: (data) => api.post('/payments/create_payment/', data),
+  getAll: () => api.get('/subscriptions/payments/my-payments/'),
+  createPayment: (data) => api.post('/subscriptions/payments/create/', data),
 };

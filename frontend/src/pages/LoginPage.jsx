@@ -29,17 +29,26 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-500 to-primary-700 dark:from-primary-900 dark:to-gray-900 px-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 dark:from-primary-900 dark:to-gray-900 px-4 py-8 relative overflow-hidden">
+      {/* Decorative elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
+      </div>
+
+      <div className="max-w-md w-full relative z-10">
+        <div className="text-center mb-8 animate-slide-up">
           <div className="flex justify-center mb-4">
-            <Logo variant="happy" size="xl" showText={false} />
+            <div className="relative">
+              <div className="absolute inset-0 bg-white/20 rounded-full blur-xl"></div>
+              <Logo variant="happy" size="xl" showText={false} />
+            </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-2">BetInsight</h1>
-          <p className="text-primary-100 dark:text-primary-300">Análises inteligentes para suas apostas</p>
+          <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-lg">PlacarCerto</h1>
+          <p className="text-primary-100 dark:text-primary-300 text-lg">Análises de futebol com inteligência artificial</p>
         </div>
 
-        <div className="card">
+        <div className="card shadow-2xl animate-slide-up" style={{ animationDelay: '100ms' }}>
           <h2 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-gray-100">Bem-vindo de volta!</h2>
 
           {error && (
@@ -80,9 +89,19 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary"
+              className="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {loading ? 'Entrando...' : 'Entrar'}
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Entrando...</span>
+                </>
+              ) : (
+                <>
+                  <LogIn className="w-5 h-5" />
+                  <span>Entrar</span>
+                </>
+              )}
             </button>
           </form>
 

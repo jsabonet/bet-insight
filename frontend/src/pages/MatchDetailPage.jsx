@@ -1,16 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { matchesAPI, analysisAPI } from '../services/api';
+import { matchesAPI, analysisAPI, authAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useStats } from '../context/StatsContext';
 import { ArrowLeft, Brain, AlertCircle } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
 import LoadingMascot from '../components/LoadingMascot';
 import AnalysisModal from '../components/AnalysisModal';
+import LimitReachedModal from '../components/LimitReachedModal';
 import { TeamLogo, LeagueLogo } from '../utils/logos';
 
 export default function MatchDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { refreshStats } = useStats();
   
   const [match, setMatch] = useState(null);
   const [analysis, setAnalysis] = useState(null);
@@ -19,6 +24,7 @@ export default function MatchDetailPage() {
   const [error, setError] = useState('');
   const [isExternalMatch, setIsExternalMatch] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
 
   useEffect(() => {
     loadMatchDetails();
@@ -52,6 +58,15 @@ export default function MatchDetailPage() {
 
   const handleRequestAnalysis = async () => {
     setError('');
+    // Pré-checagem: evitar abrir loading se limite já atingido
+    try {
+      const stats = await authAPI.getStats();
+      if (!stats.data.can_analyze) {
+        setShowLimitModal(true);
+        return;
+      }
+    } catch (e) {}
+
     setAnalyzing(true);
 
     try {
@@ -66,7 +81,8 @@ export default function MatchDetailPage() {
           home_score: match.home_score,
           away_score: match.away_score,
           api_id: match.api_football_id || null,  // ID da API-Football
-          football_data_id: match.football_data_id || null  // ID da Football-Data.org (para H2H)
+          football_data_id: match.football_data_id || null,  // ID da Football-Data.org (para H2H)
+          save_to_history: !!user  // Salvar no histórico se usuário estiver logado
         };
 
         // LOG: Payload completo sendo enviado
@@ -232,21 +248,45 @@ export default function MatchDetailPage() {
         }
         console.log('='.repeat(80) + '\n');
         
+        // 🔥 NOVO: Log dos dados estruturados do modal completo
+        if (response.data.prediction_display) {
+          console.log('\n🎯 DADOS ESTRUTURADOS PARA MODAL COMPLETO:');
+          console.log('='.repeat(80));
+          console.log('📊 Predição:', response.data.prediction_display);
+          console.log('⭐ Confiança Display:', response.data.confidence_display);
+          console.log('📈 Probabilidades:');
+          console.log(`   🏠 Casa: ${response.data.home_probability}%`);
+          console.log(`   🤝 Empate: ${response.data.draw_probability}%`);
+          console.log(`   ✈️ Fora: ${response.data.away_probability}%`);
+          console.log('🔑 Key Factors:', response.data.key_factors?.length || 0, 'itens');
+          response.data.key_factors?.forEach((factor, i) => {
+            console.log(`   ${i+1}. ${factor}`);
+          });
+          console.log('='.repeat(80) + '\n');
+        }
+        
         setAnalysis(response.data);
+        // Atualizar contador no header
+        console.log('🔄 Chamando refreshStats() após análise externa');
+        refreshStats();
       } else {
         // Usar request_analysis para partidas do DB
         const response = await analysisAPI.requestAnalysis(id);
         setAnalysis(response.data.analysis);
+        // Atualizar contador no header
+        console.log('🔄 Chamando refreshStats() após análise do DB');
+        refreshStats();
       }
       setShowModal(true);
     } catch (err) {
-      const errorMsg = err.response?.data?.error || 'Erro ao gerar análise';
       const errorCode = err.response?.data?.code;
-      
-      // Mensagem específica para quota excedida
-      if (errorCode === 'QUOTA_EXCEEDED' || err.response?.status === 429) {
-        setError('⚠️ Limite diário de análises atingido! O plano gratuito permite 20 análises por dia. Tente novamente em algumas horas ou assine o Premium para análises ilimitadas.');
+      const statusCode = err.response?.status;
+      if (errorCode === 'QUOTA_EXCEEDED' || statusCode === 429) {
+        // Mostrar modal de limite atingido e não exibir banner de erro
+        setError('');
+        setShowLimitModal(true);
       } else {
+        const errorMsg = err.response?.data?.error || 'Erro ao gerar análise';
         setError(errorMsg);
       }
     } finally {
@@ -350,6 +390,11 @@ export default function MatchDetailPage() {
           metadata={analysis.metadata}
           onClose={() => setShowModal(false)}
         />
+      )}
+
+      {/* Daily Limit Reached Modal */}
+      {showLimitModal && (
+        <LimitReachedModal onClose={() => setShowLimitModal(false)} dailyLimit={3} />
       )}
 
       {/* Analyzing Overlay */}

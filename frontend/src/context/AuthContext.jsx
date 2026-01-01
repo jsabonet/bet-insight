@@ -60,6 +60,19 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
+  const refreshProfile = async () => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      try {
+        const response = await authAPI.getProfile();
+        setUser(response.data);
+        return response.data;
+      } catch (error) {
+        console.error('Erro ao atualizar perfil:', error);
+      }
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -67,6 +80,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateUser,
+    refreshProfile,
     isAuthenticated: !!user,
   };
 
