@@ -21,19 +21,17 @@ echo "Domínio: $DOMAIN"
 echo "Email: $EMAIL"
 echo ""
 
-# Parar nginx temporariamente
-echo "Parando nginx..."
-docker compose stop nginx
-
-# Obter certificado
-echo "Obtendo certificado SSL..."
-docker compose run --rm certbot certonly --standalone \
-    --preferred-challenges http \
+# Obter certificado (método webroot, nginx continua rodando)
+echo "Obtendo certificado SSL via webroot..."
+docker compose run --rm --entrypoint certbot certbot certonly \
+    --webroot \
+    --webroot-path=/var/www/certbot \
     -d $DOMAIN \
     -d www.$DOMAIN \
     --email $EMAIL \
     --agree-tos \
-    --non-interactive
+    --non-interactive \
+    --verbose
 
 # Atualizar configuração do nginx
 echo "Atualizando configuração do nginx..."
@@ -47,7 +45,9 @@ sed -i 's/#     ssl_/    ssl_/g' docker/nginx/conf.d/default.conf
 sed -i 's/#     location/    location/g' docker/nginx/conf.d/default.conf
 sed -i 's/# }/}/g' docker/nginx/conf.d/default.conf
 
-# Reiniciar nginx
+# Testar configuração e reiniciar nginx
+echo "Validando configuração do nginx..."
+docker compose exec nginx nginx -t || { echo "Configuração NGINX inválida"; exit 1; }
 echo "Reiniciando nginx..."
 docker compose up -d nginx
 
