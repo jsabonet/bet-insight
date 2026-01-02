@@ -124,9 +124,11 @@ def create_payment(request):
                 )
             
             # Atualizar com dados do PaySuite
-            # Guardar identificador do provedor e resposta bruta em metadata
+            # Guardar identificador do provedor no campo paysuite_reference
+            payment.paysuite_reference = paysuite_response.get('paysuite_reference', '')
+            
+            # Guardar resposta bruta em metadata
             payment.metadata = payment.metadata or {}
-            payment.metadata['paysuite_reference'] = paysuite_response.get('paysuite_reference', '')
             payment.metadata['paysuite_response'] = paysuite_response.get('raw_response', {})
             checkout_url = paysuite_response.get('checkout_url', '')
             if checkout_url:

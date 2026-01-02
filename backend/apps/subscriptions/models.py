@@ -130,6 +130,7 @@ class Payment(models.Model):
     # M-Pesa
     transaction_id = models.CharField(max_length=100, unique=True, verbose_name="ID Transação")
     mpesa_reference = models.CharField(max_length=100, blank=True, verbose_name="Referência M-Pesa")
+    paysuite_reference = models.CharField(max_length=100, blank=True, default='', verbose_name="Referência PaySuite")
     
     # Status
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Status")
