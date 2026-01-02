@@ -234,6 +234,38 @@ CORS_ALLOWED_ORIGINS = [
 
 CORS_ALLOW_CREDENTIALS = True
 
+# Headers permitidos em requisições CORS
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# Métodos HTTP permitidos
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# Expor headers específicos ao cliente
+CORS_EXPOSE_HEADERS = [
+    'Content-Type',
+    'X-CSRFToken',
+]
+
+# Permitir cookies e credenciais
+CORS_ALLOW_ALL_ORIGINS = False
+
 # Celery Configuration
 CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
@@ -275,5 +307,5 @@ MPESA_PUBLIC_KEY = os.getenv('MPESA_PUBLIC_KEY', '')
 FCM_SERVER_KEY = os.getenv('FCM_SERVER_KEY', '')
 
 # Application Settings
-FREE_ANALYSIS_LIMIT = 5
-PREMIUM_ANALYSIS_LIMIT = 100
+FREE_ANALYSIS_LIMIT = 3
+# PREMIUM_ANALYSIS_LIMIT = 100
