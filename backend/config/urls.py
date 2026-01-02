@@ -33,5 +33,6 @@ router.register(r'payments', PaymentViewSet, basename='payment')
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/users/', include('apps.users.urls')),
+    path('api/subscriptions/', include('apps.subscriptions.urls')),
     path('api/', include(router.urls)),
 ]

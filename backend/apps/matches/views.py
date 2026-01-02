@@ -10,6 +10,7 @@ from .serializers import LeagueSerializer, TeamSerializer, MatchListSerializer, 
 from .services.football_api import FootballAPIService
 from .services.id_mapper import APIIDMapper
 from apps.analysis.services.ai_analyzer import AIAnalyzer
+from apps.analysis.models import Analysis
 import logging
 
 logger = logging.getLogger(__name__)
@@ -334,16 +335,50 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 status=result.get('http_status', status.HTTP_500_INTERNAL_SERVER_ERROR)
             )
         
+        # Criar e salvar análise no banco de dados
+        try:
+            # Heurística simples para probabilidades e xG quando IA não fornece estruturado
+            home_p, draw_p, away_p = 40.0, 30.0, 30.0
+            home_xg, away_xg = 1.5, 1.3
+            prediction = 'home'
+            confidence = int(result.get('confidence', 3) or 3)
+            reasoning = result.get('analysis') or 'Análise gerada pela IA.'
+            key_factors = ['Mando de campo', 'Forma recente']
+
+            analysis = Analysis.objects.create(
+                user=request.user,
+                match=match,
+                prediction=prediction,
+                confidence=confidence,
+                home_probability=home_p,
+                draw_probability=draw_p,
+                away_probability=away_p,
+                home_xg=home_xg,
+                away_xg=away_xg,
+                reasoning=reasoning,
+                key_factors=key_factors,
+                analysis_data={'source': 'ai', 'fallback': True}
+            )
+        except Exception:
+            # Mesmo que salvar falhe, ainda retornamos a análise textual
+            analysis = None
+        
         # Incrementar contador de análises do usuário
         request.user.increment_analysis_count()
         
-        # TODO: Salvar análise no banco de dados
-        
-        return Response({
+        payload = {
             'analysis': result['analysis'],
             'confidence': result['confidence'],
             'remaining_analyses': request.user.get_remaining_analyses()
-        })
+        }
+        if analysis:
+            payload['saved'] = True
+            payload['saved_analysis'] = {
+                'id': analysis.id,
+                'created_at': analysis.created_at,
+            }
+        
+        return Response(payload)
     
     @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def quick_analyze(self, request):
@@ -523,10 +558,119 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             'football_data_match': match_data.get('football_data_match')  # 🆕 Detalhes do Football-Data.org
         }
         
+        # Opcional: salvar no histórico se usuário autenticado e houver match mapeado
+        saved = False
+        saved_info = None
+        try:
+            if request.user.is_authenticated and request.data.get('save_to_history'):
+                api_id_val = request.data.get('api_id')
+                if api_id_val:
+                    # Tentar mapear para uma partida existente no banco
+                    db_match = Match.objects.filter(api_football_id=api_id_val).first()
+                    if db_match:
+                        # Evitar duplicar análises
+                        existing = Analysis.objects.filter(user=request.user, match=db_match).first()
+                        if not existing:
+                            # Checar limite diário
+                            if request.user.can_analyze():
+                                home_p, draw_p, away_p = 40.0, 30.0, 30.0
+                                home_xg, away_xg = 1.5, 1.3
+                                prediction = 'home'
+                                confidence = int(result.get('confidence', 3) or 3)
+                                reasoning = result.get('analysis') or 'Análise gerada pela IA.'
+                                key_factors = ['Mando de campo', 'Forma recente']
+                                saved_analysis = Analysis.objects.create(
+                                    user=request.user,
+                                    match=db_match,
+                                    prediction=prediction,
+                                    confidence=confidence,
+                                    home_probability=home_p,
+                                    draw_probability=draw_p,
+                                    away_probability=away_p,
+                                    home_xg=home_xg,
+                                    away_xg=away_xg,
+                                    reasoning=reasoning,
+                                    key_factors=key_factors,
+                                    analysis_data={'source': 'ai', 'fallback': True}
+                                )
+                                request.user.increment_analysis_count()
+                                saved = True
+                                saved_info = {'id': saved_analysis.id, 'created_at': saved_analysis.created_at}
+                    else:
+                        # Criar um registro mínimo da partida e salvar análise
+                        if request.user.can_analyze():
+                            from django.utils import timezone
+                            league_name = request.data.get('league') or 'Liga Desconhecida'
+                            home_name = request.data.get('home_team') or 'Time Casa'
+                            away_name = request.data.get('away_team') or 'Time Visitante'
+                            match_date_str = request.data.get('date')
+                            try:
+                                match_date = datetime.fromisoformat(str(match_date_str).replace('Z', '+00:00')) if match_date_str else timezone.now()
+                            except Exception:
+                                match_date = timezone.now()
+
+                            league_obj, _ = League.objects.get_or_create(
+                                name=league_name,
+                                defaults={
+                                    'country': '',
+                                    'logo': '',
+                                    'is_active': True,
+                                }
+                            )
+                            home_team_obj, _ = Team.objects.get_or_create(
+                                name=home_name,
+                                defaults={'country': '', 'logo': ''}
+                            )
+                            away_team_obj, _ = Team.objects.get_or_create(
+                                name=away_name,
+                                defaults={'country': '', 'logo': ''}
+                            )
+
+                            db_match = Match.objects.create(
+                                league=league_obj,
+                                home_team=home_team_obj,
+                                away_team=away_team_obj,
+                                match_date=match_date,
+                                status=request.data.get('status') or 'scheduled',
+                                api_football_id=api_id_val,
+                                football_data_id=request.data.get('football_data_id') or None,
+                                is_analysis_available=True,
+                            )
+
+                            home_p, draw_p, away_p = 40.0, 30.0, 30.0
+                            home_xg, away_xg = 1.5, 1.3
+                            prediction = 'home'
+                            confidence = int(result.get('confidence', 3) or 3)
+                            reasoning = result.get('analysis') or 'Análise gerada pela IA.'
+                            key_factors = ['Mando de campo', 'Forma recente']
+                            saved_analysis = Analysis.objects.create(
+                                user=request.user,
+                                match=db_match,
+                                prediction=prediction,
+                                confidence=confidence,
+                                home_probability=home_p,
+                                draw_probability=draw_p,
+                                away_probability=away_p,
+                                home_xg=home_xg,
+                                away_xg=away_xg,
+                                reasoning=reasoning,
+                                key_factors=key_factors,
+                                analysis_data={'source': 'ai', 'fallback': True}
+                            )
+                            request.user.increment_analysis_count()
+                            saved = True
+                            saved_info = {'id': saved_analysis.id, 'created_at': saved_analysis.created_at}
+        except Exception:
+            # Ignorar erros de persistência silenciosamente para não quebrar preview
+            saved = False
+            saved_info = None
+
         return Response({
             'analysis': result['analysis'],
             'confidence': result['confidence'],
             'metadata': metadata,
-            'enriched_data': enriched_data  # 🔥 ADICIONADO!
+            'enriched_data': enriched_data,  # 🔥 ADICIONADO!
+            'saved': saved,
+            'saved_analysis': saved_info
         })
 

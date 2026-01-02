@@ -67,7 +67,7 @@ def create_payment(request):
     existing_subscription = user.subscriptions.filter(
         status='active',
         end_date__gt=timezone.now()
-    ).exclude(plan_slug='freemium').first()
+    ).first()
     
     if existing_subscription:
         return Response(
@@ -83,22 +83,11 @@ def create_payment(request):
             # Gerar referência única (apenas letras e números conforme PaySuite)
             reference = f"BET{user.id}{uuid.uuid4().hex[:8].upper()}"
             
-            # Criar assinatura pendente
-            subscription = Subscription.objects.create(
-                user=user,
-                plan=plan_slug,
-                plan_slug=plan_slug,
-                status='pending',
-                amount_paid=amount,
-                auto_renew=True,
-            )
-            
-            # Criar registro de pagamento
+            # Criar registro de pagamento (sem assinatura ainda)
             payment = Payment.objects.create(
                 user=user,
-                subscription=subscription,
+                subscription=None,
                 amount=amount,
-                currency='MZN',
                 phone_number='',  # Será preenchido na página externa
                 transaction_id=reference,
                 payment_method=payment_method,
@@ -120,9 +109,10 @@ def create_payment(request):
             
             if not paysuite_response.get('success'):
                 # Marcar como falho
-                payment.mark_as_failed(paysuite_response.get('error', 'Erro desconhecido'))
-                subscription.status = 'cancelled'
-                subscription.save()
+                payment.status = 'failed'
+                payment.failed_at = timezone.now()
+                payment.metadata['error'] = paysuite_response.get('error', 'Erro desconhecido')
+                payment.save()
                 
                 return Response(
                     {
@@ -134,7 +124,9 @@ def create_payment(request):
                 )
             
             # Atualizar com dados do PaySuite
-            payment.paysuite_reference = paysuite_response.get('paysuite_reference', '')
+            # Guardar identificador do provedor e resposta bruta em metadata
+            payment.metadata = payment.metadata or {}
+            payment.metadata['paysuite_reference'] = paysuite_response.get('paysuite_reference', '')
             payment.metadata['paysuite_response'] = paysuite_response.get('raw_response', {})
             checkout_url = paysuite_response.get('checkout_url', '')
             if checkout_url:
@@ -153,7 +145,6 @@ def create_payment(request):
                 'success': True,
                 'message': instructions_msg,
                 'payment': PaymentSerializer(payment).data,
-                'subscription': SubscriptionSerializer(subscription).data,
                 'instructions': instructions_msg
             }
             
@@ -211,20 +202,67 @@ def paysuite_webhook(request):
             )
         
         # Atualizar status
-        if payment_status == 'completed' or payment_status == 'success':
-            payment.mark_as_completed(
-                paid_at=webhook_data.get('paid_at')
-            )
+        if payment_status in ('completed', 'success'):
+            # Marcar pagamento como completo
+            payment.status = 'completed'
+            paid_at = webhook_data.get('paid_at') or timezone.now()
+            payment.completed_at = paid_at
+            payment.save()
             logger.info(f"Pagamento confirmado: {transaction_id}")
             
+            # Criar/ativar assinatura vinculada ao pagamento
+            plan_slug = (payment.metadata or {}).get('plan')
+            plan_map = {
+                'monthly': 'monthly',
+                'quarterly': 'quarterly',
+                'yearly': 'yearly',
+                'starter': 'monthly',
+                'pro': 'monthly',
+                'vip': 'monthly',
+                'teste': 'monthly',
+            }
+            plan_choice = plan_map.get(plan_slug, 'monthly')
+            
+            # Calcular end_date baseado no plano
+            from datetime import timedelta
+            start_date = timezone.now()
+            if plan_slug == 'teste':
+                end_date = start_date + timedelta(days=1)  # Plano de teste: 1 dia
+            elif plan_choice == 'monthly':
+                end_date = start_date + timedelta(days=30)
+            elif plan_choice == 'quarterly':
+                end_date = start_date + timedelta(days=90)
+            elif plan_choice == 'yearly':
+                end_date = start_date + timedelta(days=365)
+            else:
+                end_date = start_date + timedelta(days=30)  # Default: 30 dias
+            
+            if not payment.subscription:
+                subscription = Subscription.objects.create(
+                    user=payment.user,
+                    plan=plan_choice,
+                    plan_slug=plan_slug,  # Salvar slug original
+                    status='active',
+                    start_date=start_date,
+                    end_date=end_date,
+                    auto_renew=True,
+                    amount_paid=payment.amount,
+                )
+                payment.subscription = subscription
+                payment.save()
+            else:
+                # Garantir que assinatura linkada esteja ativa
+                payment.subscription.status = 'active'
+                payment.subscription.plan_slug = plan_slug  # Atualizar slug
+                payment.subscription.save()
+
             # Enviar emails de confirmação
             send_payment_confirmed_email(payment.user, payment, payment.subscription)
             send_subscription_activated_email(payment.user, payment.subscription)
             
-        elif payment_status == 'failed' or payment_status == 'cancelled':
-            payment.mark_as_failed(
-                reason=webhook_data.get('error', 'Pagamento não confirmado')
-            )
+        elif payment_status in ('failed', 'cancelled'):
+            payment.status = 'failed'
+            payment.save()
             logger.warning(f"Pagamento falhou: {transaction_id}")
             
             # Enviar email de falha
@@ -276,7 +314,7 @@ def check_payment_status(request, transaction_id):
         })
     
     # Consultar status na PaySuite usando o UUID do provider (paysuite_reference)
-    provider_id = payment.paysuite_reference or transaction_id
+    provider_id = (payment.metadata or {}).get('paysuite_reference') or transaction_id
     
     logger.info(f"🔍 Consultando status PaySuite para: {provider_id}")
     paysuite_response = paysuite_service.check_payment_status(provider_id)
@@ -288,9 +326,54 @@ def check_payment_status(request, transaction_id):
         # Atualizar payment se status mudou para completed
         if paysuite_status == 'completed' and payment.status != 'completed':
             logger.info(f"✅ Ativando assinatura via polling para pagamento {transaction_id}")
-            payment.mark_as_completed(
-                paid_at=paysuite_response.get('paid_at') or timezone.now()
-            )
+            payment.status = 'completed'
+            payment.completed_at = paysuite_response.get('paid_at') or timezone.now()
+            payment.save()
+            
+            # Criar/ativar assinatura vinculada
+            plan_slug = (payment.metadata or {}).get('plan')
+            plan_map = {
+                'monthly': 'monthly',
+                'quarterly': 'quarterly',
+                'yearly': 'yearly',
+                'starter': 'monthly',
+                'pro': 'monthly',
+                'vip': 'monthly',
+                'teste': 'monthly',
+            }
+            plan_choice = plan_map.get(plan_slug, 'monthly')
+            
+            # Calcular end_date baseado no plano
+            from datetime import timedelta
+            start_date = timezone.now()
+            if plan_slug == 'teste':
+                end_date = start_date + timedelta(days=1)  # Plano de teste: 1 dia
+            elif plan_choice == 'monthly':
+                end_date = start_date + timedelta(days=30)
+            elif plan_choice == 'quarterly':
+                end_date = start_date + timedelta(days=90)
+            elif plan_choice == 'yearly':
+                end_date = start_date + timedelta(days=365)
+            else:
+                end_date = start_date + timedelta(days=30)  # Default: 30 dias
+            
+            if not payment.subscription:
+                subscription = Subscription.objects.create(
+                    user=payment.user,
+                    plan=plan_choice,
+                    plan_slug=plan_slug,  # Salvar slug original
+                    status='active',
+                    start_date=start_date,
+                    end_date=end_date,
+                    auto_renew=True,
+                    amount_paid=payment.amount,
+                )
+                payment.subscription = subscription
+                payment.save()
+            else:
+                payment.subscription.status = 'active'
+                payment.subscription.plan_slug = plan_slug  # Atualizar slug
+                payment.subscription.save()
             
             # Enviar emails de confirmação
             try:
@@ -301,7 +384,8 @@ def check_payment_status(request, transaction_id):
         
         elif paysuite_status == 'failed' and payment.status == 'pending':
             logger.warning(f"❌ Pagamento falhou na PaySuite: {transaction_id}")
-            payment.mark_as_failed(reason='Pagamento rejeitado pela PaySuite')
+            payment.status = 'failed'
+            payment.save()
     
     return Response({
         'status': payment.status,

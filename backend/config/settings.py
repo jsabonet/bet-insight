@@ -183,6 +183,21 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.ScopedRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '20/min',
+        'user': '100/min',
+        'login': '5/min',
+        'register': '3/min',
+        'stats': '120/min',
+        'plans': '60/min',
+        'analysis': '10/min',
+        'profile': '60/min',
+    },
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
     'DEFAULT_RENDERER_CLASSES': (
@@ -239,6 +254,14 @@ PAYSUITE_API_TOKEN = os.getenv('PAYSUITE_API_TOKEN', '')
 PAYSUITE_WEBHOOK_SECRET = os.getenv('PAYSUITE_WEBHOOK_SECRET', '')
 PAYSUITE_API_URL = os.getenv('PAYSUITE_API_URL', 'https://paysuite.co.mz/api')
 PAYSUITE_WEBHOOK_URL = os.getenv('PAYSUITE_WEBHOOK_URL', '')
+
+# PaySuite v2 (Credenciais atualizadas - usado pelo paysuite_service)
+PAYSUITE_API_KEY = os.getenv('PAYSUITE_API_KEY', '')
+PAYSUITE_API_SECRET = os.getenv('PAYSUITE_API_SECRET', '')
+PAYSUITE_BASE_URL = os.getenv('PAYSUITE_BASE_URL', 'https://paysuite.tech/api/v1')
+PAYSUITE_ENVIRONMENT = os.getenv('PAYSUITE_ENVIRONMENT', 'production')
+PAYSUITE_PRIVATE_KEY = os.getenv('PAYSUITE_PRIVATE_KEY', '')
+PAYSUITE_MODE = os.getenv('PAYSUITE_MODE', 'token')
 
 # M-Pesa Configuration (Legado - usar PaySuite)
 MPESA_API_HOST = os.getenv('MPESA_API_HOST', '')

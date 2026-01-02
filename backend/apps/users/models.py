@@ -1,14 +1,17 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
+from datetime import date
+from dateutil.relativedelta import relativedelta
 
 
 class User(AbstractUser):
     """
-    Modelo customizado de usuário para Bet Insight Mozambique
+    Modelo customizado de usuário para PlacarCerto Mozambique
     """
     email = models.EmailField(unique=True, verbose_name="Email")
     phone = models.CharField(max_length=15, blank=True, verbose_name="Telefone")
+    date_of_birth = models.DateField(null=True, blank=True, verbose_name="Data de Nascimento")
     
     # Status Premium
     is_premium = models.BooleanField(default=False, verbose_name="É Premium?")
@@ -25,6 +28,12 @@ class User(AbstractUser):
     # Estatísticas
     total_analyses = models.IntegerField(default=0, verbose_name="Total de Análises")
     successful_predictions = models.IntegerField(default=0, verbose_name="Previsões Corretas")
+
+    # Anti-fraude / rastreio básico
+    signup_ip = models.GenericIPAddressField(null=True, blank=True, verbose_name="IP de Cadastro")
+    last_login_ip = models.GenericIPAddressField(null=True, blank=True, verbose_name="IP Último Login")
+    device_fingerprint = models.CharField(max_length=255, blank=True, verbose_name="Fingerprint Dispositivo")
+    last_device_fingerprint = models.CharField(max_length=255, blank=True, verbose_name="Último Fingerprint")
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado Em")
@@ -37,6 +46,28 @@ class User(AbstractUser):
     
     def __str__(self):
         return self.email
+    
+    @property
+    def age(self):
+        """Calcula a idade atual do usuário baseada na data de nascimento"""
+        if not self.date_of_birth:
+            return None
+        
+        today = date.today()
+        age = today.year - self.date_of_birth.year
+        
+        # Ajustar se ainda não fez aniversário este ano
+        if today.month < self.date_of_birth.month or \
+           (today.month == self.date_of_birth.month and today.day < self.date_of_birth.day):
+            age -= 1
+        
+        return age
+    
+    def is_adult(self):
+        """Verifica se o usuário é maior de 18 anos"""
+        if not self.age:
+            return False
+        return self.age >= 18
     
     def is_premium_active(self):
         """Verifica se o usuário tem premium ativo"""
@@ -56,14 +87,25 @@ class User(AbstractUser):
             self.last_analysis_date = today
             self.save()
         
-        # Premium tem limite maior
-        if self.is_premium_active():
-            from django.conf import settings
-            return self.daily_analysis_count < settings.PREMIUM_ANALYSIS_LIMIT
-        
-        # Free tem 5 análises por dia
-        from django.conf import settings
-        return self.daily_analysis_count < settings.FREE_ANALYSIS_LIMIT
+        # Definir limite diário com base na assinatura ativa (plan_slug)
+        from apps.subscriptions.plan_config import get_plan_limit
+        limit = None
+        try:
+            active_sub = self.subscriptions.filter(status='active', end_date__gt=timezone.now()).first()
+            if active_sub and active_sub.plan_slug:
+                limit = get_plan_limit(active_sub.plan_slug)
+        except Exception:
+            limit = None
+
+        if limit is None:
+            # Fallback para configurações existentes
+            if self.is_premium_active():
+                from django.conf import settings
+                limit = settings.PREMIUM_ANALYSIS_LIMIT
+            else:
+                limit = get_plan_limit('freemium')
+
+        return self.daily_analysis_count < limit
     
     def increment_analysis_count(self):
         """Incrementa contador de análises"""

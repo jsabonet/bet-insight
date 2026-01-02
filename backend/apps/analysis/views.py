@@ -68,21 +68,48 @@ class AnalysisViewSet(viewsets.ReadOnlyModelViewSet):
         }
         
         ai_result = analyzer.analyze_match(match_data)
-        
-        # Criar análise com resultado da IA
+
+        # Fallback seguro quando IA não disponível: gerar análise básica
+        if not ai_result or not isinstance(ai_result, dict) or ai_result.get('success') is False:
+            # Probabilidades simples e estáveis
+            home_p, draw_p, away_p = 40.0, 30.0, 30.0
+            prediction = 'home'
+            confidence = 3
+            reasoning = (
+                'Análise padrão aplicada devido à indisponibilidade temporária do serviço de IA. '
+                'Distribuição neutra de probabilidades baseada em fatores gerais de mando de campo.'
+            )
+            key_factors = ['Mando de campo', 'Equilíbrio de forças presumido']
+            analysis_data = {'fallback': True, 'source': 'heuristic'}
+            home_xg, away_xg = 1.5, 1.3
+        else:
+            # Adaptar se o serviço retornar apenas texto + confiança
+            # Esperados: prediction, confidence, probabilities, reasoning, key_factors
+            prediction = ai_result.get('prediction', 'home')
+            confidence = int(ai_result.get('confidence', 3) or 3)
+            home_p = float(ai_result.get('home_probability', 40.0) or 40.0)
+            draw_p = float(ai_result.get('draw_probability', 30.0) or 30.0)
+            away_p = float(ai_result.get('away_probability', 30.0) or 30.0)
+            reasoning = ai_result.get('reasoning') or ai_result.get('analysis') or 'Resumo gerado pela IA.'
+            key_factors = ai_result.get('key_factors') or []
+            analysis_data = ai_result.get('analysis_breakdown') or {'raw_text': ai_result.get('analysis')}
+            home_xg = float(ai_result.get('home_xg', 1.5) or 1.5)
+            away_xg = float(ai_result.get('away_xg', 1.3) or 1.3)
+
+        # Criar análise já com dados finais (IA ou fallback)
         analysis = Analysis.objects.create(
             user=user,
             match=match,
-            prediction=ai_result['prediction'],
-            confidence=ai_result['confidence'],
-            home_probability=ai_result['home_probability'],
-            draw_probability=ai_result['draw_probability'],
-            away_probability=ai_result['away_probability'],
-            home_xg=ai_result.get('home_xg', 1.5),
-            away_xg=ai_result.get('away_xg', 1.5),
-            reasoning=ai_result['reasoning'],
-            key_factors=ai_result['key_factors'],
-            analysis_data=ai_result.get('analysis_breakdown', {})
+            prediction=prediction,
+            confidence=confidence,
+            home_probability=home_p,
+            draw_probability=draw_p,
+            away_probability=away_p,
+            home_xg=home_xg,
+            away_xg=away_xg,
+            reasoning=reasoning,
+            key_factors=key_factors,
+            analysis_data=analysis_data,
         )
         
         # Incrementar contador

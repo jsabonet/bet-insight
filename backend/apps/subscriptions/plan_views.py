@@ -1,12 +1,15 @@
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.throttling import ScopedRateThrottle
 from .plan_config import get_active_plans, get_premium_plans, get_plan
 from .serializers import PlanSerializer, SubscriptionSerializer
 from .models import Subscription
 from django.utils import timezone
 from django.db import transaction
+from datetime import timedelta
 
 
 @api_view(['POST'])
@@ -43,28 +46,60 @@ def admin_assign_subscription(request):
     except User.DoesNotExist:
         return Response({'error': 'Usuário não encontrado'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Cancelar assinatura ativa existente
+    # Se o destino for freemium, apenas cancelar e retornar stub
+    if plan_slug == 'freemium':
+        with transaction.atomic():
+            current = user.subscriptions.filter(status='active', end_date__gt=timezone.now()).first()
+            if current:
+                current.cancel()
+        # Retornar um stub compatível com frontend
+        free = get_plan('freemium')
+        return Response({
+            'message': 'Assinatura removida; usuário agora em freemium',
+            'subscription': {
+                'plan': 'freemium',
+                'plan_slug': 'freemium',
+                'status': 'active',
+                'is_active': True,
+                'daily_limit': free['daily_analysis_limit'],
+                'plan_details': {
+                    'name': free['name'],
+                    'price': free['price'],
+                    'features': free['features'],
+                    'color': free.get('color', 'gray'),
+                    'description': free.get('description', ''),
+                }
+            }
+        })
+
+    # Para planos pagos, criar assinatura com end_date explícita
     with transaction.atomic():
         current = user.subscriptions.filter(status='active', end_date__gt=timezone.now()).first()
         if current:
             current.cancel()
 
-        # Criar nova assinatura ativa
+        start = timezone.now()
+        # Determinar duração
+        if duration_override and isinstance(duration_override, int) and duration_override > 0:
+            duration_days = duration_override
+        else:
+            duration_days = plan.get('duration_days')
+
+        if not isinstance(duration_days, int) or duration_days <= 0:
+            return Response({'error': 'Plano sem duração válida'}, status=status.HTTP_400_BAD_REQUEST)
+
+        end = start + timedelta(days=duration_days)
+
         sub = Subscription.objects.create(
             user=user,
             plan=plan_slug,
             plan_slug=plan_slug,
             status='active',
-            start_date=timezone.now(),
-            end_date=None,  # calculado em save()
+            start_date=start,
+            end_date=end,
             auto_renew=False,
             amount_paid=plan['price']
         )
-
-        # Override opcional de duração
-        if duration_override and isinstance(duration_override, int) and duration_override > 0:
-            sub.end_date = sub.start_date + timezone.timedelta(days=duration_override)
-            sub.save()
 
     return Response({
         'message': 'Assinatura atribuída com sucesso',
@@ -108,6 +143,7 @@ def admin_remove_subscription(request):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@throttle_classes([ScopedRateThrottle])
 def list_plans(request):
     """
     Lista todos os planos disponíveis
@@ -127,12 +163,17 @@ def list_plans(request):
     # Ordenar: freemium primeiro, depois por preço
     plans_list.sort(key=lambda x: (x['price'] if x['price'] > 0 else -1))
     
-    serializer = PlanSerializer(plans_list, many=True)
-    return Response(serializer.data)
+    # Retornar diretamente os planos para evitar erros de serialização
+    # Aplicar throttle por escopo
+    list_plans.throttle_classes = [ScopedRateThrottle]
+    list_plans.throttle_scope = 'plans'
+    return Response(plans_list)
+list_plans.throttle_scope = 'plans'
 
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@throttle_classes([ScopedRateThrottle])
 def list_premium_plans(request):
     """
     Lista apenas planos premium (pagos)
@@ -153,10 +194,12 @@ def list_premium_plans(request):
     
     serializer = PlanSerializer(plans_list, many=True)
     return Response(serializer.data)
+list_premium_plans.throttle_scope = 'plans'
 
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+@throttle_classes([ScopedRateThrottle])
 def get_plan_details(request, slug):
     """
     Retorna detalhes de um plano específico
@@ -170,8 +213,8 @@ def get_plan_details(request, slug):
         )
     
     plan_obj = {'slug': slug, **plan}
-    serializer = PlanSerializer(plan_obj)
-    return Response(serializer.data)
+    return Response(plan_obj)
+get_plan_details.throttle_scope = 'plans'
 
 
 @api_view(['GET'])
@@ -193,7 +236,7 @@ def my_subscription(request):
             'plan': 'freemium',
             'plan_slug': 'freemium',
             'status': 'active',
-            'daily_limit': 5,
+            'daily_limit': get_plan('freemium')['daily_analysis_limit'],
             'is_active': True,
             'plan_details': {
                 'name': 'Freemium',

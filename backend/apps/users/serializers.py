@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
+from datetime import date
+from dateutil.relativedelta import relativedelta
 from .models import User
 
 
@@ -20,21 +22,50 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['email', 'username', 'password', 'password2', 'phone']
+        fields = ['email', 'username', 'password', 'password2', 'phone', 'date_of_birth']
     
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({"password": "As senhas não coincidem."})
+        
+        # Validar idade mínima de 18 anos
+        if 'date_of_birth' in attrs and attrs['date_of_birth']:
+            today = date.today()
+            min_age_date = today - relativedelta(years=18)
+            
+            if attrs['date_of_birth'] > min_age_date:
+                raise serializers.ValidationError({
+                    "date_of_birth": "Você deve ter pelo menos 18 anos para se cadastrar."
+                })
+        else:
+            raise serializers.ValidationError({
+                "date_of_birth": "A data de nascimento é obrigatória."
+            })
+        
         return attrs
     
     def create(self, validated_data):
         validated_data.pop('password2')
+        request = self.context.get('request')
+        # Capturar fingerprint enviada no corpo
+        fingerprint = None
+        if request:
+            fingerprint = request.data.get('fingerprint')
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password'],
-            phone=validated_data.get('phone', '')
+            phone=validated_data.get('phone', ''),
+            date_of_birth=validated_data.get('date_of_birth')
         )
+        # Guardar IP e fingerprint no cadastro
+        if request:
+            ip = request.META.get('HTTP_X_FORWARDED_FOR')
+            ip = ip.split(',')[0].strip() if ip else request.META.get('REMOTE_ADDR')
+            user.signup_ip = ip
+        if fingerprint:
+            user.device_fingerprint = fingerprint[:255]
+        user.save()
         return user
 
 
@@ -43,17 +74,19 @@ class UserSerializer(serializers.ModelSerializer):
     success_rate = serializers.SerializerMethodField()
     can_analyze_today = serializers.SerializerMethodField()
     remaining_analyses = serializers.SerializerMethodField()
+    age = serializers.ReadOnlyField()
     
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'username', 'phone', 'is_premium', 'premium_until',
+            'id', 'email', 'username', 'phone', 'date_of_birth', 'age',
+            'is_premium', 'premium_until',
             'daily_analysis_count', 'total_analyses', 'successful_predictions',
             'success_rate', 'can_analyze_today', 'remaining_analyses', 'push_enabled',
             'is_staff', 'is_superuser'
         ]
         read_only_fields = [
-            'id', 'is_premium', 'premium_until', 'daily_analysis_count',
+            'id', 'age', 'is_premium', 'premium_until', 'daily_analysis_count',
             'total_analyses', 'successful_predictions', 'is_staff', 'is_superuser'
         ]
     
@@ -64,7 +97,7 @@ class UserSerializer(serializers.ModelSerializer):
         return obj.can_analyze()
     
     def get_remaining_analyses(self, obj):
-        from django.conf import settings
+        from apps.subscriptions.plan_config import get_plan_limit
         today = timezone.now().date()
         
         if obj.last_analysis_date != today:
@@ -73,8 +106,10 @@ class UserSerializer(serializers.ModelSerializer):
             count = obj.daily_analysis_count
         
         if obj.is_premium_active():
+            from django.conf import settings
             return settings.PREMIUM_ANALYSIS_LIMIT - count
-        return settings.FREE_ANALYSIS_LIMIT - count
+        free_limit = get_plan_limit('freemium')
+        return free_limit - count
 
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):

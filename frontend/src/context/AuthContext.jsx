@@ -1,13 +1,16 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../services/api';
+import { computeFingerprint } from '../utils/fingerprint';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [fingerprint, setFingerprint] = useState('');
 
   useEffect(() => {
+    setFingerprint(computeFingerprint());
     checkAuth();
   }, []);
 
@@ -26,7 +29,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (username, password) => {
-    const response = await authAPI.login({ username, password });
+    const response = await authAPI.login({ username, password, fingerprint });
     const { access, refresh } = response.data;
     
     localStorage.setItem('access_token', access);
@@ -39,7 +42,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (data) => {
-    const response = await authAPI.register(data);
+    const response = await authAPI.register({ ...data, fingerprint });
     const { tokens, user: newUser } = response.data;
     
     localStorage.setItem('access_token', tokens.access);

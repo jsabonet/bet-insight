@@ -25,7 +25,17 @@ class APIIDMapper:
         return SequenceMatcher(None, a.lower(), b.lower()).ratio()
     
     def normalize_team_name(self, name):
-        """Normaliza nomes de times para melhor matching"""
+        """Normaliza nomes de times (string/dict/model) para melhor matching"""
+        # Aceitar dicts ou objetos com atributo 'name'
+        try:
+            if isinstance(name, dict):
+                name = name.get('name') or name.get('team') or str(name)
+            elif hasattr(name, 'name'):
+                name = getattr(name, 'name')
+            else:
+                name = str(name)
+        except Exception:
+            name = str(name)
         # Remove palavras comuns que variam entre APIs
         replacements = {
             'fc': '',

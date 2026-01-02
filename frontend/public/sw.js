@@ -33,8 +33,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // API calls
+  // API calls: network-first for GET; bypass caching for non-GET
   if (url.pathname.startsWith('/api/')) {
+    if (event.request.method !== 'GET') {
+      event.respondWith(fetch(event.request));
+      return;
+    }
     event.respondWith(
       fetch(event.request)
         .then((response) => {
