@@ -669,13 +669,13 @@ docker-compose ps
 
 ```bash
 # Ver logs de todos os containers
-docker-compose logs -f
+docker compose logs -f
 
 # Ver apenas logs do backend
-docker-compose logs -f backend
+docker compose logs -f backend
 
 # Ver apenas logs do nginx
-docker-compose logs -f nginx
+docker compose logs -f nginx
 
 # Parar visualização: Ctrl + C
 ```
@@ -684,7 +684,7 @@ docker-compose logs -f nginx
 
 ```bash
 # Executar comando dentro do container backend
-docker-compose exec backend python manage.py createsuperuser
+docker compose exec backend python manage.py createsuperuser
 
 # Preencher informações:
 # Username: admin
@@ -794,7 +794,7 @@ PAYSUITE_WEBHOOK_URL=https://seu-dominio.com/api/subscriptions/payments/webhook/
 # Salvar: Ctrl+X, Y, Enter
 
 # Reiniciar backend
-docker-compose restart backend
+docker compose restart backend
 ```
 
 ### Passo 7.4: Atualizar configuração frontend
@@ -809,14 +809,14 @@ VITE_API_URL=https://seu-dominio.com
 # Salvar: Ctrl+X, Y, Enter
 
 # Rebuild frontend
-docker-compose up -d --build frontend
+docker compose up -d --build frontend
 ```
 
 ### Passo 7.5: Configurar SSL com Let's Encrypt
 
 ```bash
 # Executar script de SSL
-./scripts/setup-ssl.sh seu-dominio.com seu-email@exemplo.com
+./scripts/setup-ssl.sh placarcerto.digital jsabonete09@gmail.com
 
 # O script irá:
 # 1. Parar nginx temporariamente

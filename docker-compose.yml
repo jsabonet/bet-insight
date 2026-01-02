@@ -92,7 +92,7 @@ services:
       - static_volume:/static:ro
       - media_volume:/media:ro
       - certbot_conf:/etc/letsencrypt:ro
-      - certbot_www:/var/www/certbot:ro
+      - certbot_www:/var/www/certbot
     networks:
       - app_network
     depends_on:
