@@ -31,11 +31,11 @@ fi
 
 # Parar containers existentes
 echo -e "${YELLOW}Parando containers...${NC}"
-docker-compose down
+docker compose down
 
 # Rebuild e start
 echo -e "${YELLOW}Construindo e iniciando containers...${NC}"
-docker-compose up -d --build
+docker compose up -d --build
 
 # Aguardar containers iniciarem
 echo -e "${YELLOW}Aguardando containers iniciarem...${NC}"
@@ -43,12 +43,12 @@ sleep 10
 
 # Verificar status
 echo -e "${GREEN}Verificando status dos containers...${NC}"
-docker-compose ps
+docker compose ps
 
 # Logs do backend
 echo ""
 echo -e "${GREEN}Últimas 20 linhas do log do backend:${NC}"
-docker-compose logs --tail=20 backend
+docker compose logs --tail=20 backend
 
 echo ""
 echo "==================================="
@@ -56,10 +56,10 @@ echo -e "${GREEN}Deploy concluído!${NC}"
 echo "==================================="
 echo ""
 echo "Comandos úteis:"
-echo "  Ver logs:           docker-compose logs -f"
-echo "  Parar aplicação:    docker-compose down"
-echo "  Restart:            docker-compose restart"
-echo "  Shell no backend:   docker-compose exec backend bash"
-echo "  Migrations:         docker-compose exec backend python manage.py migrate"
-echo "  Criar superuser:    docker-compose exec backend python manage.py createsuperuser"
+echo "  Ver logs:           docker compose logs -f"
+echo "  Parar aplicação:    docker compose down"
+echo "  Restart:            docker compose restart"
+echo "  Shell no backend:   docker compose exec backend bash"
+echo "  Migrations:         docker compose exec backend python manage.py migrate"
+echo "  Criar superuser:    docker compose exec backend python manage.py createsuperuser"
 echo ""
