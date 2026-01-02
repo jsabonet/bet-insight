@@ -33,17 +33,74 @@ docker compose run --rm --entrypoint certbot certbot certonly \
     --non-interactive \
     --verbose
 
-# Atualizar configuração do nginx
-echo "Atualizando configuração do nginx..."
-sed -i "s/seu-dominio.com/$DOMAIN/g" docker/nginx/conf.d/default.conf
+# Criar configuração HTTPS dedicada (ssl.conf)
+echo "Gerando configuração HTTPS (ssl.conf)..."
+cat > docker/nginx/conf.d/ssl.conf <<EOF
+server {
+    listen 443 ssl http2;
+    server_name ${DOMAIN} www.${DOMAIN};
 
-# Descomentar linhas HTTPS na configuração
-sed -i 's/# server {/server {/g' docker/nginx/conf.d/default.conf
-sed -i 's/#     listen/    listen/g' docker/nginx/conf.d/default.conf
-sed -i 's/#     server_name/    server_name/g' docker/nginx/conf.d/default.conf
-sed -i 's/#     ssl_/    ssl_/g' docker/nginx/conf.d/default.conf
-sed -i 's/#     location/    location/g' docker/nginx/conf.d/default.conf
-sed -i 's/# }/}/g' docker/nginx/conf.d/default.conf
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    # Certbot challenge
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # Health check
+    location /health {
+        access_log off;
+        return 200 "healthy\n";
+        add_header Content-Type text/plain;
+    }
+
+    location /api/ {
+        limit_req zone=api_limit burst=20 nodelay;
+        proxy_pass http://backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    location /admin/ {
+        limit_req zone=auth_limit burst=10 nodelay;
+        proxy_pass http://backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /static/ {
+        alias /static/;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    location /media/ {
+        alias /media/;
+        expires 30d;
+        add_header Cache-Control "public";
+    }
+
+    location / {
+        proxy_pass http://frontend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+EOF
 
 # Testar configuração e reiniciar nginx
 echo "Validando configuração do nginx..."
