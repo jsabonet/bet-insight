@@ -23,11 +23,11 @@ echo ""
 
 # Parar nginx temporariamente
 echo "Parando nginx..."
-docker-compose stop nginx
+docker compose stop nginx
 
 # Obter certificado
 echo "Obtendo certificado SSL..."
-docker-compose run --rm certbot certonly --standalone \
+docker compose run --rm certbot certonly --standalone \
     --preferred-challenges http \
     -d $DOMAIN \
     -d www.$DOMAIN \
@@ -49,7 +49,7 @@ sed -i 's/# }/}/g' docker/nginx/conf.d/default.conf
 
 # Reiniciar nginx
 echo "Reiniciando nginx..."
-docker-compose up -d nginx
+docker compose up -d nginx
 
 echo ""
 echo "==================================="
