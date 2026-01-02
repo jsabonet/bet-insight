@@ -19,33 +19,33 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         required=True,
         style={'input_type': 'password'}
     )
+    age_confirmation = serializers.BooleanField(
+        write_only=True,
+        required=True,
+        error_messages={
+            'required': 'Você deve confirmar que tem 18 anos ou mais.'
+        }
+    )
     
     class Meta:
         model = User
-        fields = ['email', 'username', 'password', 'password2', 'phone', 'date_of_birth']
+        fields = ['email', 'username', 'password', 'password2', 'phone', 'age_confirmation']
     
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
             raise serializers.ValidationError({"password": "As senhas não coincidem."})
         
-        # Validar idade mínima de 18 anos
-        if 'date_of_birth' in attrs and attrs['date_of_birth']:
-            today = date.today()
-            min_age_date = today - relativedelta(years=18)
-            
-            if attrs['date_of_birth'] > min_age_date:
-                raise serializers.ValidationError({
-                    "date_of_birth": "Você deve ter pelo menos 18 anos para se cadastrar."
-                })
-        else:
+        # Validar confirmação de idade
+        if not attrs.get('age_confirmation'):
             raise serializers.ValidationError({
-                "date_of_birth": "A data de nascimento é obrigatória."
+                "age_confirmation": "Você deve confirmar que tem pelo menos 18 anos para se cadastrar."
             })
         
         return attrs
     
     def create(self, validated_data):
         validated_data.pop('password2')
+        validated_data.pop('age_confirmation')  # Remover pois não é campo do modelo
         request = self.context.get('request')
         # Capturar fingerprint enviada no corpo
         fingerprint = None
@@ -55,8 +55,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password'],
-            phone=validated_data.get('phone', ''),
-            date_of_birth=validated_data.get('date_of_birth')
+            phone=validated_data.get('phone', '')
         )
         # Guardar IP e fingerprint no cadastro
         if request:

@@ -12,12 +12,11 @@ export default function RegisterPage() {
     password: '',
     password2: '',
     phone: '',
-    date_of_birth: '',
+    age_confirmation: false,
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [passwordsMatch, setPasswordsMatch] = useState(true);
-  const [ageError, setAgeError] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   
   const { register } = useAuth();
@@ -33,24 +32,6 @@ export default function RegisterPage() {
     } else if (name === 'password') {
       setPasswordsMatch(formData.password2 === value);
     }
-    
-    // Validar idade ao digitar data de nascimento
-    if (name === 'date_of_birth' && value) {
-      const birthDate = new Date(value);
-      const today = new Date();
-      let age = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
-      
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-      }
-      
-      if (age < 18) {
-        setAgeError('Você deve ter pelo menos 18 anos para se cadastrar.');
-      } else {
-        setAgeError('');
-      }
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -62,13 +43,8 @@ export default function RegisterPage() {
       return;
     }
 
-    if (!formData.date_of_birth) {
-      setError('A data de nascimento é obrigatória');
-      return;
-    }
-
-    if (ageError) {
-      setError(ageError);
+    if (!formData.age_confirmation) {
+      setError('Você deve confirmar que tem 18 anos ou mais');
       return;
     }
 
@@ -221,48 +197,23 @@ export default function RegisterPage() {
               )}
             </div>
 
-            {/* Date of Birth */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Data de Nascimento <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                name="date_of_birth"
-                value={formData.date_of_birth}
-                onChange={handleChange}
-                max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
-                className={`input-field ${
-                  ageError
-                    ? 'border-red-500 dark:border-red-400 focus:ring-red-500'
-                    : formData.date_of_birth && !ageError
-                    ? 'border-green-500 dark:border-green-400 focus:ring-green-500'
-                    : ''
-                }`}
-                required
-                placeholder="DD/MM/AAAA"
-              />
-              
-              {ageError && (
-                <p className="mt-1 text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
-                  <span className="font-medium">✗</span> {ageError}
-                </p>
-              )}
-              
-              {formData.date_of_birth && !ageError && (
-                <p className="mt-1 text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-                  <Check className="w-3 h-3" />
-                  <span className="font-medium">Idade verificada: 18+</span>
-                </p>
-              )}
-              
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Você deve ter pelo menos 18 anos para se cadastrar.
-              </p>
-            </div>
-
-            {/* Terms Acceptance */}
+            {/* Age Confirmation & Terms Acceptance */}
             <div className="space-y-3 pt-2">
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="relative flex items-center justify-center mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={formData.age_confirmation}
+                    onChange={(e) => setFormData({ ...formData, age_confirmation: e.target.checked })}
+                    className="w-5 h-5 text-primary-600 border-2 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 cursor-pointer"
+                    required
+                  />
+                </div>
+                <span className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
+                  Confirmo que tenho <span className="font-semibold">18 anos ou mais</span>.
+                </span>
+              </label>
+
               <label className="flex items-start gap-3 cursor-pointer group">
                 <div className="relative flex items-center justify-center mt-0.5">
                   <input
@@ -297,7 +248,7 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              disabled={loading || ageError || !formData.date_of_birth || !termsAccepted || !passwordsMatch}
+              disabled={loading || !formData.age_confirmation || !termsAccepted || !passwordsMatch}
               className="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
