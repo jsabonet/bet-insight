@@ -20,11 +20,11 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copiar requirements e instalar dependências Python
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt gunicorn
 
 # Copiar código da aplicação
-COPY . .
+COPY backend/ .
 
 # Criar diretório para arquivos estáticos e media
 RUN mkdir -p /app/staticfiles /app/media
