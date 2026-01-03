@@ -1,4 +1,4 @@
-const CACHE_NAME = 'placarcerto-cache-v1';
+const CACHE_NAME = 'placarcerto-cache-v3';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -7,7 +7,15 @@ const APP_SHELL = [
   '/offline.html'
 ];
 
+// Mensagem para forçar ativação imediata
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('install', (event) => {
+  console.log('🔧 SW v3 instalando...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
   );
@@ -15,11 +23,13 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
+  console.log('✅ SW v3 ativando...');
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
+            console.log('🗑️ Deletando cache antigo:', key);
             return caches.delete(key);
           }
         })
@@ -29,26 +39,14 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Basic strategy: cache-first for assets, network-first for API
+// IMPORTANTE: NÃO INTERCEPTAR CHAMADAS DE API
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // API calls: network-first for GET; bypass caching for non-GET
-  if (url.pathname.startsWith('/api/')) {
-    if (event.request.method !== 'GET') {
-      event.respondWith(fetch(event.request));
-      return;
-    }
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          return response;
-        })
-        .catch(() => caches.match(event.request))
-    );
-    return;
+  // NÃO interceptar API calls - deixar ir direto para o backend
+  if (url.pathname.startsWith('/api/') || event.request.url.includes('/api/')) {
+    console.log('🌐 Ignorando API call:', url.pathname);
+    return; // Não chama event.respondWith() - deixa o fetch acontecer normalmente
   }
 
   // Static assets and pages

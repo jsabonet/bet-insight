@@ -16,7 +16,10 @@ export default function HomePage() {
   const { refreshStats } = useStats();
   const [allMatches, setAllMatches] = useState([]); // Armazenar todas as partidas
   const [matches, setMatches] = useState([]);
+  const [displayedMatches, setDisplayedMatches] = useState([]); // Partidas exibidas (paginação)
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [filter, setFilter] = useState('upcoming');
   const [selectedLeague, setSelectedLeague] = useState('all');
   const [leagues, setLeagues] = useState([]);
@@ -27,14 +30,44 @@ export default function HomePage() {
   const [isMockData, setIsMockData] = useState(false);
   const [dataSource, setDataSource] = useState('');
   const [showLimitModal, setShowLimitModal] = useState(false);
+  
+  const MATCHES_PER_PAGE = 100;
 
   useEffect(() => {
     loadMatches();
   }, []); // Carregar apenas uma vez ao montar
 
   useEffect(() => {
-    applyFilters();
-  }, [selectedLeague, searchQuery, allMatches, filter]);
+    // Debounce para busca (500ms)
+    console.log('🔍 useEffect searchQuery:', searchQuery);
+    const timer = setTimeout(() => {
+      if (searchQuery && searchQuery.length >= 3) {
+        console.log('✅ Chamando handleSearch com:', searchQuery);
+        handleSearch(searchQuery);
+      } else if (searchQuery === '') {
+        console.log('🔄 Query vazia, aplicando filtros');
+        applyFilters();
+      } else {
+        console.log('⏳ Query muito curta:', searchQuery.length, 'caracteres');
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    // Aplicar filtros quando mudar liga ou filtro
+    if (!searchQuery) {
+      applyFilters();
+    }
+  }, [selectedLeague, allMatches, filter]);
+  
+  useEffect(() => {
+    // Carregar partidas paginadas
+    const start = 0;
+    const end = page * MATCHES_PER_PAGE;
+    setDisplayedMatches(matches.slice(start, end));
+  }, [matches, page]);
 
   const loadMatches = async () => {
     setLoading(true);
@@ -88,8 +121,14 @@ export default function HomePage() {
           // Partidas de hoje
           return matchDay === today;
         } else if (filter === 'upcoming') {
-          // Partidas futuras (não começaram)
-          return ['NS', 'TBD', 'NOT_STARTED'].includes(status) || matchDate > now;
+          // Partidas futuras: APENAS partidas que ainda NÃO ocorreram
+          // SEMPRE verificar o horário, independente do status
+          const matchDate = new Date(m.match_date || m.date);
+          const isFuture = matchDate > now;
+          
+          // Só mostrar se o horário for futuro
+          // Ignorar status desatualizado da API
+          return isFuture;
         }
         return true;
       });
@@ -102,18 +141,82 @@ export default function HomePage() {
       );
     }
     
-    // Filtrar por pesquisa
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filteredMatches = filteredMatches.filter(m => {
+    // Busca local: não filtrar aqui, será tratada pela busca híbrida
+    
+    setMatches(filteredMatches);
+    setPage(1); // Reset página ao filtrar
+  };
+  
+  const handleSearch = async (query) => {
+    console.log('🎯 handleSearch iniciado com query:', query);
+    
+    if (!query || query.trim().length < 3) {
+      console.log('❌ Query inválida, aplicando filtros');
+      applyFilters();
+      return;
+    }
+    
+    console.log('⏳ Iniciando busca...');
+    setSearchLoading(true);
+    
+    try {
+      // 1. Busca local primeiro
+      console.log('🔎 Buscando localmente em', allMatches.length, 'partidas');
+      const localResults = allMatches.filter(m => {
+        const q = query.toLowerCase();
         const homeTeam = (m.home_team?.name || m.home_team || '').toLowerCase();
         const awayTeam = (m.away_team?.name || m.away_team || '').toLowerCase();
         const league = (m.league?.name || m.league || '').toLowerCase();
-        return homeTeam.includes(query) || awayTeam.includes(query) || league.includes(query);
+        return homeTeam.includes(q) || awayTeam.includes(q) || league.includes(q);
       });
+      
+      console.log('📊 Resultados locais:', localResults.length);
+      
+      // Se encontrou localmente, usar esses resultados
+      if (localResults.length > 0) {
+        console.log('✅ Usando resultados locais');
+        setMatches(localResults);
+        setPage(1);
+        setSearchLoading(false);
+        return;
+      }
+      
+      // 2. Se não encontrou localmente, buscar na API
+      console.log('🌐 Nenhum resultado local, buscando na API...');
+      const response = await matchesAPI.searchMatches(query);
+      const apiResults = response.data.matches || [];
+      
+      console.log('📡 API retornou:', apiResults.length, 'partidas');
+      
+      if (apiResults.length > 0) {
+        console.log('✅ Adicionando resultados da API ao cache local');
+        // Adicionar resultados da API ao cache local
+        setAllMatches(prev => {
+          const newMatches = [...prev];
+          apiResults.forEach(match => {
+            if (!newMatches.find(m => m.id === match.id)) {
+              newMatches.push(match);
+            }
+          });
+          return newMatches;
+        });
+        
+        setMatches(apiResults);
+        setPage(1);
+      } else {
+        console.log('❌ Nenhum resultado encontrado');
+        // Nenhum resultado encontrado
+        setMatches([]);
+      }
+      
+    } catch (error) {
+      console.error('❌ Erro na busca:', error);
+      // Fallback para busca local
+      applyFilters();
+    } finally {
+      console.log('🏁 Busca finalizada');
+      setSearchLoading(false);
     }
-    
-    setMatches(filteredMatches);
   };
 
   const handleAnalyze = async (matchId) => {
@@ -382,6 +485,11 @@ export default function HomePage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-12 py-3.5 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-2xl border-2 border-gray-200 dark:border-gray-700 focus:border-primary-500 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 transition-all outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
             />
+            {searchLoading && (
+              <div className="absolute right-12 top-1/2 transform -translate-y-1/2">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-500 border-t-transparent"></div>
+              </div>
+            )}
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
@@ -451,13 +559,13 @@ export default function HomePage() {
         {/* Matches List */}
         {loading ? (
           <LoadingMascot message="Carregando partidas..." />
-        ) : matches.length === 0 ? (
+        ) : displayedMatches.length === 0 ? (
           <EmptyState
             variant="no-matches"
-            title={`Nenhuma partida ${filter === 'live' ? 'ao vivo' : 'encontrada'}`}
-            description="Não há jogos disponíveis no momento. Tente outro filtro ou volte mais tarde."
+            title={searchQuery ? 'Nenhuma partida encontrada' : `Nenhuma partida ${filter === 'live' ? 'ao vivo' : 'encontrada'}`}
+            description={searchQuery ? `Nenhuma partida encontrada para "${searchQuery}". Tente buscar outro time ou liga.` : "Não há jogos disponíveis no momento. Tente outro filtro ou volte mais tarde."}
             action={
-              filter !== 'all' && (
+              filter !== 'all' && !searchQuery && (
                 <button
                   onClick={() => setFilter('all')}
                   className="btn-primary"
@@ -468,11 +576,30 @@ export default function HomePage() {
             }
           />
         ) : (
-          <div className="space-y-4">
-            {matches.map((match) => (
-              <MatchCard key={match.id} match={match} onAnalyze={handleAnalyze} />
-            ))}
-          </div>
+          <>
+            <div className="space-y-4">
+              {displayedMatches.map((match) => (
+                <MatchCard key={match.id} match={match} onAnalyze={handleAnalyze} />
+              ))}
+            </div>
+            
+            {/* Load More Button */}
+            {displayedMatches.length < matches.length && (
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={() => setPage(prev => prev + 1)}
+                  className="px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl font-medium hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl"
+                >
+                  Carregar Mais ({matches.length - displayedMatches.length} restantes)
+                </button>
+              </div>
+            )}
+            
+            {/* Matches Counter */}
+            <div className="text-center mt-4 text-sm text-gray-500 dark:text-gray-400">
+              Mostrando {displayedMatches.length} de {matches.length} partidas
+            </div>
+          </>
         )}
 
         <style>{`

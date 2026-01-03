@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
+from django.core.cache import cache
 from datetime import timedelta, datetime
 from .models import League, Team, Match
 from .serializers import LeagueSerializer, TeamSerializer, MatchListSerializer, MatchDetailSerializer
@@ -181,29 +182,35 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def from_api(self, request):
-        """Buscar partidas diretamente da API-Football"""
+        """Buscar partidas diretamente da API-Football (próximos 14 dias) com cache"""
         date = request.query_params.get('date', datetime.now().strftime('%Y-%m-%d'))
         force_real = request.query_params.get('force_real', 'false').lower() == 'true'
         
+        # Cache key baseado na hora atual (atualiza a cada hora)
+        cache_key = f'matches_api_{datetime.now().strftime("%Y%m%d_%H")}'
+        
+        # Tentar buscar do cache (30 minutos)
+        if not force_real:
+            cached_data = cache.get(cache_key)
+            if cached_data:
+                logger.info(f"✅ CACHE HIT: Retornando {len(cached_data['matches'])} partidas do cache")
+                return Response(cached_data)
+        
+        logger.info(f"❌ CACHE MISS: Buscando partidas da API...")
         football_api = FootballAPIService()
         all_matches = []
         
-        # Tentar buscar partidas dos próximos 7 dias
-        logger.info("Buscando partidas reais (próximos 7 dias)...")
+        # Buscar apenas partidas futuras (próximos 14 dias)
+        # Plataforma de apostas: foco em jogos que ainda não ocorreram
+        logger.info("Buscando partidas futuras (próximos 14 dias)...")
         
-        for day_offset in range(8):
+        for day_offset in range(15):
             search_date = (datetime.now() + timedelta(days=day_offset)).strftime('%Y-%m-%d')
             result = football_api.get_fixtures_by_date(search_date)
             
             if result['success'] and result['fixtures']:
                 all_matches.extend(result['fixtures'])
                 logger.info(f"{search_date}: {len(result['fixtures'])} partidas")
-        
-        # Também buscar partidas ao vivo
-        live_result = football_api.get_live_fixtures()
-        if live_result['success'] and live_result['fixtures']:
-            all_matches.extend(live_result['fixtures'])
-            logger.info(f"Partidas ao vivo: {len(live_result['fixtures'])}")
         
         # Se encontrou partidas reais, retorná-las
         if all_matches:
@@ -215,15 +222,22 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             matches_list.sort(key=lambda x: x['fixture']['date'])
             
             logger.info(f"Total de {len(matches_list)} partidas únicas encontradas")
-            matches = self._format_api_matches(matches_list[:150])  # Limitar a 150
+            # Remover limite - carregar TODAS as partidas
+            matches = self._format_api_matches(matches_list)
             
-            return Response({
+            response_data = {
                 'date': date,
                 'count': len(matches),
                 'matches': matches,
                 'is_mock': False,
                 'source': 'api-football'
-            })
+            }
+            
+            # Cachear resultado por 30 minutos
+            cache.set(cache_key, response_data, 60 * 30)
+            logger.info(f"Cache atualizado com {len(matches)} partidas")
+            
+            return Response(response_data)
         
         # Se force_real está ativo, retornar erro em vez de mock
         if force_real:
@@ -242,6 +256,84 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             'matches': mock_matches,
             'is_mock': True,
             'source': 'mock'
+        })
+
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
+    def search(self, request):
+        """Busca inteligente de partidas - busca na API se não encontrar localmente"""
+        query = request.query_params.get('q', '').strip()
+        
+        if not query or len(query) < 3:
+            return Response({
+                'error': 'Query deve ter pelo menos 3 caracteres',
+                'matches': []
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        logger.info(f"Busca por: {query}")
+        
+        # Tentar buscar do cache primeiro
+        cache_key = f'matches_api_{datetime.now().strftime("%Y%m%d_%H")}'
+        cached_data = cache.get(cache_key)
+        
+        if cached_data:
+            matches = cached_data.get('matches', [])
+            query_lower = query.lower()
+            
+            # Busca local em cache
+            filtered = [
+                m for m in matches
+                if query_lower in m['home_team']['name'].lower()
+                or query_lower in m['away_team']['name'].lower()
+                or query_lower in m['league']['name'].lower()
+            ]
+            
+            if filtered:
+                logger.info(f"Encontradas {len(filtered)} partidas no cache")
+                return Response({
+                    'query': query,
+                    'count': len(filtered),
+                    'matches': filtered,
+                    'source': 'cache'
+                })
+        
+        # Se não encontrou no cache, buscar direto na API
+        logger.info(f"Partida não encontrada localmente, buscando na API...")
+        football_api = FootballAPIService()
+        
+        # Buscar nos próximos 14 dias por time
+        all_matches = []
+        for day_offset in range(15):
+            search_date = (datetime.now() + timedelta(days=day_offset)).strftime('%Y-%m-%d')
+            result = football_api.get_fixtures_by_date(search_date)
+            
+            if result['success'] and result['fixtures']:
+                all_matches.extend(result['fixtures'])
+        
+        if all_matches:
+            # Filtrar por query
+            query_lower = query.lower()
+            matches = self._format_api_matches(all_matches)
+            
+            filtered = [
+                m for m in matches
+                if query_lower in m['home_team']['name'].lower()
+                or query_lower in m['away_team']['name'].lower()
+                or query_lower in m['league']['name'].lower()
+            ]
+            
+            logger.info(f"Encontradas {len(filtered)} partidas na API")
+            return Response({
+                'query': query,
+                'count': len(filtered),
+                'matches': filtered,
+                'source': 'api-football'
+            })
+        
+        return Response({
+            'query': query,
+            'count': 0,
+            'matches': [],
+            'source': 'not-found'
         })
 
     @action(detail=False, methods=['get'], permission_classes=[AllowAny])
