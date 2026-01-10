@@ -18,46 +18,49 @@
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
-      // Força desregistro do Service Worker antigo e registra o novo
+      // Service Worker - APENAS EM PRODUÇÃO
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', async () => {
-          try {
-            // Desregistra TODOS os service workers existentes
+        // Detectar se está em desenvolvimento
+        const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        if (isDev) {
+          // DESENVOLVIMENTO: Desregistrar TODOS os service workers
+          window.addEventListener('load', async () => {
             const registrations = await navigator.serviceWorker.getRegistrations();
             for (let registration of registrations) {
-              console.log('🗑️ Desregistrando SW antigo...');
+              console.log('🗑️ [DEV] Desregistrando SW...');
               await registration.unregister();
             }
-            
-            // Aguarda um pouco para garantir que o SW foi desregistrado
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Registra o novo SW
-            console.log('✅ Registrando novo SW...');
-            const registration = await navigator.serviceWorker.register('/sw.js', {
-              updateViaCache: 'none' // Força buscar a versão mais recente
-            });
-            
-            // Força atualização imediata se houver uma nova versão
-            if (registration.waiting) {
-              registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-            }
-            
-            registration.addEventListener('updatefound', () => {
-              const newWorker = registration.installing;
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'activated') {
-                  console.log('🎉 Novo SW ativado! Recarregando...');
-                  window.location.reload();
-                }
+            console.log('✅ [DEV] Modo desenvolvimento - SW desabilitado');
+          });
+        } else {
+          // PRODUÇÃO: Registrar service worker normalmente
+          window.addEventListener('load', async () => {
+            try {
+              console.log('✅ Registrando SW...');
+              const registration = await navigator.serviceWorker.register('/sw.js', {
+                updateViaCache: 'none'
               });
-            });
-            
-            console.log('✅ SW registrado com sucesso');
-          } catch (err) {
-            console.error('❌ Erro no SW:', err);
-          }
-        });
+              
+              if (registration.waiting) {
+                registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+              }
+              
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'activated') {
+                    console.log('🎉 Novo SW ativado!');
+                  }
+                });
+              });
+              
+              console.log('✅ SW registrado com sucesso');
+            } catch (err) {
+              console.error('❌ Erro no SW:', err);
+            }
+          });
+        }
       }
     </script>
   </body>

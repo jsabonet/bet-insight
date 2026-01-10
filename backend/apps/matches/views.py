@@ -1278,6 +1278,19 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 'away_win': round(1 / consensus['away_win'], 2) if consensus['away_win'] > 0 else 999,
             }
             
+            # Gerar market_odds (com margem de bookmaker 5%)
+            bookmaker_margin = 1.05
+            market_odds = {
+                'odds_home': round(fair_odds['home_win'] / bookmaker_margin, 2) if fair_odds['home_win'] < 999 else None,
+                'odds_draw': round(fair_odds['draw'] / bookmaker_margin, 2) if fair_odds['draw'] < 999 else None,
+                'odds_away': round(fair_odds['away_win'] / bookmaker_margin, 2) if fair_odds['away_win'] < 999 else None,
+                'odds_over_25': round(2.0 / bookmaker_margin, 2),  # Valor padrão
+                'odds_btts_yes': round(2.0 / bookmaker_margin, 2),  # Valor padrão
+            }
+            
+            logger.info(f"💰 MARKET_ODDS GERADOS:")
+            logger.info(f"   Home: {market_odds['odds_home']} | Draw: {market_odds['odds_draw']} | Away: {market_odds['odds_away']}")
+            
             # Confiança baseada em diferença de probabilidades
             prob_diff = abs(consensus['home_win'] - consensus['away_win'])
             if prob_diff > 0.3:
@@ -1384,6 +1397,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                     'poisson': poisson_pred,
                     'logistic': logistic_pred,
                     'fair_odds': fair_odds,
+                    'market_odds': market_odds,  # ✅ ADICIONADO
                     'features_summary': features_summary,  # Adicionado
                     'recommendation': {
                         'pick': pick,

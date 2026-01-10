@@ -105,6 +105,7 @@ export const matchesAPI = {
   searchMatches: (query) => api.get('/matches/search/', { params: { q: query } }),
   analyzeMatch: (matchId) => api.post(`/matches/${matchId}/analyze/`),
   quickAnalyze: (data) => api.post('/matches/quick_analyze/', data),
+  statisticalPreview: (data) => api.post('/matches/statistical_preview/', data), // Novo endpoint rápido
 };
 
 // Leagues endpoints

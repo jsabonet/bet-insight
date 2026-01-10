@@ -80,9 +80,12 @@ export default function MatchCard({ match, onAnalyze }) {
   const homeTeam = match.home_team || { name: match.home_team_name || 'Time Casa' };
   const awayTeam = match.away_team || { name: match.away_team_name || 'Time Visitante' };
   const league = match.league || { name: match.league_name || 'Liga' };
+  
+  // ID da partida pode ser: id (DB), api_football_id (API-Football), ou fixture_id
+  const matchId = match.id || match.api_football_id || match.fixture_id;
 
   return (
-    <div className="match-card group animate-slide-up" onClick={() => match.id && navigate(`/match/${match.id}`)}>
+    <div className="match-card group animate-slide-up" onClick={() => matchId && navigate(`/match/${matchId}`)}>
       {/* Header - Liga */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 text-sm">
@@ -140,10 +143,10 @@ export default function MatchCard({ match, onAnalyze }) {
         <button 
           onClick={(e) => {
             e.stopPropagation();
-            if (onAnalyze && match.id) {
-              onAnalyze(match.id);
-            } else if (match.id) {
-              navigate(`/match/${match.id}`);
+            if (onAnalyze && matchId) {
+              onAnalyze(matchId);
+            } else if (matchId) {
+              navigate(`/match/${matchId}`);
             }
           }}
           className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl text-sm font-semibold hover:from-primary-700 hover:to-primary-800 transition-all group-hover:scale-105 shadow-md shadow-primary-600/30 active:scale-95"

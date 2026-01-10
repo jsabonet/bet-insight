@@ -152,6 +152,11 @@
     animation: slideDown 0.3s ease-out;
   }
   
+  /* Sombra de texto para campo de futebol */
+  .shadow-text {
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+  }
+  
   /* Scrollbar Premium */
   ::-webkit-scrollbar {
     width: 8px;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { matchesAPI, analysisAPI, authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -10,7 +10,6 @@ import LoadingMascot from '../components/LoadingMascot';
 import AnalysisModal from '../components/AnalysisModal';
 import LimitReachedModal from '../components/LimitReachedModal';
 import { TeamLogo, LeagueLogo } from '../utils/logos';
-import NavigationMenu from '../components/match-detail/NavigationMenu';
 import AtAGlance from '../components/match-detail/AtAGlance';
 import TeamComparison from '../components/match-detail/TeamComparison';
 import GoalsAndPoisson from '../components/match-detail/GoalsAndPoisson';
@@ -42,14 +41,6 @@ export default function MatchDetailPage() {
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [showDisclaimerFull, setShowDisclaimerFull] = useState(false);
   const [isMethodologyOpen, setIsMethodologyOpen] = useState(false);
-  
-  // Estados para navegação e scroll
-  const [activeSection, setActiveSection] = useState('at-a-glance');
-  const [isHeaderSticky, setIsHeaderSticky] = useState(false);
-  
-  // Refs para as seções
-  const sectionRefs = useRef({});
-  const matchHeaderRef = useRef(null);
 
   // Normaliza a resposta do backend para o formato híbrido esperado pelo AnalysisModal
   const normalizeAnalysis = (raw) => {
@@ -175,55 +166,6 @@ export default function MatchDetailPage() {
       };
     }
   }, [match?.status]);
-
-  // Scroll tracking para identificar seção ativa
-  useEffect(() => {
-    const handleScroll = () => {
-      // Sticky header
-      if (matchHeaderRef.current) {
-        const headerTop = matchHeaderRef.current.getBoundingClientRect().top;
-        setIsHeaderSticky(headerTop <= 80); // 80px é a altura do Header
-      }
-
-      // Identificar seção ativa
-      const scrollPosition = window.scrollY + 200; // Offset para melhor UX
-      
-      Object.entries(sectionRefs.current).forEach(([id, ref]) => {
-        if (ref && ref.offsetTop <= scrollPosition && ref.offsetTop + ref.offsetHeight > scrollPosition) {
-          setActiveSection(id);
-        }
-      });
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    handleScroll(); // Executar na montagem
-
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [match, statisticalData]);
-
-  // Função para navegar até uma seção
-  const handleNavigateToSection = (sectionId) => {
-    const section = sectionRefs.current[sectionId];
-    if (section) {
-      const yOffset = -100; // Offset para header
-      const y = section.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: y, behavior: 'smooth' });
-    }
-  };
-
-  // Preparar dados de seções disponíveis
-  const sections = match && statisticalData ? [
-    { id: 'at-a-glance', hasData: true },
-    { id: 'goals-poisson', hasData: !!statisticalData?.analysis_data?.poisson },
-    { id: 'team-comparison', hasData: !!statisticalData?.analysis_data },
-    { id: 'match-stats', hasData: !!(match.statistics && match.statistics.length > 0) },
-    { id: 'team-form', hasData: !!(match.home_last_matches?.length > 0 || match.away_last_matches?.length > 0) },
-    { id: 'head-to-head', hasData: !!(match.h2h && match.h2h.length > 0) },
-    { id: 'standings', hasData: !!(match.standings && match.standings.length > 0) },
-    { id: 'value-bets', hasData: !!statisticalData?.analysis_data },
-    { id: 'match-context', hasData: true },
-    { id: 'lineups', hasData: !!(match.lineups && match.lineups.length > 0) }
-  ] : [];
 
   const loadMatchDetails = async () => {
     console.log('🔵 loadMatchDetails INICIADO - ID:', id);
@@ -750,52 +692,17 @@ export default function MatchDetailPage() {
     <div className="page-container">
       <Header title="Análise da Partida" />
       
-      {/* Sticky Header com Botão de Análise */}
-      {isHeaderSticky && match && (
-        <div className="fixed top-16 left-0 right-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-md transition-all duration-300">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3 min-w-0 flex-1">
-              <TeamLogo team={match.home_team} size="sm" />
-              <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                {match.home_team?.name || match.home_team} vs {match.away_team?.name || match.away_team}
-              </span>
-            </div>
-            <button
-              onClick={handleRequestAnalysis}
-              disabled={analyzing}
-              className="btn-primary flex items-center gap-2 whitespace-nowrap ml-4"
-            >
-              <Brain className="w-4 h-4" />
-              <span className="hidden sm:inline">{analyzing ? 'Analisando...' : 'Análise Inteligente'}</span>
-              <span className="sm:hidden">IA</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="flex">
-        {/* Menu Lateral de Navegação */}
-        {match && statisticalData && (
-          <NavigationMenu
-            sections={sections}
-            activeSection={activeSection}
-            onNavigate={handleNavigateToSection}
-          />
-        )}
-
-        {/* Conteúdo Principal */}
-        <div className={`flex-1 ${match && statisticalData ? 'lg:ml-64' : ''}`}>
-          <div className="page-content pb-24">
-            <button
-              onClick={() => navigate('/')}
-              className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 mb-4 btn-ghost"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Voltar
-            </button>
+      <div className="page-content pb-24">
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 mb-4 btn-ghost"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Voltar
+        </button>
 
         {/* Header da Partida */}
-        <div ref={matchHeaderRef} className="card animate-slide-up mb-6">
+        <div className="card animate-slide-up mb-6">
           {/* Liga */}
           <div className="text-center mb-6">
             <span className="badge badge-info">{match.league?.name || match.league}</span>
@@ -1035,22 +942,22 @@ export default function MatchDetailPage() {
             </div>
             
             {/* Visão Geral Rápida */}
-            <div ref={(el) => sectionRefs.current['at-a-glance'] = el} className="card">
+            <div className="card">
               <AtAGlance analysis={statisticalData} match={match} />
             </div>
 
             {/* Comparação Visual dos Times */}
-            <div ref={(el) => sectionRefs.current['team-comparison'] = el} className="card">
+            <div className="card">
               <TeamComparison analysis={statisticalData} match={match} />
             </div>
 
             {/* Gols & Poisson */}
-            <div ref={(el) => sectionRefs.current['goals-poisson'] = el} className="card">
+            <div className="card">
               <GoalsAndPoisson analysis={statisticalData} />
             </div>
 
             {/* Value Bets & Odds */}
-            <div ref={(el) => sectionRefs.current['value-bets'] = el} className="card">
+            <div className="card">
               <ValueBetsSection analysis={statisticalData} match={match} />
             </div>
 
@@ -1170,19 +1077,19 @@ export default function MatchDetailPage() {
             </div>
 
             {/* Contexto da Partida */}
-            <div ref={(el) => sectionRefs.current['match-context'] = el} className="card">
+            <div className="card">
               <MatchContext analysis={statisticalData} match={match} />
 
               {/* Escalações (Lineups) */}
               {match.lineups && match.lineups.length > 0 && (
-                <div ref={(el) => sectionRefs.current['lineups'] = el} className="mt-8">
+                <div className="mt-8">
                   <Lineups lineups={match.lineups} match={match} />
                 </div>
               )}
 
               {/* Estatísticas Detalhadas da Partida */}
               {match.statistics && match.statistics.length > 0 && (
-                <div ref={(el) => sectionRefs.current['match-stats'] = el} className="mt-8">
+                <div className="mt-8">
                   <MatchStatistics statistics={match.statistics} match={match} />
                 </div>
               )}
@@ -1190,7 +1097,7 @@ export default function MatchDetailPage() {
 
             {/* Confrontos Diretos (H2H) */}
             {match.h2h && match.h2h.length > 0 && (
-              <div ref={(el) => sectionRefs.current['head-to-head'] = el} className="card">
+              <div className="card">
                 <HeadToHead 
                   h2h={match.h2h} 
                   homeTeam={{
@@ -1210,7 +1117,7 @@ export default function MatchDetailPage() {
             {/* Últimos Jogos dos Times */}
             {((match.home_last_matches && match.home_last_matches.length > 0) || 
               (match.away_last_matches && match.away_last_matches.length > 0)) && (
-              <div ref={(el) => sectionRefs.current['team-form'] = el} className="card">
+              <div className="card">
                 <TeamForm 
                   homeTeam={{
                     id: match.home_team?.id,
@@ -1230,7 +1137,7 @@ export default function MatchDetailPage() {
 
             {/* Classificação da Liga */}
             {match.standings && match.standings.length > 0 && (
-              <div ref={(el) => sectionRefs.current['standings'] = el} className="card">
+              <div className="card">
                 <LeagueStandings 
                   standings={match.standings}
                   homeTeam={{
@@ -1281,8 +1188,6 @@ export default function MatchDetailPage() {
             </div>
           </div>
         )}
-          </div>
-        </div>
       </div>
 
       {/* Modal de Análise - APENAS com explicação da IA */}

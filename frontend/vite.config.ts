@@ -6,14 +6,27 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      port: 3000,
+    },
+    watch: {
+      usePolling: true,
+    },
+    // Desabilitar cache HTTP durante desenvolvimento
+    headers: {
+      'Cache-Control': 'no-store',
+      'Pragma': 'no-cache',
+    }
   },
   build: {
     rollupOptions: {
       output: {
-        // Adicionar timestamp ao nome dos arquivos para evitar cache
-        entryFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
-        chunkFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
-        assetFileNames: `assets/[name]-[hash]-${Date.now()}.[ext]`
+        // Hash nos arquivos para invalidar cache em produção
+        entryFileNames: `assets/[name]-[hash].js`,
+        chunkFileNames: `assets/[name]-[hash].js`,
+        assetFileNames: `assets/[name]-[hash].[ext]`
       }
     }
   }

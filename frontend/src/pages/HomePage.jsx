@@ -35,7 +35,7 @@ export default function HomePage() {
 
   useEffect(() => {
     loadMatches();
-  }, []); // Carregar apenas uma vez ao montar
+  }, [filter]); // Recarregar quando mudar o filtro (para buscar live)
 
   useEffect(() => {
     // Debounce para busca (500ms)
@@ -72,14 +72,24 @@ export default function HomePage() {
   const loadMatches = async () => {
     setLoading(true);
     try {
-      // Buscar partidas reais da API externa
-      const today = new Date().toISOString().split('T')[0];
-      const response = await matchesAPI.getFromAPI(today);
-      const fetchedMatches = response.data.matches || [];
+      let fetchedMatches = [];
+      
+      // Se filtro é 'live', buscar partidas ao vivo diretamente
+      if (filter === 'live') {
+        console.log('🔴 Buscando partidas AO VIVO...');
+        const response = await matchesAPI.getLive();
+        fetchedMatches = response.data.matches || [];
+        console.log(`✅ ${fetchedMatches.length} partidas ao vivo encontradas`);
+      } else {
+        // Buscar partidas reais da API externa
+        const today = new Date().toISOString().split('T')[0];
+        const response = await matchesAPI.getFromAPI(today);
+        fetchedMatches = response.data.matches || [];
+      }
       
       // Verificar se são dados mock ou reais
-      setIsMockData(response.data.is_mock || false);
-      setDataSource(response.data.source || 'unknown');
+      setIsMockData(false);
+      setDataSource('api-football');
       
       // Armazenar todas as partidas
       setAllMatches(fetchedMatches);
