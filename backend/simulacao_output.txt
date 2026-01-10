@@ -1,0 +1,171 @@
+﻿python : C:\Users\DELL\AppData\Local\Programs\Python\Python311\Lib\site-packages
+\rest_framework_simplejwt\__init__.py:1: UserWarning: pkg_resources is 
+deprecated as an API. See 
+https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources 
+package is slated for removal as early as 2025-11-30. Refrain from using this 
+package or pin to Setuptools<81.
+At line:1 char:78
++ ... et-insight\backend; python simulacao_analise_completa.py 2>&1 | Out-F ...
++                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\DELL\A... Setuptools<81.: 
+   String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  from pkg_resources import DistributionNotFound, get_distribution
+
+================================================================================
+  ≡ƒÄ» SIMULA├ç├âO DE AN├üLISE PROFISSIONAL - BET INSIGHT
+================================================================================
+
+≡ƒôà Data: 07/01/2026 04:03:38
+≡ƒöä Fluxo: Fases 1 + 2 + 3 + 4 implementadas
+================================================================================
+
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+≡ƒö╣ ETAPA 1: Usar Dados Mockados (Demonstra├º├úo)
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+≡ƒô¥ Usando partida mockada: Manchester United vs Liverpool
+   (Dados reais completos para demonstra├º├úo do fluxo)
+Γ£à Partida selecionada:
+   ≡ƒÅá Manchester United
+   ≡ƒåÜ Liverpool
+   ≡ƒÅå Premier League
+   ≡ƒôà 2026-01-07T04:03:38.654314
+
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+≡ƒö╣ ETAPA 2: Enriquecimento de Dados (11 Fontes APIs)
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+≡ƒöä Coletando dados de m├║ltiplas fontes...
+   ΓÇó Standings (classifica├º├úo)
+   ΓÇó Statistics (estat├¡sticas da liga)
+   ΓÇó H2H (hist├│rico confrontos diretos)
+   ΓÇó Team Statistics (estat├¡sticas dos times)
+   ΓÇó Odds (casas de apostas)
+   ΓÇó Injuries (lesionados)
+   ΓÇó Form (├║ltimos 5 jogos)
+   ΓÇó Recent Matches (├║ltimas partidas)
+   ΓÇó Weather (clima) - FASE 3 Γ¡É
+INFO 2026-01-07 04:03:38,654 match_enricher 
+================================================================================
+INFO 2026-01-07 04:03:38,655 match_enricher ≡ƒöä INICIANDO ENRIQUECIMENTO DE 
+DADOS
+INFO 2026-01-07 04:03:38,655 match_enricher 
+================================================================================
+WARNING 2026-01-07 04:03:38,655 match_enricher ΓÜá∩╕Å api_id n├úo fornecido - 
+enriquecimento limitado
+
+Γ£à Enriquecimento conclu├¡do em 0.00s
+   ≡ƒôè Dados coletados:
+      - Standings: Γ¥î
+      - Statistics: Γ¥î
+      - H2H: Γ¥î
+      - Team Stats: Γ¥î
+      - Odds: Γ¥î
+      - Injuries: Γ¥î
+      - Weather: Γ¥î (FASE 3)
+
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+≡ƒö╣ ETAPA 2.5: An├ílise de Forma Recente com SoS (FASE 2) Γ¡É
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+≡ƒôè Analisando ├║ltimos 5 jogos com Strength of Schedule...
+
+≡ƒÅá Manchester United:
+   Forma: WWDWL (10/15 pts)
+   SoS (Strength of Schedule): 7.20/10
+   ├Ültimos 5 jogos:
+      1. ≡ƒÅá vs Chelsea (#4) - Γ£à W
+      2. Γ£ê∩╕Å vs Arsenal (#2) - Γ£à W
+      3. ≡ƒÅá vs Tottenham (#5) - ΓÜá∩╕Å D
+      4. Γ£ê∩╕Å vs Newcastle (#7) - Γ£à W
+      5. ≡ƒÅá vs Man City (#1) - Γ¥î L
+
+Γ£ê∩╕Å  Liverpool:
+   Forma: WWWDW (13/15 pts)
+   SoS (Strength of Schedule): 8.10/10
+   ├Ültimos 5 jogos:
+      1. Γ£ê∩╕Å vs Chelsea (#4) - Γ£à W
+      2. ≡ƒÅá vs Arsenal (#2) - Γ£à W
+      3. Γ£ê∩╕Å vs Spurs (#5) - Γ£à W
+      4. ≡ƒÅá vs Newcastle (#7) - ΓÜá∩╕Å D
+      5. Γ£ê∩╕Å vs Aston Villa (#3) - Γ£à W
+
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+≡ƒö╣ ETAPA 3: Feature Engineering (FASE 1 - 60+ Vari├íveis TIER 1) Γ¡É
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+≡ƒö¼ Extraindo features TIER 1...
+INFO 2026-01-07 04:03:38,659 feature_engineer 
+================================================================================
+INFO 2026-01-07 04:03:38,659 feature_engineer ≡ƒöº FEATURE ENGINEERING - TIER 1 
+COMPLETO (40 VARI├üVEIS)
+INFO 2026-01-07 04:03:38,659 feature_engineer 
+================================================================================
+
+INFO 2026-01-07 04:03:38,659 feature_engineer ≡ƒôÑ Dados dispon├¡veis:
+INFO 2026-01-07 04:03:38,659 feature_engineer    Standings: False
+INFO 2026-01-07 04:03:38,659 feature_engineer    Home Stats: False
+INFO 2026-01-07 04:03:38,659 feature_engineer    Away Stats: False
+INFO 2026-01-07 04:03:38,660 feature_engineer    Odds: False
+INFO 2026-01-07 04:03:38,660 feature_engineer    Rest Context: False
+INFO 2026-01-07 04:03:38,660 feature_engineer    Weather: False
+INFO 2026-01-07 04:03:38,660 feature_engineer    Recent Form: False
+INFO 2026-01-07 04:03:38,660 feature_engineer    H2H: 0 jogos
+INFO 2026-01-07 04:03:38,660 feature_engineer    Statistics: False
+INFO 2026-01-07 04:03:38,661 feature_engineer 
+1∩╕ÅΓâú Calculando features de FOR├çA...
+INFO 2026-01-07 04:03:38,661 feature_engineer    Γ£à 10 features de for├ºa
+INFO 2026-01-07 04:03:38,661 feature_engineer 
+2∩╕ÅΓâú Calculando features de FORMA...
+INFO 2026-01-07 04:03:38,661 feature_engineer    Γ£à 13 features de forma
+INFO 2026-01-07 04:03:38,661 feature_engineer 
+3∩╕ÅΓâú Calculando features de ESTAT├ìSTICAS...
+INFO 2026-01-07 04:03:38,661 feature_engineer    Γ£à 15 features de 
+estat├¡sticas
+INFO 2026-01-07 04:03:38,662 feature_engineer 
+4∩╕ÅΓâú Calculando features de CONTEXTO...
+INFO 2026-01-07 04:03:38,662 feature_engineer    Γ£à 6 features de contexto
+INFO 2026-01-07 04:03:38,662 feature_engineer 
+5∩╕ÅΓâú Calculando features de MERCADO...
+INFO 2026-01-07 04:03:38,662 feature_engineer    Γ£à 4 features de mercado
+INFO 2026-01-07 04:03:38,662 feature_engineer 
+6∩╕ÅΓâú Calculando features de CLIMA...
+INFO 2026-01-07 04:03:38,662 feature_engineer    Γ£à 9 features de clima
+INFO 2026-01-07 04:03:38,662 feature_engineer 
+7∩╕ÅΓâú Calculando features de H2H...
+INFO 2026-01-07 04:03:38,662 feature_engineer    Γ£à 6 features de H2H
+INFO 2026-01-07 04:03:38,662 feature_engineer 
+================================================================================
+INFO 2026-01-07 04:03:38,662 feature_engineer Γ£à TOTAL: 63 features engineered
+INFO 2026-01-07 04:03:38,663 feature_engineer 
+================================================================================
+
+Γ£à 7 features extra├¡das em 0.004s
+
+≡ƒôè Principais Features (TIER 1):
+
+≡ƒîñ∩╕Å  Features de Clima (1 vari├íveis - FASE 3):
+   weather: {'has_weather': False, 'weather_impact': 'low', 'weather_severity': 0.0, 'has_rain': False, 'has_snow': False, 'has_wind': False, 'temperature': 20.0, 'condition': 'Clear', 'goal_impact': 0.0}
+
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+≡ƒö╣ ETAPA 4: Modelos Estat├¡sticos (FASE 1) Γ¡É
+ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+≡ƒôÉ Executando modelos...
+
+1∩╕ÅΓâú  Poisson Bivariado (com Dixon-Coles correction)
+INFO 2026-01-07 04:03:38,663 statistical_models ≡ƒöó Inicializando Modelo 
+Poisson Bivariado
+
+
+Γ¥î ERRO: PoissonBivariateModel.predict() missing 1 required positional argument: 'away_strength'
+Traceback (most recent call last):
+  File 
+"D:\Projectos\Football\bet-insight\backend\simulacao_analise_completa.py", line 
+485, in <module>
+    result = simulate_complete_analysis()
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File 
+"D:\Projectos\Football\bet-insight\backend\simulacao_analise_completa.py", line 
+267, in simulate_complete_analysis
+    poisson_result = poisson_model.predict(features)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: PoissonBivariateModel.predict() missing 1 required positional 
+argument: 'away_strength'

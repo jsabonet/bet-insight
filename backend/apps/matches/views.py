@@ -173,12 +173,64 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(matches, many=True)
         return Response(serializer.data)
     
-    @action(detail=False, methods=['get'])
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def live(self, request):
-        """Partidas ao vivo"""
-        matches = self.get_queryset().filter(status='live')
-        serializer = self.get_serializer(matches, many=True)
-        return Response(serializer.data)
+        """Partidas ao vivo - busca direto da API-Football em tempo real COM estatísticas e escalações"""
+        logger.info("🔴 Buscando partidas AO VIVO da API-Football...")
+        
+        football_api = FootballAPIService()
+        result = football_api.get_live_fixtures()
+        
+        if result['success']:
+            fixtures = result['fixtures']
+            logger.info(f"✅ {len(fixtures)} partidas ao vivo encontradas")
+            
+            # Para cada partida ao vivo, buscar dados adicionais
+            enriched_fixtures = []
+            for fixture in fixtures:
+                fixture_id = fixture['fixture']['id']
+                
+                # Buscar eventos (gols, cartões, etc.)
+                events_result = football_api.get_fixture_events(fixture_id)
+                if events_result['success']:
+                    fixture['events'] = events_result.get('events', [])
+                else:
+                    fixture['events'] = []
+                
+                # Buscar estatísticas detalhadas
+                stats_result = football_api.get_fixture_statistics(fixture_id)
+                if stats_result['success']:
+                    fixture['statistics'] = stats_result.get('statistics', [])
+                else:
+                    fixture['statistics'] = []
+                
+                # Buscar escalações
+                lineups_result = football_api.get_fixture_lineups(fixture_id)
+                if lineups_result['success']:
+                    fixture['lineups'] = lineups_result.get('lineups', [])
+                else:
+                    fixture['lineups'] = []
+                
+                enriched_fixtures.append(fixture)
+            
+            logger.info(f"📊 Dados enriquecidos para {len(enriched_fixtures)} partidas ao vivo")
+            
+            # Formatar partidas usando a mesma função de from_api
+            matches = self._format_api_matches(enriched_fixtures)
+            
+            return Response({
+                'count': len(matches),
+                'matches': matches,
+                'source': 'api-football-live'
+            })
+        else:
+            logger.error(f"❌ Erro ao buscar partidas ao vivo: {result.get('error')}")
+            return Response({
+                'count': 0,
+                'matches': [],
+                'error': result.get('error'),
+                'source': 'api-football-live'
+            })
     
     @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def from_api(self, request):
@@ -357,6 +409,59 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 status=result.get('http_status', status.HTTP_502_BAD_GATEWAY)
             )
 
+        # Buscar eventos (gols, cartões, etc.) da partida
+        events_result = football_api.get_fixture_events(fixture_id)
+        if events_result['success']:
+            result['fixture']['events'] = events_result.get('events', [])
+        else:
+            result['fixture']['events'] = []
+
+        # Buscar estatísticas detalhadas (chutes, escanteios, etc.)
+        stats_result = football_api.get_fixture_statistics(fixture_id)
+        if stats_result['success']:
+            result['fixture']['statistics'] = stats_result.get('statistics', [])
+        else:
+            result['fixture']['statistics'] = []
+        
+        # Buscar escalações (lineups)
+        lineups_result = football_api.get_fixture_lineups(fixture_id)
+        if lineups_result['success']:
+            result['fixture']['lineups'] = lineups_result.get('lineups', [])
+        else:
+            result['fixture']['lineups'] = []
+        
+        # Buscar confronto direto (H2H)
+        fixture_data = result['fixture']
+        home_team_id = fixture_data['teams']['home']['id']
+        away_team_id = fixture_data['teams']['away']['id']
+        league_id = fixture_data['league']['id']
+        
+        h2h_result = football_api.get_head_to_head(home_team_id, away_team_id, last=10)
+        if h2h_result['success']:
+            result['fixture']['h2h'] = h2h_result.get('matches', [])
+        else:
+            result['fixture']['h2h'] = []
+        
+        # Buscar últimos 5 jogos de cada time
+        home_last_result = football_api.get_team_last_matches(home_team_id, last=5)
+        if home_last_result['success']:
+            result['fixture']['home_last_matches'] = home_last_result.get('matches', [])
+        else:
+            result['fixture']['home_last_matches'] = []
+        
+        away_last_result = football_api.get_team_last_matches(away_team_id, last=5)
+        if away_last_result['success']:
+            result['fixture']['away_last_matches'] = away_last_result.get('matches', [])
+        else:
+            result['fixture']['away_last_matches'] = []
+        
+        # Buscar classificação da liga
+        standings_result = football_api.get_standings(league_id, season=2025)
+        if standings_result['success']:
+            result['fixture']['standings'] = standings_result.get('standings', [])
+        else:
+            result['fixture']['standings'] = []
+
         # Formatar resposta para o frontend reutilizando o formato das listas
         formatted = self._format_api_matches([result['fixture']])
         if not formatted:
@@ -371,18 +476,38 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             match_date = fixture['fixture']['date']
             fixture_id = fixture['fixture']['id']  # ID real da API
             
+            # Enriquecer lineups com URLs de fotos dos jogadores
+            lineups = fixture.get('lineups', [])
+            for lineup in lineups:
+                # Adicionar fotos aos titulares
+                for player_data in lineup.get('startXI', []):
+                    player = player_data.get('player', {})
+                    player_id = player.get('id')
+                    if player_id and not player.get('photo'):
+                        player['photo'] = f"https://media.api-sports.io/football/players/{player_id}.png"
+                
+                # Adicionar fotos aos substitutos
+                for player_data in lineup.get('substitutes', []):
+                    player = player_data.get('player', {})
+                    player_id = player.get('id')
+                    if player_id and not player.get('photo'):
+                        player['photo'] = f"https://media.api-sports.io/football/players/{player_id}.png"
+            
             matches.append({
                 'id': fixture_id,  # Usar ID real em vez de temporário
                 'api_football_id': fixture_id,  # ID para buscar dados adicionais
                 'home_team': {
+                    'id': fixture['teams']['home']['id'],
                     'name': fixture['teams']['home']['name'],
                     'logo': fixture['teams']['home']['logo'],
                 },
                 'away_team': {
+                    'id': fixture['teams']['away']['id'],
                     'name': fixture['teams']['away']['name'],
                     'logo': fixture['teams']['away']['logo'],
                 },
                 'league': {
+                    'id': fixture['league']['id'],
                     'name': fixture['league']['name'],
                     'logo': fixture['league']['logo'],
                     'country': fixture['league'].get('country', ''),
@@ -391,8 +516,16 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 'date': match_date,
                 'status': fixture['fixture']['status']['short'],
                 'venue': fixture['fixture'].get('venue', {}).get('name'),
+                'referee': fixture['fixture'].get('referee'),  # Adicionar árbitro
                 'home_score': fixture['goals'].get('home'),
                 'away_score': fixture['goals'].get('away'),
+                'events': fixture.get('events', []),  # Adicionar eventos (gols, cartões, etc.)
+                'statistics': fixture.get('statistics', []),  # Adicionar estatísticas detalhadas
+                'lineups': lineups,  # Adicionar escalações com fotos
+                'h2h': fixture.get('h2h', []),  # Confrontos diretos
+                'home_last_matches': fixture.get('home_last_matches', []),  # Últimos jogos casa
+                'away_last_matches': fixture.get('away_last_matches', []),  # Últimos jogos fora
+                'standings': fixture.get('standings', []),  # Classificação da liga
             })
         
         return matches
@@ -475,8 +608,19 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def quick_analyze(self, request):
         """Análise rápida sem salvar (para preview) - COM ENRIQUECIMENTO DE DADOS"""
+        logger.info(f"\n{'='*80}")
+        logger.info(f"📥 QUICK_ANALYZE: Requisição recebida")
+        logger.info(f"{'='*80}")
+        
         home_team = request.data.get('home_team')
         away_team = request.data.get('away_team')
+        
+        logger.info(f"🏠 Home Team: {home_team}")
+        logger.info(f"✈️ Away Team: {away_team}")
+        logger.info(f"🏆 League: {request.data.get('league')}")
+        logger.info(f"📅 Date: {request.data.get('date')}")
+        logger.info(f"🆔 API ID: {request.data.get('api_id')}")
+        logger.info(f"🆔 Football Data ID: {request.data.get('football_data_id')}")
         
         if not home_team or not away_team:
             return Response(
@@ -614,14 +758,112 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             except Exception as e:
                 logger.error(f"❌ ERRO ao buscar dados adicionais das APIs: {e}", exc_info=True)
         
-        analyzer = AIAnalyzer()
-        result = analyzer.analyze_match(match_data)
+        # 🎯 ARQUITETURA HÍBRIDA: Modelos Estatísticos DECIDEM, IA EXPLICA
+        logger.info(f"\n{'='*80}")
+        logger.info("🎯 INICIANDO ARQUITETURA HÍBRIDA")
+        logger.info(f"{'='*80}\n")
         
-        if not result['success']:
-            return Response(
-                {'error': result.get('error'), 'details': result.get('details'), 'code': result.get('error_code')},
-                status=result.get('http_status', status.HTTP_500_INTERNAL_SERVER_ERROR)
-            )
+        # Verificar se deve pular IA
+        skip_ai = request.data.get('skip_ai', False)
+        if skip_ai:
+            logger.info("⏭️ SKIP_AI=True: Pulando geração da IA, apenas retornando dados estatísticos")
+        
+        # 1. Feature Engineering (TIER 1 - 40 variáveis)
+        from apps.analysis.services.feature_engineer import FeatureEngineer
+        engineer = FeatureEngineer()
+        features = engineer.engineer_all_features(match_data)
+        
+        # 2. Calcular força ofensiva (para Poisson)
+        home_stats = match_data.get('home_stats', {})
+        away_stats = match_data.get('away_stats', {})
+        
+        home_strength = home_stats.get('goals_per_game_avg', 1.5)  # Default 1.5 gols/jogo
+        away_strength = away_stats.get('goals_per_game_avg', 1.3)
+        
+        # Ajustar pela forma recente
+        form_diff = features.get('form', {}).get('form_diff', 0)
+        home_strength += form_diff * 0.1  # +10% por ponto de forma
+        away_strength -= form_diff * 0.1
+        
+        # 3. Impacto climático (usar impacto numérico nos gols)
+        # features['weather']['weather_impact'] é categórico ('low'/'medium'/'high');
+        # usamos 'goal_impact' que já é um float calibrado.
+        weather_impact = features.get('weather', {}).get('goal_impact', 0.0)
+        
+        # 4. Modelos Estatísticos (Poisson + Logística)
+        from apps.analysis.services.statistical_models import ModelEnsemble
+        ensemble = ModelEnsemble()
+        model_predictions = ensemble.predict(features, home_strength, away_strength, weather_impact)
+        
+        # 5. Decision Engine (Value Bets + Confiança)
+        from apps.analysis.services.decision_engine import DecisionEngine
+        decision_engine = DecisionEngine()
+        
+        # Preparar odds do mercado - buscar do enriched_data (API Football)
+        raw_odds = match_data.get('odds') or {}  # Se None, usar dicionário vazio
+        logger.info(f"🔍 RAW_ODDS tipo: {type(raw_odds)}, valor: {raw_odds}")
+        
+        # Primeiro, executar decision engine para ter fair_odds
+        decision_data_temp = decision_engine.make_decision(
+            model_predictions,
+            features,
+            {}  # Passar vazio temporariamente
+        )
+        
+        # Converter formato da API (home_win, draw, away_win) para formato frontend (odds_home, odds_draw, odds_away)
+        if raw_odds.get('home_win'):
+            market_odds = {
+                'odds_home': raw_odds.get('home_win'),
+                'odds_draw': raw_odds.get('draw'),
+                'odds_away': raw_odds.get('away_win'),
+                'odds_over_25': raw_odds.get('over_25'),
+                'odds_under_25': raw_odds.get('under_25'),
+                'odds_btts_yes': raw_odds.get('btts_yes'),
+                'odds_btts_no': raw_odds.get('btts_no'),
+            }
+            logger.info(f"💰 Market odds da API Football: Home={market_odds['odds_home']}, Draw={market_odds['odds_draw']}, Away={market_odds['odds_away']}")
+        else:
+            # Fallback: simular com base nas fair odds + margem bookmaker (5%)
+            # Isso só ocorre quando não há api_id ou odds não estão disponíveis na API
+            fair_odds_data = decision_data_temp.get('fair_odds', {})
+            if fair_odds_data and fair_odds_data.get('home_win'):
+                bookmaker_margin = 1.05  # 5% de margem típica
+                market_odds = {
+                    'odds_home': round(fair_odds_data['home_win'] / bookmaker_margin, 2),
+                    'odds_draw': round(fair_odds_data.get('draw', 3.4) / bookmaker_margin, 2),
+                    'odds_away': round(fair_odds_data.get('away_win', 3.0) / bookmaker_margin, 2),
+                    'odds_over_25': round(fair_odds_data.get('over_2_5', 2.0) / bookmaker_margin, 2),
+                    'odds_btts_yes': round(fair_odds_data.get('btts', 2.0) / bookmaker_margin, 2),
+                }
+                logger.info(f"💰 Market odds simuladas com margem 5% (fallback): Home={market_odds['odds_home']}, Draw={market_odds['odds_draw']}, Away={market_odds['odds_away']}")
+            else:
+                market_odds = None
+                logger.warning("⚠️ Não foi possível gerar market_odds (sem dados da API e sem fair_odds)")
+        
+        # Log para debug
+        logger.info(f"📊 MARKET ODDS FINAL: {market_odds}")
+        
+        # Executar decision engine novamente com market_odds corretos
+        decision_data = decision_engine.make_decision(
+            model_predictions,
+            features,
+            market_odds
+        )
+        
+        # 6. IA Explainer (Gemini Flash apenas EXPLICA) - OPCIONAL
+        result = {'success': True, 'analysis': None}
+        
+        if not skip_ai:
+            analyzer = AIAnalyzer()
+            result = analyzer.explain_decision(decision_data, match_data)
+            
+            if not result['success']:
+                return Response(
+                    {'error': result.get('error'), 'details': result.get('details'), 'code': result.get('error_code')},
+                    status=result.get('http_status', status.HTTP_500_INTERNAL_SERVER_ERROR)
+                )
+        else:
+            logger.info("⏭️ Pulando geração da IA - retornando apenas dados estatísticos")
         
         # Criar metadados sobre quais dados foram analisados
         metadata = {
@@ -758,11 +1000,410 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             saved_info = None
 
         return Response({
-            'analysis': result['analysis'],
-            'confidence': result['confidence'],
+            'analysis': result.get('analysis'),
+            'confidence': decision_data['confidence']['stars'],  # Confiança do Decision Engine
+            'confidence_display': f"{decision_data['confidence']['level']} ({decision_data['confidence']['stars']}/5)",
+            'prediction_display': decision_data['recommendation']['pick'],
+            'home_probability': model_predictions['consensus']['home_win'] * 100,
+            'draw_probability': model_predictions['consensus']['draw'] * 100,
+            'away_probability': model_predictions['consensus']['away_win'] * 100,
+            'key_factors': decision_data.get('key_factors', []),
+            'value_bets': decision_data.get('value_bets', []),
             'metadata': metadata,
-            'enriched_data': enriched_data,  # 🔥 ADICIONADO!
+            'enriched_data': enriched_data,
+            'model_predictions': model_predictions,  # Dados completos dos modelos
+            'fair_odds': decision_data.get('fair_odds', {}),
+            'risk': decision_data.get('risk', 'medium'),
             'saved': saved,
-            'saved_analysis': saved_info
+            'saved_analysis': saved_info,
+            # Estrutura completa para frontend (compatível com nova arquitetura)
+            'analysis_data': {
+                'consensus': model_predictions['consensus'],
+                'poisson': model_predictions.get('poisson', {}),
+                'logistic': model_predictions.get('logistic', {}),
+                'fair_odds': decision_data.get('fair_odds', {}),
+                'market_odds': market_odds,
+                'value_bets': decision_data.get('value_bets', []),
+                'recommendation': decision_data.get('recommendation', {}),
+                'confidence': decision_data.get('confidence', {}),
+                'risk': decision_data.get('risk', 'medium'),
+                'features_summary': {
+                    'strength': features.get('strength', {}),
+                    'form': features.get('form', {}),
+                    'weather': features.get('weather', {})
+                }
+            }
         })
-
+    
+    def _calculate_statistical_risk(self, consensus, confidence_stars, features=None, enriched_data=None):
+        """
+        Calcula o nível de risco baseado em:
+        1. Entropia das probabilidades (incerteza)
+        2. Confiança da predição
+        3. Volatilidade de contexto (lesões, fadiga, clima)
+        4. Odds do mercado (se disponíveis)
+        
+        Returns:
+            str: 'low', 'medium', ou 'high'
+        """
+        risk_score = 0.0
+        
+        # 1. ENTROPIA (Incerteza da predição)
+        # Quanto mais equilibradas as probabilidades, maior o risco
+        import numpy as np
+        probs = [consensus['home_win'], consensus['draw'], consensus['away_win']]
+        entropy = -sum(p * np.log(p + 1e-10) for p in probs if p > 0)
+        normalized_entropy = entropy / np.log(3)  # Normalizar (máximo = log(3))
+        
+        # Peso 40% para entropia
+        risk_score += normalized_entropy * 0.4
+        
+        logger.info(f"📊 Cálculo de Risco:")
+        logger.info(f"   Entropia: {normalized_entropy:.2f} (peso: 0.4) = {normalized_entropy * 0.4:.2f}")
+        
+        # 2. CONFIANÇA (Inverso)
+        # Confiança baixa = alto risco
+        confidence_risk = (5 - confidence_stars) / 5  # 1/5=0.2 (baixo), 4/5=0.2 (baixo)
+        risk_score += confidence_risk * 0.3
+        
+        logger.info(f"   Confiança: {confidence_stars}/5 → risco={confidence_risk:.2f} (peso: 0.3) = {confidence_risk * 0.3:.2f}")
+        
+        # 3. CONTEXTO VOLÁTIL (lesões, clima, fadiga)
+        context_risk = 0.0
+        
+        if features:
+            # Clima severo aumenta risco
+            weather = features.get('weather', {})
+            weather_severity = weather.get('weather_severity', 'NENHUM')
+            if weather_severity in ['ALTO', 'MUITO_ALTO']:
+                context_risk += 0.3
+                logger.info(f"   Clima severo: +0.3")
+            elif weather_severity == 'MODERADO':
+                context_risk += 0.15
+                logger.info(f"   Clima moderado: +0.15")
+            
+            # Fadiga aumenta risco
+            context = features.get('context', {})
+            if context.get('home_is_fatigued') or context.get('away_is_fatigued'):
+                context_risk += 0.2
+                logger.info(f"   Fadiga detectada: +0.2")
+        
+        if enriched_data:
+            # Muitas lesões aumentam risco
+            injuries = enriched_data.get('injuries', {})
+            home_injuries = len(injuries.get('home', []))
+            away_injuries = len(injuries.get('away', []))
+            total_injuries = home_injuries + away_injuries
+            
+            if total_injuries >= 5:
+                context_risk += 0.3
+                logger.info(f"   Muitas lesões ({total_injuries}): +0.3")
+            elif total_injuries >= 3:
+                context_risk += 0.15
+                logger.info(f"   Lesões moderadas ({total_injuries}): +0.15")
+        
+        # Limitar context_risk a 0.5 máximo
+        context_risk = min(context_risk, 0.5)
+        risk_score += context_risk * 0.3
+        
+        logger.info(f"   Contexto volátil: {context_risk:.2f} (peso: 0.3) = {context_risk * 0.3:.2f}")
+        
+        # Score final (0 a 1)
+        logger.info(f"   SCORE TOTAL: {risk_score:.2f}")
+        
+        # Classificação
+        if risk_score < 0.35:
+            risk_level = 'low'
+        elif risk_score < 0.65:
+            risk_level = 'medium'
+        else:
+            risk_level = 'high'
+        
+        logger.info(f"   ✅ NÍVEL DE RISCO: {risk_level.upper()}")
+        
+        return risk_level
+    
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    def statistical_preview(self, request):
+        """Preview rápido de estatísticas básicas - SEMPRE recalcula a cada request"""
+        from apps.analysis.services.statistical_models import PoissonBivariateModel, LogisticRegressionModel
+        from apps.analysis.services.feature_engineer import FeatureEngineer
+        from apps.analysis.services.match_enricher import MatchDataEnricher
+        
+        home_team = request.data.get('home_team')
+        away_team = request.data.get('away_team')
+        league = request.data.get('league')
+        match_date = request.data.get('date')
+        match_id = request.data.get('match_id')
+        
+        logger.info(f"\n{'='*80}")
+        logger.info(f"📊 STATISTICAL PREVIEW - {home_team} vs {away_team}")
+        logger.info(f"{'='*80}")
+        
+        if not home_team or not away_team:
+            return Response(
+                {'error': 'home_team e away_team são obrigatórios'},
+                status=status.HTTP_BAD_REQUEST
+            )
+        
+        try:
+            # SEMPRE tentar buscar dados reais - prioridade 1: Enriquecimento completo
+            enriched_data = None
+            features = None
+            api_id = None
+            
+            # 1. Tentar obter API ID da partida
+            if match_id:
+                try:
+                    match = Match.objects.get(id=match_id)
+                    api_id = match.api_football_id
+                    logger.info(f"✅ Partida {match_id} encontrada no DB (API ID: {api_id})")
+                except Match.DoesNotExist:
+                    logger.info(f"⚠️ Partida {match_id} não encontrada no DB")
+                except Exception as e:
+                    logger.warning(f"⚠️ Erro ao buscar partida: {e}")
+            
+            # 2. Se não tem API ID do match, tentar buscar da API diretamente pelo nome dos times
+            if not api_id:
+                logger.info(f"🔍 Tentando buscar API ID pelos nomes dos times e data...")
+                try:
+                    from apps.matches.services.football_api import FootballAPIService
+                    api_service = FootballAPIService()
+                    
+                    # Buscar partidas da data fornecida
+                    if match_date:
+                        from datetime import datetime
+                        date_obj = datetime.fromisoformat(match_date.replace('Z', '+00:00'))
+                        date_str = date_obj.strftime('%Y-%m-%d')
+                        
+                        result = api_service.get_fixtures_by_date(date_str)
+                        
+                        if result.get('success'):
+                            fixtures = result.get('fixtures', [])
+                            # Procurar a partida pelos nomes dos times
+                            for fixture in fixtures:
+                                home = fixture.get('teams', {}).get('home', {}).get('name', '')
+                                away = fixture.get('teams', {}).get('away', {}).get('name', '')
+                                
+                                if home_team.lower() in home.lower() and away_team.lower() in away.lower():
+                                    api_id = fixture.get('fixture', {}).get('id')
+                                    logger.info(f"✅ API ID encontrado via busca: {api_id}")
+                                    break
+                except Exception as e:
+                    logger.warning(f"⚠️ Erro ao buscar API ID: {e}")
+            
+            # 3. Se tem API ID, tentar enriquecimento completo
+            if api_id:
+                try:
+                    logger.info(f"🔄 Enriquecendo dados com API ID {api_id}...")
+                    enricher = MatchDataEnricher()
+                    enriched_data = enricher.enrich({
+                        'home_team': home_team,
+                        'away_team': away_team,
+                        'league': league,
+                        'date': match_date,
+                        'api_id': api_id
+                    })
+                    
+                    # Gerar features a partir dos dados enriquecidos
+                    engineer = FeatureEngineer()
+                    features = engineer.engineer_all_features(enriched_data)
+                    
+                    logger.info(f"✅ Enriquecimento completo realizado!")
+                except Exception as e:
+                    logger.error(f"❌ Erro no enriquecimento completo: {e}", exc_info=True)
+                    enriched_data = None
+                    features = None
+            
+            # Determinar home_strength e away_strength
+            if features and features.get('strength'):
+                home_strength = features['strength'].get('home_goals_per_game', 1.5)
+                away_strength = features['strength'].get('away_goals_per_game', 1.3)
+                logger.info(f"📊 Usando dados reais das features: Casa={home_strength:.2f}, Fora={away_strength:.2f}")
+            elif enriched_data and enriched_data.get('home_stats'):
+                home_strength = enriched_data['home_stats'].get('goals_per_game_avg', 1.5)
+                away_strength = enriched_data['away_stats'].get('goals_per_game_avg', 1.3)
+                logger.info(f"📊 Usando dados reais: Casa={home_strength:.2f}, Fora={away_strength:.2f}")
+            else:
+                # Valores padrão se não tiver dados
+                home_strength = 1.5
+                away_strength = 1.3
+                logger.info("⚠️ Usando valores padrão (sem dados reais)")
+            
+            # Modelo Poisson (rápido - cálculo matemático direto)
+            poisson = PoissonBivariateModel()
+            
+            # Usar impacto climático se disponível
+            weather_impact = 0
+            if features and features.get('weather'):
+                weather_impact = features['weather'].get('weather_impact', 0)
+            
+            poisson_pred = poisson.predict(home_strength, away_strength, weather_impact=weather_impact)
+            
+            # Modelo Logístico (rápido - cálculo direto)
+            logistic = LogisticRegressionModel()
+            
+            # Tentar usar features reais se disponíveis
+            if features:
+                logistic_pred = logistic.predict_1x2(features)
+                logger.info("📊 Usando features reais para modelo logístico")
+            else:
+                # Features mínimas padrão
+                logistic_pred = logistic.predict_1x2({
+                    'strength': {
+                        'offensive_diff': 0,
+                        'defensive_diff': 0
+                    },
+                    'form': {
+                        'form_diff': 0,
+                        'momentum_diff': 0
+                    },
+                    'context': {
+                        'rest_advantage': 0
+                    }
+                })
+                logger.info("⚠️ Usando features padrão para modelo logístico")
+            
+            # Consensus (60% Poisson + 40% Logística)
+            consensus = {
+                'home_win': poisson_pred['probabilities']['home_win'] * 0.6 + logistic_pred['home_win'] * 0.4,
+                'draw': poisson_pred['probabilities']['draw'] * 0.6 + logistic_pred['draw'] * 0.4,
+                'away_win': poisson_pred['probabilities']['away_win'] * 0.6 + logistic_pred['away_win'] * 0.4,
+            }
+            
+            # Calcular odds justas
+            fair_odds = {
+                'home_win': round(1 / consensus['home_win'], 2) if consensus['home_win'] > 0 else 999,
+                'draw': round(1 / consensus['draw'], 2) if consensus['draw'] > 0 else 999,
+                'away_win': round(1 / consensus['away_win'], 2) if consensus['away_win'] > 0 else 999,
+            }
+            
+            # Confiança baseada em diferença de probabilidades
+            prob_diff = abs(consensus['home_win'] - consensus['away_win'])
+            if prob_diff > 0.3:
+                confidence_level = 'Alta'
+                confidence_stars = 4
+            elif prob_diff > 0.15:
+                confidence_level = 'Moderada'
+                confidence_stars = 3
+            else:
+                confidence_level = 'Baixa'
+                confidence_stars = 2
+            
+            # Recomendação simples
+            max_prob = max(consensus['home_win'], consensus['draw'], consensus['away_win'])
+            if consensus['home_win'] == max_prob:
+                pick = 'Vitória Casa'
+            elif consensus['away_win'] == max_prob:
+                pick = 'Vitória Fora'
+            else:
+                pick = 'Empate'
+            
+            # Avaliar risco baseado em múltiplos fatores
+            risk_level = self._calculate_statistical_risk(
+                consensus=consensus,
+                confidence_stars=confidence_stars,
+                features=features,
+                enriched_data=enriched_data
+            )
+            
+            # Construir features_summary a partir dos dados disponíveis
+            features_summary = {}
+            if features:
+                # Log detalhado das features disponíveis
+                logger.info(f"🔍 Features disponíveis: {list(features.keys())}")
+                logger.info(f"🔍 Strength features: {features.get('strength', {})}")
+                logger.info(f"🔍 Form features: {features.get('form', {})}")
+                
+                # Usar features reais geradas
+                features_summary = {
+                    'strength': features.get('strength', {}),
+                    'form': features.get('form', {}),
+                }
+                logger.info("✅ Usando features_summary real")
+            elif enriched_data and (enriched_data.get('home_stats') or enriched_data.get('away_stats')):
+                # Construir a partir das estatísticas básicas
+                home_stats = enriched_data.get('home_stats', {})
+                away_stats = enriched_data.get('away_stats', {})
+                features_summary = {
+                    'strength': {
+                        'home_goals_per_game': home_stats.get('goals_per_game_avg', home_strength),
+                        'away_goals_per_game': away_stats.get('goals_per_game_avg', away_strength),
+                        'home_defensive_rating': home_stats.get('goals_conceded_per_game_avg', 1.2),
+                        'away_defensive_rating': away_stats.get('goals_conceded_per_game_avg', 1.2),
+                        'home_defense_strength': home_stats.get('defensive_rating', 1.0),
+                        'away_defense_strength': away_stats.get('defensive_rating', 1.0),
+                    },
+                    'form': {
+                        'home_form_weighted': home_stats.get('form_score', 1.5),
+                        'away_form_weighted': away_stats.get('form_score', 1.5),
+                        'home_momentum': home_stats.get('momentum', 0),
+                        'away_momentum': away_stats.get('momentum', 0),
+                    }
+                }
+                logger.info("✅ Usando features_summary construído de stats básicas")
+            else:
+                # Valores padrão
+                features_summary = {
+                    'strength': {
+                        'home_goals_per_game': home_strength,
+                        'away_goals_per_game': away_strength,
+                        'home_defensive_rating': 1.2,
+                        'away_defensive_rating': 1.2,
+                        'home_defense_strength': 1.0,
+                        'away_defense_strength': 1.0,
+                    },
+                    'form': {
+                        'home_form_weighted': 1.5,
+                        'away_form_weighted': 1.5,
+                        'home_momentum': 0,
+                        'away_momentum': 0,
+                    }
+                }
+                logger.info("⚠️ Usando features_summary padrão")
+            
+            # Log detalhado do features_summary
+            logger.info(f"\n📊 FEATURES_SUMMARY FINAL:")
+            logger.info(f"   Strength - Casa Ataque: {features_summary['strength'].get('home_goals_per_game', 'N/A')}")
+            logger.info(f"   Strength - Casa Defesa: {features_summary['strength'].get('home_defensive_rating', 'N/A')}")
+            logger.info(f"   Strength - Fora Ataque: {features_summary['strength'].get('away_goals_per_game', 'N/A')}")
+            logger.info(f"   Strength - Fora Defesa: {features_summary['strength'].get('away_defensive_rating', 'N/A')}")
+            logger.info(f"   Form - Casa: {features_summary['form'].get('home_form_weighted', 'N/A')}")
+            logger.info(f"   Form - Fora: {features_summary['form'].get('away_form_weighted', 'N/A')}")
+            logger.info(f"   Momentum - Casa: {features_summary['form'].get('home_momentum', 'N/A')}")
+            logger.info(f"   Momentum - Fora: {features_summary['form'].get('away_momentum', 'N/A')}")
+            
+            logger.info(f"\n{'='*80}")
+            logger.info(f"✅ STATISTICAL PREVIEW CONCLUÍDO")
+            logger.info(f"{'='*80}\n")
+            
+            return Response({
+                'success': True,
+                'analysis_data': {
+                    'consensus': consensus,
+                    'poisson': poisson_pred,
+                    'logistic': logistic_pred,
+                    'fair_odds': fair_odds,
+                    'features_summary': features_summary,  # Adicionado
+                    'recommendation': {
+                        'pick': pick,
+                        'probability': max_prob
+                    },
+                    'confidence': {
+                        'level': confidence_level,
+                        'stars': confidence_stars,
+                        'score': prob_diff
+                    },
+                    'risk': risk_level,  # ← Usando cálculo dinâmico
+                    'is_preview': True,  # Flag para indicar que são dados básicos
+                    'has_real_data': bool(features or enriched_data)  # Indica se usou dados reais
+                },
+                'enriched_data': enriched_data or {}  # Passar dados enriquecidos para debug
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro no statistical_preview: {str(e)}", exc_info=True)
+            return Response(
+                {'error': 'Erro ao calcular estatísticas', 'details': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

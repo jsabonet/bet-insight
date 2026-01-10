@@ -6,6 +6,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 from .api_football_service import APIFootballService
+from .weather_service import WeatherService, STADIUM_COORDINATES
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,7 @@ class MatchDataEnricher:
     
     def __init__(self):
         self.api_service = APIFootballService()
+        self.weather_service = WeatherService()
     
     def enrich(self, match_data):
         """
@@ -52,18 +54,32 @@ class MatchDataEnricher:
         # Buscar contexto da tabela primeiro (usado por motivação)
         table_context = self._get_table_context(league_id, season, home_team_id, away_team_id)
         
+        # Buscar clima (Fase 3)
+        weather_data = self._get_weather_data(fixture_details)
+        
+        # Buscar estatísticas dos times
+        logger.info(f"\n📊 BUSCANDO ESTATÍSTICAS DOS TIMES...")
+        logger.info(f"   Home Team ID: {home_team_id}, League: {league_id}, Season: {season}")
+        home_stats = self._get_team_statistics(home_team_id, league_id, season)
+        logger.info(f"   ✅ Home Stats: {home_stats is not None}")
+        
+        logger.info(f"   Away Team ID: {away_team_id}, League: {league_id}, Season: {season}")
+        away_stats = self._get_team_statistics(away_team_id, league_id, season)
+        logger.info(f"   ✅ Away Stats: {away_stats is not None}")
+        
         enriched = {
             **match_data,
             'fixture_details': fixture_details,
             'table_context': table_context,
             'injuries': self._get_injuries(api_id, home_team_id, away_team_id),
             'odds': self._get_odds(api_id),
-            'home_stats': self._get_team_statistics(home_team_id, league_id, season),
-            'away_stats': self._get_team_statistics(away_team_id, league_id, season),
+            'home_stats': home_stats,
+            'away_stats': away_stats,
             'rest_context': self._calculate_rest_context(home_team_id, away_team_id, league_id, season, match_date),
             'motivation': self._assess_motivation(table_context),
             'trends': self._calculate_trends(home_team_id, away_team_id, league_id, season),
-            'season_context': self._get_season_context(fixture_details)
+            'season_context': self._get_season_context(fixture_details),
+            'weather': weather_data  # Fase 3
         }
         
         logger.info("\n" + "="*80)
@@ -137,25 +153,32 @@ class MatchDataEnricher:
             logger.info(f"   ✅ Odds: Casa {odds.get('home_win', 'N/A')} | "
                        f"Empate {odds.get('draw', 'N/A')} | "
                        f"Fora {odds.get('away_win', 'N/A')}")
+            return odds
         else:
-            logger.info("   ⚠️ Odds não disponíveis")
-        
-        return odds
+            logger.info("   ⚠️ Odds não disponíveis - retornando dicionário vazio")
+            return {}  # Retornar {} em vez de None para evitar problemas com .get()
+            
     
     def _get_team_statistics(self, team_id, league_id, season):
         """Busca estatísticas detalhadas do time"""
         logger.info(f"\n📈 Buscando estatísticas (Team {team_id})...")
         time.sleep(0.5)  # Delay para respeitar rate limit
         
-        stats = self.api_service.fetch_team_statistics(team_id, league_id, season)
-        
-        if stats:
-            logger.info(f"   ✅ {stats.get('games_played', 0)} jogos, "
-                       f"média {stats.get('goals_per_game_avg', 0):.2f} gols/jogo")
-        else:
-            logger.info("   ⚠️ Estatísticas não disponíveis")
-        
-        return stats
+        try:
+            stats = self.api_service.fetch_team_statistics(team_id, league_id, season)
+            
+            if stats:
+                logger.info(f"   ✅ {stats.get('games_played', 0)} jogos, "
+                           f"média {stats.get('goals_per_game_avg', 0):.2f} gols/jogo")
+            else:
+                logger.info("   ⚠️ Estatísticas não disponíveis")
+            
+            return stats
+        except Exception as e:
+            logger.error(f"   ❌ ERRO ao buscar estatísticas: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return None
     
     def _calculate_rest_context(self, home_team_id, away_team_id, league_id, season, match_date):
         """Calcula dias de descanso real"""
@@ -338,3 +361,74 @@ class MatchDataEnricher:
         logger.info(f"   ✅ Rodada: {round_info}, Temporada: {context['season']}")
         
         return context
+    
+    def _get_weather_data(self, fixture_details):
+        """
+        Obtém dados climáticos para a partida (Fase 3).
+        
+        Args:
+            fixture_details: Detalhes da partida com venue e data
+            
+        Returns:
+            Dict com clima ou None se não disponível
+        """
+        logger.info("\n🌦️ Buscando dados climáticos (Fase 3)...")
+        
+        try:
+            # Extrair venue e data
+            venue_name = fixture_details.get('venue', {}).get('name', '')
+            venue_city = fixture_details.get('venue', {}).get('city', '')
+            match_date_str = fixture_details.get('date', '')
+            
+            if not venue_name or not match_date_str:
+                logger.warning("   ⚠️ Venue ou data não disponível")
+                return None
+            
+            # Converter data
+            try:
+                match_datetime = datetime.fromisoformat(match_date_str.replace('Z', '+00:00'))
+            except:
+                logger.warning(f"   ⚠️ Formato de data inválido: {match_date_str}")
+                return None
+            
+            # Verificar se está no futuro e dentro de 7 dias
+            now = datetime.now(match_datetime.tzinfo)
+            time_diff = match_datetime - now
+            
+            if time_diff.total_seconds() < 0:
+                logger.info("   ℹ️ Partida já ocorreu - clima histórico não disponível")
+                return None
+            
+            if time_diff.days > 7:
+                logger.info(f"   ℹ️ Partida muito distante ({time_diff.days} dias) - clima não disponível")
+                return None
+            
+            # Tentar obter coordenadas do cache
+            coordinates = STADIUM_COORDINATES.get(venue_name)
+            
+            # Se não estiver no cache, tentar buscar por geocoding
+            if not coordinates:
+                logger.info(f"   🔍 Buscando coordenadas: {venue_name}, {venue_city}")
+                coordinates = self.weather_service.get_stadium_coordinates(venue_name, venue_city)
+                
+                if not coordinates:
+                    logger.warning(f"   ⚠️ Coordenadas não encontradas para {venue_name}")
+                    return None
+            
+            # Obter previsão do tempo
+            latitude, longitude = coordinates
+            weather = self.weather_service.get_weather_for_match(latitude, longitude, match_datetime)
+            
+            if weather:
+                logger.info(f"   ✅ Clima: {weather['condition']} - {weather['temp']}°C")
+                logger.info(f"   🌬️ Vento: {weather['wind_speed']} m/s | 💧 Precipitação: {weather['precipitation']} mm")
+                logger.info(f"   ⚡ Impacto: {weather['impact'].upper()}")
+            else:
+                logger.warning("   ⚠️ Previsão climática não disponível")
+            
+            return weather
+            
+        except Exception as e:
+            logger.error(f"   ❌ Erro ao buscar clima: {str(e)}")
+            return None
+

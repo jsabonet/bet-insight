@@ -49,52 +49,21 @@ class AnalysisViewSet(viewsets.ReadOnlyModelViewSet):
                 'analysis': AnalysisSerializer(existing).data
             }, status=status.HTTP_200_OK)
         
-        # Usar AI Analyzer para gerar análise
-        from apps.analysis.services.ai_analyzer import AIAnalyzer
-        
-        analyzer = AIAnalyzer()
-        match_data = {
-            'home_team': {
-                'name': match.home_team.name,
-                'stats': match.stats_cache or {}
-            },
-            'away_team': {
-                'name': match.away_team.name,
-                'stats': match.stats_cache or {}
-            },
-            'h2h': [],
-            'league': match.league.name,
-            'date': match.match_date.strftime('%Y-%m-%d')
-        }
-        
-        ai_result = analyzer.analyze_match(match_data)
+        # Usar o orquestrador híbrido (modelos + decisão + IA explicativa)
+        from apps.analysis.services.analysis_orchestrator import HybridAnalysisOrchestrator
+        orchestrator = HybridAnalysisOrchestrator()
+        result = orchestrator.run(match)
 
-        # Fallback seguro quando IA não disponível: gerar análise básica
-        if not ai_result or not isinstance(ai_result, dict) or ai_result.get('success') is False:
-            # Probabilidades simples e estáveis
-            home_p, draw_p, away_p = 40.0, 30.0, 30.0
-            prediction = 'home'
-            confidence = 3
-            reasoning = (
-                'Análise padrão aplicada devido à indisponibilidade temporária do serviço de IA. '
-                'Distribuição neutra de probabilidades baseada em fatores gerais de mando de campo.'
-            )
-            key_factors = ['Mando de campo', 'Equilíbrio de forças presumido']
-            analysis_data = {'fallback': True, 'source': 'heuristic'}
-            home_xg, away_xg = 1.5, 1.3
-        else:
-            # Adaptar se o serviço retornar apenas texto + confiança
-            # Esperados: prediction, confidence, probabilities, reasoning, key_factors
-            prediction = ai_result.get('prediction', 'home')
-            confidence = int(ai_result.get('confidence', 3) or 3)
-            home_p = float(ai_result.get('home_probability', 40.0) or 40.0)
-            draw_p = float(ai_result.get('draw_probability', 30.0) or 30.0)
-            away_p = float(ai_result.get('away_probability', 30.0) or 30.0)
-            reasoning = ai_result.get('reasoning') or ai_result.get('analysis') or 'Resumo gerado pela IA.'
-            key_factors = ai_result.get('key_factors') or []
-            analysis_data = ai_result.get('analysis_breakdown') or {'raw_text': ai_result.get('analysis')}
-            home_xg = float(ai_result.get('home_xg', 1.5) or 1.5)
-            away_xg = float(ai_result.get('away_xg', 1.3) or 1.3)
+        prediction = result['prediction']
+        confidence = result['confidence']
+        home_p = result['home_probability']
+        draw_p = result['draw_probability']
+        away_p = result['away_probability']
+        reasoning = result['reasoning']
+        key_factors = result['key_factors']
+        analysis_data = result['analysis_data']
+        home_xg = result['home_xg']
+        away_xg = result['away_xg']
 
         # Criar análise já com dados finais (IA ou fallback)
         analysis = Analysis.objects.create(

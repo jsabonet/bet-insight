@@ -111,19 +111,21 @@ CACHES = {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
         'LOCATION': 'bet-insight-cache',
         'OPTIONS': {
-            'MAX_ENTRIES': 1000  # Máximo de 1000 entradas no cache
+            'MAX_ENTRIES': 5000  # Aumentado para 5000 entradas (Fase 4)
         }
     }
 }
 
-# Cache timeout (em segundos)
+# Cache timeout (em segundos) - OTIMIZADO FASE 4
 CACHE_TTL = {
-    'standings': 3600,  # 1 hora (tabelas mudam raramente durante o dia)
-    'team_statistics': 3600,  # 1 hora
-    'injuries': 1800,  # 30 minutos (pode haver atualizações mais frequentes)
-    'odds': 300,  # 5 minutos (odds mudam frequentemente)
-    'fixtures': 3600,  # 1 hora
-    'fixture_details': 1800,  # 30 minutos
+    'standings': 7200,  # 2 horas (tabelas mudam 1-2x/dia)
+    'team_statistics': 10800,  # 3 horas (stats consolidadas)
+    'injuries': 3600,  # 1 hora (raramente muda durante o dia)
+    'odds': 180,  # 3 minutos (odds mudam frequentemente)
+    'fixtures': 7200,  # 2 horas (fixture list é estável)
+    'fixture_details': 3600,  # 1 hora (detalhes estáveis)
+    'h2h': 86400,  # 24 horas (histórico não muda)
+    'weather': 3600,  # 1 hora (previsão atualiza lentamente)
 }
 
 
@@ -223,7 +225,8 @@ SIMPLE_JWT = {
 # Permitir origens de desenvolvimento e produção
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3001",
     "http://localhost:5173",  # Vite default port
     "http://127.0.0.1:5173",  # Vite default port
     "http://localhost:5174",  # Vite alternative port
@@ -284,6 +287,10 @@ API_FOOTBALL_URL = os.getenv('API_FOOTBALL_URL', 'https://v3.football.api-sports
 
 GOOGLE_GEMINI_API_KEY = os.getenv('GOOGLE_GEMINI_API_KEY', '')
 
+# OpenWeather Configuration
+OPENWEATHER_API_KEY = os.getenv('OPENWEATHER_API_KEY', '0cb418ce4277f35188b2c1af74a9945a')
+OPENWEATHER_API_URL = os.getenv('OPENWEATHER_API_URL', 'https://api.openweathermap.org/data/2.5')
+
 # PaySuite Configuration (M-Pesa + E-Mola + Outros)
 PAYSUITE_API_TOKEN = os.getenv('PAYSUITE_API_TOKEN', '')
 PAYSUITE_WEBHOOK_SECRET = os.getenv('PAYSUITE_WEBHOOK_SECRET', '')
@@ -309,3 +316,41 @@ FCM_SERVER_KEY = os.getenv('FCM_SERVER_KEY', '')
 # Application Settings
 FREE_ANALYSIS_LIMIT = 3
 PREMIUM_ANALYSIS_LIMIT = 100
+
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'apps': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

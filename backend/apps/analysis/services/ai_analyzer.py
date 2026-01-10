@@ -24,40 +24,218 @@ class AIAnalyzer:
             return
 
         genai.configure(api_key=api_key)
-        # Selecionar um modelo suportado dinamicamente via list_models
-        model_name = None
+        
+        # MIGRAÇÃO PARA GEMINI FLASH (4x mais rápido, 75% mais barato)
+        model_name = 'gemini-2.0-flash-exp'
+        
         try:
-            available = list(genai.list_models())
-            supported = [m for m in available if hasattr(m, 'supported_generation_methods') and ('generateContent' in m.supported_generation_methods)]
-            # Ordenar preferência: gemini-2.5 > gemini-1.5 > gemini-1.0 > gemini-pro
-            def score(m):
-                n = getattr(m, 'name', getattr(m, 'model', '')).lower()
-                if 'gemini-2.5' in n:
-                    return 0
-                if 'gemini-1.5' in n:
-                    return 1
-                if 'gemini-1.0' in n:
-                    return 2
-                if 'gemini-pro' in n:
-                    return 3
-                return 4
-            supported.sort(key=score)
-            chosen = supported[0] if supported else None
-            if chosen:
-                chosen_name = getattr(chosen, 'name', getattr(chosen, 'model', None)) or 'gemini-pro'
-                # Aceitar tanto 'models/...' quanto nome simples
-                if isinstance(chosen_name, str) and chosen_name.startswith('models/'):
-                    chosen_name = chosen_name.replace('models/', '')
-                self.model = genai.GenerativeModel(chosen_name)
-                model_name = chosen_name
-            else:
-                logger.error("Nenhum modelo com suporte a generateContent disponível para esta chave/API.")
-                self.model = None
+            self.model = genai.GenerativeModel(model_name)
+            logger.info(f"✅ AI Analyzer usando Gemini Flash (rápido e eficiente)")
         except Exception as e:
-            logger.error(f"Falha ao listar modelos do Gemini: {e}")
-            self.model = None
+            logger.error(f"Falha ao inicializar Gemini Flash: {e}")
+            # Fallback para modelo anterior
+            try:
+                model_name = 'gemini-pro'
+                self.model = genai.GenerativeModel(model_name)
+                logger.warning(f"⚠️ Usando fallback: {model_name}")
+            except Exception as e2:
+                logger.error(f"Falha total ao inicializar Gemini: {e2}")
+                self.model = None
         
         logger.info(f"AI Analyzer inicializado com modelo: {model_name}")
+    
+    
+    def explain_decision(self, decision_data: Dict, enriched_data: Dict) -> Dict:
+        """
+        NOVA FUNÇÃO: IA apenas EXPLICA decisões prontas (não decide)
+        
+        Args:
+            decision_data (dict): Decisão do DecisionEngine com:
+                - recommendation: {...}
+                - confidence: {...}
+                - risk: str
+                - value_bets: [...]
+                - model_probabilities: {...}
+            enriched_data (dict): Dados enriquecidos da partida
+        
+        Returns:
+            dict: {
+                'success': bool,
+                'analysis': str (HTML formatado),
+                'generation_time': float,
+                'model': str
+            }
+        """
+        try:
+            if not self.model:
+                return {
+                    'success': False,
+                    'error': 'API key do Gemini não configurada.',
+                    'error_code': 'API_KEY_MISSING'
+                }
+            
+            # Construir prompt CURTO focado em explicar
+            prompt = self._build_explanation_prompt(decision_data, enriched_data)
+            
+            home_name = enriched_data.get('fixture_details', {}).get('home_team', {}).get('name', 'Casa')
+            away_name = enriched_data.get('fixture_details', {}).get('away_team', {}).get('name', 'Fora')
+            
+            logger.info(f"🤖 IA Explicando decisão: {home_name} vs {away_name}")
+            
+            # Gerar com timeout curto e temperatura baixa
+            import time
+            start_time = time.time()
+            
+            response = self.model.generate_content(
+                prompt,
+                generation_config={
+                    'temperature': 0.3,  # Baixa criatividade (mais factual)
+                    'max_output_tokens': 1500,  # Limite menor
+                    'top_p': 0.8,
+                    'top_k': 40
+                }
+            )
+            
+            generation_time = time.time() - start_time
+            
+            logger.info(f"✅ Explicação gerada em {generation_time:.2f}s")
+            
+            return {
+                'success': True,
+                'analysis': response.text,
+                'generation_time': round(generation_time, 2),
+                'model': 'gemini-2.0-flash',
+                'tokens_used': len(prompt.split()) + len(response.text.split())
+            }
+            
+        except google_exceptions.ResourceExhausted as e:
+            logger.error(f"Quota da API Gemini excedida: {e}")
+            return {
+                'success': False,
+                'error': 'Limite diário de análises da API foi atingido.',
+                'error_code': 'QUOTA_EXCEEDED',
+                'http_status': 429
+            }
+        except Exception as e:
+            logger.error(f"Erro ao gerar explicação: {e}")
+            return {
+                'success': False,
+                'error': f'Erro ao gerar análise: {str(e)}',
+                'error_code': 'GENERATION_ERROR'
+            }
+    
+    def _build_explanation_prompt(self, decision_data, enriched_data):
+        """
+        Constrói prompt CURTO para IA explicar (não decidir)
+        
+        ANTES: 8.000 tokens (dados brutos)
+        AGORA: ~1.500 tokens (decisões prontas)
+        """
+        recommendation = decision_data.get('recommendation', {})
+        confidence = decision_data.get('confidence', {})
+        risk = decision_data.get('risk', 'medium')
+        value_bets = decision_data.get('value_bets', [])
+        model_probs = decision_data.get('model_probabilities', {})
+        
+        fixture = enriched_data.get('fixture_details', {})
+        home_team = fixture.get('home_team', {}).get('name', 'Casa')
+        away_team = fixture.get('away_team', {}).get('name', 'Fora')
+        
+        poisson = model_probs.get('poisson', {})
+        consensus = model_probs.get('consensus', {})
+        
+        prompt = f"""Você é um analista de apostas esportivas profissional. Explique a análise abaixo de forma clara e objetiva.
+
+═══════════════════════════════════════
+🏆 PARTIDA
+═══════════════════════════════════════
+{home_team} (Casa) vs {away_team} (Fora)
+
+═══════════════════════════════════════
+📊 DECISÃO DOS MODELOS ESTATÍSTICOS
+═══════════════════════════════════════
+
+**RECOMENDAÇÃO PRINCIPAL:**
+{recommendation.get('market_display', 'N/A')} - {recommendation.get('pick', 'N/A')}
+
+**PROBABILIDADE:** {recommendation.get('probability', 0)*100:.1f}%
+**ODD MERCADO:** {recommendation.get('odd', 0):.2f}
+**CONFIANÇA:** {'⭐' * confidence.get('stars', 3)} ({confidence.get('level_pt', 'Média')})
+**RISCO:** {risk.upper()}
+
+═══════════════════════════════════════
+🔢 MODELO POISSON (DISTRIBUIÇÃO DE GOLS)
+═══════════════════════════════════════
+
+Gols esperados:
+• Casa: {poisson.get('expected_goals_home', 0):.2f}
+• Fora: {poisson.get('expected_goals_away', 0):.2f}
+
+Placar mais provável: {poisson.get('most_likely_score', 'N/A')}
+
+Probabilidades de resultado:
+• Vitória Casa: {consensus.get('home_win', 0)*100:.1f}%
+• Empate: {consensus.get('draw', 0)*100:.1f}%
+• Vitória Fora: {consensus.get('away_win', 0)*100:.1f}%
+
+Mercados adicionais:
+• Over 2.5 gols: {poisson.get('probabilities', {}).get('over_2_5', 0)*100:.1f}%
+• Ambos Marcam: {poisson.get('probabilities', {}).get('btts', 0)*100:.1f}%
+
+═══════════════════════════════════════
+💰 ANÁLISE DE VALUE
+═══════════════════════════════════════
+"""
+        
+        if value_bets:
+            prompt += "✅ VALUE BETS IDENTIFICADOS:\n\n"
+            for vb in value_bets[:3]:
+                prompt += f"  • {vb['market_display']}: {vb['value_pct']:.1f}% de value\n"
+                prompt += f"    Odd justa: {vb['fair_odd']:.2f} | Odd mercado: {vb['market_odd']:.2f}\n"
+                prompt += f"    Sugestão: {vb['stake_suggestion']}\n\n"
+        else:
+            prompt += "⚠️ Nenhum value bet significativo identificado.\n"
+            prompt += "Odds do mercado estão alinhadas com as probabilidades dos modelos.\n\n"
+        
+        prompt += f"""
+═══════════════════════════════════════
+📝 SUA TAREFA
+═══════════════════════════════════════
+
+Com base nesses DADOS OBJETIVOS DOS MODELOS, crie uma análise seguindo EXATAMENTE esta estrutura:
+
+### 🎯 PREVISÃO DO MODELO
+
+[Repita a recomendação de forma clara e direta]
+
+### ⚡ POR QUE ESSA PREVISÃO?
+
+[Explique em 3-4 bullets curtos os principais motivos baseados nos dados acima.
+NÃO invente informações. Use APENAS os números fornecidos.]
+
+### 📊 PROBABILIDADES
+
+[Mostre as 3 probabilidades principais de forma visual com barras ou emojis]
+
+### 💰 OPORTUNIDADES
+
+[Se há value bets: explique qual e por quê
+Se não há: explique que odds estão justas]
+
+### ⚠️ GESTÃO DE RISCO
+
+[Mencione o nível de risco ({risk}) e o que isso significa
+Dê 1-2 conselhos de gestão de banca]
+
+**IMPORTANTE:**
+- NÃO invente dados ou estatísticas
+- Use APENAS os números fornecidos acima
+- Seja objetivo e profissional
+- Máximo 400 palavras
+- Formato HTML simples (<h3>, <p>, <ul>, <strong>)
+"""
+        
+        return prompt
     
     def analyze_match(self, match_data: Dict) -> Dict:
         """
@@ -70,6 +248,16 @@ class AIAnalyzer:
         - league: str
         - date: str
         """
+        logger.info(f"\n{'🔵'*40}")
+        logger.info(f"🤖 AI ANALYZER: Iniciando análise completa")
+        logger.info(f"{'🔵'*40}\n")
+        
+        logger.info(f"📊 Dados recebidos:")
+        logger.info(f"   Home Team: {match_data.get('home_team', {}).get('name', 'N/A')}")
+        logger.info(f"   Away Team: {match_data.get('away_team', {}).get('name', 'N/A')}")
+        logger.info(f"   League: {match_data.get('league', 'N/A')}")
+        logger.info(f"   Date: {match_data.get('date', 'N/A')}")
+        
         try:
             if not self.model:
                 return {

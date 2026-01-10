@@ -215,14 +215,38 @@ class APIFootballService:
             logger.warning(f"⚠️ Estatísticas não encontradas para team {team_id}")
             return None
         
+        # DEBUG: Log da estrutura completa dos dados
+        logger.info(f"📊 DEBUG - Estrutura completa de 'goals':")
+        logger.info(f"   goals.for: {data.get('goals', {}).get('for', {})}")
+        logger.info(f"   goals.against: {data.get('goals', {}).get('against', {})}")
+        
         fixtures = data.get('fixtures', {})
-        goals = data.get('goals', {}).get('for', {}).get('total', {})
+        goals_for = data.get('goals', {}).get('for', {})
+        goals_against = data.get('goals', {}).get('against', {})
+        
+        # Tentar diferentes estruturas possíveis da API
+        goals_avg = (
+            goals_for.get('average', {}).get('total') or
+            goals_for.get('average', {}).get('home') or
+            goals_for.get('total', {}).get('average') or
+            0
+        )
+        
+        conceded_avg = (
+            goals_against.get('average', {}).get('total') or
+            goals_against.get('average', {}).get('home') or
+            goals_against.get('total', {}).get('average') or
+            0
+        )
+        
+        logger.info(f"   ➡️ Média de gols marcados calculada: {goals_avg}")
+        logger.info(f"   ➡️ Média de gols sofridos calculada: {conceded_avg}")
         
         stats = {
             'form': data.get('form', ''),
             'games_played': fixtures.get('played', {}).get('total', 0),
-            'goals_per_game_avg': goals.get('average', {}).get('total', 0),
-            'goals_conceded_avg': data.get('goals', {}).get('against', {}).get('average', {}).get('total', 0),
+            'goals_per_game_avg': float(goals_avg) if goals_avg else 0.0,
+            'goals_conceded_avg': float(conceded_avg) if conceded_avg else 0.0,
             'clean_sheets': data.get('clean_sheet', {}).get('total', 0),
             'biggest_streak': {
                 'wins': data.get('biggest', {}).get('streak', {}).get('wins', 0),

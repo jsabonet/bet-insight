@@ -186,6 +186,32 @@ class FootballAPIService:
             logger.error(f"Erro ao buscar estatísticas: {e}")
             return {'success': False, 'error': 'Erro desconhecido ao buscar estatísticas', 'details': str(e), 'http_status': 500, 'error_code': 'UNKNOWN_ERROR'}
     
+    def get_fixture_events(self, fixture_id: int) -> Dict:
+        """Buscar eventos de uma partida (gols, cartões, substituições, etc.)"""
+        try:
+            logger.info(f"Buscando eventos da partida {fixture_id}")
+            response = self.session.get(
+                f'{self.base_url}/fixtures/events',
+                params={'fixture': fixture_id},
+                timeout=15
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            if data.get('response'):
+                return {'success': True, 'events': data['response']}
+            return {'success': True, 'events': []}  # Sem eventos ainda
+        except requests.exceptions.HTTPError as e:
+            status_code = getattr(e.response, 'status_code', 500)
+            logger.error(f"Erro HTTP ao buscar eventos: {e}")
+            return {'success': False, 'error': 'Falha HTTP ao buscar eventos', 'details': str(e), 'http_status': status_code, 'error_code': 'HTTP_ERROR'}
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            logger.error(f"Erro de rede ao buscar eventos: {e}")
+            return {'success': False, 'error': 'Erro de rede ao buscar eventos', 'details': str(e), 'http_status': 503, 'error_code': 'NETWORK_ERROR'}
+        except Exception as e:
+            logger.error(f"Erro ao buscar eventos: {e}")
+            return {'success': False, 'error': 'Erro desconhecido ao buscar eventos', 'details': str(e), 'http_status': 500, 'error_code': 'UNKNOWN_ERROR'}
+    
     def get_predictions(self, fixture_id: int) -> Dict:
         """Buscar previsões e odds de uma partida"""
         try:
@@ -210,6 +236,93 @@ class FootballAPIService:
         except Exception as e:
             logger.error(f"Erro ao buscar previsões: {e}")
             return {'success': False, 'error': 'Erro desconhecido ao buscar previsões', 'details': str(e), 'http_status': 500, 'error_code': 'UNKNOWN_ERROR'}
+    
+    def get_fixture_lineups(self, fixture_id: int) -> Dict:
+        """Buscar escalações (lineups) de uma partida"""
+        try:
+            logger.info(f"Buscando escalações da partida {fixture_id}")
+            response = self.session.get(
+                f'{self.base_url}/fixtures/lineups',
+                params={'fixture': fixture_id},
+                timeout=15
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            if data.get('response') and len(data['response']) >= 2:
+                return {'success': True, 'lineups': data['response']}
+            return {'success': False, 'error': 'Escalações não disponíveis'}
+        except requests.exceptions.HTTPError as e:
+            status_code = getattr(e.response, 'status_code', 500)
+            logger.error(f"Erro HTTP ao buscar escalações: {e}")
+            return {'success': False, 'error': 'Falha HTTP ao buscar escalações', 'details': str(e), 'http_status': status_code, 'error_code': 'HTTP_ERROR'}
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            logger.error(f"Erro de rede ao buscar escalações: {e}")
+            return {'success': False, 'error': 'Erro de rede ao buscar escalações', 'details': str(e), 'http_status': 503, 'error_code': 'NETWORK_ERROR'}
+        except Exception as e:
+            logger.error(f"Erro ao buscar escalações: {e}")
+            return {'success': False, 'error': 'Erro desconhecido ao buscar escalações', 'details': str(e), 'http_status': 500, 'error_code': 'UNKNOWN_ERROR'}
+    
+    def get_head_to_head(self, team1_id: int, team2_id: int, last: int = 10) -> Dict:
+        """Buscar histórico de confrontos diretos (H2H)"""
+        try:
+            logger.info(f"Buscando H2H entre times {team1_id} e {team2_id}")
+            response = self.session.get(
+                f'{self.base_url}/fixtures/headtohead',
+                params={
+                    'h2h': f'{team1_id}-{team2_id}',
+                    'last': last
+                },
+                timeout=15
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            return {'success': True, 'matches': data.get('response', [])}
+        except Exception as e:
+            logger.error(f"Erro ao buscar H2H: {e}")
+            return {'success': False, 'error': str(e), 'matches': []}
+    
+    def get_team_last_matches(self, team_id: int, last: int = 5) -> Dict:
+        """Buscar últimos jogos de um time"""
+        try:
+            logger.info(f"Buscando últimos {last} jogos do time {team_id}")
+            response = self.session.get(
+                f'{self.base_url}/fixtures',
+                params={
+                    'team': team_id,
+                    'last': last,
+                    'season': 2025
+                },
+                timeout=15
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            return {'success': True, 'matches': data.get('response', [])}
+        except Exception as e:
+            logger.error(f"Erro ao buscar últimos jogos: {e}")
+            return {'success': False, 'error': str(e), 'matches': []}
+    
+    def get_standings(self, league_id: int, season: int = 2025) -> Dict:
+        """Buscar classificação da liga"""
+        try:
+            logger.info(f"Buscando classificação da liga {league_id}")
+            response = self.session.get(
+                f'{self.base_url}/standings',
+                params={
+                    'league': league_id,
+                    'season': season
+                },
+                timeout=15
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            return {'success': True, 'standings': data.get('response', [])}
+        except Exception as e:
+            logger.error(f"Erro ao buscar classificação: {e}")
+            return {'success': False, 'error': str(e), 'standings': []}
 
 
 class FootballDataService:
