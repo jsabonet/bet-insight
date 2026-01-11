@@ -22,7 +22,7 @@ match = Match.objects.filter(api_football_id=1378058).first()
 
 if not match:
     print("\nERRO: Partida nao encontrada. Carregando da API...")
-    from apps.data_ingestion.services.football_api import FootballAPIService
+    from apps.matches.services.football_api import FootballAPIService
     api = FootballAPIService()
     
     # Carregar partida

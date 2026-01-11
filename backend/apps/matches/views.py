@@ -6,6 +6,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.core.cache import cache
 from datetime import timedelta, datetime
+from django.conf import settings
 from .models import League, Team, Match
 from .serializers import LeagueSerializer, TeamSerializer, MatchListSerializer, MatchDetailSerializer
 from .services.football_api import FootballAPIService
@@ -316,9 +317,20 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # Se não houver partidas da API, retornar dados de exemplo
-        logger.warning(f"⚠️  Limite de requisições da API-Football atingido ou sem partidas disponíveis.")
-        logger.info("ℹ️  Exibindo partidas de exemplo. Partidas reais voltarão quando limite resetar (meia-noite UTC).")
+        # Se não houver partidas da API, decidir entre mock ou erro conforme flag
+        logger.warning("Nenhuma partida real disponível (limite da API ou indisponibilidade).")
+        allow_mocks = getattr(settings, 'ALLOW_MOCK_MATCHES', False)
+        if not allow_mocks:
+            # Retornar erro claro para o frontend
+            return Response({
+                'error': 'Sem partidas reais disponíveis agora',
+                'reason': 'api_limit_or_unavailable',
+                'hint': 'Limite diário da API-Football pode ter sido atingido. Tente mais tarde ou habilite mocks.',
+                'is_mock': False,
+                'source': 'api-football'
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        logger.info("Mocks habilitados — retornando partidas de exemplo.")
         mock_matches = self._generate_mock_matches(date)
         return Response({
             'date': date,
