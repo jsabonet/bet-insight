@@ -287,6 +287,19 @@ xG esperado: {poisson.get('expected_goals_home', 0):.2f} x {poisson.get('expecte
         max_prob = max(prob_home, prob_draw, prob_away)
         is_balanced = max_prob < 45  # Jogo equilibrado se nenhum resultado > 45%
         
+        # Thresholds de EV por risco (padrão internacional)
+        ev_thresholds = {
+            'low': 2.0,      # LOW risk precisa ≥2% EV
+            'medium': 4.0,   # MEDIUM risk precisa ≥4% EV
+            'high': 6.0      # HIGH risk precisa ≥6% EV
+        }
+        min_ev_required = ev_thresholds.get(risk.lower(), 4.0)
+        
+        # Extrair value bets para análise
+        value_bets = decision_data.get('value_bets', [])
+        has_value = len(value_bets) > 0
+        best_ev = max([vb.get('value', 0) * 100 for vb in value_bets]) if value_bets else 0
+        
         prompt = f"""Você é um sistema profissional de apostas esportivas em PORTUGUÊS (Moçambique).
 
 🔢 DADOS FORNECIDOS (NÃO INVENTE OUTROS):
@@ -298,12 +311,23 @@ xG esperado: {poisson.get('expected_goals_home', 0):.2f} x {poisson.get('expecte
 • xG esperado: {xg_home:.2f} x {xg_away:.2f}
 • Placar provável: {most_likely}
 • Predição: {predicao}
+• Melhor EV disponível: {best_ev:.1f}%
+• EV mínimo para risco {risk.upper()}: {min_ev_required:.1f}%
 
 ⚠️ REGRAS OBRIGATÓRIAS:
 1. NÃO invente dados históricos (confrontos diretos, forma recente)
 2. SE xG < 0.5: NÃO recomende mercados de gols (Over/Under, BTTS)
 3. SE jogo equilibrado (todas probabilidades < 45%): PRIORIZE Dupla Chance ou Draw No Bet
 4. JUSTIFIQUE por que mercados alternativos foram descartados
+5. 🚨 EDGE MÍNIMO (padrão internacional):
+   • Risco LOW: Só recomende se EV ≥ +{ev_thresholds['low']:.1f}%
+   • Risco MEDIUM: Só recomende se EV ≥ +{ev_thresholds['medium']:.1f}%
+   • Risco HIGH: Só recomende se EV ≥ +{ev_thresholds['high']:.1f}%
+   • SE EV abaixo do mínimo: AVISE que é "value marginal" e reduza stake
+6. NÃO aceite value bets às cegas:
+   • Compare EV entre TODOS os mercados disponíveis
+   • Pode rebaixar mercado principal se houver alternativa melhor
+   • Considere risco vs retorno (EV alto com risco desproporcional = não vale)
 
 🎯 ANÁLISE OBRIGATÓRIA DE MERCADOS:
 Antes de escolher, avalie:
@@ -358,18 +382,20 @@ Exemplo:
 🎯 Aposte em: [pick específico]
 💵 Odd disponível: [entre 1.50-2.50]
 📈 Odd justa: [calcule: 1/probabilidade]
-✅ Vantagem: [+X%]
-💰 Stake: [1-1.5] unidades
+✅ Vantagem (EV): [+X%] {'⚠️ MARGINAL' if best_ev < min_ev_required else '✅ SÓLIDA'}
+💰 Stake: [calcule dinamicamente baseado em confiança × EV × risco]
 🎲 Risco real: [BAIXO/MÉDIO/ALTO baseado na probabilidade]
 
 ➡️ O QUE FAZER:
 ✓ Aposte AGORA se odd ≥ [odd mínima]
 ✗ NÃO aposte se odd < [odd mínima]
+{'⚠️ AVISO: EV abaixo do mínimo recomendado para este nível de risco' if best_ev < min_ev_required else ''}
 
 📝 PORQUÊ ESTE MERCADO (não outro)?
-• [Por que este mercado específico é superior aos demais]
+• [Por que este mercado tem melhor relação EV/Risco que alternativas]
+• [Justifique stake: confiança {confidence.get('stars', 3)}/5 × EV {best_ev:.1f}% × risco {risk.upper()}]
 • [Baseie-se APENAS nos dados fornecidos: xG, probabilidades]
-• [Mencione mercados descartados e por quê]
+• [Mencione mercados descartados e por quê, incluindo EV comparativo]
 
 🥈 APOSTA #2
 ───────────────────────────────────────
@@ -408,9 +434,16 @@ Exemplo:
 5. NÃO escolha 1X2 em jogo equilibrado (todas prob < 45%) sem justificar
 6. SEMPRE compare pelo menos 4 mercados diferentes na seção COMPARAÇÃO
 7. SEMPRE justifique por que mercados alternativos foram descartados
-8. Use APENAS dados fornecidos acima
-9. Mantenha coerência: xG alto → mercados de gols; xG baixo → resultado
-10. Odds realistas entre 1.50-2.50"""
+8. 🚨 NÃO recomende apostas com EV abaixo do threshold (LOW≥2%, MEDIUM≥4%, HIGH≥6%)
+9. 🚨 STAKE deve ser justificado: explique por que X unidades baseado em conf/EV/risco
+10. 🚨 Compare EVs entre mercados: não aceite value bet principal se houver melhor alternativa
+11. Use APENAS dados fornecidos acima
+12. Mantenha coerência: xG alto → mercados de gols; xG baixo → resultado
+13. Odds realistas entre 1.50-2.50
+
+💡 FÓRMULA STAKE (orientativa):
+Stake = 1.0 × (confiança/5) × (EV/4%) × ajuste_risco
+onde ajuste_risco: LOW=1.2, MEDIUM=1.0, HIGH=0.8"""
         
         return prompt
 
