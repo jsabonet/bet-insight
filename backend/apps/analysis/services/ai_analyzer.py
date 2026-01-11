@@ -145,7 +145,15 @@ class AIAnalyzer:
         league_data = fixture.get('league', {})
         league = league_data.get('name', 'N/A') if league_data else 'N/A'
         fixture_data = fixture.get('fixture', {})
-        match_date = fixture_data.get('date', 'N/A') if fixture_data else 'N/A'
+        raw_date = fixture_data.get('date', 'N/A') if fixture_data else 'N/A'
+        
+        # Format date
+        try:
+            from datetime import datetime
+            dt = datetime.fromisoformat(raw_date.replace('Z', '+00:00'))
+            match_date = dt.strftime('%d/%m/%Y %H:%M')
+        except:
+            match_date = raw_date
         
         pick = recommendation.get('pick', 'N/A')
         prob = recommendation.get('probability', 0)
@@ -246,7 +254,15 @@ xG esperado: {poisson.get('expected_goals_home', 0):.2f} x {poisson.get('expecte
         league_data = fixture.get('league', {})
         league = league_data.get('name', 'N/A') if league_data else 'N/A'
         fixture_data = fixture.get('fixture', {})
-        match_date = fixture_data.get('date', 'N/A') if fixture_data else 'N/A'
+        raw_date = fixture_data.get('date', 'N/A') if fixture_data else 'N/A'
+        
+        # Format date: ISO -> DD/MM/YYYY HH:MM
+        try:
+            from datetime import datetime
+            dt = datetime.fromisoformat(raw_date.replace('Z', '+00:00'))
+            match_date = dt.strftime('%d/%m/%Y %H:%M')
+        except:
+            match_date = raw_date
         
         poisson = model_probs.get('poisson', {})
         consensus = model_probs.get('consensus', {})
@@ -268,7 +284,17 @@ xG esperado: {poisson.get('expected_goals_home', 0):.2f} x {poisson.get('expecte
         
         prompt = f"""Você é um sistema profissional de apostas esportivas em PORTUGUÊS (Moçambique).
 
-FORMATO OBRIGATÓRIO (copie EXATAMENTE esta estrutura):
+DADOS DA PARTIDA:
+• {home_team} vs {away_team}
+• Liga: {league}
+• Data: {match_date}
+• Confiança: {confidence.get('stars', 3)}/5 • Risco: {risk.upper()}
+• Probabilidades: Casa {prob_home:.1f}% | Empate {prob_draw:.1f}% | Fora {prob_away:.1f}%
+• xG esperado: {xg_home:.2f} x {xg_away:.2f}
+• Placar provável: {most_likely}
+• Predição: {predicao}
+
+Gere análise com EXATAMENTE esta estrutura (NÃO repita o cabeçalho):
 
 🏆 {home_team} vs {away_team}
 🏅 {league}
@@ -286,11 +312,7 @@ FORMATO OBRIGATÓRIO (copie EXATAMENTE esta estrutura):
 🎯 ANÁLISE COMPLETA DE APOSTAS
 ═══════════════════════════════════════
 
-🏆 {home_team} vs {away_team}
-🏅 {league}
-📅 {match_date}
 ⭐ Confiança: {confidence.get('stars', 3)}/5 • Risco: {risk.upper()}
-
 📊 Probabilidades (consenso): Casa {prob_home:.1f}% | Empate {prob_draw:.1f}% | Fora {prob_away:.1f}%
 xG esperado: {xg_home:.2f} x {xg_away:.2f} • Placar provável: {most_likely}
 
@@ -298,25 +320,31 @@ xG esperado: {xg_home:.2f} x {xg_away:.2f} • Placar provável: {most_likely}
 💰 ONDE APOSTAR - MELHORES OPORTUNIDADES
 ═══════════════════════════════════════
 
-Gere 3 apostas (🥇, 🥈, 🥉) com mercados diferentes (Dupla Chance, Over/Under, BTTS, 1X2):
-
 🥇 APOSTA #1 - MAIOR VALOR (RECOMENDADA)
 ───────────────────────────────────────
-📊 Mercado: [escolha o melhor mercado]
+📊 Mercado: [escolha: 1X2, Dupla Chance, Over/Under ou BTTS]
 🎯 Aposte em: [pick específico]
-💵 Odd disponível: [odd fictícia entre 1.50-2.50]
-📈 Odd justa: [calcule baseado na probabilidade]
+💵 Odd disponível: [entre 1.50-2.50]
+📈 Odd justa: [calcule: 1/probabilidade]
 ✅ Vantagem: [+X%]
-💰 Stake: 1-1.5 unidades
+💰 Stake: [1-1.5] unidades
 
 ➡️ O QUE FAZER:
 ✓ Aposte AGORA se odd ≥ [odd mínima]
 ✗ NÃO aposte se odd < [odd mínima]
 
 📝 PORQUÊ APOSTAR NISTO?
-• [3 bullets explicando o raciocínio]
+• [Razão 1 baseada nos dados]
+• [Razão 2 baseada nos dados]
+• [Razão 3 baseada nos dados]
 
-[REPITA para 🥈 APOSTA #2 e 🥉 APOSTA #3 com mercados DIFERENTES]
+🥈 APOSTA #2
+───────────────────────────────────────
+[MESMA ESTRUTURA acima, mas mercado DIFERENTE]
+
+🥉 APOSTA #3
+───────────────────────────────────────
+[MESMA ESTRUTURA acima, mas mercado DIFERENTE]
 
 ⛔ NÃO APOSTE AQUI - SEM VALOR
 ───────────────────────────────────────
@@ -325,21 +353,26 @@ Gere 3 apostas (🥇, 🥈, 🥉) com mercados diferentes (Dupla Chance, Over/Un
 ═══════════════════════════════════════
 📋 RESUMO - O QUE FAZER
 ═══════════════════════════════════════
-* [Lista das 3 apostas com odd mínima e stake]
+* [Aposta 1: mercado @ odd mínima, stake X unidades]
+* [Aposta 2: mercado @ odd mínima, stake X unidades]
+* [Aposta 3: mercado @ odd mínima, stake X unidades]
 
 ═══════════════════════════════════════
 🚨 ATENÇÃO - QUANDO NÃO APOSTAR
 ═══════════════════════════════════════
-* [3 invalidações objetivas]
+* [Invalidação 1]
+* [Invalidação 2]
+* [Invalidação 3]
 
 ──────────────────────────
 ⚽ Via Placar Certo
 
-REGRAS:
-- NÃO use HTML/Markdown
+REGRAS CRÍTICAS:
+- NÃO repita os dados do cabeçalho
+- NÃO inclua texto de instruções no output
 - Mantenha EXATAMENTE esta estrutura
-- Use emojis como mostrado
-- Odds fictícias mas realistas"""
+- 3 mercados DIFERENTES
+- Odds realistas entre 1.50-2.50"""
         
         return prompt
 
