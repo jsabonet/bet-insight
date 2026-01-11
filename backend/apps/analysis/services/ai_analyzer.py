@@ -282,9 +282,14 @@ xG esperado: {poisson.get('expected_goals_home', 0):.2f} x {poisson.get('expecte
         else:
             predicao = "Empate"
         
+        # Validações estatísticas
+        total_xg = xg_home + xg_away
+        max_prob = max(prob_home, prob_draw, prob_away)
+        is_balanced = max_prob < 45  # Jogo equilibrado se nenhum resultado > 45%
+        
         prompt = f"""Você é um sistema profissional de apostas esportivas em PORTUGUÊS (Moçambique).
 
-DADOS DA PARTIDA:
+🔢 DADOS FORNECIDOS (NÃO INVENTE OUTROS):
 • {home_team} vs {away_team}
 • Liga: {league}
 • Data: {match_date}
@@ -294,7 +299,21 @@ DADOS DA PARTIDA:
 • Placar provável: {most_likely}
 • Predição: {predicao}
 
-Gere análise com EXATAMENTE esta estrutura (NÃO repita o cabeçalho):
+⚠️ REGRAS OBRIGATÓRIAS:
+1. NÃO invente dados históricos (confrontos diretos, forma recente)
+2. SE xG < 0.5: NÃO recomende mercados de gols (Over/Under, BTTS)
+3. SE jogo equilibrado (todas probabilidades < 45%): PRIORIZE Dupla Chance ou Draw No Bet
+4. JUSTIFIQUE por que mercados alternativos foram descartados
+
+🎯 ANÁLISE OBRIGATÓRIA DE MERCADOS:
+Antes de escolher, avalie:
+• 1X2: Volatilidade alta, use apenas se probabilidade > 50%
+• Dupla Chance: Reduz risco, ideal para jogos equilibrados
+• Draw No Bet: Remove empate, adequado para favoritos leves
+• Over/Under: Use apenas se xG total > 2.0
+• BTTS: Use apenas se ambos xG > 0.8
+
+Gere análise com EXATAMENTE esta estrutura:
 
 🏆 {home_team} vs {away_team}
 🏅 {league}
@@ -317,26 +336,40 @@ Gere análise com EXATAMENTE esta estrutura (NÃO repita o cabeçalho):
 xG esperado: {xg_home:.2f} x {xg_away:.2f} • Placar provável: {most_likely}
 
 ═══════════════════════════════════════
-💰 ONDE APOSTAR - MELHORES OPORTUNIDADES
+� COMPARAÇÃO DE MERCADOS
+═══════════════════════════════════════
+
+[Analise 5 mercados: 1X2, Dupla Chance, Draw No Bet, Over/Under, BTTS]
+[Para cada um, indique: Probabilidade implícita, Risco, Valor esperado]
+[Elimine os 2 piores com justificativa clara]
+
+Exemplo:
+❌ 1X2 Casa: Prob 32%, risco ALTO, favorito indefinido
+✅ Dupla Chance X2: Prob 67%, risco MÉDIO, cobre empate
+❌ BTTS: xG baixo, sem suporte estatístico
+
+═══════════════════════════════════════
+💰 APOSTAS RECOMENDADAS (POR ORDEM DE VALOR)
 ═══════════════════════════════════════
 
 🥇 APOSTA #1 - MAIOR VALOR (RECOMENDADA)
 ───────────────────────────────────────
-📊 Mercado: [escolha: 1X2, Dupla Chance, Over/Under ou BTTS]
+📊 Mercado: [escolha baseada na comparação acima]
 🎯 Aposte em: [pick específico]
 💵 Odd disponível: [entre 1.50-2.50]
 📈 Odd justa: [calcule: 1/probabilidade]
 ✅ Vantagem: [+X%]
 💰 Stake: [1-1.5] unidades
+🎲 Risco real: [BAIXO/MÉDIO/ALTO baseado na probabilidade]
 
 ➡️ O QUE FAZER:
 ✓ Aposte AGORA se odd ≥ [odd mínima]
 ✗ NÃO aposte se odd < [odd mínima]
 
-📝 PORQUÊ APOSTAR NISTO?
-• [Razão 1 baseada nos dados]
-• [Razão 2 baseada nos dados]
-• [Razão 3 baseada nos dados]
+📝 PORQUÊ ESTE MERCADO (não outro)?
+• [Por que este mercado específico é superior aos demais]
+• [Baseie-se APENAS nos dados fornecidos: xG, probabilidades]
+• [Mencione mercados descartados e por quê]
 
 🥈 APOSTA #2
 ───────────────────────────────────────
@@ -351,14 +384,14 @@ xG esperado: {xg_home:.2f} x {xg_away:.2f} • Placar provável: {most_likely}
 [Explique qual mercado evitar e porquê]
 
 ═══════════════════════════════════════
-📋 RESUMO - O QUE FAZER
+� RESUMO - O QUE FAZER
 ═══════════════════════════════════════
 * [Aposta 1: mercado @ odd mínima, stake X unidades]
 * [Aposta 2: mercado @ odd mínima, stake X unidades]
 * [Aposta 3: mercado @ odd mínima, stake X unidades]
 
 ═══════════════════════════════════════
-🚨 ATENÇÃO - QUANDO NÃO APOSTAR
+� ATENÇÃO - QUANDO NÃO APOSTAR
 ═══════════════════════════════════════
 * [Invalidação 1]
 * [Invalidação 2]
@@ -367,12 +400,17 @@ xG esperado: {xg_home:.2f} x {xg_away:.2f} • Placar provável: {most_likely}
 ──────────────────────────
 ⚽ Via Placar Certo
 
-REGRAS CRÍTICAS:
-- NÃO repita os dados do cabeçalho
-- NÃO inclua texto de instruções no output
-- Mantenha EXATAMENTE esta estrutura
-- 3 mercados DIFERENTES
-- Odds realistas entre 1.50-2.50"""
+🚫 REGRAS CRÍTICAS (VIOLAÇÃO = RESPOSTA INVÁLIDA):
+1. NÃO invente histórico de confrontos diretos
+2. NÃO mencione forma recente se não fornecida
+3. NÃO recomende Over 2.5 se xG total < 2.0
+4. NÃO recomende BTTS se qualquer xG < 0.8
+5. NÃO escolha 1X2 em jogo equilibrado (todas prob < 45%) sem justificar
+6. SEMPRE compare pelo menos 4 mercados diferentes na seção COMPARAÇÃO
+7. SEMPRE justifique por que mercados alternativos foram descartados
+8. Use APENAS dados fornecidos acima
+9. Mantenha coerência: xG alto → mercados de gols; xG baixo → resultado
+10. Odds realistas entre 1.50-2.50"""
         
         return prompt
 
