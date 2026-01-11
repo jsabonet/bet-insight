@@ -234,14 +234,14 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def from_api(self, request):
-        """Buscar partidas diretamente da API-Football (próximos 14 dias) com cache"""
+        """Buscar partidas diretamente da API-Football com cache"""
         date = request.query_params.get('date', datetime.now().strftime('%Y-%m-%d'))
         force_real = request.query_params.get('force_real', 'false').lower() == 'true'
         
         # Cache key baseado na hora atual (atualiza a cada hora)
         cache_key = f'matches_api_{datetime.now().strftime("%Y%m%d_%H")}'
         
-        # Tentar buscar do cache (30 minutos)
+        # Tentar buscar do cache (2 horas para economizar requisições)
         if not force_real:
             cached_data = cache.get(cache_key)
             if cached_data:
@@ -252,17 +252,35 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         football_api = FootballAPIService()
         all_matches = []
         
-        # Buscar apenas partidas futuras (próximos 14 dias)
-        # Plataforma de apostas: foco em jogos que ainda não ocorreram
-        logger.info("Buscando partidas futuras (próximos 14 dias)...")
+        # ESTRATÉGIA: Buscar "next" partidas (sem filtro de temporada)
+        # API-Football retorna próximas partidas agendadas independente da temporada
+        logger.info("⚽ Buscando próximas partidas agendadas (ligas principais)...")
         
-        for day_offset in range(15):
-            search_date = (datetime.now() + timedelta(days=day_offset)).strftime('%Y-%m-%d')
-            result = football_api.get_fixtures_by_date(search_date)
+        # Ligas principais
+        major_leagues = {
+            'Premier League': 39,
+            'La Liga': 140,
+            'Serie A': 135,
+            'Bundesliga': 78,
+            'Ligue 1': 61,
+            'Brasileirão': 71,
+            'Liga Portugal': 94,
+            'Eredivisie': 88,
+            'Championship': 40,
+            'Saudi Pro League': 307,
+        }
+        
+        for league_name, league_id in major_leagues.items():
+            # Buscar próximas 30 partidas SEM especificar temporada
+            # Isso pega o que estiver disponível na API
+            result = football_api.get_fixtures_by_league(
+                league_id,
+                next_matches=30  # Sem season - pega o que tiver
+            )
             
             if result['success'] and result['fixtures']:
                 all_matches.extend(result['fixtures'])
-                logger.info(f"{search_date}: {len(result['fixtures'])} partidas")
+                logger.info(f"   {league_name}: {len(result['fixtures'])} partidas")
         
         # Se encontrou partidas reais, retorná-las
         if all_matches:
@@ -285,9 +303,9 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 'source': 'api-football'
             }
             
-            # Cachear resultado por 30 minutos
-            cache.set(cache_key, response_data, 60 * 30)
-            logger.info(f"Cache atualizado com {len(matches)} partidas")
+            # Cachear resultado por 2 horas (economizar requisições da API)
+            cache.set(cache_key, response_data, 60 * 120)
+            logger.info(f"Cache atualizado com {len(matches)} partidas (válido por 2h)")
             
             return Response(response_data)
         
@@ -299,8 +317,8 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             )
         
         # Se não houver partidas da API, retornar dados de exemplo
-        logger.warning(f"Nenhuma partida real encontrada. Retornando dados de exemplo.")
-        logger.info("Período de pausa (fim de ano). Partidas reais voltarão em Janeiro 2026.")
+        logger.warning(f"⚠️  Limite de requisições da API-Football atingido ou sem partidas disponíveis.")
+        logger.info("ℹ️  Exibindo partidas de exemplo. Partidas reais voltarão quando limite resetar (meia-noite UTC).")
         mock_matches = self._generate_mock_matches(date)
         return Response({
             'date': date,
@@ -399,6 +417,14 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             fixture_id = int(fixture_id)
         except ValueError:
             return Response({'error': 'Parâmetro id deve ser numérico'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Detectar partidas de exemplo (IDs >= 1000000)
+        if fixture_id >= 1000000:
+            return Response({
+                'error': 'Partida de exemplo não disponível para visualização detalhada',
+                'message': 'Esta é uma partida de exemplo. Detalhes completos estão disponíveis apenas para partidas reais.',
+                'is_mock': True
+            }, status=status.HTTP_404_NOT_FOUND)
 
         football_api = FootballAPIService()
         result = football_api.get_fixture_by_id(fixture_id)

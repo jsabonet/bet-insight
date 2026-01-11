@@ -1,34 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, memo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Crown, TrendingUp } from 'lucide-react';
 import api from '../services/api';
 import Logo from './Logo';
 
-export default function DailyLimitIndicator({ refreshTrigger }) {
+const DailyLimitIndicator = memo(function DailyLimitIndicator({ refreshTrigger }) {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    console.log('🔔 DailyLimitIndicator useEffect disparado! refreshTrigger:', refreshTrigger);
+  const loadStats = useCallback(async () => {
     setLoading(true);
-    loadStats();
-  }, [refreshTrigger]); // Atualizar quando refreshTrigger mudar
-
-  const loadStats = async () => {
-    console.log('🔄 Iniciando loadStats...');
     try {
       const response = await api.get('/users/stats/');
-      console.log('📊 Stats carregadas:', response.data);
-      console.log('📊 Análises hoje:', response.data.analyses_count_today, 'de', response.data.daily_limit);
       setStats(response.data);
     } catch (error) {
       console.error('❌ Erro ao carregar stats:', error);
     } finally {
       setLoading(false);
-      console.log('✅ Loading finalizado');
     }
-  };
+  }, []); // Sem dependências - função estável
+
+  useEffect(() => {
+    loadStats();
+  }, [refreshTrigger, loadStats]); // Atualizar quando refreshTrigger mudar
 
   if (loading || !stats) {
     return (
@@ -41,8 +36,6 @@ export default function DailyLimitIndicator({ refreshTrigger }) {
   const { analyses_count_today, daily_limit, is_premium } = stats;
   const percentage = (analyses_count_today / daily_limit) * 100;
   const remaining = daily_limit - analyses_count_today;
-
-  console.log('🎨 Renderizando DailyLimitIndicator:', { analyses_count_today, daily_limit, remaining });
 
   // Cor baseada na porcentagem usada
   const getColor = () => {
@@ -77,4 +70,6 @@ export default function DailyLimitIndicator({ refreshTrigger }) {
       </div>
     </div>
   );
-}
+});
+
+export default DailyLimitIndicator;
