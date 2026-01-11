@@ -99,6 +99,7 @@ class DecisionEngine:
         Calcula odds justas (sem margem da casa)
         
         Odd justa = 1 / probabilidade
+        Com validação para evitar odds absurdas
         """
         consensus = model_predictions.get('consensus', {})
         poisson_probs = model_predictions.get('poisson', {}).get('probabilities', {})
@@ -107,14 +108,21 @@ class DecisionEngine:
         
         # 1X2
         for market, prob in consensus.items():
-            if prob > 0:
-                fair_odds[market] = round(1 / prob, 2)
+            if prob > 0.01:  # Mínimo 1% para evitar odds absurdas
+                odd = 1 / prob
+                # Limitar odds a valores realistas (1.01 a 500.0)
+                fair_odds[market] = round(max(1.01, min(500.0, odd)), 2)
+            else:
+                fair_odds[market] = 500.0  # Limite máximo
         
         # Over/Under e BTTS (do Poisson)
         for market in ['over_2_5', 'btts']:
             prob = poisson_probs.get(market, 0)
-            if prob > 0:
-                fair_odds[market] = round(1 / prob, 2)
+            if prob > 0.01:  # Mínimo 1%
+                odd = 1 / prob
+                fair_odds[market] = round(max(1.01, min(500.0, odd)), 2)
+            else:
+                fair_odds[market] = 500.0
         
         return fair_odds
     

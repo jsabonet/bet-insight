@@ -325,7 +325,9 @@ class LogisticRegressionModel:
         score_home = self.INTERCEPT['home_win']
         score_home += strength_diff * self.WEIGHTS['strength_diff']
         score_home += form_diff * self.WEIGHTS['form_diff']
-        score_home += 0.3 * self.WEIGHTS['home_advantage']  # Casa sempre tem vantagem
+        # Vantagem casa REDUZIDA (antes era 0.3, agora 0.15)
+        # Como Poisson já tem 1.3x, aqui usamos menor peso
+        score_home += 0.15 * self.WEIGHTS['home_advantage']  # Casa tem vantagem (reduzido)
         score_home += rest_advantage * self.WEIGHTS['rest_advantage']
         score_home += motivation_diff * self.WEIGHTS['motivation_diff']  # NOVO
         score_home += (-injury_diff) * self.WEIGHTS['injury_impact']     # NOVO (invertido)
@@ -456,7 +458,16 @@ class ModelEnsemble:
             )
         }
         
-        logger.info(f"\n🎯 CONSENSUS (Combinado):")
+        # Normalizar para garantir soma = 1.0
+        total = consensus['home_win'] + consensus['draw'] + consensus['away_win']
+        if total > 0:
+            consensus = {
+                'home_win': consensus['home_win'] / total,
+                'draw': consensus['draw'] / total,
+                'away_win': consensus['away_win'] / total
+            }
+        
+        logger.info(f"\n🎯 CONSENSUS (Combinado, normalizado={total:.4f}):")
         logger.info(f"   Casa: {consensus['home_win']*100:.1f}%")
         logger.info(f"   Empate: {consensus['draw']*100:.1f}%")
         logger.info(f"   Fora: {consensus['away_win']*100:.1f}%")
