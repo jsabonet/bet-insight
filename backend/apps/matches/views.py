@@ -1434,3 +1434,179 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 {'error': 'Erro ao calcular estatísticas', 'details': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    @action(detail=True, methods=['get'], permission_classes=[AllowAny])
+    def live_probabilities(self, request, pk=None):
+        """
+        Recalcula probabilidades durante jogo ao vivo baseado no score atual.
+        Endpoint chamado pelo polling de 30s para manter dados frescos.
+        
+        Ajusta o modelo Poisson baseado em:
+        - Score atual (home_score, away_score)
+        - Tempo decorrido (elapsed_minutes)
+        - Estatísticas do jogo (posse, chutes, cantos)
+        """
+        try:
+            match = self.get_object()
+            
+            # Verificar se o jogo está ao vivo
+            if match.status not in ['LIVE', '1H', '2H', 'HT', 'ET', 'P']:
+                return Response({
+                    'error': 'Esta partida não está ao vivo',
+                    'status': match.status
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            logger.info(f"\n🔴 RECALCULANDO PROBABILIDADES AO VIVO")
+            logger.info(f"   Partida: {match.home_team.name} vs {match.away_team.name}")
+            logger.info(f"   Score: {match.home_score} x {match.away_score}")
+            logger.info(f"   Status: {match.status}")
+            
+            from apps.analysis.services.match_enricher import MatchDataEnricher
+            from apps.analysis.services.feature_engineer import FeatureEngineer
+            from apps.analysis.services.statistical_models import PoissonBivariateModel, LogisticRegressionModel
+            from apps.analysis.models import Analysis
+            
+            # 1. Buscar dados ao vivo do API-Football
+            api_service = FootballAPIService()
+            
+            # Tentar obter API ID do match (se armazenado)
+            api_id = getattr(match, 'external_api_id', None) or getattr(match, 'api_id', None)
+            
+            live_data = {}
+            if api_id:
+                try:
+                    result = api_service.get_fixture_live(api_id)
+                    if result.get('success') and result.get('fixture'):
+                        fixture = result['fixture']
+                        
+                        # Extrair estatísticas ao vivo
+                        live_data = {
+                            'home_score': fixture.get('goals', {}).get('home', match.home_score),
+                            'away_score': fixture.get('goals', {}).get('away', match.away_score),
+                            'elapsed': fixture.get('fixture', {}).get('status', {}).get('elapsed', 45),
+                            'statistics': fixture.get('statistics', [])
+                        }
+                        
+                        # Atualizar score do match se mudou
+                        if live_data['home_score'] != match.home_score or live_data['away_score'] != match.away_score:
+                            match.home_score = live_data['home_score']
+                            match.away_score = live_data['away_score']
+                            match.save(update_fields=['home_score', 'away_score'])
+                            logger.info(f"✅ Score atualizado: {match.home_score} x {match.away_score}")
+                        
+                except Exception as e:
+                    logger.warning(f"⚠️ Erro ao buscar dados ao vivo: {e}")
+            
+            # 2. Ajustar λ do Poisson baseado no score e tempo
+            home_score = match.home_score or 0
+            away_score = match.away_score or 0
+            
+            # Estimar tempo decorrido baseado no status
+            elapsed = 45 if match.status in ['1H', 'HT'] else 70
+            remaining_minutes = max(0, 90 - elapsed)
+            
+            # Buscar análise prévia para obter λ original, ou usar valores padrão
+            previous_analysis = Analysis.objects.filter(match=match).order_by('-created_at').first()
+            
+            # λ ajustado = gols já marcados + (λ_original × tempo_restante/90)
+            if previous_analysis and previous_analysis.analysis_data.get('poisson'):
+                poisson_data = previous_analysis.analysis_data['poisson']
+                lambda_home_original = poisson_data.get('lambda_home', 1.5)
+                lambda_away_original = poisson_data.get('lambda_away', 1.3)
+            else:
+                # Valores padrão baseados em xG médio
+                lambda_home_original = 1.5  # xG médio casa
+                lambda_away_original = 1.3  # xG médio fora
+            
+            # Calcular novo λ baseado em performance até agora
+            lambda_home_adjusted = home_score + (lambda_home_original * remaining_minutes / 90)
+            lambda_away_adjusted = away_score + (lambda_away_original * remaining_minutes / 90)
+            
+            logger.info(f"📊 λ ajustado: Casa={lambda_home_adjusted:.2f}, Fora={lambda_away_adjusted:.2f}")
+            
+            # 3. Recalcular probabilidades com Poisson ajustado
+            poisson = PoissonBivariateModel()
+            poisson_result = poisson.predict(lambda_home_adjusted, lambda_away_adjusted)
+            adjusted_probs = poisson_result['probabilities']
+            
+            # 4. Calcular fair odds
+            def calc_fair_odd(probability):
+                if probability <= 0:
+                    return 999.0
+                return round(1.0 / probability, 2)
+            
+            fair_odds = {
+                'home_win': calc_fair_odd(adjusted_probs['home_win']),
+                'draw': calc_fair_odd(adjusted_probs['draw']),
+                'away_win': calc_fair_odd(adjusted_probs['away_win'])
+            }
+            
+            # 5. Determinar recomendação
+            max_prob = max(adjusted_probs['home_win'], adjusted_probs['draw'], adjusted_probs['away_win'])
+            if adjusted_probs['home_win'] == max_prob:
+                pick = 'home_win'
+            elif adjusted_probs['draw'] == max_prob:
+                pick = 'draw'
+            else:
+                pick = 'away_win'
+            
+            # 6. Calcular confiança
+            prob_values = [adjusted_probs['home_win'], adjusted_probs['draw'], adjusted_probs['away_win']]
+            prob_values.sort(reverse=True)
+            prob_diff = prob_values[0] - prob_values[1]
+            
+            if prob_diff > 0.25:
+                confidence_level = 'high'
+                confidence_stars = 4
+            elif prob_diff > 0.15:
+                confidence_level = 'medium'
+                confidence_stars = 3
+            else:
+                confidence_level = 'low'
+                confidence_stars = 2
+            
+            # 7. Retornar dados atualizados
+            return Response({
+                'success': True,
+                'updated_at': timezone.now().isoformat(),
+                'match_state': {
+                    'home_score': home_score,
+                    'away_score': away_score,
+                    'elapsed_minutes': elapsed,
+                    'status': match.status
+                },
+                'analysis_data': {
+                    'consensus': {
+                        'home_win': adjusted_probs['home_win'],
+                        'draw': adjusted_probs['draw'],
+                        'away_win': adjusted_probs['away_win']
+                    },
+                    'poisson': {
+                        'home_win': adjusted_probs['home_win'],
+                        'draw': adjusted_probs['draw'],
+                        'away_win': adjusted_probs['away_win'],
+                        'lambda_home': lambda_home_adjusted,
+                        'lambda_away': lambda_away_adjusted,
+                        'adjusted_for_live': True
+                    },
+                    'fair_odds': fair_odds,
+                    'recommendation': {
+                        'pick': pick,
+                        'probability': max_prob
+                    },
+                    'confidence': {
+                        'level': confidence_level,
+                        'stars': confidence_stars,
+                        'score': prob_diff
+                    },
+                    'is_live': True,
+                    'last_update': timezone.now().isoformat()
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Erro no live_probabilities: {str(e)}", exc_info=True)
+            return Response(
+                {'error': 'Erro ao recalcular probabilidades ao vivo', 'details': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

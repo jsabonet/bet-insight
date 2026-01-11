@@ -161,6 +161,14 @@ class FootballAPIService:
             logger.error(f"Erro ao buscar partida: {e}")
             return {'success': False, 'error': 'Erro desconhecido ao buscar partida', 'details': str(e), 'http_status': 500, 'error_code': 'UNKNOWN_ERROR'}
     
+    def get_fixture_live(self, fixture_id: int) -> Dict:
+        """
+        Buscar dados ao vivo de uma partida específica.
+        Alias para get_fixture_by_id - usado durante jogos ao vivo para obter
+        score atualizado, estatísticas em tempo real, etc.
+        """
+        return self.get_fixture_by_id(fixture_id)
+    
     def get_fixture_statistics(self, fixture_id: int) -> Dict:
         """Buscar estatísticas de uma partida específica"""
         try:

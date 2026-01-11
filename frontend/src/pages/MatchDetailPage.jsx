@@ -41,6 +41,8 @@ export default function MatchDetailPage() {
   const [showLimitModal, setShowLimitModal] = useState(false);
   const [showDisclaimerFull, setShowDisclaimerFull] = useState(false);
   const [isMethodologyOpen, setIsMethodologyOpen] = useState(false);
+  const [analysisUpdatedAt, setAnalysisUpdatedAt] = useState(null); // ✅ Timestamp última atualização
+  const [secondsSinceUpdate, setSecondsSinceUpdate] = useState(0); // ✅ Contador de segundos
 
   // Normaliza a resposta do backend para o formato híbrido esperado pelo AnalysisModal
   const normalizeAnalysis = (raw) => {
@@ -158,6 +160,7 @@ export default function MatchDetailPage() {
       const interval = setInterval(() => {
         console.log('🔄 Atualizando dados da partida ao vivo...');
         loadMatchDetails();
+        loadLiveProbabilities(); // ✅ Atualizar probabilidades ao vivo
       }, 30000); // Atualizar a cada 30 segundos
       
       return () => {
@@ -166,6 +169,54 @@ export default function MatchDetailPage() {
       };
     }
   }, [match?.status]);
+
+  // Contador de segundos desde a última atualização
+  useEffect(() => {
+    if (!analysisUpdatedAt) return;
+    
+    const interval = setInterval(() => {
+      const seconds = Math.floor((Date.now() - new Date(analysisUpdatedAt).getTime()) / 1000);
+      setSecondsSinceUpdate(seconds);
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [analysisUpdatedAt]);
+
+  const loadLiveProbabilities = async () => {
+    if (!match?.id) return;
+    
+    try {
+      console.log('🔴 Atualizando probabilidades ao vivo...');
+      const response = await matchesAPI.getLiveProbabilities(match.id);
+      
+      if (response.data.success) {
+        console.log('✅ Probabilidades atualizadas:', {
+          score: `${response.data.match_state.home_score} x ${response.data.match_state.away_score}`,
+          elapsed: `${response.data.match_state.elapsed_minutes}'`,
+          consensus: response.data.analysis_data.consensus
+        });
+        
+        // Atualizar score do match se mudou
+        if (response.data.match_state.home_score !== match.home_score ||
+            response.data.match_state.away_score !== match.away_score) {
+          setMatch(prev => ({
+            ...prev,
+            home_score: response.data.match_state.home_score,
+            away_score: response.data.match_state.away_score
+          }));
+        }
+        
+        // Atualizar análise estatística
+        setStatisticalData(prev => ({
+          ...prev,
+          analysis_data: response.data.analysis_data
+        }));
+        setAnalysisUpdatedAt(new Date(response.data.updated_at));
+      }
+    } catch (error) {
+      console.error('❌ Erro ao atualizar probabilidades ao vivo:', error);
+    }
+  };
 
   const loadMatchDetails = async () => {
     console.log('🔵 loadMatchDetails INICIADO - ID:', id);
@@ -305,6 +356,7 @@ export default function MatchDetailPage() {
       
       const normalized = normalizeAnalysis(response.data);
       setStatisticalData(normalized);
+      setAnalysisUpdatedAt(new Date()); // ✅ Marcar timestamp do carregamento inicial
       console.log('✅ Dados normalizados e salvos no state');
       console.log('🏁 loadStatisticalData CONCLUÍDO\n');
     } catch (err) {
@@ -928,6 +980,30 @@ export default function MatchDetailPage() {
               hasFairOdds: !!statisticalData.analysis_data?.fair_odds,
               hasEnrichedData: !!statisticalData.enriched_data
             })}
+            
+            {/* Indicador de Atualização Ao Vivo */}
+            {analysisUpdatedAt && ['LIVE', '1H', '2H', 'HT'].includes(match?.status) && (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 px-4 py-3 rounded-xl flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="relative">
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-ping absolute"></div>
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  </div>
+                  <span className="text-sm font-semibold text-green-700 dark:text-green-300">
+                    🔴 AO VIVO
+                  </span>
+                </div>
+                <span className="text-xs text-green-600 dark:text-green-400">
+                  {secondsSinceUpdate < 60 
+                    ? `Atualizado há ${secondsSinceUpdate}s` 
+                    : `Atualizado há ${Math.floor(secondsSinceUpdate / 60)}min`
+                  }
+                  {secondsSinceUpdate > 120 && (
+                    <span className="text-amber-600 dark:text-amber-400 ml-2 font-semibold">⚠️ Dados podem estar desatualizados</span>
+                  )}
+                </span>
+              </div>
+            )}
             
             {/* Disclaimer Compacto de Responsabilidade */}
             <div className="bg-amber-50/80 dark:bg-amber-900/10 border-l-4 border-amber-500 px-3 sm:px-4 py-2.5 sm:py-3 rounded-r-lg">

@@ -106,6 +106,7 @@ export const matchesAPI = {
   analyzeMatch: (matchId) => api.post(`/matches/${matchId}/analyze/`),
   quickAnalyze: (data) => api.post('/matches/quick_analyze/', data),
   statisticalPreview: (data) => api.post('/matches/statistical_preview/', data), // Novo endpoint rápido
+  getLiveProbabilities: (matchId) => api.get(`/matches/${matchId}/live_probabilities/`), // ✅ Probabilidades ao vivo
 };
 
 // Leagues endpoints
