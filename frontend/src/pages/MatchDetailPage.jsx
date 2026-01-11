@@ -573,6 +573,12 @@ export default function MatchDetailPage() {
         const normalized = normalizeAnalysis(response.data);
         console.log('   ✅ Normalização concluída');
         console.log('   analysis_data adicionado?', !!normalized.analysis_data);
+        console.log('   🔬 NORMALIZED tem reasoning?', !!normalized.reasoning);
+        console.log('   🔬 NORMALIZED tem analysis?', !!normalized.analysis);
+        if (normalized.reasoning) {
+          console.log('   📝 Tamanho reasoning:', normalized.reasoning.length, 'caracteres');
+          console.log('   📝 Primeiros 100 chars:', normalized.reasoning.substring(0, 100));
+        }
         console.log('🔥 DEBUG-6: Antes de setAnalysis()');
         setAnalysis(normalized);
         console.log('🔥 DEBUG-7: Depois de setAnalysis(), antes de refreshStats()');
@@ -940,6 +946,33 @@ export default function MatchDetailPage() {
                 </div>
               </div>
             </div>
+
+            {/* Botão de Análise Inteligente - Destaque no topo */}
+            <div className="card bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/20 dark:to-indigo-900/20 border-2 border-primary-200 dark:border-primary-700 shadow-lg">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-start gap-3 flex-1">
+                  <div className="p-2 bg-primary-100 dark:bg-primary-800 rounded-lg">
+                    <Brain className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-1">
+                      Análise Inteligente da IA
+                    </h3>
+                    <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                      Gere uma explicação detalhada e contextualizada sobre os dados estatísticos desta partida
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleRequestAnalysis}
+                  disabled={analyzing}
+                  className="btn-primary inline-flex items-center gap-2 whitespace-nowrap w-full sm:w-auto justify-center"
+                >
+                  <Sparkles className="w-5 h-5" />
+                  {analyzing ? 'Gerando...' : 'Gerar Análise'}
+                </button>
+              </div>
+            </div>
             
             {/* Visão Geral Rápida */}
             <div className="card">
@@ -1153,27 +1186,6 @@ export default function MatchDetailPage() {
                 />
               </div>
             )}
-
-            {/* Botão para Ver Explicação da IA */}
-            <div className="card bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/20 dark:to-indigo-900/20 border-2 border-primary-200 dark:border-primary-700">
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-2 mb-3">
-                  <Sparkles className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Quer entender melhor?</h3>
-                </div>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Gere uma explicação detalhada da nossa IA sobre estes dados
-                </p>
-                <button
-                  onClick={handleRequestAnalysis}
-                  disabled={analyzing}
-                  className="btn-primary inline-flex items-center gap-2"
-                >
-                  <Brain className="w-5 h-5" />
-                  {analyzing ? 'Gerando Explicação...' : 'Gerar Explicação da IA'}
-                </button>
-              </div>
-            </div>
           </div>
         )}
 

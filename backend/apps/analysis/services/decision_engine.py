@@ -142,7 +142,7 @@ class DecisionEngine:
             if not market_key:
                 continue
             
-            market_odd = market_odds.get(market_key, 0)
+            market_odd = market_odds.get(market_key) or 0
             
             if market_odd == 0 or fair_odd == 0:
                 continue

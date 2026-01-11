@@ -587,22 +587,38 @@ class FeatureEngineer:
         if not statistics:
             return 0.5  # 50% default (distribuição uniforme)
         
-        # Procurar dados de gols por tempo nas statistics
-        team_stats = statistics.get(side, [])
+        # Statistics é uma lista [home_stats, away_stats], não dict
+        # Precisamos encontrar o time correto
+        team_stats = []
+        if isinstance(statistics, list):
+            for team_stat in statistics:
+                # Cada item tem team.id e statistics list
+                if isinstance(team_stat, dict):
+                    team_name = team_stat.get('team', {}).get('name', '').lower()
+                    # Se procurando home e este é home, ou procurando away e este é away
+                    # (simplificação: primeiro item é home, segundo é away)
+                    stats_list = team_stat.get('statistics', [])
+                    if side == 'home' and statistics.index(team_stat) == 0:
+                        team_stats = stats_list
+                        break
+                    elif side == 'away' and statistics.index(team_stat) == 1:
+                        team_stats = stats_list
+                        break
         
         goals_1st_half = 0
         goals_2nd_half = 0
         total_goals = 0
         
         for stat in team_stats:
-            stat_type = stat.get('type', '')
-            value = stat.get('value', 0)
-            
-            if 'goals' in stat_type.lower():
-                if '1st' in stat_type or 'first' in stat_type:
-                    goals_1st_half = int(value) if value else 0
-                elif '2nd' in stat_type or 'second' in stat_type:
-                    goals_2nd_half = int(value) if value else 0
+            if isinstance(stat, dict):
+                stat_type = stat.get('type', '')
+                value = stat.get('value', 0)
+                
+                if 'goals' in stat_type.lower():
+                    if '1st' in stat_type or 'first' in stat_type:
+                        goals_1st_half = int(value) if value else 0
+                    elif '2nd' in stat_type or 'second' in stat_type:
+                        goals_2nd_half = int(value) if value else 0
         
         total_goals = goals_1st_half + goals_2nd_half
         

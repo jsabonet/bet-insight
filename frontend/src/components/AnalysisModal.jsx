@@ -1,9 +1,20 @@
-import { X, Star, Sparkles, TrendingUp, AlertCircle, Target, Brain, Trophy, Shield, Zap, CheckCircle2, AlertTriangle, BarChart3, Activity, Clock, MapPin } from 'lucide-react';
+import { useState } from 'react';
+import { X, Star, Sparkles, TrendingUp, AlertCircle, Target, Brain, Trophy, Shield, Zap, CheckCircle2, AlertTriangle, BarChart3, Activity, Clock, MapPin, Copy, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { TeamLogo } from '../utils/logos';
 
 export default function AnalysisModal({ match, analysis, onClose, metadata }) {
   const { user } = useAuth();
+  const [copied, setCopied] = useState(false);
+
+  console.log('🎭 MODAL RENDERIZANDO:', {
+    hasAnalysis: !!analysis,
+    hasReasoning: !!analysis?.reasoning,
+    hasAnalysisField: !!analysis?.analysis,
+    analysisKeys: analysis ? Object.keys(analysis) : [],
+    reasoningLength: analysis?.reasoning?.length || 0,
+    analysisLength: analysis?.analysis?.length || 0
+  });
 
   if (!analysis) return null;
 
@@ -12,8 +23,40 @@ export default function AnalysisModal({ match, analysis, onClose, metadata }) {
   const analysisText = typeof analysis === 'string' ? analysis : analysis.analysis;
   const confidence = typeof analysis === 'string' ? 3 : (analysis.confidence || 3);
 
+  // Função para copiar análise
+  const copyAnalysis = async () => {
+    const homeName = match?.home_team?.name || match?.home_team || 'Casa';
+    const awayName = match?.away_team?.name || match?.away_team || 'Fora';
+    const leagueName = match?.league?.name || match?.league || '';
+    const matchDate = match?.date ? new Date(match.date).toLocaleDateString('pt-BR') : '';
+    
+    const text = `🏆 ${homeName} vs ${awayName}
+${leagueName ? `🏅 ${leagueName}` : ''}
+${matchDate ? `📅 ${matchDate}` : ''}
+${'⭐'.repeat(confidence)} Confiança: ${confidence}/5
+
+${isSimpleAnalysis ? `📊 ANÁLISE COMPLETA:\n\n${analysisText}` : `🎯 PREDIÇÃO: ${analysis.prediction_display}\n\n📊 PROBABILIDADES:\n🏠 ${homeName}: ${analysis.home_probability}%\n🤝 Empate: ${analysis.draw_probability}%\n✈️ ${awayName}: ${analysis.away_probability}%\n\n${analysis.reasoning || ''}`}
+
+──────────────────────────
+⚽ Via Placar Certo`.trim();
+    
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Erro ao copiar:', err);
+    }
+  };
+
   // Formatar texto da análise agrupando em parágrafos
   const formatAnalysisText = (text) => {
+    console.log('📝 formatAnalysisText chamado:', {
+      hasText: !!text,
+      textLength: text?.length || 0,
+      firstChars: text?.substring(0, 100) || ''
+    });
+    
     if (!text) return [];
     
     const lines = text.split('\n');
@@ -43,6 +86,11 @@ export default function AnalysisModal({ match, analysis, onClose, metadata }) {
     if (currentParagraph.length > 0) {
       paragraphs.push(currentParagraph.join('\n'));
     }
+    
+    console.log('📝 formatAnalysisText resultado:', {
+      totalParagraphs: paragraphs.length,
+      firstParagraph: paragraphs[0]?.substring(0, 100)
+    });
     
     return paragraphs;
   };
@@ -155,12 +203,22 @@ export default function AnalysisModal({ match, analysis, onClose, metadata }) {
       <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto animate-slide-up">
         {/* Header */}
         <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-accent-600 p-4 sm:p-6">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all hover:scale-110 z-10"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+            <button
+              onClick={copyAnalysis}
+              className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all hover:scale-110"
+              title={copied ? 'Copiado!' : 'Copiar análise'}
+            >
+              {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-full bg-white/20 hover:bg-white/30 text-white transition-all hover:scale-110"
+              title="Fechar"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
 
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 sm:p-3 rounded-2xl bg-white/20 backdrop-blur-sm">
@@ -403,6 +461,8 @@ export default function AnalysisModal({ match, analysis, onClose, metadata }) {
               </div>
 
               {/* Probabilidades */}
+
+              
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl p-4 sm:p-5 shadow-xl text-center transform hover:scale-105 transition-all">
                   <div className="flex items-center justify-center gap-2 mb-2">

@@ -1,13 +1,18 @@
 """
-Serviço de análise com Google Gemini AI
-Gera análises preditivas e recomendações de apostas
+Serviço de EXPLICAÇÃO com Google Gemini AI
+A IA NÃO DECIDE - apenas EXPLICA decisões já tomadas
+Otimizado para: latência <5s, custo reduzido, credibilidade alta
 """
 import google.generativeai as genai
 from google.api_core import exceptions as google_exceptions
 from django.conf import settings
-from typing import Dict
+from django.core.cache import cache
+from typing import Dict, Optional
 import logging
 import json
+import time
+import hashlib
+from .ai_helpers import parse_and_validate_response, format_analysis_for_frontend
 
 logger = logging.getLogger(__name__)
 
@@ -47,89 +52,201 @@ class AIAnalyzer:
     
     def explain_decision(self, decision_data: Dict, enriched_data: Dict) -> Dict:
         """
-        NOVA FUNÇÃO: IA apenas EXPLICA decisões prontas (não decide)
+        IA APENAS EXPLICA decisões prontas (NÃO decide)
+        
+        OTIMIZAÇÕES:
+        - Cache por match_id + market (1 hora)
+        - Timeout de 5 segundos
+        - Fallback determinístico se falhar
+        - Prompt enxuto (~500 tokens vs 1500 antes)
         
         Args:
-            decision_data (dict): Decisão do DecisionEngine com:
-                - recommendation: {...}
-                - confidence: {...}
-                - risk: str
-                - value_bets: [...]
-                - model_probabilities: {...}
-            enriched_data (dict): Dados enriquecidos da partida
+            decision_data (dict): Decisão do DecisionEngine
+            enriched_data (dict): Dados enriquecidos mínimos
         
         Returns:
             dict: {
                 'success': bool,
                 'analysis': str (HTML formatado),
+                'summary': str (1 frase),
+                'bullets': list (3-5 items),
+                'risk_warning': str,
                 'generation_time': float,
-                'model': str
+                'cached': bool
             }
         """
         try:
-            if not self.model:
-                return {
-                    'success': False,
-                    'error': 'API key do Gemini não configurada.',
-                    'error_code': 'API_KEY_MISSING'
-                }
+            # 1. CACHE: Verificar se já explicamos esta decisão
+            cache_key = self._generate_cache_key(decision_data, enriched_data)
+            cached_result = cache.get(cache_key)
+            if cached_result:
+                logger.info(f"✅ Explicação em CACHE (economia de custo)")
+                cached_result['cached'] = True
+                return cached_result
             
-            # Construir prompt CURTO focado em explicar
-            prompt = self._build_explanation_prompt(decision_data, enriched_data)
+            if not self.model:
+                return self._fallback_explanation(decision_data, enriched_data)
+            
+            # 2. PROMPT ENXUTO: Apenas dados essenciais
+            prompt = self._build_minimal_prompt(decision_data, enriched_data)
             
             home_name = enriched_data.get('fixture_details', {}).get('home_team', {}).get('name', 'Casa')
             away_name = enriched_data.get('fixture_details', {}).get('away_team', {}).get('name', 'Fora')
             
-            logger.info(f"🤖 IA Explicando decisão: {home_name} vs {away_name}")
+            logger.info(f"🤖 IA Explicando: {home_name} vs {away_name}")
             
-            # Gerar com timeout curto e temperatura baixa
-            import time
+            # 3. TIMEOUT: Máximo 5 segundos
             start_time = time.time()
             
-            response = self.model.generate_content(
-                prompt,
-                generation_config={
-                    'temperature': 0.3,  # Baixa criatividade (mais factual)
-                    'max_output_tokens': 1500,  # Limite menor
-                    'top_p': 0.8,
-                    'top_k': 40
-                }
-            )
+            try:
+                response = self.model.generate_content(
+                    prompt,
+                    generation_config={
+                        'temperature': 0,  # ZERO criatividade - seguir instruções
+                        'max_output_tokens': 1500,
+                        'top_p': 0.95,
+                        'top_k': 40,
+                        'candidate_count': 1
+                    }
+                )
+                logger.info(f"✅ Gemini respondeu em {time.time() - start_time:.2f}s")
+                logger.info(f"📝 Resposta do Gemini: {len(response.text)} caracteres")
+                logger.info(f"📄 Primeiros 200 chars: {response.text[:200]}...")
+            except Exception as e:
+                logger.warning(f"⚠️ Timeout ou erro na IA ({time.time() - start_time:.2f}s): {e}")
+                logger.warning(f"🔄 Ativando FALLBACK determinístico")
+                return self._fallback_explanation(decision_data, enriched_data)
             
             generation_time = time.time() - start_time
             
-            logger.info(f"✅ Explicação gerada em {generation_time:.2f}s")
+            # 4. PARSE E VALIDAÇÃO: Garantir formato fixo
+            parsed = parse_and_validate_response(response.text)
+            if not parsed['valid']:
+                logger.warning(f"⚠️ Resposta da IA fora do formato esperado")
+                logger.warning(f"📝 Resposta recebida: {response.text[:500]}...")
+                logger.warning(f"🔄 Ativando FALLBACK determinístico")
+                return self._fallback_explanation(decision_data, enriched_data)
             
-            return {
+            # 5. FORMATAR PARA FRONTEND (compatibilidade)
+            formatted_analysis = format_analysis_for_frontend(
+                parsed['recommendation'],
+                parsed['bullets'],
+                parsed['risk_warning']
+            )
+            
+            result = {
                 'success': True,
-                'analysis': response.text,
+                'analysis': formatted_analysis,  # Formato antigo para compatibilidade
+                'reasoning': formatted_analysis,  # Campo que modal espera
+                'recommendation': parsed['recommendation'],
+                'bullets': parsed['bullets'],
+                'risk_warning': parsed['risk_warning'],
                 'generation_time': round(generation_time, 2),
-                'model': 'gemini-2.0-flash',
+                'cached': False,
                 'tokens_used': len(prompt.split()) + len(response.text.split())
             }
             
+            # 6. CACHE: Salvar por 1 hora
+            cache.set(cache_key, result, 3600)
+            
+            logger.info(f"✅ Explicação gerada em {generation_time:.2f}s (cached para 1h)")
+            
+            return result
+            
         except google_exceptions.ResourceExhausted as e:
             logger.error(f"Quota da API Gemini excedida: {e}")
-            return {
-                'success': False,
-                'error': 'Limite diário de análises da API foi atingido.',
-                'error_code': 'QUOTA_EXCEEDED',
-                'http_status': 429
-            }
+            return self._fallback_explanation(decision_data, enriched_data)
         except Exception as e:
             logger.error(f"Erro ao gerar explicação: {e}")
-            return {
-                'success': False,
-                'error': f'Erro ao gerar análise: {str(e)}',
-                'error_code': 'GENERATION_ERROR'
-            }
+            return self._fallback_explanation(decision_data, enriched_data)
     
-    def _build_explanation_prompt(self, decision_data, enriched_data):
-        """
-        Constrói prompt CURTO para IA explicar (não decidir)
+    def _generate_cache_key(self, decision_data: Dict, enriched_data: Dict) -> str:
+        """Gera chave de cache única por partida + mercado"""
+        fixture = enriched_data.get('fixture_details', {})
+        home = fixture.get('home_team', {}).get('name', '')
+        away = fixture.get('away_team', {}).get('name', '')
+        date = fixture.get('date', '')
         
-        ANTES: 8.000 tokens (dados brutos)
-        AGORA: ~1.500 tokens (decisões prontas)
+        recommendation = decision_data.get('recommendation', {})
+        market = recommendation.get('market_display', '')
+        pick = recommendation.get('pick', '')
+        
+        # Hash MD5 para cache key compacta
+        key_str = f"{home}_{away}_{date}_{market}_{pick}"
+        return f"ai_explanation:{hashlib.md5(key_str.encode()).hexdigest()}"
+    
+    def _fallback_explanation(self, decision_data: Dict, enriched_data: Dict) -> Dict:
+        """
+        Fallback DETERMINÍSTICO DECISÓRIO quando IA falha
+        Mantém formato profissional: APOSTAR ou NÃO APOSTAR
+        """
+        recommendation = decision_data.get('recommendation', {})
+        confidence = decision_data.get('confidence', {})
+        risk = decision_data.get('risk', 'medium')
+        value_bets = decision_data.get('value_bets', [])
+        model_probs = decision_data.get('model_probabilities', {})
+        poisson = model_probs.get('poisson', {})
+        
+        pick = recommendation.get('pick', 'N/A')
+        prob = recommendation.get('probability', 0)
+        market = recommendation.get('market_display', 'N/A')
+        market_odd = recommendation.get('odd', 0)
+        
+        # Calcular fair odd e value
+        fair_odd = round(1 / prob, 2) if prob > 0 else 0
+        has_value = len(value_bets) > 0 and value_bets[0].get('value_pct', 0) > 2.0
+        min_acceptable_odd = round(fair_odd * 0.95, 2)
+        
+        # DECISÃO CLARA
+        decision = "APOSTAR" if has_value and market_odd >= min_acceptable_odd else "NÃO APOSTAR" if not has_value else "APOSTAR COM CAUTELA"
+        
+        # Formato DECISÓRIO
+        recommendation_text = f"""📌 Mercado: {market}
+📌 Pick: {pick}
+📌 Odd mínima aceitável: {min_acceptable_odd}
+📌 Fair odd calculada: {fair_odd}
+📌 Existe valor? {"✅ SIM" if has_value else "❌ NÃO"}
+
+➡️ DECISÃO: {decision}"""
+        
+        bullets = [
+            f"Modelo Poisson: xG {poisson.get('expected_goals_home', 0):.2f} x {poisson.get('expected_goals_away', 0):.2f}",
+            f"Probabilidade calculada: {prob*100:.1f}% (Fair odd: {fair_odd})",
+            f"Odd de mercado: {market_odd:.2f} {'(COM valor)' if has_value else '(SEM valor suficiente)'}"
+        ]
+        
+        # Stake baseada no risco
+        if risk == 'low':
+            stake = "0.5-1 unidade"
+        elif risk == 'medium':
+            stake = "1-1.5 unidades"
+        else:
+            stake = "0.25-0.5 unidade"
+        
+        risk_warning = f"Nível de risco: {risk.upper()} | Stake recomendada: {stake}"
+        
+        # FORMATAÇÃO: Compatível com frontend
+        formatted = format_analysis_for_frontend(recommendation_text, bullets, risk_warning)
+        
+        return {
+            'success': True,
+            'analysis': formatted,
+            'reasoning': formatted,  # Campo que modal espera
+            'recommendation': recommendation_text,
+            'bullets': bullets,
+            'risk_warning': risk_warning,
+            'generation_time': 0.0,
+            'cached': False,
+            'fallback': True
+        }
+    
+    def _build_minimal_prompt(self, decision_data: Dict, enriched_data: Dict) -> str:
+        """
+        Prompt DECISÓRIO MULTI-MERCADO (Português) – Nível trader
+        
+        Objetivo: gerar recomendações ACIONÁVEIS em múltiplos mercados
+        (Over/Under, BTTS, Dupla Chance, 1X2), ordenadas por EV, com
+        odd mínima, pontos de entrada e stake em unidades.
         """
         recommendation = decision_data.get('recommendation', {})
         confidence = decision_data.get('confidence', {})
@@ -137,22 +254,120 @@ class AIAnalyzer:
         value_bets = decision_data.get('value_bets', [])
         model_probs = decision_data.get('model_probabilities', {})
         
+        # Extrair dados corretamente da estrutura aninhada
         fixture = enriched_data.get('fixture_details', {})
-        home_team = fixture.get('home_team', {}).get('name', 'Casa')
-        away_team = fixture.get('away_team', {}).get('name', 'Fora')
+        if isinstance(fixture, dict):
+            # API-Football format: fixture.teams.home.name
+            teams = fixture.get('teams', {})
+            home_team = teams.get('home', {}).get('name', 'Casa') if teams else fixture.get('home_team', {}).get('name', 'Casa')
+            away_team = teams.get('away', {}).get('name', 'Fora') if teams else fixture.get('away_team', {}).get('name', 'Fora')
+            league_data = fixture.get('league', {})
+            league = league_data.get('name', 'N/A') if league_data else 'N/A'
+            fixture_data = fixture.get('fixture', {})
+            match_date = fixture_data.get('date', 'N/A') if fixture_data else fixture.get('date', 'N/A')
+        else:
+            home_team = 'Casa'
+            away_team = 'Fora'
+            league = 'N/A'
+            match_date = 'N/A'
         
+        # Dados dos modelos
         poisson = model_probs.get('poisson', {})
         consensus = model_probs.get('consensus', {})
+        xg_home = poisson.get('expected_goals_home', 0)
+        xg_away = poisson.get('expected_goals_away', 0)
+        most_likely = poisson.get('most_likely_score', 'N/A')
         
-        prompt = f"""Você é um analista de apostas esportivas profissional. Explique a análise abaixo de forma clara e objetiva.
+        # Contexto estratégico
+        table_context = enriched_data.get('table_context', {})
+        home_table = table_context.get('home', {})
+        away_table = table_context.get('away', {})
+        motivation = enriched_data.get('motivation', {})
+        trends = enriched_data.get('trends', {})
+        
+        # Identificar se há value bet real
+        has_value = len(value_bets) > 0 and value_bets[0].get('value_pct', 0) > 2.0
+        primary_value = value_bets[0] if has_value else None
+        
+        # Calcular fair odd (inverso da probabilidade) para a pick principal
+        fair_odd = round(1 / recommendation.get('probability', 0.5), 2) if recommendation.get('probability', 0) > 0 else 0
+        market_odd = recommendation.get('odd', 0)
+        
+        # Determinar odd mínima aceitável (5% de margem)
+        min_acceptable_odd = round(fair_odd * 0.95, 2)
+        
+        # Stake sugerida baseada em Kelly Criterion simplificado
+        if risk == 'low':
+            stake_units = "0.5-1 unidade"
+        elif risk == 'medium':
+            stake_units = "1-1.5 unidades"
+        else:
+            stake_units = "0.25-0.5 unidade"
+        
+        # Construir prompt multi-mercado em Português
+        prompt = f"""
+Você é um sistema profissional de apostas esportivas. Sua tarefa é gerar UMA SAÍDA ÚNICA, CLARA e ACIONÁVEL em Português (Moçambique), cobrindo múltiplos mercados com melhor valor esperado (EV), ordenados por prioridade.
+
+REGRAS:
+- Sempre priorize mercados com maior EV (Over/Under, BTTS, Dupla Chance, 1X2)
+- Para cada aposta, informe: Mercado, Pick, Odd disponível, Odd justa (fair), Value %, Stake (em unidades), Ação (apostar agora / só se subir / não apostar)
+- Inclua pontos de entrada (odd mínima) e invalidações (quando não apostar)
+- NÃO use HTML/Markdown. NÃO seja genérico. Seja específico.
 
 ═══════════════════════════════════════
-🏆 PARTIDA
+🎯 ANÁLISE COMPLETA DE APOSTAS
 ═══════════════════════════════════════
-{home_team} (Casa) vs {away_team} (Fora)
+
+🏆 {home_team} vs {away_team}
+🏅 {league}
+📅 {match_date}
+⭐ Confiança: {confidence.get('stars', 3)}/5 • Risco: {risk.upper()}
+
+📊 Probabilidades (consenso): Casa {consensus.get('home_win', 0)*100:.1f}% | Empate {consensus.get('draw', 0)*100:.1f}% | Fora {consensus.get('away_win', 0)*100:.1f}%
+xG esperado: {xg_home:.2f} x {xg_away:.2f} • Placar provável: {most_likely}
 
 ═══════════════════════════════════════
-📊 DECISÃO DOS MODELOS ESTATÍSTICOS
+💰 ONDE APOSTAR - MELHORES OPORTUNIDADES
+═══════════════════════════════════════
+
+Gere até 3 apostas (🥇, 🥈, 🥉), ordenadas por EV, com este formato:
+
+🥇 APOSTA #1 - MAIOR VALOR (RECOMENDADA)
+───────────────────────────────────────
+📊 Mercado: [nome do mercado]
+🎯 Aposte em: [pick]
+💵 Odd disponível: [odd]
+📈 Odd justa: [fair_odd]
+✅ Vantagem: [+EV%]
+💰 Stake: {stake_units}
+
+➡️ O QUE FAZER:
+✓ Aposte AGORA se odd ≥ [odd_mínima]
+✗ NÃO aposte se odd < [odd_mínima]
+
+📝 PORQUÊ APOSTAR NISTO?
+• [bullet 1]
+• [bullet 2]
+• [bullet 3]
+
+Inclua também uma seção "⛔ NÃO APOSTE AQUI - SEM VALOR" avaliando 1X2 se não houver EV suficiente, explicando porquê evitar.
+
+═══════════════════════════════════════
+📋 RESUMO - O QUE FAZER
+═══════════════════════════════════════
+Liste as apostas com odd mínima e stake.
+
+═══════════════════════════════════════
+🚨 ATENÇÃO - QUANDO NÃO APOSTAR
+═══════════════════════════════════════
+Liste invalidações objetivas (odd abaixo do mínimo, mudanças de escalação, etc.).
+"""
+        
+        return prompt
+    
+    def analyze_match(self, match_data: Dict) -> Dict:
+        """
+        Analisa uma partida e retorna predição
 ═══════════════════════════════════════
 
 **RECOMENDAÇÃO PRINCIPAL:**
@@ -183,7 +398,117 @@ Mercados adicionais:
 • Ambos Marcam: {poisson.get('probabilities', {}).get('btts', 0)*100:.1f}%
 
 ═══════════════════════════════════════
-💰 ANÁLISE DE VALUE
+� CONTEXTO COMPLETO DA PARTIDA
+═══════════════════════════════════════
+"""
+        
+        # Adicionar posição na tabela
+        if table_context:
+            home_table = table_context.get('home', {})
+            away_table = table_context.get('away', {})
+            if home_table or away_table:
+                prompt += "\n**POSIÇÃO NA TABELA:**\n"
+                if home_table:
+                    prompt += f"• {home_team}: {home_table.get('position', 'N/A')}º lugar, {home_table.get('points', 0)} pts (GD: {home_table.get('goal_difference', 0)})\n"
+                    prompt += f"  Forma: {home_table.get('form', 'N/A')} | Casa: {home_table.get('home_record', 'N/A')}\n"
+                if away_table:
+                    prompt += f"• {away_team}: {away_table.get('position', 'N/A')}º lugar, {away_table.get('points', 0)} pts (GD: {away_table.get('goal_difference', 0)})\n"
+                    prompt += f"  Forma: {away_table.get('form', 'N/A')} | Fora: {away_table.get('away_record', 'N/A')}\n"
+        
+        # Adicionar estatísticas dos times
+        if home_stats or away_stats:
+            prompt += "\n**ESTATÍSTICAS DA TEMPORADA:**\n"
+            if home_stats:
+                prompt += f"• {home_team}: {home_stats.get('goals_per_game_avg', 0):.2f} gols/jogo, {home_stats.get('goals_conceded_avg', 0):.2f} sofridos/jogo\n"
+                prompt += f"  Clean sheets: {home_stats.get('clean_sheets', 0)} | Jogos: {home_stats.get('games_played', 0)}\n"
+            if away_stats:
+                prompt += f"• {away_team}: {away_stats.get('goals_per_game_avg', 0):.2f} gols/jogo, {away_stats.get('goals_conceded_avg', 0):.2f} sofridos/jogo\n"
+                prompt += f"  Clean sheets: {away_stats.get('clean_sheets', 0)} | Jogos: {away_stats.get('games_played', 0)}\n"
+        
+        # Adicionar lesões
+        if injuries and (injuries.get('home') or injuries.get('away')):
+            prompt += "\n**LESÕES E SUSPENSÕES:**\n"
+            home_inj = injuries.get('home', [])
+            away_inj = injuries.get('away', [])
+            if home_inj:
+                prompt += f"• {home_team}: {len(home_inj)} ausências"
+                if len(home_inj) > 0:
+                    prompt += f" ({', '.join([p.get('player', '') for p in home_inj[:2]])})"
+                prompt += "\n"
+            if away_inj:
+                prompt += f"• {away_team}: {len(away_inj)} ausências"
+                if len(away_inj) > 0:
+                    prompt += f" ({', '.join([p.get('player', '') for p in away_inj[:2]])})"
+                prompt += "\n"
+        
+        # Adicionar descanso
+        if rest_context and rest_context.get('home_days_rest') is not None:
+            prompt += "\n**DESCANSO:**\n"
+            prompt += f"• {home_team}: {rest_context.get('home_days_rest', 0)} dias\n"
+            prompt += f"• {away_team}: {rest_context.get('away_days_rest', 0)} dias\n"
+            advantage = rest_context.get('advantage', 'equal')
+            if advantage == 'home':
+                prompt += f"  → Vantagem física: {home_team}\n"
+            elif advantage == 'away':
+                prompt += f"  → Vantagem física: {away_team}\n"
+        
+        # Adicionar motivação
+        if motivation and motivation.get('context') != 'Unknown':
+            prompt += "\n**MOTIVAÇÃO:**\n"
+            prompt += f"Contexto: {motivation.get('context', 'Normal')}\n"
+            prompt += f"• {home_team}: {motivation.get('home', 'medium').upper()} - {motivation.get('home_reason', '')}\n"
+            prompt += f"• {away_team}: {motivation.get('away', 'medium').upper()} - {motivation.get('away_reason', '')}\n"
+        
+        # Adicionar tendências Over/Under e BTTS
+        if trends and trends.get('home', {}).get('games_analyzed', 0) > 0:
+            prompt += "\n**TENDÊNCIAS (Últimos 10 jogos):**\n"
+            home_tr = trends.get('home', {})
+            away_tr = trends.get('away', {})
+            prompt += f"• {home_team}: Over 2.5 em {home_tr.get('over_25_pct', 0):.0f}% | BTTS em {home_tr.get('btts_pct', 0):.0f}%\n"
+            prompt += f"• {away_team}: Over 2.5 em {away_tr.get('over_25_pct', 0):.0f}% | BTTS em {away_tr.get('btts_pct', 0):.0f}%\n"
+        
+        # Adicionar H2H
+        if h2h and len(h2h) > 0:
+            prompt += f"\n**HISTÓRICO DIRETO (H2H - últimos {min(len(h2h), 5)} jogos):**\n"
+            home_wins = sum(1 for m in h2h[:5] if m.get('score', {}).get('fullTime', {}).get('home', 0) > m.get('score', {}).get('fullTime', {}).get('away', 0))
+            draws = sum(1 for m in h2h[:5] if m.get('score', {}).get('fullTime', {}).get('home', 0) == m.get('score', {}).get('fullTime', {}).get('away', 0))
+            away_wins = len(h2h[:5]) - home_wins - draws
+            if len(h2h[:5]) > 0:
+                prompt += f"• Casa: {home_wins}V | Empates: {draws} | Fora: {away_wins}V\n"
+                last_match = h2h[0]
+                score = last_match.get('score', {}).get('fullTime', {})
+                prompt += f"  Último confronto: {score.get('home', 0)}-{score.get('away', 0)}\n"
+        
+        # Adicionar odds do mercado
+        if odds:
+            prompt += "\n**ODDS DO MERCADO:**\n"
+            prompt += f"• Casa: {odds.get('home_win', 'N/A')} | Empate: {odds.get('draw', 'N/A')} | Fora: {odds.get('away_win', 'N/A')}\n"
+            if odds.get('over_25'):
+                prompt += f"• Over/Under 2.5: {odds.get('over_25', 'N/A')} / {odds.get('under_25', 'N/A')}\n"
+        
+        # Adicionar condições climáticas
+        if weather and weather.get('weather_impact', 0) != 0:
+            prompt += "\n**CONDIÇÕES CLIMÁTICAS:**\n"
+            prompt += f"🌡️ Temperatura: {weather.get('temperature', 'N/A')}°C\n"
+            prompt += f"☁️ Condições: {weather.get('description', 'N/A')}\n"
+            if weather.get('rain_mm', 0) > 0:
+                prompt += f"🌧️ Chuva: {weather.get('rain_mm')}mm\n"
+            if weather.get('wind_speed', 0) > 0:
+                prompt += f"💨 Vento: {weather.get('wind_speed')} km/h\n"
+            prompt += f"⚠️ Impacto no jogo: {weather.get('weather_impact', 0):+.2f} gols esperados\n"
+            prompt += f"📊 Severidade: {weather.get('weather_severity', 'none').upper()}\n"
+        
+        # Adicionar contexto da temporada
+        if season_context:
+            prompt += "\n**CONTEXTO DA TEMPORADA:**\n"
+            prompt += f"🏆 Temporada: {season_context.get('season', 'N/A')} | Rodada: {season_context.get('round', 'N/A')}\n"
+            prompt += f"📍 Fase: {season_context.get('stage', 'mid').title()}\n"
+        
+        prompt += "\n"
+        
+        prompt += """
+═══════════════════════════════════════
+�💰 ANÁLISE DE VALUE
 ═══════════════════════════════════════
 """
         
@@ -204,35 +529,109 @@ Mercados adicionais:
 
 Com base nesses DADOS OBJETIVOS DOS MODELOS, crie uma análise seguindo EXATAMENTE esta estrutura:
 
-### 🎯 PREVISÃO DO MODELO
+═══════════════════════════════════════
+🔥 BLOCO 1 — DECISÃO IMEDIATA
+═══════════════════════════════════════
 
-[Repita a recomendação de forma clara e direta]
+🎯 PREVISÃO DA IA
 
-### ⚡ POR QUE ESSA PREVISÃO?
+**{recommendation.get('pick', 'N/A')}**
 
-[Explique em 3-4 bullets curtos os principais motivos baseados nos dados acima.
-NÃO invente informações. Use APENAS os números fornecidos.]
+📊 Probabilidade: {recommendation.get('probability', 0)*100:.1f}%
+⚽ Placar esperado: {poisson.get('most_likely_score', 'N/A')}
 
-### 📊 PROBABILIDADES
+{'⭐' * confidence.get('stars', 3)} Confiança: {confidence.get('level_pt', 'Média')}
+⚠️ Risco: {risk.upper()}
 
-[Mostre as 3 probabilidades principais de forma visual com barras ou emojis]
+═══════════════════════════════════════
+⚡ BLOCO 2 — FATORES-CHAVE
+═══════════════════════════════════════
 
-### 💰 OPORTUNIDADES
+⚡ POR QUE ESSA PREVISÃO?
 
-[Se há value bets: explique qual e por quê
-Se não há: explique que odds estão justas]
+✓ **Força Ofensiva/Defensiva:** [Compare os xG: Casa {poisson.get('expected_goals_home', 0):.2f} vs Fora {poisson.get('expected_goals_away', 0):.2f}]
+✓ **Forma Recente:** [Use os dados de forma da tabela e últimos jogos]
+✓ **Confronto Direto (H2H):** [Se disponível, cite o padrão histórico]
+✓ **Contexto da Partida:** [Motivação, lesões, descanso - fatores decisivos]
 
-### ⚠️ GESTÃO DE RISCO
+═══════════════════════════════════════
+📊 BLOCO 3 — PROBABILIDADES VISUAIS
+═══════════════════════════════════════
 
-[Mencione o nível de risco ({risk}) e o que isso significa
-Dê 1-2 conselhos de gestão de banca]
+📊 PROBABILIDADES
 
-**IMPORTANTE:**
-- NÃO invente dados ou estatísticas
-- Use APENAS os números fornecidos acima
-- Seja objetivo e profissional
-- Máximo 400 palavras
-- Formato HTML simples (<h3>, <p>, <ul>, <strong>)
+🏠 **{home_team}:** {consensus.get('home_win', 0)*100:.1f}%
+🤝 **Empate:** {consensus.get('draw', 0)*100:.1f}%
+✈️ **{away_team}:** {consensus.get('away_win', 0)*100:.1f}%
+
+---
+💡 **Interpretação rápida:** [Explique qual cenário é mais provável e por quê]
+
+═══════════════════════════════════════
+📚 BLOCO 4 — ANÁLISE DETALHADA
+═══════════════════════════════════════
+
+**📋 RESUMO EXECUTIVO**
+[2-3 frases com contexto essencial do jogo baseado nos dados fornecidos]
+
+---
+
+**1️⃣ ANÁLISE DE FORMA**
+
+🏠 **Casa – {home_team}**
+[Use dados de table_context, home_stats, trends se disponíveis]
+
+✈️ **Fora – {away_team}**
+[Use dados de table_context, away_stats, trends se disponíveis]
+
+---
+
+**2️⃣ CONFRONTOS DIRETOS (H2H)**
+[Se h2h disponível, analise o padrão]
+
+---
+
+**3️⃣ ANÁLISE TÁTICA E ESTATÍSTICA**
+• **Ataque vs Defesa:** {poisson.get('expected_goals_home', 0):.2f} xG (Casa) vs {poisson.get('expected_goals_away', 0):.2f} xG (Fora)
+• **Mercados de Gols:** Over 2.5 ({poisson.get('probabilities', {}).get('over_2_5', 0)*100:.1f}%) | BTTS ({poisson.get('probabilities', {}).get('btts', 0)*100:.1f}%)
+• **Fator Decisivo:** [Identifique o fator mais importante com base nos dados]
+
+═══════════════════════════════════════
+💰 BLOCO 5 — RECOMENDAÇÃO FINAL
+═══════════════════════════════════════
+
+💰 RECOMENDAÇÃO
+
+**Aposta Principal:** {recommendation.get('market_display', 'N/A')} - {recommendation.get('pick', 'N/A')}
+**Probabilidade:** {recommendation.get('probability', 0)*100:.1f}%
+**Tipo:** {'Conservadora' if risk == 'low' else 'Equilibrada' if risk == 'medium' else 'Agressiva'}
+
+✅ **Justificativa:** [Explique por que esta aposta faz sentido com os dados apresentados]
+⚠️ **Gestão de Risco:** [Dê 1-2 conselhos práticos de gestão de banca]"""
+
+        if value_bets:
+            prompt += f"\n\n💡 **Value Bets Identificados:**\n"
+            for vb in value_bets[:2]:
+                prompt += f"• {vb['market_display']}: {vb['value_pct']:.1f}% de value (Odd justa: {vb['fair_odd']:.2f} vs Mercado: {vb['market_odd']:.2f})\n"
+        
+        prompt += """
+
+═══════════════════════════════════════
+✍️ REGRAS DE FORMATAÇÃO
+═══════════════════════════════════════
+
+✓ Use **negrito** para nomes de times, fatores-chave e resultados
+✓ Use bullets (•) para listas escaneáveis
+✓ Use emojis estruturais: 🎯 📊 ⚡ 💰 ⚠️ 🏠 ✈️
+✓ NUNCA prometa resultados garantidos
+✓ NUNCA invente estatísticas
+✓ Seja profissional, objetivo e baseado em dados
+✓ Máximo 600 palavras no total
+✓ Otimize para leitura mobile
+
+🚫 NÃO comece com "Olá" ou introduções genéricas
+🚫 NÃO use linguagem promocional exagerada
+🚫 NÃO escreva parágrafos longos
 """
         
         return prompt

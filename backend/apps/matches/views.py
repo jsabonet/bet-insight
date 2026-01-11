@@ -850,17 +850,46 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             market_odds
         )
         
+        # 🔥 Extrair dados enriquecidos para enviar ao frontend E PARA A IA
+        enriched_data = {
+            'fixture_details': match_data.get('fixture_details'),
+            'table_context': match_data.get('table_context'),
+            'injuries': match_data.get('injuries'),
+            'odds': match_data.get('odds'),
+            'home_stats': match_data.get('home_stats'),
+            'away_stats': match_data.get('away_stats'),
+            'rest_context': match_data.get('rest_context'),
+            'motivation': match_data.get('motivation'),
+            'trends': match_data.get('trends'),
+            'season_context': match_data.get('season_context'),
+            'weather': match_data.get('weather'),  # 🌤️ Condições climáticas
+            'h2h': match_data.get('h2h', []),  # 🆕 Histórico direto (Football-Data.org)
+            'football_data_id': football_data_id,  # 🆕 ID mapeado
+            'football_data_match': match_data.get('football_data_match')  # 🆕 Detalhes do Football-Data.org
+        }
+        
         # 6. IA Explainer (Gemini Flash apenas EXPLICA) - OPCIONAL
         result = {'success': True, 'analysis': None}
         
+        logger.info(f"🤖 Verificando se deve chamar IA: skip_ai={skip_ai}")
+        
         if not skip_ai:
-            analyzer = AIAnalyzer()
-            result = analyzer.explain_decision(decision_data, match_data)
-            
-            if not result['success']:
+            logger.info("🚀 CHAMANDO AI ANALYZER (Google Gemini)...")
+            try:
+                analyzer = AIAnalyzer()
+                result = analyzer.explain_decision(decision_data, enriched_data)
+                
+                if not result['success']:
+                    logger.error(f"❌ IA falhou: {result.get('error')}")
+                    return Response(
+                        {'error': result.get('error'), 'details': result.get('details'), 'code': result.get('error_code')},
+                        status=result.get('http_status', status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    )
+            except Exception as e:
+                logger.error(f"❌ EXCEÇÃO na chamada da IA: {e}", exc_info=True)
                 return Response(
-                    {'error': result.get('error'), 'details': result.get('details'), 'code': result.get('error_code')},
-                    status=result.get('http_status', status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    {'error': 'Erro ao processar análise da IA', 'details': str(e)},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
         else:
             logger.info("⏭️ Pulando geração da IA - retornando apenas dados estatísticos")
@@ -873,23 +902,6 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             'h2h_count': len(match_data.get('h2h', [])) if match_data.get('h2h') else 0,
             'has_fixture_details': bool(match_data.get('fixture_details')),
             'has_football_data': bool(match_data.get('football_data_match'))
-        }
-        
-        # 🔥 Extrair dados enriquecidos para enviar ao frontend
-        enriched_data = {
-            'table_context': match_data.get('table_context'),
-            'injuries': match_data.get('injuries'),
-            'odds': match_data.get('odds'),
-            'home_stats': match_data.get('home_stats'),
-            'away_stats': match_data.get('away_stats'),
-            'rest_context': match_data.get('rest_context'),
-            'motivation': match_data.get('motivation'),
-            'trends': match_data.get('trends'),
-            'season_context': match_data.get('season_context'),
-            'fixture_details': match_data.get('fixture_details'),
-            'h2h': match_data.get('h2h'),  # 🆕 Histórico direto (Football-Data.org)
-            'football_data_id': football_data_id,  # 🆕 ID mapeado
-            'football_data_match': match_data.get('football_data_match')  # 🆕 Detalhes do Football-Data.org
         }
         
         # Opcional: salvar no histórico se usuário autenticado e houver match mapeado
@@ -1000,7 +1012,8 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             saved_info = None
 
         return Response({
-            'analysis': result.get('analysis'),
+            'analysis': result.get('analysis'),  # Texto da IA (legado - manter compatibilidade)
+            'reasoning': result.get('analysis'),  # Texto da IA (novo - usado pelo AnalysisModal)
             'confidence': decision_data['confidence']['stars'],  # Confiança do Decision Engine
             'confidence_display': f"{decision_data['confidence']['level']} ({decision_data['confidence']['stars']}/5)",
             'prediction_display': decision_data['recommendation']['pick'],
