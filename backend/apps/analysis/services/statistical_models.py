@@ -18,7 +18,7 @@ class PoissonBivariateModel:
     """
     
     # Parâmetros padrão do modelo (calibrados com dados profissionais)
-    HOME_ADVANTAGE = 1.3  # Casa marca ~30% mais gols
+    HOME_ADVANTAGE = 1.12  # Casa marca ~12% mais gols (Dixon-Coles padrão)
     RHO = -0.13  # Correlação entre gols (baixos placares)
     
     def __init__(self):
@@ -325,9 +325,9 @@ class LogisticRegressionModel:
         score_home = self.INTERCEPT['home_win']
         score_home += strength_diff * self.WEIGHTS['strength_diff']
         score_home += form_diff * self.WEIGHTS['form_diff']
-        # Vantagem casa REDUZIDA (antes era 0.3, agora 0.15)
-        # Como Poisson já tem 1.3x, aqui usamos menor peso
-        score_home += 0.15 * self.WEIGHTS['home_advantage']  # Casa tem vantagem (reduzido)
+        # Vantagem casa REDUZIDA (antes era 0.3, agora 0.10)
+        # Como Poisson já tem 1.12x, aqui usamos peso mínimo
+        score_home += 0.10 * self.WEIGHTS['home_advantage']  # Casa tem vantagem (reduzido)
         score_home += rest_advantage * self.WEIGHTS['rest_advantage']
         score_home += motivation_diff * self.WEIGHTS['motivation_diff']  # NOVO
         score_home += (-injury_diff) * self.WEIGHTS['injury_impact']     # NOVO (invertido)
