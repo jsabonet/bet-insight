@@ -1828,3 +1828,117 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 {'error': 'Erro ao recalcular probabilidades ao vivo', 'details': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    @action(detail=True, methods=['post'], url_path='unified-analysis')
+    def unified_analysis(self, request, pk=None):
+        """
+        🚀 ENDPOINT UNIFICADO: Retorna análise completa com cache inteligente
+        
+        POST /api/matches/{id}/unified-analysis/
+        Body: {
+            "strategy": "value" | "multiple",
+            "include_ai": true | false,
+            "force_refresh": false
+        }
+        
+        Response: {
+            "phase": "complete",
+            "cached": false,
+            "statistical_data": {...},  # Onda 1
+            "decision_data": {...},      # Onda 2
+            "ai_analysis": "...",         # Onda 3
+            "metadata": {...}
+        }
+        
+        Performance:
+        - Cache Hit: ~50ms (90% das requests após primeira análise)
+        - Cache Miss: 2-8s (depende de include_ai)
+        """
+        from apps.analysis.services.cache_service import get_cache
+        
+        try:
+            match = self.get_object()
+            strategy = request.data.get('strategy', 'value')
+            include_ai = request.data.get('include_ai', True)
+            force_refresh = request.data.get('force_refresh', False)
+            
+            logger.info(f"\n{'='*80}")
+            logger.info(f"🚀 UNIFIED ANALYSIS - Match {match.id}")
+            logger.info(f"   Strategy: {strategy}, Include AI: {include_ai}, Force: {force_refresh}")
+            logger.info(f"{'='*80}\n")
+            
+            # Verificar cache (se não forçar refresh)
+            cache_service = get_cache()
+            
+            if not force_refresh:
+                cached_result = cache_service.get(match.id, strategy, include_ai)
+                
+                if cached_result:
+                    logger.info("✅ Retornando dados do CACHE")
+                    return Response({
+                        **cached_result,
+                        'cached': True,
+                        'cache_stats': cache_service.stats()
+                    })
+            
+            # Cache miss ou force refresh: gerar análise
+            logger.info("🔄 Cache MISS: gerando nova análise...")
+            
+            # Usar AnalysisOrchestrator existente
+            orchestrator = HybridAnalysisOrchestrator()
+            
+            analysis_result = orchestrator.analyze_match(
+                match=match,
+                strategy=strategy,
+                include_ai_analysis=include_ai
+            )
+            
+            # Estruturar resposta unificada
+            unified_response = {
+                'phase': 'complete',
+                'cached': False,
+                'match_id': match.id,
+                'strategy': strategy,
+                
+                # Onda 1: Dados estatísticos (preview)
+                'statistical_data': {
+                    'consensus': analysis_result.get('analysis_data', {}).get('model_predictions', {}).get('consensus', {}),
+                    'confidence': analysis_result.get('analysis_data', {}).get('decision', {}).get('confidence', {}),
+                    'poisson': analysis_result.get('analysis_data', {}).get('model_predictions', {}).get('poisson', {}),
+                },
+                
+                # Onda 2: Decision data (top_bets)
+                'decision_data': {
+                    'top_bets': analysis_result.get('analysis_data', {}).get('decision', {}).get('top_bets', []),
+                    'recommendation': analysis_result.get('analysis_data', {}).get('decision', {}).get('recommendation', {}),
+                    'risk': analysis_result.get('analysis_data', {}).get('decision', {}).get('risk', 'medium'),
+                },
+                
+                # Onda 3: Análise IA (se solicitado)
+                'ai_analysis': analysis_result.get('analysis', '') if include_ai else None,
+                
+                # Metadata
+                'metadata': {
+                    'enriched_data': analysis_result.get('enriched_data', {}),
+                    'fair_odds': analysis_result.get('analysis_data', {}).get('fair_odds', {}),
+                    'market_odds': analysis_result.get('analysis_data', {}).get('market_odds', {}),
+                    'generated_at': timezone.now().isoformat(),
+                },
+                
+                # Stats
+                'cache_stats': cache_service.stats()
+            }
+            
+            # Salvar no cache
+            cache_service.set(match.id, strategy, unified_response, include_ai)
+            
+            logger.info(f"✅ Análise completa gerada e cacheada")
+            
+            return Response(unified_response)
+            
+        except Exception as e:
+            logger.error(f"Erro no unified_analysis: {str(e)}", exc_info=True)
+            return Response(
+                {'error': 'Erro ao gerar análise unificada', 'details': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
