@@ -6,6 +6,7 @@ import { Bell, Star, Sun, Moon } from 'lucide-react';
 import Logo from './Logo';
 import UserAvatar from './UserAvatar';
 import DailyLimitIndicator from './DailyLimitIndicator';
+import StrategySelector from './StrategySelector';
 import { authAPI } from '../services/api';
 import InstallPWAButton from './InstallPWAButton';
 
@@ -74,6 +75,11 @@ export default function Header({ title, subtitle, showLogo = false }) {
         {/* Daily Limit Indicator */}
         <div className="pb-3">
           <DailyLimitIndicator refreshTrigger={refreshTrigger} />
+        </div>
+
+        {/* Strategy Selector - Escolha global de estratégia */}
+        <div className="pb-3">
+          <StrategySelector />
         </div>
 
         {/* Title or Logo */}

@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { StatsProvider } from './context/StatsContext';
+import { StrategyProvider } from './context/StrategyContext';
 import Logo from './components/Logo';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
@@ -85,8 +86,7 @@ function App() {
     <Router>
       <ThemeProvider>
         <AuthProvider>
-          <StatsProvider>
-            <Routes>
+          <StatsProvider>            <StrategyProvider>            <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Navigate to="/landing" replace />} />
           <Route
@@ -194,6 +194,7 @@ function App() {
           
           <Route path="*" element={<Navigate to="/landing" />} />
           </Routes>
+            </StrategyProvider>
           </StatsProvider>
         </AuthProvider>
       </ThemeProvider>

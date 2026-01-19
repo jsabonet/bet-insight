@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { matchesAPI, analysisAPI, authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useStats } from '../context/StatsContext';
+import { useStrategy } from '../context/StrategyContext';
 import { ArrowLeft, Brain, AlertCircle, Sparkles, ChevronDown, CheckCircle, HelpCircle, Info, X } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
@@ -11,8 +12,8 @@ import AnalysisModal from '../components/AnalysisModal';
 import LimitReachedModal from '../components/LimitReachedModal';
 import { TeamLogo, LeagueLogo } from '../utils/logos';
 import AtAGlance from '../components/match-detail/AtAGlance';
-import TeamComparison from '../components/match-detail/TeamComparison';
 import GoalsAndPoisson from '../components/match-detail/GoalsAndPoisson';
+import TeamComparison from '../components/match-detail/TeamComparison';
 import ValueBetsSection from '../components/match-detail/ValueBetsSection';
 import MatchContext from '../components/match-detail/MatchContext';
 import MatchStatistics from '../components/match-detail/MatchStatistics';
@@ -22,12 +23,11 @@ import TeamForm from '../components/match-detail/TeamForm';
 import LeagueStandings from '../components/match-detail/LeagueStandings';
 
 export default function MatchDetailPage() {
-  console.log('🚀 MatchDetailPage CARREGADO - Versão com DEBUG-1 a DEBUG-8 (07/01/2026 01:43)');
-  
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { refreshStats } = useStats();
+  const { strategy } = useStrategy(); // ✅ NOVO: Usar estratégia global
   
   const [match, setMatch] = useState(null);
   const [analysis, setAnalysis] = useState(null);
@@ -149,19 +149,28 @@ export default function MatchDetailPage() {
     loadMatchDetails();
   }, [id]);
 
-  // Atualização automática para partidas ao vivo
+  // Recarregar dados estatísticos quando strategy muda
+  useEffect(() => {
+    if (match && !loading) {
+      console.log(`🔄 Strategy mudou para: ${strategy} - Recarregando análise...`);
+      // Dados estatísticos são neutros, não precisam recarregar
+      // A estratégia é aplicada apenas no quick_analyze (Ver Análise)
+    }
+  }, [strategy]);
+
+  // Atualização automática para partidas ao vivo - OTIMIZADO (3 min)
   useEffect(() => {
     if (!match) return;
     
     const isLive = ['LIVE', '1H', '2H', 'HT'].includes(match.status);
     
     if (isLive) {
-      console.log('🔴 PARTIDA AO VIVO - Iniciando atualização automática a cada 30s');
+      console.log('🔴 PARTIDA AO VIVO - Iniciando atualização automática a cada 3 min');
       const interval = setInterval(() => {
         console.log('🔄 Atualizando dados da partida ao vivo...');
         loadMatchDetails();
         loadLiveProbabilities(); // ✅ Atualizar probabilidades ao vivo
-      }, 30000); // Atualizar a cada 30 segundos
+      }, 180000); // Atualizar a cada 3 minutos (economizar quota API)
       
       return () => {
         console.log('⏹️ Parando atualização automática');
@@ -973,13 +982,6 @@ export default function MatchDetailPage() {
         {/* Análise Visual - Mostra SEMPRE que houver dados estatísticos */}
         {statisticalData && (
           <div className="space-y-6 animate-fade-in">
-            {console.log('🎨 RENDERIZANDO SEÇÕES DE ANÁLISE', {
-              hasAnalysisData: !!statisticalData.analysis_data,
-              hasConsensus: !!statisticalData.analysis_data?.consensus,
-              hasPoisson: !!statisticalData.analysis_data?.poisson,
-              hasFairOdds: !!statisticalData.analysis_data?.fair_odds,
-              hasEnrichedData: !!statisticalData.enriched_data
-            })}
             
             {/* Indicador de Atualização Ao Vivo */}
             {analysisUpdatedAt && ['LIVE', '1H', '2H', 'HT'].includes(match?.status) && (
@@ -1281,20 +1283,6 @@ export default function MatchDetailPage() {
       {/* Modal de Análise - APENAS com explicação da IA */}
       {(() => {
         const shouldShow = showModal && analysis && match;
-        console.log('\n🎯 RENDERIZAÇÃO DO MODAL:', {
-          showModal,
-          hasAnalysis: !!analysis,
-          hasMatch: !!match,
-          shouldShow
-        });
-        
-        if (!shouldShow && showModal) {
-          console.warn('⚠️ Modal não renderizou! Razão:', {
-            showModal_ok: showModal,
-            analysis_missing: !analysis,
-            match_missing: !match
-          });
-        }
         
         return shouldShow ? (
           <AnalysisModal
