@@ -8,7 +8,7 @@ import { ArrowLeft, Brain, AlertCircle, Sparkles, ChevronDown, CheckCircle, Help
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
 import LoadingMascot from '../components/LoadingMascot';
-import AnalysisModal from '../components/AnalysisModal';
+import AnalysisModalProgressive from '../components/AnalysisModalProgressive';
 import LimitReachedModal from '../components/LimitReachedModal';
 import { TeamLogo, LeagueLogo } from '../utils/logos';
 import AtAGlance from '../components/match-detail/AtAGlance';
@@ -1280,16 +1280,30 @@ export default function MatchDetailPage() {
         )}
       </div>
 
-      {/* Modal de Análise - APENAS com explicação da IA */}
+      {/* Modal de Análise - Progressive Loading com 3 ondas */}
       {(() => {
-        const shouldShow = showModal && analysis && match;
+        const shouldShow = showModal && match;
         
         return shouldShow ? (
-          <AnalysisModal
+          <AnalysisModalProgressive
             match={match}
-            analysis={analysis}
-            metadata={analysis.metadata}
             onClose={() => setShowModal(false)}
+            onAnalyze={async () => {
+              try {
+                // Chamar endpoint unificado com cache inteligente
+                const response = await matchesAPI.unifiedAnalysis(
+                  match.id,
+                  strategy,
+                  true // include_ai
+                );
+                
+                // Retornar dados já estruturados para o modal
+                return response.data;
+              } catch (error) {
+                console.error('Erro ao buscar análise unificada:', error);
+                throw error;
+              }
+            }}
           />
         ) : null;
       })()}

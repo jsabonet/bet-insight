@@ -107,6 +107,14 @@ export const matchesAPI = {
   quickAnalyze: (data) => api.post('/matches/quick_analyze/', data),
   statisticalPreview: (data) => api.post('/matches/statistical_preview/', data), // Novo endpoint rápido
   getLiveProbabilities: (matchId) => api.get(`/matches/${matchId}/live_probabilities/`), // ✅ Probabilidades ao vivo
+  
+  // 🚀 Endpoint unificado com cache inteligente
+  unifiedAnalysis: (matchId, strategy, includeAI = true, forceRefresh = false) =>
+    api.post(`/matches/${matchId}/unified-analysis/`, {
+      strategy,
+      include_ai: includeAI,
+      force_refresh: forceRefresh
+    }),
 };
 
 // Leagues endpoints

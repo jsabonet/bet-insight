@@ -38,19 +38,24 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) 
     try {
       // ONDA 1: Dados do preview (já disponíveis, instantâneo)
       setPhase(1);
-      setStatisticalData(match.preview || null);
+      setStatisticalData(match.preview || match.analysis_data || null);
 
-      // ONDA 2: Chamar análise completa (top_bets)
+      // ONDA 2 + 3: Chamar análise completa
       setPhase(2);
-      const analysisResult = await onAnalyze();
+      const result = await onAnalyze();
       
-      if (analysisResult?.analysis_data) {
-        setTopBets(analysisResult.analysis_data.decision?.top_bets || []);
+      // Estruturar dados do unified endpoint
+      if (result) {
+        // Onda 1: Statistical data (pode vir do cache ou preview)
+        setStatisticalData(result.statistical_data || match.analysis_data || null);
+        
+        // Onda 2: Top bets
+        setTopBets(result.decision_data?.top_bets || []);
+        
+        // Onda 3: AI Analysis
+        setPhase(3);
+        setAiAnalysis(result.ai_analysis || null);
       }
-
-      // ONDA 3: Análise da IA (já vem junto)
-      setPhase(3);
-      setAiAnalysis(analysisResult?.analysis || null);
 
     } catch (err) {
       console.error('Erro no progressive loading:', err);
