@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Star, Sparkles, TrendingUp, AlertCircle, Target, Trophy, Zap, ClipboardList, Loader2, CheckCircle2 } from 'lucide-react';
+import { X, Star, Sparkles, TrendingUp, AlertCircle, Target, Trophy, Zap, ClipboardList, Loader2, CheckCircle2, Brain } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useStrategy } from '../context/StrategyContext';
 import { TeamLogo } from '../utils/logos';

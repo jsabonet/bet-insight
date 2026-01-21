@@ -172,11 +172,24 @@ class APIFootballService:
             
             elif bet_type['name'] == 'Goals Over/Under':
                 for value in bet_type['values']:
-                    if '2.5' in value['value']:
+                    # Over/Under 1.5
+                    if '1.5' in value['value']:
+                        if 'Over' in value['value']:
+                            odds_result['over_15'] = float(value['odd'])
+                        elif 'Under' in value['value']:
+                            odds_result['under_15'] = float(value['odd'])
+                    # Over/Under 2.5
+                    elif '2.5' in value['value']:
                         if 'Over' in value['value']:
                             odds_result['over_25'] = float(value['odd'])
                         elif 'Under' in value['value']:
                             odds_result['under_25'] = float(value['odd'])
+                    # Over/Under 3.5
+                    elif '3.5' in value['value']:
+                        if 'Over' in value['value']:
+                            odds_result['over_35'] = float(value['odd'])
+                        elif 'Under' in value['value']:
+                            odds_result['under_35'] = float(value['odd'])
             
             elif bet_type['name'] == 'Both Teams Score':
                 for value in bet_type['values']:
@@ -302,6 +315,52 @@ class APIFootballService:
         logger.info(f"✅ Detalhes obtidos para fixture {fixture_id}")
         return details
     
+    def fetch_h2h(self, team1_id, team2_id, last=10):
+        """
+        Busca histórico de confrontos diretos (H2H)
+        
+        Args:
+            team1_id: ID do time 1
+            team2_id: ID do time 2
+            last: Número de jogos (padrão: 10)
+        
+        Returns:
+            list: Lista de confrontos diretos
+        """
+        logger.info(f"🔄 Buscando H2H: {team1_id} vs {team2_id} (últimos {last})")
+        
+        params = {
+            'h2h': f'{team1_id}-{team2_id}',
+            'last': last
+        }
+        
+        data = self._make_request('fixtures/headtohead', params, cache_type='h2h')
+        
+        if not data:
+            logger.warning(f"⚠️ Nenhum H2H encontrado")
+            return []
+        
+        h2h_matches = []
+        for match in data:
+            h2h_matches.append({
+                'fixture_id': match['fixture']['id'],
+                'date': match['fixture']['date'],
+                'homeTeam': {
+                    'id': match['teams']['home']['id'],
+                    'name': match['teams']['home']['name'],
+                    'score': match['goals']['home']
+                },
+                'awayTeam': {
+                    'id': match['teams']['away']['id'],
+                    'name': match['teams']['away']['name'],
+                    'score': match['goals']['away']
+                },
+                'winner': match['teams']['home']['winner']
+            })
+        
+        logger.info(f"✅ {len(h2h_matches)} confrontos H2H encontrados")
+        return h2h_matches
+    
     def fetch_team_fixtures(self, team_id, league_id=None, season=None, last=10):
         """
         Busca últimas fixtures de um time
@@ -376,3 +435,46 @@ class APIFootballService:
         
         logger.info(f"✅ {len(fixtures)} fixtures obtidas")
         return fixtures
+    
+    def get_fixtures_by_date(self, date_str, league_id=None, season=2026):
+        """
+        Busca fixtures por data (formato: YYYY-MM-DD)
+        
+        Args:
+            date_str: Data no formato 'YYYY-MM-DD'
+            league_id: ID da liga (opcional)
+            season: Temporada (padrão: 2026)
+        
+        Returns:
+            dict: Resposta completa da API com fixtures
+        """
+        logger.info(f"📅 Buscando fixtures - Data: {date_str}, Liga: {league_id}")
+        
+        params = {'date': date_str}
+        if league_id:
+            params['league'] = league_id
+            params['season'] = season
+        
+        # Retornar resposta completa (não apenas result)
+        cache_key = self._get_cache_key('fixtures', params)
+        cached_data = cache.get(cache_key)
+        
+        if cached_data is not None:
+            logger.info(f"📦 Cache HIT: fixtures (params: {params})")
+            return cached_data
+        
+        logger.info(f"🌐 Cache MISS: fixtures - Buscando da API...")
+        try:
+            url = f"{self.base_url}/fixtures"
+            response = requests.get(url, headers=self.headers, params=params, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            
+            # Armazenar no cache
+            cache.set(cache_key, data, self.cache_ttl.get('fixtures', 3600))
+            logger.info(f"✅ Armazenado no cache por {self.cache_ttl.get('fixtures', 3600)}s")
+            
+            return data
+        except Exception as e:
+            logger.error(f"Erro ao buscar fixtures: {str(e)}")
+            return None

@@ -1,0 +1,1459 @@
+{
+  "metadata": {
+    "timestamp": "20260117_112011",
+    "architecture": "HybridAnalysisOrchestrator (COMPLETA)",
+    "components": [
+      "MatchDataEnricher",
+      "FeatureEngineer",
+      "ModelEnsemble",
+      "DecisionEngine",
+      "AIAnalyzer"
+    ],
+    "total_matches": 28,
+    "processed": 28,
+    "failed": 0
+  },
+  "summary": {
+    "total_matches": 28,
+    "accuracy": 14.285714285714285,
+    "brier_score": 0.18230911347634554,
+    "log_loss": 0.9235192192421614,
+    "value_bets_found": 39,
+    "by_confidence": {
+      "5": {
+        "total": 17,
+        "correct": 2
+      },
+      "4": {
+        "total": 11,
+        "correct": 2
+      }
+    }
+  },
+  "detailed_results": [
+    {
+      "id": 1387854,
+      "home": "Monaco",
+      "away": "Lorient",
+      "score": "1-3",
+      "league": "Ligue 1",
+      "predicted": "away",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.25241587381384717,
+      "log_loss": 1.2116725508161579,
+      "consensus": {
+        "home_win": 0.44444432670288925,
+        "draw": 0.2578567271103027,
+        "away_win": 0.297698946186808
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.298,
+          "fair_odd": 3.36,
+          "market_odd": 4.9,
+          "value_pct": 45.8,
+          "edge": 0.458,
+          "stake_suggestion": "3-5% do bankroll"
+        },
+        {
+          "market": "draw",
+          "market_display": "Empate",
+          "model_probability": 0.258,
+          "fair_odd": 3.88,
+          "market_odd": 4.1,
+          "value_pct": 5.7,
+          "edge": 0.057,
+          "stake_suggestion": "1-2% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 2.25,
+        "draw": 3.88,
+        "away_win": 3.36,
+        "over_2_5": 1.77,
+        "btts": 1.66
+      },
+      "date": "2026-01-16T18:00:00+00:00"
+    },
+    {
+      "id": 1388468,
+      "home": "Werder Bremen",
+      "away": "Eintracht Frankfurt",
+      "score": "3-3",
+      "league": "Bundesliga",
+      "predicted": "away",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.31868931358766117,
+      "log_loss": 1.4925435422617204,
+      "consensus": {
+        "home_win": 0.22227342892738086,
+        "draw": 0.22480013908400098,
+        "away_win": 0.5529264319886181
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.552,
+          "fair_odd": 1.81,
+          "market_odd": 2.44,
+          "value_pct": 34.8,
+          "edge": 0.348,
+          "stake_suggestion": "3-5% do bankroll"
+        },
+        {
+          "market": "over_2_5",
+          "market_display": "Over 2.5 gols",
+          "model_probability": 0.645,
+          "fair_odd": 1.55,
+          "market_odd": 1.65,
+          "value_pct": 6.5,
+          "edge": 0.065,
+          "stake_suggestion": "1-2% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 4.5,
+        "draw": 4.45,
+        "away_win": 1.81,
+        "over_2_5": 1.55,
+        "btts": 1.58
+      },
+      "date": "2026-01-16T19:30:00+00:00"
+    },
+    {
+      "id": 1378071,
+      "home": "Pisa",
+      "away": "Atalanta",
+      "score": "1-1",
+      "league": "Serie A",
+      "predicted": "home",
+      "predicted_vector": [
+        1,
+        0,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2544487736921112,
+      "log_loss": 1.2169906600763756,
+      "consensus": {
+        "home_win": 0.25150188267763895,
+        "draw": 0.2961199530148992,
+        "away_win": 0.45237816430746197
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "home_win",
+          "market_display": "Vitória Casa",
+          "model_probability": 0.251,
+          "fair_odd": 3.98,
+          "market_odd": 7.0,
+          "value_pct": 75.9,
+          "edge": 0.759,
+          "stake_suggestion": "3-5% do bankroll"
+        },
+        {
+          "market": "draw",
+          "market_display": "Empate",
+          "model_probability": 0.296,
+          "fair_odd": 3.38,
+          "market_odd": 4.2,
+          "value_pct": 24.3,
+          "edge": 0.243,
+          "stake_suggestion": "3-5% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 3.98,
+        "draw": 3.38,
+        "away_win": 2.21,
+        "over_2_5": 3.03,
+        "btts": 2.44
+      },
+      "date": "2026-01-16T19:45:00+00:00"
+    },
+    {
+      "id": 1387856,
+      "home": "Paris Saint Germain",
+      "away": "Lille",
+      "score": "3-0",
+      "league": "Ligue 1",
+      "predicted": "away",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.11159256427973059,
+      "log_loss": 0.6364187504370149,
+      "consensus": {
+        "home_win": 0.5291841752008581,
+        "draw": 0.20167082955852342,
+        "away_win": 0.2691449952406185
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.269,
+          "fair_odd": 3.72,
+          "market_odd": 8.5,
+          "value_pct": 128.5,
+          "edge": 1.285,
+          "stake_suggestion": "3-5% do bankroll"
+        },
+        {
+          "market": "draw",
+          "market_display": "Empate",
+          "model_probability": 0.202,
+          "fair_odd": 4.96,
+          "market_odd": 5.9,
+          "value_pct": 19.0,
+          "edge": 0.19,
+          "stake_suggestion": "2-3% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 1.89,
+        "draw": 4.96,
+        "away_win": 3.72,
+        "over_2_5": 1.3,
+        "btts": 1.32
+      },
+      "date": "2026-01-16T20:00:00+00:00"
+    },
+    {
+      "id": 1391013,
+      "home": "Espanyol",
+      "away": "Girona",
+      "score": "0-2",
+      "league": "La Liga",
+      "predicted": "away",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.286250405218589,
+      "log_loss": 1.384808274045979,
+      "consensus": {
+        "home_win": 0.4638016105918068,
+        "draw": 0.28582659144606737,
+        "away_win": 0.2503717979621258
+      },
+      "confidence": 4,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.251,
+          "fair_odd": 3.99,
+          "market_odd": 4.5,
+          "value_pct": 12.8,
+          "edge": 0.128,
+          "stake_suggestion": "2-3% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 2.16,
+        "draw": 3.5,
+        "away_win": 3.99,
+        "over_2_5": 2.59,
+        "btts": 2.15
+      },
+      "date": "2026-01-16T20:00:00+00:00"
+    },
+    {
+      "id": 1378023,
+      "home": "Verona",
+      "away": "Bologna",
+      "score": "2-3",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.14734511790587057,
+      "log_loss": 0.7827475191288815,
+      "consensus": {
+        "home_win": 0.2701340959718678,
+        "draw": 0.2727176433695682,
+        "away_win": 0.457148260658564
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.7,
+        "draw": 3.67,
+        "away_win": 2.19,
+        "over_2_5": 2.29,
+        "btts": 2.06
+      },
+      "date": "2026-01-15T17:30:00+00:00"
+    },
+    {
+      "id": 1388452,
+      "home": "FC Augsburg",
+      "away": "Union Berlin",
+      "score": "1-1",
+      "league": "Bundesliga",
+      "predicted": "away",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.25772869116471925,
+      "log_loss": 1.2627113381964072,
+      "consensus": {
+        "home_win": 0.32849614969118013,
+        "draw": 0.2828859861821929,
+        "away_win": 0.388617864126627
+      },
+      "confidence": 4,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.389,
+          "fair_odd": 2.57,
+          "market_odd": 2.8,
+          "value_pct": 8.9,
+          "edge": 0.089,
+          "stake_suggestion": "1-2% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 3.04,
+        "draw": 3.53,
+        "away_win": 2.57,
+        "over_2_5": 2.15,
+        "btts": 1.9
+      },
+      "date": "2026-01-15T19:30:00+00:00"
+    },
+    {
+      "id": 1378015,
+      "home": "Como",
+      "away": "AC Milan",
+      "score": "1-3",
+      "league": "Serie A",
+      "predicted": "home",
+      "predicted_vector": [
+        1,
+        0,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.16045762501841757,
+      "log_loss": 0.8322358582201335,
+      "consensus": {
+        "home_win": 0.3189535309984895,
+        "draw": 0.2459710379543232,
+        "away_win": 0.4350754310471873
+      },
+      "confidence": 4,
+      "value_bets": [
+        {
+          "market": "over_2_5",
+          "market_display": "Over 2.5 gols",
+          "model_probability": 0.606,
+          "fair_odd": 1.65,
+          "market_odd": 2.05,
+          "value_pct": 24.2,
+          "edge": 0.242,
+          "stake_suggestion": "3-5% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 3.14,
+        "draw": 4.07,
+        "away_win": 2.3,
+        "over_2_5": 1.65,
+        "btts": 1.57
+      },
+      "date": "2026-01-15T19:45:00+00:00"
+    },
+    {
+      "id": 1378021,
+      "home": "Napoli",
+      "away": "Parma",
+      "score": "0-0",
+      "league": "Serie A",
+      "predicted": "away",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.32808378868942484,
+      "log_loss": 1.416460107565746,
+      "consensus": {
+        "home_win": 0.6274147625240931,
+        "draw": 0.24257117474491843,
+        "away_win": 0.1300140627309885
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.13,
+          "fair_odd": 7.69,
+          "market_odd": 9.4,
+          "value_pct": 22.2,
+          "edge": 0.222,
+          "stake_suggestion": "3-5% do bankroll"
+        },
+        {
+          "market": "draw",
+          "market_display": "Empate",
+          "model_probability": 0.243,
+          "fair_odd": 4.12,
+          "market_odd": 4.9,
+          "value_pct": 18.9,
+          "edge": 0.189,
+          "stake_suggestion": "2-3% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 1.59,
+        "draw": 4.12,
+        "away_win": 7.69,
+        "over_2_5": 2.57,
+        "btts": 2.43
+      },
+      "date": "2026-01-14T17:30:00+00:00"
+    },
+    {
+      "id": 1388460,
+      "home": "VfL Wolfsburg",
+      "away": "FC St. Pauli",
+      "score": "2-1",
+      "league": "Bundesliga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.10375570278242385,
+      "log_loss": 0.6047763928948285,
+      "consensus": {
+        "home_win": 0.5461965464143743,
+        "draw": 0.26125828815967433,
+        "away_win": 0.19254516542595143
+      },
+      "confidence": 5,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 1.83,
+        "draw": 3.83,
+        "away_win": 5.19,
+        "over_2_5": 2.27,
+        "btts": 2.07
+      },
+      "date": "2026-01-14T17:30:00+00:00"
+    },
+    {
+      "id": 1388454,
+      "home": "1. FC Köln",
+      "away": "Bayern München",
+      "score": "1-3",
+      "league": "Bundesliga",
+      "predicted": "home",
+      "predicted_vector": [
+        1,
+        0,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.021700856284091043,
+      "log_loss": 0.23331873091009078,
+      "consensus": {
+        "home_win": 0.0955388749988423,
+        "draw": 0.11255999507333907,
+        "away_win": 0.7919011299278187
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "over_2_5",
+          "market_display": "Over 2.5 gols",
+          "model_probability": 0.901,
+          "fair_odd": 1.11,
+          "market_odd": 1.25,
+          "value_pct": 12.6,
+          "edge": 0.126,
+          "stake_suggestion": "2-3% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 10.47,
+        "draw": 8.88,
+        "away_win": 1.26,
+        "over_2_5": 1.11,
+        "btts": 1.29
+      },
+      "date": "2026-01-14T19:30:00+00:00"
+    },
+    {
+      "id": 1388456,
+      "home": "1899 Hoffenheim",
+      "away": "Borussia Mönchengladbach",
+      "score": "5-1",
+      "league": "Bundesliga",
+      "predicted": "home",
+      "predicted_vector": [
+        1,
+        0,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.08080458227571233,
+      "log_loss": 0.5140772937152966,
+      "consensus": {
+        "home_win": 0.5980521666023404,
+        "draw": 0.20691763891339773,
+        "away_win": 0.1950301944842619
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "home_win",
+          "market_display": "Vitória Casa",
+          "model_probability": 0.599,
+          "fair_odd": 1.67,
+          "market_odd": 1.87,
+          "value_pct": 12.0,
+          "edge": 0.12,
+          "stake_suggestion": "2-3% do bankroll"
+        },
+        {
+          "market": "over_2_5",
+          "market_display": "Over 2.5 gols",
+          "model_probability": 0.69,
+          "fair_odd": 1.45,
+          "market_odd": 1.55,
+          "value_pct": 6.9,
+          "edge": 0.069,
+          "stake_suggestion": "1-2% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 1.67,
+        "draw": 4.83,
+        "away_win": 5.13,
+        "over_2_5": 1.45,
+        "btts": 1.48
+      },
+      "date": "2026-01-14T19:30:00+00:00"
+    },
+    {
+      "id": 1388458,
+      "home": "RB Leipzig",
+      "away": "SC Freiburg",
+      "score": "2-0",
+      "league": "Bundesliga",
+      "predicted": "home",
+      "predicted_vector": [
+        1,
+        0,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10964435055912201,
+      "log_loss": 0.6312422749870918,
+      "consensus": {
+        "home_win": 0.5319305863244415,
+        "draw": 0.2217956780876227,
+        "away_win": 0.2462737355879358
+      },
+      "confidence": 4,
+      "value_bets": [
+        {
+          "market": "over_2_5",
+          "market_display": "Over 2.5 gols",
+          "model_probability": 0.704,
+          "fair_odd": 1.42,
+          "market_odd": 1.65,
+          "value_pct": 16.2,
+          "edge": 0.162,
+          "stake_suggestion": "2-3% do bankroll"
+        },
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.246,
+          "fair_odd": 4.06,
+          "market_odd": 4.3,
+          "value_pct": 5.9,
+          "edge": 0.059,
+          "stake_suggestion": "1-2% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 1.88,
+        "draw": 4.51,
+        "away_win": 4.06,
+        "over_2_5": 1.42,
+        "btts": 1.42
+      },
+      "date": "2026-01-14T19:30:00+00:00"
+    },
+    {
+      "id": 1378018,
+      "home": "Inter",
+      "away": "Lecce",
+      "score": "1-0",
+      "league": "Serie A",
+      "predicted": "away",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.025642799426048735,
+      "log_loss": 0.2503934798955555,
+      "consensus": {
+        "home_win": 0.7784944009021884,
+        "draw": 0.15156519123712664,
+        "away_win": 0.06994040786068506
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.07,
+          "fair_odd": 14.3,
+          "market_odd": 16.0,
+          "value_pct": 11.9,
+          "edge": 0.119,
+          "stake_suggestion": "2-3% do bankroll"
+        },
+        {
+          "market": "draw",
+          "market_display": "Empate",
+          "model_probability": 0.152,
+          "fair_odd": 6.6,
+          "market_odd": 7.0,
+          "value_pct": 6.1,
+          "edge": 0.061,
+          "stake_suggestion": "1-2% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 1.28,
+        "draw": 6.6,
+        "away_win": 14.3,
+        "over_2_5": 1.77,
+        "btts": 2.17
+      },
+      "date": "2026-01-14T19:45:00+00:00"
+    },
+    {
+      "id": 1388459,
+      "home": "VfB Stuttgart",
+      "away": "Eintracht Frankfurt",
+      "score": "3-2",
+      "league": "Bundesliga",
+      "predicted": "away",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.16994865782365934,
+      "log_loss": 0.8606902483790089,
+      "consensus": {
+        "home_win": 0.4228700961594501,
+        "draw": 0.21705416738229646,
+        "away_win": 0.36007573645825347
+      },
+      "confidence": 4,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.36,
+          "fair_odd": 2.78,
+          "market_odd": 4.35,
+          "value_pct": 56.5,
+          "edge": 0.565,
+          "stake_suggestion": "3-5% do bankroll"
+        },
+        {
+          "market": "over_2_5",
+          "market_display": "Over 2.5 gols",
+          "model_probability": 0.769,
+          "fair_odd": 1.3,
+          "market_odd": 1.44,
+          "value_pct": 10.8,
+          "edge": 0.108,
+          "stake_suggestion": "2-3% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 2.36,
+        "draw": 4.61,
+        "away_win": 2.78,
+        "over_2_5": 1.3,
+        "btts": 1.31
+      },
+      "date": "2026-01-13T17:30:00+00:00"
+    },
+    {
+      "id": 1388453,
+      "home": "Borussia Dortmund",
+      "away": "Werder Bremen",
+      "score": "3-0",
+      "league": "Bundesliga",
+      "predicted": "away",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.07160484874131379,
+      "log_loss": 0.47486993400313926,
+      "consensus": {
+        "home_win": 0.6219659478253157,
+        "draw": 0.2040158480164712,
+        "away_win": 0.17401820415821312
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.174,
+          "fair_odd": 5.75,
+          "market_odd": 7.6,
+          "value_pct": 32.2,
+          "edge": 0.322,
+          "stake_suggestion": "3-5% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 1.61,
+        "draw": 4.9,
+        "away_win": 5.75,
+        "over_2_5": 1.64,
+        "btts": 1.63
+      },
+      "date": "2026-01-13T19:30:00+00:00"
+    },
+    {
+      "id": 1388457,
+      "home": "FSV Mainz 05",
+      "away": "1. FC Heidenheim",
+      "score": "2-1",
+      "league": "Bundesliga",
+      "predicted": "away",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.19180201047612744,
+      "log_loss": 0.9650011385669565,
+      "consensus": {
+        "home_win": 0.3809827659647021,
+        "draw": 0.32729242115675417,
+        "away_win": 0.29172481287854385
+      },
+      "confidence": 4,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.292,
+          "fair_odd": 3.43,
+          "market_odd": 4.3,
+          "value_pct": 25.4,
+          "edge": 0.254,
+          "stake_suggestion": "3-5% do bankroll"
+        },
+        {
+          "market": "draw",
+          "market_display": "Empate",
+          "model_probability": 0.327,
+          "fair_odd": 3.06,
+          "market_odd": 3.75,
+          "value_pct": 22.5,
+          "edge": 0.225,
+          "stake_suggestion": "3-5% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 2.62,
+        "draw": 3.06,
+        "away_win": 3.43,
+        "over_2_5": 3.29,
+        "btts": 2.51
+      },
+      "date": "2026-01-13T19:30:00+00:00"
+    },
+    {
+      "id": 1378057,
+      "home": "Genoa",
+      "away": "Cagliari",
+      "score": "3-0",
+      "league": "Serie A",
+      "predicted": "away",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.1892519178165187,
+      "log_loss": 0.9550965270508187,
+      "consensus": {
+        "home_win": 0.38477500156422606,
+        "draw": 0.3063764977799804,
+        "away_win": 0.3088485006557935
+      },
+      "confidence": 4,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.309,
+          "fair_odd": 3.24,
+          "market_odd": 3.95,
+          "value_pct": 21.9,
+          "edge": 0.219,
+          "stake_suggestion": "3-5% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 2.6,
+        "draw": 3.26,
+        "away_win": 3.24,
+        "over_2_5": 2.59,
+        "btts": 2.13
+      },
+      "date": "2026-01-12T17:30:00+00:00"
+    },
+    {
+      "id": 1378059,
+      "home": "Juventus",
+      "away": "Cremonese",
+      "score": "5-0",
+      "league": "Serie A",
+      "predicted": "away",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.07944242072346137,
+      "log_loss": 0.506296532863169,
+      "consensus": {
+        "home_win": 0.6027236176419157,
+        "draw": 0.22678491568735737,
+        "away_win": 0.17049146667072693
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.17,
+          "fair_odd": 5.87,
+          "market_odd": 11.5,
+          "value_pct": 95.9,
+          "edge": 0.959,
+          "stake_suggestion": "3-5% do bankroll"
+        },
+        {
+          "market": "draw",
+          "market_display": "Empate",
+          "model_probability": 0.227,
+          "fair_odd": 4.41,
+          "market_odd": 5.7,
+          "value_pct": 29.3,
+          "edge": 0.293,
+          "stake_suggestion": "3-5% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 1.66,
+        "draw": 4.41,
+        "away_win": 5.87,
+        "over_2_5": 2.03,
+        "btts": 1.9
+      },
+      "date": "2026-01-12T19:45:00+00:00"
+    },
+    {
+      "id": 1391006,
+      "home": "Sevilla",
+      "away": "Celta Vigo",
+      "score": "0-1",
+      "league": "La Liga",
+      "predicted": "home",
+      "predicted_vector": [
+        1,
+        0,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.1933368555489979,
+      "log_loss": 0.9674786838433359,
+      "consensus": {
+        "home_win": 0.35172339166673505,
+        "draw": 0.2682365761057757,
+        "away_win": 0.3800400322274893
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "over_2_5",
+          "market_display": "Over 2.5 gols",
+          "model_probability": 0.49,
+          "fair_odd": 2.04,
+          "market_odd": 2.25,
+          "value_pct": 10.3,
+          "edge": 0.103,
+          "stake_suggestion": "2-3% do bankroll"
+        },
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.38,
+          "fair_odd": 2.63,
+          "market_odd": 2.88,
+          "value_pct": 9.5,
+          "edge": 0.095,
+          "stake_suggestion": "1-2% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 2.84,
+        "draw": 3.73,
+        "away_win": 2.63,
+        "over_2_5": 2.04,
+        "btts": 1.81
+      },
+      "date": "2026-01-12T20:00:00+00:00"
+    },
+    {
+      "id": 1378060,
+      "home": "Lecce",
+      "away": "Parma",
+      "score": "1-2",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.2333151285693447,
+      "log_loss": 1.147803667140557,
+      "consensus": {
+        "home_win": 0.32019135313432945,
+        "draw": 0.3624756734775181,
+        "away_win": 0.3173329733881525
+      },
+      "confidence": 5,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.12,
+        "draw": 2.76,
+        "away_win": 3.15,
+        "over_2_5": 5.83,
+        "btts": 3.64
+      },
+      "date": "2026-01-11T11:30:00+00:00"
+    },
+    {
+      "id": 1391004,
+      "home": "Rayo Vallecano",
+      "away": "Mallorca",
+      "score": "2-1",
+      "league": "La Liga",
+      "predicted": "away",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2358999689401713,
+      "log_loss": 1.1592526620551253,
+      "consensus": {
+        "home_win": 0.3137205485657959,
+        "draw": 0.3183336918819066,
+        "away_win": 0.3679457595522976
+      },
+      "confidence": 4,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.368,
+          "fair_odd": 2.72,
+          "market_odd": 4.5,
+          "value_pct": 65.4,
+          "edge": 0.654,
+          "stake_suggestion": "3-5% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 3.19,
+        "draw": 3.14,
+        "away_win": 2.72,
+        "over_2_5": 3.3,
+        "btts": 2.55
+      },
+      "date": "2026-01-11T13:00:00+00:00"
+    },
+    {
+      "id": 1378056,
+      "home": "Fiorentina",
+      "away": "AC Milan",
+      "score": "1-1",
+      "league": "Serie A",
+      "predicted": "away",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.30651507749916035,
+      "log_loss": 1.445694389319288,
+      "consensus": {
+        "home_win": 0.2355051545178766,
+        "draw": 0.2355824338206982,
+        "away_win": 0.5289124116614252
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.529,
+          "fair_odd": 1.89,
+          "market_odd": 2.14,
+          "value_pct": 13.2,
+          "edge": 0.132,
+          "stake_suggestion": "2-3% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 4.25,
+        "draw": 4.24,
+        "away_win": 1.89,
+        "over_2_5": 1.86,
+        "btts": 1.76
+      },
+      "date": "2026-01-11T14:00:00+00:00"
+    },
+    {
+      "id": 1388445,
+      "home": "Borussia Mönchengladbach",
+      "away": "FC Augsburg",
+      "score": "4-0",
+      "league": "Bundesliga",
+      "predicted": "away",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.14382571168057215,
+      "log_loss": 0.7682146350176114,
+      "consensus": {
+        "home_win": 0.4638404540027232,
+        "draw": 0.2798387460768345,
+        "away_win": 0.25632079992044227
+      },
+      "confidence": 4,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.256,
+          "fair_odd": 3.9,
+          "market_odd": 4.1,
+          "value_pct": 5.1,
+          "edge": 0.051,
+          "stake_suggestion": "1-2% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 2.16,
+        "draw": 3.57,
+        "away_win": 3.9,
+        "over_2_5": 2.14,
+        "btts": 1.9
+      },
+      "date": "2026-01-11T14:30:00+00:00"
+    },
+    {
+      "id": 1391003,
+      "home": "Levante",
+      "away": "Espanyol",
+      "score": "1-1",
+      "league": "La Liga",
+      "predicted": "home",
+      "predicted_vector": [
+        1,
+        0,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.25965869280549597,
+      "log_loss": 1.2751340585733955,
+      "consensus": {
+        "home_win": 0.35458006369820294,
+        "draw": 0.27939351061525775,
+        "away_win": 0.3660264256865393
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "home_win",
+          "market_display": "Vitória Casa",
+          "model_probability": 0.355,
+          "fair_odd": 2.82,
+          "market_odd": 3.15,
+          "value_pct": 11.7,
+          "edge": 0.117,
+          "stake_suggestion": "2-3% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 2.82,
+        "draw": 3.58,
+        "away_win": 2.73,
+        "over_2_5": 2.28,
+        "btts": 1.95
+      },
+      "date": "2026-01-11T15:15:00+00:00"
+    },
+    {
+      "id": 1388444,
+      "home": "Bayern München",
+      "away": "VfL Wolfsburg",
+      "score": "8-1",
+      "league": "Bundesliga",
+      "predicted": "away",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.01751606464507647,
+      "log_loss": 0.20651673384794386,
+      "consensus": {
+        "home_win": 0.813412649819476,
+        "draw": 0.10605954881956943,
+        "away_win": 0.08052780136095443
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.081,
+          "fair_odd": 12.42,
+          "market_odd": 20.0,
+          "value_pct": 61.0,
+          "edge": 0.61,
+          "stake_suggestion": "3-5% do bankroll"
+        },
+        {
+          "market": "over_2_5",
+          "market_display": "Over 2.5 gols",
+          "model_probability": 0.901,
+          "fair_odd": 1.11,
+          "market_odd": 1.22,
+          "value_pct": 9.9,
+          "edge": 0.099,
+          "stake_suggestion": "1-2% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 1.23,
+        "draw": 9.43,
+        "away_win": 12.42,
+        "over_2_5": 1.11,
+        "btts": 1.31
+      },
+      "date": "2026-01-11T16:30:00+00:00"
+    },
+    {
+      "id": 1378063,
+      "home": "Verona",
+      "away": "Lazio",
+      "score": "0-1",
+      "league": "Serie A",
+      "predicted": "home",
+      "predicted_vector": [
+        1,
+        0,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.20662159786966852,
+      "log_loss": 1.0285683238224486,
+      "consensus": {
+        "home_win": 0.33982801509799726,
+        "draw": 0.3026535399195293,
+        "away_win": 0.3575184449824735
+      },
+      "confidence": 4,
+      "value_bets": [
+        {
+          "market": "home_win",
+          "market_display": "Vitória Casa",
+          "model_probability": 0.34,
+          "fair_odd": 2.94,
+          "market_odd": 3.45,
+          "value_pct": 17.3,
+          "edge": 0.173,
+          "stake_suggestion": "2-3% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 2.94,
+        "draw": 3.3,
+        "away_win": 2.8,
+        "over_2_5": 3.03,
+        "btts": 2.38
+      },
+      "date": "2026-01-11T17:00:00+00:00"
+    },
+    {
+      "id": 1378058,
+      "home": "Inter",
+      "away": "Napoli",
+      "score": "2-2",
+      "league": "Serie A",
+      "predicted": "home",
+      "predicted_vector": [
+        1,
+        0,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.3473557795003372,
+      "log_loss": 1.627523831146444,
+      "consensus": {
+        "home_win": 0.5934233028799402,
+        "draw": 0.19641532999443026,
+        "away_win": 0.2101613671256296
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "over_2_5",
+          "market_display": "Over 2.5 gols",
+          "model_probability": 0.725,
+          "fair_odd": 1.38,
+          "market_odd": 2.25,
+          "value_pct": 63.0,
+          "edge": 0.63,
+          "stake_suggestion": "3-5% do bankroll"
+        },
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.21,
+          "fair_odd": 4.76,
+          "market_odd": 5.0,
+          "value_pct": 5.0,
+          "edge": 0.05,
+          "stake_suggestion": "1-2% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 1.69,
+        "draw": 5.09,
+        "away_win": 4.76,
+        "over_2_5": 1.38,
+        "btts": 1.42
+      },
+      "date": "2026-01-11T19:45:00+00:00"
+    }
+  ],
+  "failed_matches": []
+}

@@ -7,16 +7,8 @@ import { useState } from 'react';
  */
 export default function AtAGlance({ analysis, match }) {
   const [showRiskInfo, setShowRiskInfo] = useState(false);
-  
-  console.log('🔍 AtAGlance recebeu:', { 
-    hasAnalysis: !!analysis,
-    hasAnalysisData: !!analysis?.analysis_data,
-    hasMatch: !!match,
-    analysisDataKeys: analysis?.analysis_data ? Object.keys(analysis.analysis_data) : []
-  });
 
   if (!analysis) {
-    console.warn('⚠️ AtAGlance: análise não definida');
     return null;
   }
 
@@ -51,13 +43,6 @@ export default function AtAGlance({ analysis, match }) {
   
   // Risco
   const riskLevel = risk || 'medium';
-  
-  console.log('🎲 ANÁLISE DE RISCO:', {
-    riskFromAnalysis: risk,
-    riskLevel,
-    consensus,
-    confidenceStars: stars
-  });
   
   const riskConfig = {
     low: { 

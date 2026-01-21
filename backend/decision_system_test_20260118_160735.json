@@ -1,0 +1,2428 @@
+{
+  "metadata": {
+    "timestamp": "20260118_160735",
+    "system": "Decision System v1.0",
+    "philosophy": "Escolha de melhor mercado (não predição 1X2)",
+    "total_matches": 120,
+    "bets_made": 0,
+    "no_bets": 120,
+    "coverage": 0.0
+  },
+  "tier_performance": {
+    "tier_1": {
+      "total": 0,
+      "correct": 0,
+      "accuracy": 0,
+      "target": "70-80%"
+    },
+    "tier_2": {
+      "total": 0,
+      "correct": 0,
+      "accuracy": 0,
+      "target": "60-72%"
+    }
+  },
+  "market_breakdown": {},
+  "detailed_results": [
+    {
+      "id": 1378058,
+      "home": "Inter",
+      "away": "Napoli",
+      "score": "2-2",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-11T19:45:00+00:00"
+    },
+    {
+      "id": 1378063,
+      "home": "Verona",
+      "away": "Lazio",
+      "score": "0-1",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-11T17:00:00+00:00"
+    },
+    {
+      "id": 1388444,
+      "home": "Bayern München",
+      "away": "VfL Wolfsburg",
+      "score": "8-1",
+      "league": "Bundesliga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-11T16:30:00+00:00"
+    },
+    {
+      "id": 1391003,
+      "home": "Levante",
+      "away": "Espanyol",
+      "score": "1-1",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-11T15:15:00+00:00"
+    },
+    {
+      "id": 1388445,
+      "home": "Borussia Mönchengladbach",
+      "away": "FC Augsburg",
+      "score": "4-0",
+      "league": "Bundesliga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-11T14:30:00+00:00"
+    },
+    {
+      "id": 1378056,
+      "home": "Fiorentina",
+      "away": "AC Milan",
+      "score": "1-1",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-11T14:00:00+00:00"
+    },
+    {
+      "id": 1391004,
+      "home": "Rayo Vallecano",
+      "away": "Mallorca",
+      "score": "2-1",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-11T13:00:00+00:00"
+    },
+    {
+      "id": 1378060,
+      "home": "Lecce",
+      "away": "Parma",
+      "score": "1-2",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-11T11:30:00+00:00"
+    },
+    {
+      "id": 1391007,
+      "home": "Valencia",
+      "away": "Elche",
+      "score": "1-1",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-10T20:00:00+00:00"
+    },
+    {
+      "id": 1378054,
+      "home": "Atalanta",
+      "away": "Torino",
+      "score": "2-0",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-10T19:45:00+00:00"
+    },
+    {
+      "id": 1388443,
+      "home": "Bayer Leverkusen",
+      "away": "VfB Stuttgart",
+      "score": "1-4",
+      "league": "Bundesliga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-10T17:30:00+00:00"
+    },
+    {
+      "id": 1391002,
+      "home": "Girona",
+      "away": "Osasuna",
+      "score": "1-0",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-10T17:30:00+00:00"
+    },
+    {
+      "id": 1378061,
+      "home": "AS Roma",
+      "away": "Sassuolo",
+      "score": "2-0",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-10T17:00:00+00:00"
+    },
+    {
+      "id": 1391008,
+      "home": "Villarreal",
+      "away": "Alaves",
+      "score": "3-1",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-10T15:15:00+00:00"
+    },
+    {
+      "id": 1388447,
+      "home": "SC Freiburg",
+      "away": "Hamburger SV",
+      "score": "2-1",
+      "league": "Bundesliga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-10T14:30:00+00:00"
+    },
+    {
+      "id": 1388448,
+      "home": "1. FC Heidenheim",
+      "away": "1. FC Köln",
+      "score": "2-2",
+      "league": "Bundesliga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-10T14:30:00+00:00"
+    },
+    {
+      "id": 1388450,
+      "home": "Union Berlin",
+      "away": "FSV Mainz 05",
+      "score": "2-2",
+      "league": "Bundesliga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-10T14:30:00+00:00"
+    },
+    {
+      "id": 1378055,
+      "home": "Como",
+      "away": "Bologna",
+      "score": "1-1",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-10T14:00:00+00:00"
+    },
+    {
+      "id": 1378062,
+      "home": "Udinese",
+      "away": "Pisa",
+      "score": "2-2",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-10T14:00:00+00:00"
+    },
+    {
+      "id": 1391005,
+      "home": "Oviedo",
+      "away": "Real Betis",
+      "score": "1-1",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-10T13:00:00+00:00"
+    },
+    {
+      "id": 1391001,
+      "home": "Getafe",
+      "away": "Real Sociedad",
+      "score": "1-2",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-09T20:00:00+00:00"
+    },
+    {
+      "id": 1388446,
+      "home": "Eintracht Frankfurt",
+      "away": "Borussia Dortmund",
+      "score": "3-3",
+      "league": "Bundesliga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-09T19:30:00+00:00"
+    },
+    {
+      "id": 1379169,
+      "home": "Arsenal",
+      "away": "Liverpool",
+      "score": "0-0",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-08T20:00:00+00:00"
+    },
+    {
+      "id": 1378048,
+      "home": "AC Milan",
+      "away": "Genoa",
+      "score": "1-1",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-08T19:45:00+00:00"
+    },
+    {
+      "id": 1378045,
+      "home": "Cremonese",
+      "away": "Cagliari",
+      "score": "2-2",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-08T17:30:00+00:00"
+    },
+    {
+      "id": 1379172,
+      "home": "Burnley",
+      "away": "Manchester United",
+      "score": "2-2",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-07T20:15:00+00:00"
+    },
+    {
+      "id": 1379177,
+      "home": "Newcastle",
+      "away": "Leeds",
+      "score": "4-3",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-07T20:15:00+00:00"
+    },
+    {
+      "id": 1378046,
+      "home": "Lazio",
+      "away": "Fiorentina",
+      "score": "2-2",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-07T19:45:00+00:00"
+    },
+    {
+      "id": 1378050,
+      "home": "Parma",
+      "away": "Inter",
+      "score": "0-2",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-07T19:45:00+00:00"
+    },
+    {
+      "id": 1378053,
+      "home": "Torino",
+      "away": "Udinese",
+      "score": "1-2",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-07T19:45:00+00:00"
+    },
+    {
+      "id": 1379170,
+      "home": "Bournemouth",
+      "away": "Tottenham",
+      "score": "3-2",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-07T19:30:00+00:00"
+    },
+    {
+      "id": 1379171,
+      "home": "Brentford",
+      "away": "Sunderland",
+      "score": "3-0",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-07T19:30:00+00:00"
+    },
+    {
+      "id": 1379173,
+      "home": "Crystal Palace",
+      "away": "Aston Villa",
+      "score": "0-0",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-07T19:30:00+00:00"
+    },
+    {
+      "id": 1379174,
+      "home": "Everton",
+      "away": "Wolves",
+      "score": "1-1",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-07T19:30:00+00:00"
+    },
+    {
+      "id": 1379175,
+      "home": "Fulham",
+      "away": "Chelsea",
+      "score": "2-1",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-07T19:30:00+00:00"
+    },
+    {
+      "id": 1379176,
+      "home": "Manchester City",
+      "away": "Brighton",
+      "score": "1-1",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-07T19:30:00+00:00"
+    },
+    {
+      "id": 1378044,
+      "home": "Bologna",
+      "away": "Atalanta",
+      "score": "0-2",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-07T17:30:00+00:00"
+    },
+    {
+      "id": 1378049,
+      "home": "Napoli",
+      "away": "Verona",
+      "score": "2-2",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-07T17:30:00+00:00"
+    },
+    {
+      "id": 1379178,
+      "home": "West Ham",
+      "away": "Nottingham Forest",
+      "score": "1-2",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-06T20:00:00+00:00"
+    },
+    {
+      "id": 1378052,
+      "home": "Sassuolo",
+      "away": "Juventus",
+      "score": "0-3",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-06T19:45:00+00:00"
+    },
+    {
+      "id": 1378047,
+      "home": "Lecce",
+      "away": "AS Roma",
+      "score": "0-2",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-06T17:00:00+00:00"
+    },
+    {
+      "id": 1378051,
+      "home": "Pisa",
+      "away": "Como",
+      "score": "0-3",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-06T14:00:00+00:00"
+    },
+    {
+      "id": 1390997,
+      "home": "Real Sociedad",
+      "away": "Atletico Madrid",
+      "score": "1-1",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-04T20:00:00+00:00"
+    },
+    {
+      "id": 1378039,
+      "home": "Inter",
+      "away": "Bologna",
+      "score": "3-1",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-04T19:45:00+00:00"
+    },
+    {
+      "id": 1387849,
+      "home": "Paris Saint Germain",
+      "away": "Paris FC",
+      "score": "2-1",
+      "league": "Ligue 1",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-04T19:45:00+00:00"
+    },
+    {
+      "id": 1379165,
+      "home": "Manchester City",
+      "away": "Chelsea",
+      "score": "1-1",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-04T17:30:00+00:00"
+    },
+    {
+      "id": 1390989,
+      "home": "Alaves",
+      "away": "Oviedo",
+      "score": "1-1",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-04T17:30:00+00:00"
+    },
+    {
+      "id": 1390993,
+      "home": "Mallorca",
+      "away": "Girona",
+      "score": "1-2",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-04T17:30:00+00:00"
+    },
+    {
+      "id": 1378043,
+      "home": "Verona",
+      "away": "Torino",
+      "score": "0-3",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-04T17:00:00+00:00"
+    },
+    {
+      "id": 1387842,
+      "home": "Stade Brestois 29",
+      "away": "Auxerre",
+      "score": "2-0",
+      "league": "Ligue 1",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-04T16:15:00+00:00"
+    },
+    {
+      "id": 1387843,
+      "home": "Le Havre",
+      "away": "Angers",
+      "score": "2-1",
+      "league": "Ligue 1",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-04T16:15:00+00:00"
+    },
+    {
+      "id": 1387845,
+      "home": "Lorient",
+      "away": "Metz",
+      "score": "1-1",
+      "league": "Ligue 1",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-04T16:15:00+00:00"
+    },
+    {
+      "id": 1379163,
+      "home": "Fulham",
+      "away": "Liverpool",
+      "score": "2-2",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-04T15:15:00+00:00"
+    },
+    {
+      "id": 1390996,
+      "home": "Real Madrid",
+      "away": "Real Betis",
+      "score": "5-1",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-04T15:15:00+00:00"
+    },
+    {
+      "id": 1379162,
+      "home": "Everton",
+      "away": "Brentford",
+      "score": "2-4",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-04T15:00:00+00:00"
+    },
+    {
+      "id": 1379166,
+      "home": "Newcastle",
+      "away": "Crystal Palace",
+      "score": "2-0",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-04T15:00:00+00:00"
+    },
+    {
+      "id": 1379167,
+      "home": "Tottenham",
+      "away": "Sunderland",
+      "score": "1-1",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-04T15:00:00+00:00"
+    },
+    {
+      "id": 1378037,
+      "home": "Fiorentina",
+      "away": "Cremonese",
+      "score": "1-0",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-04T14:00:00+00:00"
+    },
+    {
+      "id": 1387846,
+      "home": "Marseille",
+      "away": "Nantes",
+      "score": "0-2",
+      "league": "Ligue 1",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-04T14:00:00+00:00"
+    },
+    {
+      "id": 1390998,
+      "home": "Sevilla",
+      "away": "Levante",
+      "score": "0-3",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-04T13:00:00+00:00"
+    },
+    {
+      "id": 1379164,
+      "home": "Leeds",
+      "away": "Manchester United",
+      "score": "1-1",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-04T12:30:00+00:00"
+    },
+    {
+      "id": 1378041,
+      "home": "Lazio",
+      "away": "Napoli",
+      "score": "0-2",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-04T11:30:00+00:00"
+    },
+    {
+      "id": 1387844,
+      "home": "Lille",
+      "away": "Rennes",
+      "score": "0-2",
+      "league": "Ligue 1",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-03T20:05:00+00:00"
+    },
+    {
+      "id": 1390992,
+      "home": "Espanyol",
+      "away": "Barcelona",
+      "score": "0-2",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-03T20:00:00+00:00"
+    },
+    {
+      "id": 1378034,
+      "home": "Atalanta",
+      "away": "AS Roma",
+      "score": "1-0",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-03T19:45:00+00:00"
+    },
+    {
+      "id": 1387848,
+      "home": "Nice",
+      "away": "Strasbourg",
+      "score": "1-1",
+      "league": "Ligue 1",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-03T18:00:00+00:00"
+    },
+    {
+      "id": 1379160,
+      "home": "Bournemouth",
+      "away": "Arsenal",
+      "score": "2-3",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-03T17:30:00+00:00"
+    },
+    {
+      "id": 1390991,
+      "home": "Elche",
+      "away": "Villarreal",
+      "score": "1-3",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-03T17:30:00+00:00"
+    },
+    {
+      "id": 1378040,
+      "home": "Juventus",
+      "away": "Lecce",
+      "score": "1-1",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-03T17:00:00+00:00"
+    },
+    {
+      "id": 1387847,
+      "home": "Monaco",
+      "away": "Lyon",
+      "score": "1-3",
+      "league": "Ligue 1",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-03T16:00:00+00:00"
+    },
+    {
+      "id": 1390994,
+      "home": "Osasuna",
+      "away": "Athletic Club",
+      "score": "1-1",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-03T15:15:00+00:00"
+    },
+    {
+      "id": 1379161,
+      "home": "Brighton",
+      "away": "Burnley",
+      "score": "2-0",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-03T15:00:00+00:00"
+    },
+    {
+      "id": 1379168,
+      "home": "Wolves",
+      "away": "West Ham",
+      "score": "3-0",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-03T15:00:00+00:00"
+    },
+    {
+      "id": 1378038,
+      "home": "Genoa",
+      "away": "Pisa",
+      "score": "1-1",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-03T14:00:00+00:00"
+    },
+    {
+      "id": 1378042,
+      "home": "Sassuolo",
+      "away": "Parma",
+      "score": "1-1",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-03T14:00:00+00:00"
+    },
+    {
+      "id": 1390990,
+      "home": "Celta Vigo",
+      "away": "Valencia",
+      "score": "4-1",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-03T13:00:00+00:00"
+    },
+    {
+      "id": 1379159,
+      "home": "Aston Villa",
+      "away": "Nottingham Forest",
+      "score": "3-1",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-03T12:30:00+00:00"
+    },
+    {
+      "id": 1378036,
+      "home": "Como",
+      "away": "Udinese",
+      "score": "1-0",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-03T11:30:00+00:00"
+    },
+    {
+      "id": 1390995,
+      "home": "Rayo Vallecano",
+      "away": "Getafe",
+      "score": "1-1",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-02T20:00:00+00:00"
+    },
+    {
+      "id": 1378035,
+      "home": "Cagliari",
+      "away": "AC Milan",
+      "score": "0-1",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-02T19:45:00+00:00"
+    },
+    {
+      "id": 1387850,
+      "home": "Toulouse",
+      "away": "Lens",
+      "score": "0-3",
+      "league": "Ligue 1",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-02T19:45:00+00:00"
+    },
+    {
+      "id": 1379150,
+      "home": "Brentford",
+      "away": "Tottenham",
+      "score": "0-0",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-01T20:00:00+00:00"
+    },
+    {
+      "id": 1379157,
+      "home": "Sunderland",
+      "away": "Manchester City",
+      "score": "0-0",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-01T20:00:00+00:00"
+    },
+    {
+      "id": 1379153,
+      "home": "Crystal Palace",
+      "away": "Fulham",
+      "score": "1-1",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2026-01-01T17:30:00+00:00"
+    },
+    {
+      "id": 1379154,
+      "home": "Liverpool",
+      "away": "Leeds",
+      "score": "0-0",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2026-01-01T17:30:00+00:00"
+    },
+    {
+      "id": 1379149,
+      "home": "Arsenal",
+      "away": "Aston Villa",
+      "score": "4-1",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-30T20:15:00+00:00"
+    },
+    {
+      "id": 1379155,
+      "home": "Manchester United",
+      "away": "Wolves",
+      "score": "1-1",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-30T20:15:00+00:00"
+    },
+    {
+      "id": 1379151,
+      "home": "Burnley",
+      "away": "Newcastle",
+      "score": "1-3",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-30T19:30:00+00:00"
+    },
+    {
+      "id": 1379152,
+      "home": "Chelsea",
+      "away": "Bournemouth",
+      "score": "2-2",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-30T19:30:00+00:00"
+    },
+    {
+      "id": 1379156,
+      "home": "Nottingham Forest",
+      "away": "Everton",
+      "score": "0-2",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2025-12-30T19:30:00+00:00"
+    },
+    {
+      "id": 1379158,
+      "home": "West Ham",
+      "away": "Brighton",
+      "score": "2-2",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2025-12-30T19:30:00+00:00"
+    },
+    {
+      "id": 1378031,
+      "home": "AS Roma",
+      "away": "Genoa",
+      "score": "3-1",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-29T19:45:00+00:00"
+    },
+    {
+      "id": 1378024,
+      "home": "Atalanta",
+      "away": "Inter",
+      "score": "0-1",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-28T19:45:00+00:00"
+    },
+    {
+      "id": 1378025,
+      "home": "Bologna",
+      "away": "Sassuolo",
+      "score": "1-1",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-28T17:00:00+00:00"
+    },
+    {
+      "id": 1379143,
+      "home": "Crystal Palace",
+      "away": "Tottenham",
+      "score": "0-1",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-28T16:30:00+00:00"
+    },
+    {
+      "id": 1378026,
+      "home": "Cremonese",
+      "away": "Napoli",
+      "score": "0-2",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-28T14:00:00+00:00"
+    },
+    {
+      "id": 1379147,
+      "home": "Sunderland",
+      "away": "Leeds",
+      "score": "1-1",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-28T14:00:00+00:00"
+    },
+    {
+      "id": 1378028,
+      "home": "AC Milan",
+      "away": "Verona",
+      "score": "3-0",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-28T11:30:00+00:00"
+    },
+    {
+      "id": 1378030,
+      "home": "Pisa",
+      "away": "Juventus",
+      "score": "0-2",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-27T19:45:00+00:00"
+    },
+    {
+      "id": 1379142,
+      "home": "Chelsea",
+      "away": "Aston Villa",
+      "score": "1-2",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-27T17:30:00+00:00"
+    },
+    {
+      "id": 1378033,
+      "home": "Udinese",
+      "away": "Lazio",
+      "score": "1-1",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-27T17:00:00+00:00"
+    },
+    {
+      "id": 1379139,
+      "home": "Arsenal",
+      "away": "Brighton",
+      "score": "2-1",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-27T15:00:00+00:00"
+    },
+    {
+      "id": 1379140,
+      "home": "Brentford",
+      "away": "Bournemouth",
+      "score": "4-1",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2025-12-27T15:00:00+00:00"
+    },
+    {
+      "id": 1379141,
+      "home": "Burnley",
+      "away": "Everton",
+      "score": "0-0",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2025-12-27T15:00:00+00:00"
+    },
+    {
+      "id": 1379144,
+      "home": "Liverpool",
+      "away": "Wolves",
+      "score": "2-1",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-27T15:00:00+00:00"
+    },
+    {
+      "id": 1379148,
+      "home": "West Ham",
+      "away": "Fulham",
+      "score": "0-1",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-27T15:00:00+00:00"
+    },
+    {
+      "id": 1378027,
+      "home": "Lecce",
+      "away": "Como",
+      "score": "0-3",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-27T14:00:00+00:00"
+    },
+    {
+      "id": 1378032,
+      "home": "Torino",
+      "away": "Cagliari",
+      "score": "1-2",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2025-12-27T14:00:00+00:00"
+    },
+    {
+      "id": 1379146,
+      "home": "Nottingham Forest",
+      "away": "Manchester City",
+      "score": "1-2",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-27T12:30:00+00:00"
+    },
+    {
+      "id": 1378029,
+      "home": "Parma",
+      "away": "Fiorentina",
+      "score": "1-0",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2025-12-27T11:30:00+00:00"
+    },
+    {
+      "id": 1379145,
+      "home": "Manchester United",
+      "away": "Newcastle",
+      "score": "1-0",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-26T20:00:00+00:00"
+    },
+    {
+      "id": 1379133,
+      "home": "Fulham",
+      "away": "Nottingham Forest",
+      "score": "1-0",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-22T20:00:00+00:00"
+    },
+    {
+      "id": 1390979,
+      "home": "Athletic Club",
+      "away": "Espanyol",
+      "score": "1-2",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-22T20:00:00+00:00"
+    },
+    {
+      "id": 1390980,
+      "home": "Real Betis",
+      "away": "Getafe",
+      "score": "4-0",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-21T20:00:00+00:00"
+    },
+    {
+      "id": 1378017,
+      "home": "Genoa",
+      "away": "Atalanta",
+      "score": "0-1",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-21T19:45:00+00:00"
+    },
+    {
+      "id": 1390981,
+      "home": "Elche",
+      "away": "Rayo Vallecano",
+      "score": "4-0",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-21T17:30:00+00:00"
+    },
+    {
+      "id": 1378016,
+      "home": "Fiorentina",
+      "away": "Udinese",
+      "score": "5-1",
+      "league": "Serie A",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-21T17:00:00+00:00"
+    },
+    {
+      "id": 1379129,
+      "home": "Aston Villa",
+      "away": "Manchester United",
+      "score": "2-1",
+      "league": "Premier League",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": false,
+      "date": "2025-12-21T16:30:00+00:00"
+    },
+    {
+      "id": 1388438,
+      "home": "1. FC Heidenheim",
+      "away": "Bayern München",
+      "score": "0-4",
+      "league": "Bundesliga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-21T16:30:00+00:00"
+    },
+    {
+      "id": 1390988,
+      "home": "Villarreal",
+      "away": "Barcelona",
+      "score": "0-2",
+      "league": "La Liga",
+      "recommendation": {},
+      "evaluation": {
+        "market": "no_bet",
+        "predicted": "Skip",
+        "actual": "Skip",
+        "correct": null,
+        "probability": 0.0,
+        "ev": 0.0,
+        "tier": 0,
+        "reason": "Sem padrão claro"
+      },
+      "should_publish": true,
+      "date": "2025-12-21T15:15:00+00:00"
+    }
+  ]
+}

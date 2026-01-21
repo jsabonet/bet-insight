@@ -2,6 +2,14 @@
 
 // Logo padrão baseado na inicial do time
 export const getTeamLogoFallback = (teamName) => {
+  // Validar se teamName existe
+  if (!teamName || typeof teamName !== 'string') {
+    return {
+      initial: '?',
+      gradient: 'from-gray-400 to-gray-500'
+    };
+  }
+  
   const initial = teamName.charAt(0).toUpperCase();
   const colors = [
     'from-red-500 to-red-600',
@@ -45,6 +53,15 @@ export const isValidLogoUrl = (url) => {
 
 // Componente de imagem de logo com fallback
 export const TeamLogo = ({ team, size = 'md', className = '' }) => {
+  // Validar se team existe
+  if (!team) {
+    return (
+      <div className={`${size === 'sm' ? 'w-8 h-8' : size === 'md' ? 'w-10 h-10' : size === 'lg' ? 'w-12 h-12' : 'w-16 h-16'} bg-gradient-to-br from-gray-400 to-gray-500 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm ${className}`}>
+        ?
+      </div>
+    );
+  }
+
   const sizes = {
     sm: 'w-8 h-8',
     md: 'w-10 h-10',
@@ -59,15 +76,15 @@ export const TeamLogo = ({ team, size = 'md', className = '' }) => {
     xl: 'w-12 h-12',
   };
 
-  const hasValidLogo = isValidLogoUrl(team.logo);
-  const fallback = getTeamLogoFallback(team.name);
+  const hasValidLogo = isValidLogoUrl(team?.logo);
+  const fallback = getTeamLogoFallback(team?.name);
 
   if (hasValidLogo) {
     return (
       <div className={`${sizes[size]} bg-white rounded-xl flex items-center justify-center border border-gray-200 shadow-sm ${className}`}>
         <img 
           src={team.logo} 
-          alt={team.name}
+          alt={team?.name || 'Team'}
           className={`${imgSizes[size]} object-contain`}
           onError={(e) => {
             e.target.style.display = 'none';
@@ -87,19 +104,24 @@ export const TeamLogo = ({ team, size = 'md', className = '' }) => {
 
 // Componente de logo de liga
 export const LeagueLogo = ({ league, size = 'sm', className = '' }) => {
+  // Validar se league existe
+  if (!league) {
+    return null;
+  }
+
   const sizes = {
     sm: 'w-5 h-5',
     md: 'w-6 h-6',
     lg: 'w-8 h-8',
   };
 
-  const logoUrl = league.logo || leagueLogos[league.name];
+  const logoUrl = league?.logo || leagueLogos[league?.name];
 
   if (logoUrl && isValidLogoUrl(logoUrl)) {
     return (
       <img 
         src={logoUrl} 
-        alt={league.name}
+        alt={league?.name || 'League'}
         className={`${sizes[size]} object-contain ${className}`}
         onError={(e) => {
           e.target.style.display = 'none';

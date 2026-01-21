@@ -873,51 +873,33 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         raw_odds = match_data.get('odds') or {}  # Se None, usar dicionário vazio
         logger.info(f"🔍 RAW_ODDS tipo: {type(raw_odds)}, valor: {raw_odds}")
         
-        # Primeiro, executar decision engine para ter fair_odds
-        decision_data_temp = decision_engine.make_decision(
-            model_predictions,
-            features,
-            {}  # Passar vazio temporariamente
-        )
-        
-        # Converter formato da API (home_win, draw, away_win) para formato frontend (odds_home, odds_draw, odds_away)
+        # Converter formato da API para formato esperado pelo Decision Engine
+        # Formato consistente: home, draw, away, over_2_5, under_2_5 (COM underscores)
         if raw_odds.get('home_win'):
             market_odds = {
-                'odds_home': raw_odds.get('home_win'),
-                'odds_draw': raw_odds.get('draw'),
-                'odds_away': raw_odds.get('away_win'),
-                'odds_over_25': raw_odds.get('over_25'),
-                'odds_under_25': raw_odds.get('under_25'),
-                'odds_btts_yes': raw_odds.get('btts_yes'),
-                'odds_btts_no': raw_odds.get('btts_no'),
+                'home': raw_odds.get('home_win'),
+                'draw': raw_odds.get('draw'),
+                'away': raw_odds.get('away_win'),
+                'over_2_5': raw_odds.get('over_25'),  # ✅ Converter over_25 → over_2_5
+                'under_2_5': raw_odds.get('under_25'),  # ✅ Converter under_25 → under_2_5
+                'btts_yes': raw_odds.get('btts_yes'),
+                'btts_no': raw_odds.get('btts_no'),
             }
-            logger.info(f"💰 Market odds da API Football: Home={market_odds['odds_home']}, Draw={market_odds['odds_draw']}, Away={market_odds['odds_away']}")
+            logger.info(f"💰 Market odds da API Football: Home={market_odds['home']}, Draw={market_odds['draw']}, Away={market_odds['away']}, Over2.5={market_odds.get('over_2_5')}, Under2.5={market_odds.get('under_2_5')}")
         else:
-            # Fallback: simular com base nas fair odds + margem bookmaker (5%)
-            # Isso só ocorre quando não há api_id ou odds não estão disponíveis na API
-            fair_odds_data = decision_data_temp.get('fair_odds', {})
-            if fair_odds_data and fair_odds_data.get('home_win'):
-                bookmaker_margin = 1.05  # 5% de margem típica
-                market_odds = {
-                    'odds_home': round(fair_odds_data['home_win'] / bookmaker_margin, 2),
-                    'odds_draw': round(fair_odds_data.get('draw', 3.4) / bookmaker_margin, 2),
-                    'odds_away': round(fair_odds_data.get('away_win', 3.0) / bookmaker_margin, 2),
-                    'odds_over_25': round(fair_odds_data.get('over_2_5', 2.0) / bookmaker_margin, 2),
-                    'odds_btts_yes': round(fair_odds_data.get('btts', 2.0) / bookmaker_margin, 2),
-                }
-                logger.info(f"💰 Market odds simuladas com margem 5% (fallback): Home={market_odds['odds_home']}, Draw={market_odds['odds_draw']}, Away={market_odds['odds_away']}")
-            else:
-                market_odds = None
-                logger.warning("⚠️ Não foi possível gerar market_odds (sem dados da API e sem fair_odds)")
+            # Sem odds da API - Decision Engine vai calcular apenas fair odds (sem EV)
+            market_odds = None
+            logger.warning("⚠️ Sem odds da API - análise será feita sem cálculo de EV")
         
         # Log para debug
         logger.info(f"📊 MARKET ODDS FINAL: {market_odds}")
         
-        # Executar decision engine novamente com market_odds corretos
+        # Executar decision engine UMA vez com odds corretos (ou None)
         decision_data = decision_engine.make_decision(
             model_predictions,
             features,
-            market_odds
+            market_odds,
+            strategy=strategy  # ✅ Passar strategy
         )
         
         # 🔥 Extrair dados enriquecidos para enviar ao frontend E PARA A IA

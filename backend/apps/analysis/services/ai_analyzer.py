@@ -1,4 +1,4 @@
-﻿"""
+"""
 Serviço de EXPLICAÇÃO com Google Gemini AI
 A IA NÃO DECIDE - apenas EXPLICA decisões já tomadas
 Otimizado para: latência <5s, custo reduzido, credibilidade alta
@@ -46,25 +46,30 @@ class AIAnalyzer:
         logger.info(f"AI Analyzer inicializado com modelo: {model_name}")
     
     
-    def explain_decision(self, decision_data: Dict, enriched_data: Dict) -> Dict:
+    def explain_decision(self, decision_data: Dict, enriched_data: Dict, strategy: str = 'value') -> Dict:
         """
         IA APENAS EXPLICA decisões prontas (NÃO decide)
         Retorna análise multi-mercado em português com formato híbrido
+        
+        Args:
+            decision_data: Dados das decisões já tomadas
+            enriched_data: Dados enriquecidos do jogo
+            strategy: 'value' ou 'multiple' - adapta o prompt
         """
         try:
-            # 1. CACHE
-            cache_key = self._generate_cache_key(decision_data, enriched_data)
+            # 1. CACHE (incluir strategy no cache key)
+            cache_key = f"{self._generate_cache_key(decision_data, enriched_data)}_{strategy}"
             cached_result = cache.get(cache_key)
             if cached_result:
-                logger.info(f"✅ Explicação em CACHE")
+                logger.info(f"✅ Explicação em CACHE (estratégia={strategy})")
                 cached_result['cached'] = True
                 return cached_result
             
             if not self.model:
                 return self._fallback_explanation(decision_data, enriched_data)
             
-            # 2. PROMPT
-            prompt = self._build_prompt(decision_data, enriched_data)
+            # 2. PROMPT (adaptar por estratégia)
+            prompt = self._build_prompt(decision_data, enriched_data, strategy=strategy)
             
             home_name = enriched_data.get('fixture_details', {}).get('teams', {}).get('home', {}).get('name', 'Casa')
             away_name = enriched_data.get('fixture_details', {}).get('teams', {}).get('away', {}).get('name', 'Fora')
@@ -91,11 +96,10 @@ class AIAnalyzer:
             
             generation_time = time.time() - start_time
             
-            # 3. PARSE - Aceitar formato multi-mercado diretamente
-            parsed = parse_and_validate_response(response.text)
-            
-            # Se for formato multi-mercado, usar diretamente
-            formatted_analysis = response.text
+            # 3. Gerar header padronizado + resposta da IA
+            header = self._generate_header(decision_data, enriched_data)
+            ai_response = response.text.strip()
+            formatted_analysis = f"{header}\n\n{ai_response}"
             
             result = {
                 'success': True,
@@ -105,7 +109,7 @@ class AIAnalyzer:
                 'cached': False,
             }
             
-            # 4. CACHE por 1 hora
+            # 5. CACHE por 1 hora
             cache.set(cache_key, result, 3600)
             
             return result
@@ -116,6 +120,62 @@ class AIAnalyzer:
     
     def _generate_cache_key(self, decision_data: Dict, enriched_data: Dict) -> str:
         """Gera chave de cache única"""
+        return self._generate_cache_key_internal(decision_data, enriched_data)
+        
+    def _generate_header(self, decision_data: Dict, enriched_data: Dict) -> str:
+        """Gera cabeçalho padronizado da análise"""
+        fixture = enriched_data.get('fixture_details', {})
+        teams = fixture.get('teams', {})
+        home_team = teams.get('home', {}).get('name', 'Casa') if teams else 'Casa'
+        away_team = teams.get('away', {}).get('name', 'Fora') if teams else 'Fora'
+        league_data = fixture.get('league', {})
+        league = league_data.get('name', 'N/A') if league_data else 'N/A'
+        fixture_data = fixture.get('fixture', {})
+        raw_date = fixture_data.get('date', 'N/A') if fixture_data else 'N/A'
+        
+        confidence = decision_data.get('confidence', {})
+        consensus = decision_data.get('model_probabilities', {}).get('consensus', {})
+        
+        # Format date
+        try:
+            from datetime import datetime
+            dt = datetime.fromisoformat(raw_date.replace('Z', '+00:00'))
+            match_date = dt.strftime('%d/%m/%Y %H:%M')
+        except:
+            match_date = raw_date
+        
+        # Determinar predição baseada no consensus (maior probabilidade)
+        prob_home = consensus.get('home_win', 0)
+        prob_draw = consensus.get('draw', 0)
+        prob_away = consensus.get('away_win', 0)
+        
+        # Usar mesma lógica do prompt: comparações AND
+        if prob_home > prob_draw and prob_home > prob_away:
+            predicao = "Casa"
+        elif prob_away > prob_home and prob_away > prob_draw:
+            predicao = "Fora"
+        else:
+            predicao = "Empate"
+        
+        header = f"""⚽ {home_team} vs {away_team}
+🏆 {league}
+📅 {match_date}
+{'⭐' * confidence.get('stars', 3)} Confiança: {confidence.get('stars', 3)}/5
+
+📊 RESULTADO MAIS PROVÁVEL: {predicao}
+
+📈 PROBABILIDADES:
+🏠 {home_team}: {prob_home*100:.1f}%
+🤝 Empate: {prob_draw*100:.1f}%
+✈️ {away_team}: {prob_away*100:.1f}%
+
+💡 NOTA: O resultado mais provável pode ser diferente da melhor aposta (maior value).
+         A análise abaixo busca OPORTUNIDADES DE VALUE, não apenas favoritismo."""
+        
+        return header
+
+    def _generate_cache_key_internal(self, decision_data: Dict, enriched_data: Dict) -> str:
+        """Método auxiliar para gerar chave de cache"""
         fixture = enriched_data.get('fixture_details', {})
         teams = fixture.get('teams', {})
         home = teams.get('home', {}).get('name', '') if teams else ''
@@ -129,7 +189,7 @@ class AIAnalyzer:
         return f"ai_explanation:{hashlib.md5(key_str.encode()).hexdigest()}"
     
     def _fallback_explanation(self, decision_data: Dict, enriched_data: Dict) -> Dict:
-        """Fallback quando IA falha - formato HÍBRIDO"""
+        """Fallback quando IA falha - usar cabeçalho + análise simples"""
         recommendation = decision_data.get('recommendation', {})
         confidence = decision_data.get('confidence', {})
         risk = decision_data.get('risk', 'medium')
@@ -137,7 +197,98 @@ class AIAnalyzer:
         poisson = model_probs.get('poisson', {})
         consensus = model_probs.get('consensus', {})
         
-        # Extrair dados da partida
+        # Gerar cabeçalho usando método compartilhado
+        header = self._generate_header(decision_data, enriched_data)
+        
+        # Extrair dados para cálculos
+        pick = recommendation.get('pick', 'home_win')
+        market_odd = recommendation.get('odd', 1.50)
+        
+        # Determinar probabilidade baseada no pick
+        prob = consensus.get('home_win', 0.5) if 'home' in pick else consensus.get('away_win', 0.5)
+        if 'draw' in pick:
+            prob = consensus.get('draw', 0.3)
+        
+        # Calcular odd justa e EV
+        fair_odd = round(1 / prob, 2) if prob > 0 else 2.00
+        ev_pct = ((market_odd / fair_odd - 1) * 100) if fair_odd > 0 else 0
+        
+        # Análise simplificada
+        analysis_body = f"""
+---------------------------------------
+📋 ANÁLISE COMPLETA DE APOSTAS
+---------------------------------------
+
+⭐ Confiança: {confidence.get('stars', 3)}/5 • Risco: {risk.upper()}
+📊 Probabilidades (consenso): Casa {consensus.get('home_win', 0)*100:.1f}% | Empate {consensus.get('draw', 0)*100:.1f}% | Fora {consensus.get('away_win', 0)*100:.1f}%
+xG esperado: {poisson.get('expected_goals', {}).get('home', 1.2):.2f} x {poisson.get('expected_goals', {}).get('away', 1.0):.2f} • Placar provável: {poisson.get('most_likely_score', '1-1')}
+
+---------------------------------------
+💰 APOSTA RECOMENDADA
+---------------------------------------
+
+🎯 MELHOR OPORTUNIDADE
+---------------------------------------
+📌 Mercado: 1X2
+🎲 Aposte em: {pick}
+💵 Odd disponível: {market_odd:.2f}
+⚖️ Odd justa: {fair_odd:.2f}
+💡 Vantagem (EV): {ev_pct:+.1f}%
+💰 Stake recomendado: {1.0 if ev_pct > 3 else 0.5} unidade{'s' if ev_pct > 3 else ''}
+⚠️ Risco: {risk.upper()}
+
+🎯 O QUE FAZER:
+✅ Aposte AGORA se odd ≥ {fair_odd * 0.95:.2f}
+❌ NÃO aposte se odd < {fair_odd * 0.95:.2f}
+
+🔍 PORQUÊ APOSTAR NISTO?
+• Probabilidade calculada: {prob*100:.1f}%
+• Expected Value: {ev_pct:+.1f}%
+• Modelo Poisson indica xG {poisson.get('expected_goals', {}).get('home', 1.2):.2f} x {poisson.get('expected_goals', {}).get('away', 1.0):.2f}
+
+---------------------------------------
+📝 RESUMO RÁPIDO
+---------------------------------------
+✅ Mercado: {pick}
+💰 Odd mínima: {fair_odd * 0.95:.2f}
+💵 Stake: {1.0 if ev_pct > 3 else 0.5} unidade{'s' if ev_pct > 3 else ''}
+
+---------------------------------------
+🚫 QUANDO NÃO APOSTAR
+---------------------------------------
+❌ Se a odd cair abaixo de {fair_odd * 0.95:.2f}
+❌ Se houver lesões de última hora em jogadores-chave
+❌ Se houver mudanças significativas nas condições do jogo
+
+--------------------------
+✅ Via Placar Certo"""
+        
+        # Combinar header + body
+        formatted = f"{header}\n\n{analysis_body}"
+        
+        return {
+            'success': True,
+            'analysis': formatted,
+            'reasoning': formatted,
+            'generation_time': 0.0,
+            'cached': False,
+            'fallback': True
+        }
+    
+    def _build_prompt(self, decision_data: Dict, enriched_data: Dict, strategy: str = 'value') -> str:
+        """
+        Prompt para IA APENAS EXPLICAR decisões prontas.
+        A IA NÃO decide, apenas interpreta e contextualiza.
+        
+        Args:
+            strategy: 'value' (maximizar EV) ou 'multiple' (alta prob para bilhetes)
+        """
+        confidence = decision_data.get('confidence', {})
+        risk = decision_data.get('risk', 'medium')
+        model_probs = decision_data.get('model_probabilities', {})
+        top_bets = decision_data.get('top_bets', [])  # DECISÕES JÁ TOMADAS
+        
+        # Extrair dados
         fixture = enriched_data.get('fixture_details', {})
         teams = fixture.get('teams', {})
         home_team = teams.get('home', {}).get('name', 'Casa') if teams else 'Casa'
@@ -155,120 +306,18 @@ class AIAnalyzer:
         except:
             match_date = raw_date
         
-        pick = recommendation.get('pick', 'N/A')
-        prob = recommendation.get('probability', 0)
-        
-        # Calcular fair odd
-        fair_odd = round(1 / prob, 2) if prob > 0 else 0
-        
-        # Determinar predição
-        if consensus.get('home_win', 0) > consensus.get('draw', 0) and consensus.get('home_win', 0) > consensus.get('away_win', 0):
-            predicao = "Casa"
-        elif consensus.get('away_win', 0) > consensus.get('home_win', 0) and consensus.get('away_win', 0) > consensus.get('draw', 0):
-            predicao = "Fora"
-        else:
-            predicao = "Empate"
-        
-        # FORMATO HÍBRIDO - Cabeçalho + Análise Multi-mercado
-        formatted = f"""🏆 {home_team} vs {away_team}
-🏅 {league}
-📅 {match_date}
-{'⭐' * confidence.get('stars', 3)} Confiança: {confidence.get('stars', 3)}/5
-
-🎯 PREDIÇÃO: {predicao}
-
-📊 PROBABILIDADES:
-🏠 {home_team}: {consensus.get('home_win', 0)*100}%
-🤝 Empate: {consensus.get('draw', 0)*100}%
-✈️ {away_team}: {consensus.get('away_win', 0)*100}%
-
-═══════════════════════════════════════
-🎯 ANÁLISE COMPLETA DE APOSTAS
-═══════════════════════════════════════
-
-🏆 {home_team} vs {away_team}
-🏅 {league}
-📅 {match_date}
-⭐ Confiança: {confidence.get('stars', 3)}/5 • Risco: {risk.upper()}
-
-📊 Probabilidades (consenso): Casa {consensus.get('home_win', 0)*100:.1f}% | Empate {consensus.get('draw', 0)*100:.1f}% | Fora {consensus.get('away_win', 0)*100:.1f}%
-xG esperado: {poisson.get('expected_goals_home', 0):.2f} x {poisson.get('expected_goals_away', 0):.2f} • Placar provável: {poisson.get('most_likely_score', '1-1')}
-
-═══════════════════════════════════════
-💰 ONDE APOSTAR - MELHORES OPORTUNIDADES
-═══════════════════════════════════════
-
-🥇 APOSTA #1 - MAIOR VALOR (RECOMENDADA)
-───────────────────────────────────────
-📊 Mercado: 1X2
-🎯 Aposte em: {pick}
-💵 Odd disponível: {recommendation.get('odd', 0):.2f}
-📈 Odd justa: {fair_odd}
-✅ Vantagem: +{((recommendation.get('odd', 0) / fair_odd - 1) * 100):.1f}%
-💰 Stake: 1 unidade
-
-➡️ O QUE FAZER:
-✓ Aposte AGORA se odd ≥ {fair_odd * 0.95:.2f}
-✗ NÃO aposte se odd < {fair_odd * 0.95:.2f}
-
-📝 PORQUÊ APOSTAR NISTO?
-• Probabilidade calculada: {prob*100:.1f}%
-• Modelo Poisson indica xG {poisson.get('expected_goals_home', 0):.2f} x {poisson.get('expected_goals_away', 0):.2f}
-• Fair odd {fair_odd} vs Mercado {recommendation.get('odd', 0):.2f}
-
-═══════════════════════════════════════
-📋 RESUMO - O QUE FAZER
-═══════════════════════════════════════
-* {pick}: Odd mínima {fair_odd * 0.95:.2f}, Stake 1 unidade
-
-═══════════════════════════════════════
-🚨 ATENÇÃO - QUANDO NÃO APOSTAR
-═══════════════════════════════════════
-* Se a odd cair abaixo de {fair_odd * 0.95:.2f}
-* Se houver mudanças de escalação de última hora
-
-──────────────────────────
-⚽ Via Placar Certo"""
-        
-        return {
-            'success': True,
-            'analysis': formatted,
-            'reasoning': formatted,
-            'generation_time': 0.0,
-            'cached': False,
-            'fallback': True
-        }
-    
-    def _build_prompt(self, decision_data: Dict, enriched_data: Dict) -> str:
-        """Prompt para formato HÍBRIDO"""
-        recommendation = decision_data.get('recommendation', {})
-        confidence = decision_data.get('confidence', {})
-        risk = decision_data.get('risk', 'medium')
-        model_probs = decision_data.get('model_probabilities', {})
-        
-        # Extrair dados
-        fixture = enriched_data.get('fixture_details', {})
-        teams = fixture.get('teams', {})
-        home_team = teams.get('home', {}).get('name', 'Casa') if teams else 'Casa'
-        away_team = teams.get('away', {}).get('name', 'Fora') if teams else 'Fora'
-        league_data = fixture.get('league', {})
-        league = league_data.get('name', 'N/A') if league_data else 'N/A'
-        fixture_data = fixture.get('fixture', {})
-        raw_date = fixture_data.get('date', 'N/A') if fixture_data else 'N/A'
-        
-        # Format date: ISO -> DD/MM/YYYY HH:MM
-        try:
-            from datetime import datetime
-            dt = datetime.fromisoformat(raw_date.replace('Z', '+00:00'))
-            match_date = dt.strftime('%d/%m/%Y %H:%M')
-        except:
-            match_date = raw_date
-        
         poisson = model_probs.get('poisson', {})
         consensus = model_probs.get('consensus', {})
-        xg_home = poisson.get('expected_goals_home', 0)
-        xg_away = poisson.get('expected_goals_away', 0)
+        
+        # Extrair xG
+        expected_goals = poisson.get('expected_goals', {})
+        xg_home = expected_goals.get('home', 1.2)
+        xg_away = expected_goals.get('away', 1.0)
         most_likely = poisson.get('most_likely_score', '1-1')
+        
+        if xg_home == 0 and xg_away == 0:
+            logger.warning(f"⚠️ xG zerado! Fallback para 1.2 x 1.0")
+            xg_home, xg_away = 1.2, 1.0
         
         prob_home = consensus.get('home_win', 0) * 100
         prob_draw = consensus.get('draw', 0) * 100
@@ -282,168 +331,150 @@ xG esperado: {poisson.get('expected_goals_home', 0):.2f} x {poisson.get('expecte
         else:
             predicao = "Empate"
         
-        # Validações estatísticas
-        total_xg = xg_home + xg_away
-        max_prob = max(prob_home, prob_draw, prob_away)
-        is_balanced = max_prob < 45  # Jogo equilibrado se nenhum resultado > 45%
+        # Formatar TOP BETS decididas
+        bets_info = "\nAPOSTAS RECOMENDADAS (JA SELECIONADAS - APENAS EXPLIQUE):\n"
+        for bet in top_bets:
+            bets_info += f"\n{bet['rank']}. {bet['market_display']} - {bet['pick']}\n"
+            bets_info += f"   Probabilidade: {bet['probability']*100:.1f}%\n"
+            bets_info += f"   Odd mercado: {bet['market_odd']:.2f} | Fair: {bet['fair_odd']:.2f}\n"
+            bets_info += f"   EV: {bet['ev_pct']:+.1f}%\n"
+            bets_info += f"   Stake: {bet['stake_units']} unidade(s)\n"
+            bets_info += f"   Razao: {bet['reason']}\n"
         
-        # Thresholds de EV por risco (padrão internacional)
-        ev_thresholds = {
-            'low': 2.0,      # LOW risk precisa ≥2% EV
-            'medium': 4.0,   # MEDIUM risk precisa ≥4% EV
-            'high': 6.0      # HIGH risk precisa ≥6% EV
-        }
-        min_ev_required = ev_thresholds.get(risk.lower(), 4.0)
+        # Probabilidades extras
+        poisson_probs = poisson.get('probabilities', {})
+        bets_info += "\nPROBABILIDADES ADICIONAIS (para contexto):\n"
+        bets_info += f"   Over 1.5: {poisson_probs.get('over_1_5', 0)*100:.1f}%\n"
+        bets_info += f"   Over 2.5: {poisson_probs.get('over_2_5', 0)*100:.1f}%\n"
+        bets_info += f"   Over 3.5: {poisson_probs.get('over_3_5', 0)*100:.1f}%\n"
+        bets_info += f"   BTTS: {poisson_probs.get('btts', 0)*100:.1f}%\n"
         
-        # Extrair value bets para análise
-        value_bets = decision_data.get('value_bets', [])
-        has_value = len(value_bets) > 0
-        best_ev = max([vb.get('value', 0) * 100 for vb in value_bets]) if value_bets else 0
-        
-        prompt = f"""Você é um sistema profissional de apostas esportivas em PORTUGUÊS (Moçambique).
+        # ✅ PROMPTS DIFERENTES POR ESTRATÉGIA
+        if strategy == 'multiple':
+            # MODO BILHETE: Foco em PROBABILIDADE e COMBINAÇÃO
+            prompt = f"""Você é um CONSULTOR DE BILHETES MÚLTIPLOS que ajuda usuários a combinar apostas seguras.
 
-🔢 DADOS FORNECIDOS (NÃO INVENTE OUTROS):
-• {home_team} vs {away_team}
-• Liga: {league}
-• Data: {match_date}
-• Confiança: {confidence.get('stars', 3)}/5 • Risco: {risk.upper()}
-• Probabilidades: Casa {prob_home:.1f}% | Empate {prob_draw:.1f}% | Fora {prob_away:.1f}%
-• xG esperado: {xg_home:.2f} x {xg_away:.2f}
-• Placar provável: {most_likely}
-• Predição: {predicao}
-• Melhor EV disponível: {best_ev:.1f}%
-• EV mínimo para risco {risk.upper()}: {min_ev_required:.1f}%
+SEU PAPEL:
+- Analise as apostas SEGURAS selecionadas (alta probabilidade)
+- Explique por que SÃO IDEAIS PARA COMBINAR em bilhetes
+- Use linguagem simples e foque em PROBABILIDADE + VALOR
 
-⚠️ REGRAS OBRIGATÓRIAS:
-1. NÃO invente dados históricos (confrontos diretos, forma recente)
-2. SE xG < 0.5: NÃO recomende mercados de gols (Over/Under, BTTS)
-3. SE jogo equilibrado (todas probabilidades < 45%): PRIORIZE Dupla Chance ou Draw No Bet
-4. JUSTIFIQUE por que mercados alternativos foram descartados
-5. 🚨 EDGE MÍNIMO (padrão internacional):
-   • Risco LOW: Só recomende se EV ≥ +{ev_thresholds['low']:.1f}%
-   • Risco MEDIUM: Só recomende se EV ≥ +{ev_thresholds['medium']:.1f}%
-   • Risco HIGH: Só recomende se EV ≥ +{ev_thresholds['high']:.1f}%
-   • SE EV abaixo do mínimo: AVISE que é "value marginal" e reduza stake
-6. NÃO aceite value bets às cegas:
-   • Compare EV entre TODOS os mercados disponíveis
-   • Pode rebaixar mercado principal se houver alternativa melhor
-   • Considere risco vs retorno (EV alto com risco desproporcional = não vale)
+IMPORTANTE: NÃO GERE CABEÇALHO/HEADER - o sistema já vai adicionar. Comece DIRETO com a recomendação.
 
-🎯 ANÁLISE OBRIGATÓRIA DE MERCADOS:
-Antes de escolher, avalie:
-• 1X2: Volatilidade alta, use apenas se probabilidade > 50%
-• Dupla Chance: Reduz risco, ideal para jogos equilibrados
-• Draw No Bet: Remove empate, adequado para favoritos leves
-• Over/Under: Use apenas se xG total > 2.0
-• BTTS: Use apenas se ambos xG > 0.8
+CRITÉRIOS DO MODO BILHETE:
+- Probabilidade mínima: 50%
+- EV mínimo: 0% (não-negativo, aceita favoritos)
+- Odds ideais para bilhetes: 1.30-2.50
 
-Gere análise com EXATAMENTE esta estrutura:
+DADOS DO JOGO:
+- {home_team} vs {away_team}
+- Liga: {league}
+- Data: {match_date}
+- Confiança: {confidence.get('stars', 3)}/5 - Risco: {risk.upper()}
+- Probabilidades: Casa {prob_home:.1f}% | Empate {prob_draw:.1f}% | Fora {prob_away:.1f}%
+- xG esperado: {xg_home:.2f} x {xg_away:.2f}
+- Placar provável: {most_likely}
+- Resultado mais provável: {predicao}
+{bets_info}
 
-🏆 {home_team} vs {away_team}
-🏅 {league}
-📅 {match_date}
-{'⭐' * confidence.get('stars', 3)} Confiança: {confidence.get('stars', 3)}/5
+FORMATO DE RESPOSTA (OBRIGATÓRIO):
 
-🎯 PREDIÇÃO: {predicao}
+📋 MELHOR PARA BILHETE
+---------------------------------------
+Aposta: [Nome da aposta com MAIOR probabilidade e EV positivo]
+Mercado: [Tipo de mercado]
+Odd: [Valor] (ideal para bilhetes: 1.30-2.00)
+Probabilidade: [XX%] (mínimo 50%)
+Stake: [X unidades]
 
-📊 PROBABILIDADES:
-🏠 {home_team}: {prob_home:.1f}%
-🤝 Empate: {prob_draw:.1f}%
-✈️ {away_team}: {prob_away:.1f}%
+PORQUE INCLUIR NO BILHETE:
+• Alta probabilidade (50% ou mais)
+• EV não-negativo (não perde value)
+• Odd moderada (boa para combinar 1.30-2.50)
 
-═══════════════════════════════════════
-🎯 ANÁLISE COMPLETA DE APOSTAS
-═══════════════════════════════════════
+💡 DICA DE BILHETE:
+Combine com 2-3 apostas similares de outros jogos.
+Odd total esperada: 3.00-8.00
+Probabilidade combinada: 15-30%
 
-⭐ Confiança: {confidence.get('stars', 3)}/5 • Risco: {risk.upper()}
-📊 Probabilidades (consenso): Casa {prob_home:.1f}% | Empate {prob_draw:.1f}% | Fora {prob_away:.1f}%
-xG esperado: {xg_home:.2f} x {xg_away:.2f} • Placar provável: {most_likely}
+---------------------------------------
+OUTRAS OPÇÕES PARA BILHETE:
+---------------------------------------
+[Liste outras apostas com prob >= 50% e EV >= 0%]
 
-═══════════════════════════════════════
-� COMPARAÇÃO DE MERCADOS
-═══════════════════════════════════════
+⚠️ ATENÇÃO:
+Bilhetes são mais arriscados. Mesmo com alta probabilidade individual,
+apenas ~20% dos bilhetes 3x acertam todas as apostas.
+Use em favoritos consistentes, não underdogs.
 
-[Analise 5 mercados: 1X2, Dupla Chance, Draw No Bet, Over/Under, BTTS]
-[Para cada um, indique: Probabilidade implícita, Risco, Valor esperado]
-[Elimine os 2 piores com justificativa clara]
+---------------------------------------
 
-Exemplo:
-❌ 1X2 Casa: Prob 32%, risco ALTO, favorito indefinido
-✅ Dupla Chance X2: Prob 67%, risco MÉDIO, cobre empate
-❌ BTTS: xG baixo, sem suporte estatístico
+REGRAS CRÍTICAS:
+1. Só recomende apostas com probabilidade >= 50%
+2. Aceite EV >= 0% (favoritos com odds justas são OK)
+3. Mencione odds ideais para combinar (1.30-2.50)
+4. Sempre alerte sobre risco de bilhetes
+5. Favoritos absolutos (70%+) são IDEAIS para bilhetes
+"""
+        else:
+            # MODO VALUE: Foco em EV MÁXIMO e LUCRO LONGO PRAZO
+            prompt = f"""Você é um CONSULTOR DE APOSTAS que dá recomendações DIRETAS e CLARAS.
 
-═══════════════════════════════════════
-💰 APOSTAS RECOMENDADAS (POR ORDEM DE VALOR)
-═══════════════════════════════════════
+SEU PAPEL:
+- Analise as apostas selecionadas objetivamente
+- Recomende a MELHOR APOSTA (maior EV/score) de forma DIRETA
+- Use linguagem simples e chamadas de ação claras
 
-🥇 APOSTA #1 - MAIOR VALOR (RECOMENDADA)
-───────────────────────────────────────
-📊 Mercado: [escolha baseada na comparação acima]
-🎯 Aposte em: [pick específico]
-💵 Odd disponível: [entre 1.50-2.50]
-📈 Odd justa: [calcule: 1/probabilidade]
-✅ Vantagem (EV): [+X%] {'⚠️ MARGINAL' if best_ev < min_ev_required else '✅ SÓLIDA'}
-💰 Stake: [calcule dinamicamente baseado em confiança × EV × risco]
-🎲 Risco real: [BAIXO/MÉDIO/ALTO baseado na probabilidade]
+IMPORTANTE: NÃO GERE CABEÇALHO/HEADER - o sistema já vai adicionar. Comece DIRETO com a recomendação.
 
-➡️ O QUE FAZER:
-✓ Aposte AGORA se odd ≥ [odd mínima]
-✗ NÃO aposte se odd < [odd mínima]
-{'⚠️ AVISO: EV abaixo do mínimo recomendado para este nível de risco' if best_ev < min_ev_required else ''}
+DADOS DO JOGO:
+- {home_team} vs {away_team}
+- Liga: {league}
+- Data: {match_date}
+- Confiança: {confidence.get('stars', 3)}/5 - Risco: {risk.upper()}
+- Probabilidades: Casa {prob_home:.1f}% | Empate {prob_draw:.1f}% | Fora {prob_away:.1f}%
+- xG esperado: {xg_home:.2f} x {xg_away:.2f}
+- Placar provável: {most_likely}
+- Resultado mais provável: {predicao}
+{bets_info}
 
-📝 PORQUÊ ESTE MERCADO (não outro)?
-• [Por que este mercado tem melhor relação EV/Risco que alternativas]
-• [Justifique stake: confiança {confidence.get('stars', 3)}/5 × EV {best_ev:.1f}% × risco {risk.upper()}]
-• [Baseie-se APENAS nos dados fornecidos: xG, probabilidades]
-• [Mencione mercados descartados e por quê, incluindo EV comparativo]
+FORMATO DE RESPOSTA (OBRIGATÓRIO):
 
-🥈 APOSTA #2
-───────────────────────────────────────
-[MESMA ESTRUTURA acima, mas mercado DIFERENTE]
+🎯 RECOMENDAÇÃO PRINCIPAL
+---------------------------------------
+Aposta: [Nome da aposta com MAIOR EV - aposta #2]
+Mercado: [Tipo de mercado]
+Odd: [Valor]
+EV: [+XX%]
+Stake: [X unidades]
+Risco: {risk.upper()}
 
-🥉 APOSTA #3
-───────────────────────────────────────
-[MESMA ESTRUTURA acima, mas mercado DIFERENTE]
+PORQUE APOSTAR:
+• EV positivo alto (+15% ou mais)
+• Odd sobrevalorizada pelo mercado
+• Probabilidade real: [XX%] vs odd paga: [YY%]
 
-⛔ NÃO APOSTE AQUI - SEM VALOR
-───────────────────────────────────────
-[Explique qual mercado evitar e porquê]
+⚠️ NÃO APOSTE SE:
+• A odd cair abaixo de [odd mínima]
+• Houver lesões de última hora
 
-═══════════════════════════════════════
-� RESUMO - O QUE FAZER
-═══════════════════════════════════════
-* [Aposta 1: mercado @ odd mínima, stake X unidades]
-* [Aposta 2: mercado @ odd mínima, stake X unidades]
-* [Aposta 3: mercado @ odd mínima, stake X unidades]
+---------------------------------------
+ALTERNATIVAS (opcional - só se houver apostas com EV positivo):
+---------------------------------------
+Se preferir menos risco:
+• Aposta #1: [Nome] - [Razão rápida]
 
-═══════════════════════════════════════
-� ATENÇÃO - QUANDO NÃO APOSTAR
-═══════════════════════════════════════
-* [Invalidação 1]
-* [Invalidação 2]
-* [Invalidação 3]
+Se quiser mais value:
+• Aposta #3: [Nome] - [Razão rápida]
 
-──────────────────────────
-⚽ Via Placar Certo
+---------------------------------------
 
-🚫 REGRAS CRÍTICAS (VIOLAÇÃO = RESPOSTA INVÁLIDA):
-1. NÃO invente histórico de confrontos diretos
-2. NÃO mencione forma recente se não fornecida
-3. NÃO recomende Over 2.5 se xG total < 2.0
-4. NÃO recomende BTTS se qualquer xG < 0.8
-5. NÃO escolha 1X2 em jogo equilibrado (todas prob < 45%) sem justificar
-6. SEMPRE compare pelo menos 4 mercados diferentes na seção COMPARAÇÃO
-7. SEMPRE justifique por que mercados alternativos foram descartados
-8. 🚨 NÃO recomende apostas com EV abaixo do threshold (LOW≥2%, MEDIUM≥4%, HIGH≥6%)
-9. 🚨 STAKE deve ser justificado: explique por que X unidades baseado em conf/EV/risco
-10. 🚨 Compare EVs entre mercados: não aceite value bet principal se houver melhor alternativa
-11. Use APENAS dados fornecidos acima
-12. Mantenha coerência: xG alto → mercados de gols; xG baixo → resultado
-13. Odds realistas entre 1.50-2.50
-
-💡 FÓRMULA STAKE (orientativa):
-Stake = 1.0 × (confiança/5) × (EV/4%) × ajuste_risco
-onde ajuste_risco: LOW=1.2, MEDIUM=1.0, HIGH=0.8"""
+REGRAS CRÍTICAS:
+1. Aposta #1 é sempre o resultado mais provável (pode ter EV negativo)
+2. Aposta #2 é SEMPRE a recomendada (maior score/EV)
+3. Foque em VALOR ESPERADO (EV), não apenas probabilidade
+4. Mencione que é estratégia de LONGO PRAZO (100+ apostas)
+"""
         
         return prompt
 

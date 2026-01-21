@@ -1,0 +1,2506 @@
+{
+  "summary": {
+    "total_matches": 111,
+    "accuracy": 38.73873873873874,
+    "brier_score": 0.23063274973392253,
+    "log_loss": 1.1259271191798848,
+    "processed": 111,
+    "failed": 9
+  },
+  "by_result_type": {
+    "home_wins": {
+      "count": 42,
+      "accuracy": 40.476190476190474
+    },
+    "draws": {
+      "count": 22,
+      "accuracy": 27.27272727272727
+    },
+    "away_wins": {
+      "count": 47,
+      "accuracy": 42.5531914893617
+    }
+  },
+  "detailed_results": [
+    {
+      "id": 1471800,
+      "home": "Guelson FC",
+      "away": "1º de Maio",
+      "score": "1-2",
+      "league": "Girabola",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.24312961604988823,
+      "log_loss": 1.1908876150549674,
+      "probs": {
+        "home_win": 0.38451588865307584,
+        "draw": 0.3115327588477405,
+        "away_win": 0.3039513524991837
+      },
+      "date": "2026-01-16T15:00:00+00:00"
+    },
+    {
+      "id": 1469628,
+      "home": "Melbourne City",
+      "away": "Auckland",
+      "score": "2-1",
+      "league": "A-League",
+      "predicted": "away_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2917900482887628,
+      "log_loss": 1.3885504419581585,
+      "probs": {
+        "home_win": 0.24943661554982854,
+        "draw": 0.2520906743902925,
+        "away_win": 0.49847271005987903
+      },
+      "date": "2026-01-16T08:35:00+00:00"
+    },
+    {
+      "id": 1470524,
+      "home": "Bekasi City",
+      "away": "Sriwijaya FC",
+      "score": "7-0",
+      "league": "Liga 2",
+      "predicted": "home_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10850195018229454,
+      "log_loss": 0.6236239104616695,
+      "probs": {
+        "home_win": 0.5359985031951107,
+        "draw": 0.2677762078063224,
+        "away_win": 0.1962252889985669
+      },
+      "date": "2026-01-16T08:30:00+00:00"
+    },
+    {
+      "id": 1484531,
+      "home": "Western Sydney Wanderers W",
+      "away": "Brisbane Roar FC W",
+      "score": "1-1",
+      "league": "A-League Women",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2944337038995506,
+      "log_loss": 1.3663301405031156,
+      "probs": {
+        "home_win": 0.2130182515405275,
+        "draw": 0.2550412096262623,
+        "away_win": 0.5319405388332101
+      },
+      "date": "2026-01-16T08:00:00+00:00"
+    },
+    {
+      "id": 1484530,
+      "home": "Melbourne City W",
+      "away": "Newcastle Jets FC W",
+      "score": "1-3",
+      "league": "A-League Women",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3613253622682393,
+      "log_loss": 1.686190024562274,
+      "probs": {
+        "home_win": 0.6173712709772723,
+        "draw": 0.19740484923844254,
+        "away_win": 0.18522387978428517
+      },
+      "date": "2026-01-16T05:50:00+00:00"
+    },
+    {
+      "id": 1506288,
+      "home": "Urawa",
+      "away": "Consadole Sapporo",
+      "score": "2-1",
+      "league": "Friendlies Clubs",
+      "predicted": "home_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.08913255452335757,
+      "log_loss": 0.5450315803009217,
+      "probs": {
+        "home_win": 0.5798234720509811,
+        "draw": 0.24597134920372082,
+        "away_win": 0.17420517874529817
+      },
+      "date": "2026-01-16T05:00:00+00:00"
+    },
+    {
+      "id": 1489094,
+      "home": "LD Alajuelense",
+      "away": "Municipal Liberia",
+      "score": "2-2",
+      "league": "Primera División",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.33652591696963446,
+      "log_loss": 1.526910992315541,
+      "probs": {
+        "home_win": 0.6040319889207434,
+        "draw": 0.2172055818091224,
+        "away_win": 0.1787624292701343
+      },
+      "date": "2026-01-16T02:00:00+00:00"
+    },
+    {
+      "id": 1506287,
+      "home": "Tokyo Verdy",
+      "away": "Oita Trinita",
+      "score": "0-4",
+      "league": "Friendlies Clubs",
+      "predicted": "draw",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3939432846095922,
+      "log_loss": 1.9800241940425343,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-16T02:00:00+00:00"
+    },
+    {
+      "id": 1507583,
+      "home": "Kawasaki Frontale",
+      "away": "FC Ryukyu",
+      "score": "6-1",
+      "league": "Friendlies Clubs",
+      "predicted": "away_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.3241730874180868,
+      "log_loss": 1.617974528716994,
+      "probs": {
+        "home_win": 0.19829994343282964,
+        "draw": 0.33590854999522823,
+        "away_win": 0.4657915065719421
+      },
+      "date": "2026-01-16T02:00:00+00:00"
+    },
+    {
+      "id": 1507584,
+      "home": "Okinawa SV",
+      "away": "Kyoto Sanga",
+      "score": "1-6",
+      "league": "Friendlies Clubs",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.0632457448294077,
+      "log_loss": 0.43643137155056344,
+      "probs": {
+        "home_win": 0.20941066509898054,
+        "draw": 0.14425048130351767,
+        "away_win": 0.6463388535975019
+      },
+      "date": "2026-01-16T02:00:00+00:00"
+    },
+    {
+      "id": 1500525,
+      "home": "Sao Paulo",
+      "away": "São Bernardo",
+      "score": "1-0",
+      "league": "Paulista - A1",
+      "predicted": "away_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.36731179273158326,
+      "log_loss": 1.793432735531073,
+      "probs": {
+        "home_win": 0.16638802213776024,
+        "draw": 0.2442198021407848,
+        "away_win": 0.589392175721455
+      },
+      "date": "2026-01-16T00:45:00+00:00"
+    },
+    {
+      "id": 1500856,
+      "home": "Vasco DA Gama",
+      "away": "CFRJ / Maricá",
+      "score": "4-2",
+      "league": "Carioca - 1",
+      "predicted": "home_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.023709930486499345,
+      "log_loss": 0.24549633454931374,
+      "probs": {
+        "home_win": 0.7823161513305286,
+        "draw": 0.11386210870226739,
+        "away_win": 0.10382173996720408
+      },
+      "date": "2026-01-16T00:30:00+00:00"
+    },
+    {
+      "id": 1507514,
+      "home": "Junior",
+      "away": "Santa Fe",
+      "score": "1-1",
+      "league": "Superliga",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2371726221272705,
+      "log_loss": 1.1505826251697064,
+      "probs": {
+        "home_win": 0.41478672618213724,
+        "draw": 0.3164523425586292,
+        "away_win": 0.26876093125923356
+      },
+      "date": "2026-01-16T00:30:00+00:00"
+    },
+    {
+      "id": 1500990,
+      "home": "Galvez",
+      "away": "São Francisco",
+      "score": "4-1",
+      "league": "Acreano",
+      "predicted": "home_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.006694213004660204,
+      "log_loss": 0.12001275670346426,
+      "probs": {
+        "home_win": 0.8869091226083154,
+        "draw": 0.07773882434029586,
+        "away_win": 0.03535205305138876
+      },
+      "date": "2026-01-16T00:00:00+00:00"
+    },
+    {
+      "id": 1501270,
+      "home": "Chapelton",
+      "away": "Arnett Gardens",
+      "score": "3-0",
+      "league": "Premier League",
+      "predicted": "away_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.21856643703318088,
+      "log_loss": 1.0583785979940845,
+      "probs": {
+        "home_win": 0.3470180101286623,
+        "draw": 0.23671045011930866,
+        "away_win": 0.416271539752029
+      },
+      "date": "2026-01-16T00:00:00+00:00"
+    },
+    {
+      "id": 1500584,
+      "home": "Aparecidense",
+      "away": "Atletico Goianiense",
+      "score": "1-2",
+      "league": "Goiano - 1",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.05985564888135817,
+      "log_loss": 0.4236305888912922,
+      "probs": {
+        "home_win": 0.1541839830044038,
+        "draw": 0.19115033897662193,
+        "away_win": 0.6546656780189742
+      },
+      "date": "2026-01-15T23:40:00+00:00"
+    },
+    {
+      "id": 1500373,
+      "home": "Fortaleza EC",
+      "away": "Quixada",
+      "score": "4-0",
+      "league": "Cearense - 1",
+      "predicted": "home_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.020905517329319192,
+      "log_loss": 0.22064084726369235,
+      "probs": {
+        "home_win": 0.8020046707428489,
+        "draw": 0.14323185037040906,
+        "away_win": 0.054763478886742094
+      },
+      "date": "2026-01-15T23:30:00+00:00"
+    },
+    {
+      "id": 1500399,
+      "home": "Marcílio Dias",
+      "away": "Santa Catarina",
+      "score": "0-1",
+      "league": "Catarinense - 1",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.18960209049875185,
+      "log_loss": 0.956539902009486,
+      "probs": {
+        "home_win": 0.30409460486108264,
+        "draw": 0.3116853675625424,
+        "away_win": 0.384220027576375
+      },
+      "date": "2026-01-15T23:30:00+00:00"
+    },
+    {
+      "id": 1500398,
+      "home": "Joinville",
+      "away": "Criciuma",
+      "score": "0-0",
+      "league": "Catarinense - 1",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.21334396125783714,
+      "log_loss": 1.0554535080118335,
+      "probs": {
+        "home_win": 0.36093606039358395,
+        "draw": 0.3480345550516264,
+        "away_win": 0.29102938455478977
+      },
+      "date": "2026-01-15T23:00:00+00:00"
+    },
+    {
+      "id": 1500434,
+      "home": "Independiente FSJ",
+      "away": "Cianorte",
+      "score": "0-0",
+      "league": "Paranaense - 1",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.26506353673160205,
+      "log_loss": 1.291494416373373,
+      "probs": {
+        "home_win": 0.30578997485044407,
+        "draw": 0.27485972114974,
+        "away_win": 0.41935030399981604
+      },
+      "date": "2026-01-15T23:00:00+00:00"
+    },
+    {
+      "id": 1500486,
+      "home": "Globo",
+      "away": "America-RN",
+      "score": "1-4",
+      "league": "Potiguar",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.012823624088783113,
+      "log_loss": 0.17437408003820498,
+      "probs": {
+        "home_win": 0.07441724545701352,
+        "draw": 0.08560013639362439,
+        "away_win": 0.8399826181493621
+      },
+      "date": "2026-01-15T23:00:00+00:00"
+    },
+    {
+      "id": 1500629,
+      "home": "CRB",
+      "away": "Murici Fc",
+      "score": "3-2",
+      "league": "Alagoano",
+      "predicted": "home_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.04267252355281023,
+      "log_loss": 0.34327260696802464,
+      "probs": {
+        "home_win": 0.7094447856047903,
+        "draw": 0.17158418185168414,
+        "away_win": 0.11897103254352555
+      },
+      "date": "2026-01-15T23:00:00+00:00"
+    },
+    {
+      "id": 1500524,
+      "home": "RB Bragantino",
+      "away": "Corinthians",
+      "score": "3-0",
+      "league": "Paulista - A1",
+      "predicted": "home_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.059893862315810086,
+      "log_loss": 0.42464159942060514,
+      "probs": {
+        "home_win": 0.6540041385933286,
+        "draw": 0.18047732846028708,
+        "away_win": 0.1655185329463844
+      },
+      "date": "2026-01-15T22:30:00+00:00"
+    },
+    {
+      "id": 1500585,
+      "home": "CRAC",
+      "away": "Goias",
+      "score": "0-0",
+      "league": "Goiano - 1",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.4023908653691488,
+      "log_loss": 1.7753702261075526,
+      "probs": {
+        "home_win": 0.12170858915876721,
+        "draw": 0.1694207139155594,
+        "away_win": 0.7088706969256734
+      },
+      "date": "2026-01-15T22:30:00+00:00"
+    },
+    {
+      "id": 1500659,
+      "home": "Jequié",
+      "away": "Porto BA",
+      "score": "1-1",
+      "league": "Baiano - 1",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2970078530560969,
+      "log_loss": 1.4363920889397837,
+      "probs": {
+        "home_win": 0.2822039972159423,
+        "draw": 0.2377841168662894,
+        "away_win": 0.4800118859177684
+      },
+      "date": "2026-01-15T22:15:00+00:00"
+    },
+    {
+      "id": 1500523,
+      "home": "Botafogo SP",
+      "away": "Noroeste",
+      "score": "1-1",
+      "league": "Paulista - A1",
+      "predicted": "draw",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.18931712198055659,
+      "log_loss": 0.9434635716993924,
+      "probs": {
+        "home_win": 0.37046851259636826,
+        "draw": 0.3892772081902104,
+        "away_win": 0.24025427921342132
+      },
+      "date": "2026-01-15T22:00:00+00:00"
+    },
+    {
+      "id": 1500854,
+      "home": "Portuguesa RJ",
+      "away": "Botafogo",
+      "score": "0-2",
+      "league": "Carioca - 1",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.05367731537903061,
+      "log_loss": 0.3951313874514995,
+      "probs": {
+        "home_win": 0.1385241395647052,
+        "draw": 0.18788432847540923,
+        "away_win": 0.6735915319598855
+      },
+      "date": "2026-01-15T22:00:00+00:00"
+    },
+    {
+      "id": 1501011,
+      "home": "Independência",
+      "away": "Santa Cruz AC",
+      "score": "2-2",
+      "league": "Acreano",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.3067029122359368,
+      "log_loss": 1.4907304753743178,
+      "probs": {
+        "home_win": 0.48652963625641044,
+        "draw": 0.22520808647866347,
+        "away_win": 0.2882622772649261
+      },
+      "date": "2026-01-15T22:00:00+00:00"
+    },
+    {
+      "id": 1501022,
+      "home": "Real Noroeste",
+      "away": "Forte FC",
+      "score": "0-2",
+      "league": "Capixaba",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.0185911960425053,
+      "log_loss": 0.20312088957764643,
+      "probs": {
+        "home_win": 0.041468857949269994,
+        "draw": 0.14235157419254488,
+        "away_win": 0.8161795678581851
+      },
+      "date": "2026-01-15T22:00:00+00:00"
+    },
+    {
+      "id": 1506731,
+      "home": "Team Mexico",
+      "away": "Team Brazil",
+      "score": "3-8",
+      "league": "Kings World Cup Nations",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.2986375902988128,
+      "log_loss": 1.4471443218791822,
+      "probs": {
+        "home_win": 0.4788898480426852,
+        "draw": 0.2858690492645958,
+        "away_win": 0.23524110269271906
+      },
+      "date": "2026-01-15T22:00:00+00:00"
+    },
+    {
+      "id": 1500580,
+      "home": "Inhumas",
+      "away": "ABECAT Ouvidorense",
+      "score": "0-1",
+      "league": "Goiano - 1",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.10464806860436593,
+      "log_loss": 0.5958444658364787,
+      "probs": {
+        "home_win": 0.14805342800754553,
+        "draw": 0.3008495852576767,
+        "away_win": 0.5510969867347778
+      },
+      "date": "2026-01-15T21:30:00+00:00"
+    },
+    {
+      "id": 1398130,
+      "home": "Vizela",
+      "away": "Pacos Ferreira",
+      "score": "3-0",
+      "league": "Segunda Liga",
+      "predicted": "home_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.126159722879638,
+      "log_loss": 0.6946703686290178,
+      "probs": {
+        "home_win": 0.49923898569655334,
+        "draw": 0.28456221621950506,
+        "away_win": 0.21619879808394155
+      },
+      "date": "2026-01-15T20:15:00+00:00"
+    },
+    {
+      "id": 1495639,
+      "home": "Sparta Rotterdam",
+      "away": "FC Volendam",
+      "score": "1-2",
+      "league": "KNVB Beker",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.46847421698272435,
+      "log_loss": 2.207736529368552,
+      "probs": {
+        "home_win": 0.7745228046428724,
+        "draw": 0.11552796141867991,
+        "away_win": 0.10994923393844773
+      },
+      "date": "2026-01-15T20:00:00+00:00"
+    },
+    {
+      "id": 1500855,
+      "home": "Sampaio Corrêa RJ",
+      "away": "Nova Iguaçu",
+      "score": "1-3",
+      "league": "Carioca - 1",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.05013894994767595,
+      "log_loss": 0.3807516285451309,
+      "probs": {
+        "home_win": 0.15570616976047338,
+        "draw": 0.16094623765943453,
+        "away_win": 0.6833475925800921
+      },
+      "date": "2026-01-15T20:00:00+00:00"
+    },
+    {
+      "id": 1501272,
+      "home": "Harbour View",
+      "away": "Waterhouse",
+      "score": "1-1",
+      "league": "Premier League",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2700901581985838,
+      "log_loss": 1.27058528644643,
+      "probs": {
+        "home_win": 0.4902634024466246,
+        "draw": 0.28066730292791275,
+        "away_win": 0.22906929462546277
+      },
+      "date": "2026-01-15T20:00:00+00:00"
+    },
+    {
+      "id": 1501273,
+      "home": "Portmore United",
+      "away": "Spanish Town Police",
+      "score": "4-0",
+      "league": "Premier League",
+      "predicted": "home_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.08542231612755187,
+      "log_loss": 0.5219048538807443,
+      "probs": {
+        "home_win": 0.5933891511121621,
+        "draw": 0.26760307110662096,
+        "away_win": 0.13900777778121692
+      },
+      "date": "2026-01-15T20:00:00+00:00"
+    },
+    {
+      "id": 1501275,
+      "home": "Tivoli Gardens",
+      "away": "Montego Bay United",
+      "score": "0-1",
+      "league": "Premier League",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.13598661423971878,
+      "log_loss": 0.7369384907796153,
+      "probs": {
+        "home_win": 0.26897834405050774,
+        "draw": 0.25244481353748166,
+        "away_win": 0.47857684241201065
+      },
+      "date": "2026-01-15T20:00:00+00:00"
+    },
+    {
+      "id": 1503642,
+      "home": "Burgos",
+      "away": "Valencia",
+      "score": "0-2",
+      "league": "Copa del Rey",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.18933046697497105,
+      "log_loss": 0.9148489494334979,
+      "probs": {
+        "home_win": 0.4201890960618141,
+        "draw": 0.17923377501472404,
+        "away_win": 0.40057712892346187
+      },
+      "date": "2026-01-15T20:00:00+00:00"
+    },
+    {
+      "id": 1503645,
+      "home": "Racing Santander",
+      "away": "Barcelona",
+      "score": "0-2",
+      "league": "Copa del Rey",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.23854007521194687,
+      "log_loss": 1.143275955607425,
+      "probs": {
+        "home_win": 0.4393933817877279,
+        "draw": 0.24183359505579968,
+        "away_win": 0.3187730231564724
+      },
+      "date": "2026-01-15T20:00:00+00:00"
+    },
+    {
+      "id": 1378015,
+      "home": "Como",
+      "away": "AC Milan",
+      "score": "1-3",
+      "league": "Serie A",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.18255415276742568,
+      "log_loss": 0.9209754164249396,
+      "probs": {
+        "home_win": 0.34726039336787307,
+        "draw": 0.2546090980446429,
+        "away_win": 0.3981305085874841
+      },
+      "date": "2026-01-15T19:45:00+00:00"
+    },
+    {
+      "id": 1388452,
+      "home": "FC Augsburg",
+      "away": "Union Berlin",
+      "score": "1-1",
+      "league": "Bundesliga",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.25957534771181784,
+      "log_loss": 1.2660245146466595,
+      "probs": {
+        "home_win": 0.4106628048169162,
+        "draw": 0.28195028592064564,
+        "away_win": 0.30738690926243817
+      },
+      "date": "2026-01-15T19:30:00+00:00"
+    },
+    {
+      "id": 1489238,
+      "home": "Anderlecht",
+      "away": "Gent",
+      "score": "1-0",
+      "league": "Cup",
+      "predicted": "away_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.33378891867754223,
+      "log_loss": 1.4683702891508892,
+      "probs": {
+        "home_win": 0.23030050274651007,
+        "draw": 0.14745684443180712,
+        "away_win": 0.6222426528216828
+      },
+      "date": "2026-01-15T19:30:00+00:00"
+    },
+    {
+      "id": 1501239,
+      "home": "West Bromwich Albion W",
+      "away": "Everton W",
+      "score": "0-5",
+      "league": "FA Women's Cup",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.06512545213562909,
+      "log_loss": 0.4462056335432063,
+      "probs": {
+        "home_win": 0.20269689138225333,
+        "draw": 0.1572509662792448,
+        "away_win": 0.6400521423385019
+      },
+      "date": "2026-01-15T19:30:00+00:00"
+    },
+    {
+      "id": 1461178,
+      "home": "Alcúdia",
+      "away": "Manacor",
+      "score": "2-2",
+      "league": "Tercera División RFEF - Group 11",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.326008461877845,
+      "log_loss": 1.5028630540727757,
+      "probs": {
+        "home_win": 0.20001078670438294,
+        "draw": 0.22249224007025342,
+        "away_win": 0.5774969732253636
+      },
+      "date": "2026-01-15T19:15:00+00:00"
+    },
+    {
+      "id": 1503414,
+      "home": "Bromley FC U18",
+      "away": "Ipswich Town U18",
+      "score": "1-2",
+      "league": "FA Youth Cup",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.16609079003851665,
+      "log_loss": 0.8570194461640849,
+      "probs": {
+        "home_win": 0.3136995592339304,
+        "draw": 0.261875219589081,
+        "away_win": 0.4244252211769887
+      },
+      "date": "2026-01-15T19:00:00+00:00"
+    },
+    {
+      "id": 1460537,
+      "home": "Motril",
+      "away": "Torre del Mar",
+      "score": "0-4",
+      "league": "Tercera División RFEF - Group 9",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.24434474211429777,
+      "log_loss": 1.1718690376313583,
+      "probs": {
+        "home_win": 0.441137722363278,
+        "draw": 0.24907488209889414,
+        "away_win": 0.30978739553782797
+      },
+      "date": "2026-01-15T18:00:00+00:00"
+    },
+    {
+      "id": 1488654,
+      "home": "AL Masry",
+      "away": "Zamalek SC",
+      "score": "0-2",
+      "league": "League Cup",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.1742259231277992,
+      "log_loss": 0.8922996942312231,
+      "probs": {
+        "home_win": 0.29820081157059813,
+        "draw": 0.2920867332789264,
+        "away_win": 0.40971245515047544
+      },
+      "date": "2026-01-15T18:00:00+00:00"
+    },
+    {
+      "id": 1488656,
+      "home": "El Mokawloon",
+      "away": "Ceramica Cleopatra",
+      "score": "1-0",
+      "league": "League Cup",
+      "predicted": "home_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.060947182949927896,
+      "log_loss": 0.41534643223547396,
+      "probs": {
+        "home_win": 0.6601115571662557,
+        "draw": 0.23906483517233026,
+        "away_win": 0.1008236076614141
+      },
+      "date": "2026-01-15T18:00:00+00:00"
+    },
+    {
+      "id": 1494078,
+      "home": "CR Belouizdad",
+      "away": "ASM Oran",
+      "score": "3-0",
+      "league": "Coupe Nationale",
+      "predicted": "home_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.04596074497664257,
+      "log_loss": 0.35931504973666273,
+      "probs": {
+        "home_win": 0.6981543633514886,
+        "draw": 0.17558100544648744,
+        "away_win": 0.12626463120202386
+      },
+      "date": "2026-01-15T18:00:00+00:00"
+    },
+    {
+      "id": 1506391,
+      "home": "US Bougouba",
+      "away": "USFAS Bamako",
+      "score": "2-2",
+      "league": "Première Division",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2403827210242675,
+      "log_loss": 1.1697564244458571,
+      "probs": {
+        "home_win": 0.2818742577230262,
+        "draw": 0.3104425482728269,
+        "away_win": 0.4076831940041469
+      },
+      "date": "2026-01-15T18:00:00+00:00"
+    },
+    {
+      "id": 1495638,
+      "home": "Heerenveen",
+      "away": "Waalwijk",
+      "score": "3-1",
+      "league": "KNVB Beker",
+      "predicted": "away_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2565530448120861,
+      "log_loss": 1.177455267335509,
+      "probs": {
+        "home_win": 0.3080616766058069,
+        "draw": 0.18551485455031463,
+        "away_win": 0.5064234688438786
+      },
+      "date": "2026-01-15T17:45:00+00:00"
+    },
+    {
+      "id": 1378023,
+      "home": "Verona",
+      "away": "Bologna",
+      "score": "2-3",
+      "league": "Serie A",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.2351658234830586,
+      "log_loss": 1.1372886723921687,
+      "probs": {
+        "home_win": 0.42120055559445424,
+        "draw": 0.25811211184036315,
+        "away_win": 0.32068733256518267
+      },
+      "date": "2026-01-15T17:30:00+00:00"
+    },
+    {
+      "id": 1489325,
+      "home": "Beşiktaş",
+      "away": "Keçiörengücü",
+      "score": "3-0",
+      "league": "Türkiye Kupası",
+      "predicted": "away_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2100683009631664,
+      "log_loss": 0.9959074465729696,
+      "probs": {
+        "home_win": 0.36938809245142695,
+        "draw": 0.18550257173740714,
+        "away_win": 0.44510933581116596
+      },
+      "date": "2026-01-15T17:30:00+00:00"
+    },
+    {
+      "id": 1502125,
+      "home": "Kafr Qasim",
+      "away": "Hapoel Kfar Saba",
+      "score": "1-0",
+      "league": "State Cup",
+      "predicted": "home_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.16820523568557808,
+      "log_loss": 0.8515614221666946,
+      "probs": {
+        "home_win": 0.42674807755570604,
+        "draw": 0.21017644461930707,
+        "away_win": 0.36307547782498706
+      },
+      "date": "2026-01-15T17:30:00+00:00"
+    },
+    {
+      "id": 1503865,
+      "home": "FC Midtjylland",
+      "away": "Kryvbas KR",
+      "score": "3-0",
+      "league": "Friendlies Clubs",
+      "predicted": "home_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.015901319867551993,
+      "log_loss": 0.1938121399499514,
+      "probs": {
+        "home_win": 0.8238126512186255,
+        "draw": 0.11197867801996678,
+        "away_win": 0.0642086707614078
+      },
+      "date": "2026-01-15T17:00:00+00:00"
+    },
+    {
+      "id": 1491607,
+      "home": "Al-Arabi SC",
+      "away": "Al-Gharafa",
+      "score": "1-2",
+      "league": "Stars League",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.22925663665206253,
+      "log_loss": 1.0979243982603861,
+      "probs": {
+        "home_win": 0.43705003703948264,
+        "draw": 0.22938725394098736,
+        "away_win": 0.3335627090195301
+      },
+      "date": "2026-01-15T16:30:00+00:00"
+    },
+    {
+      "id": 1415492,
+      "home": "Teuta Durrës",
+      "away": "Dinamo Tirana",
+      "score": "0-0",
+      "league": "Superliga",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.26354219304024784,
+      "log_loss": 1.26941223482182,
+      "probs": {
+        "home_win": 0.27238667212537687,
+        "draw": 0.28099673334525427,
+        "away_win": 0.4466165945293689
+      },
+      "date": "2026-01-15T16:00:00+00:00"
+    },
+    {
+      "id": 1490755,
+      "home": "Al Ahli",
+      "away": "Muharraq",
+      "score": "0-1",
+      "league": "Premier League",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.19712243848665953,
+      "log_loss": 0.9597383673735723,
+      "probs": {
+        "home_win": 0.40930276667380494,
+        "draw": 0.20770415697372063,
+        "away_win": 0.3829930763524744
+      },
+      "date": "2026-01-15T16:00:00+00:00"
+    },
+    {
+      "id": 1490756,
+      "home": "Bahrain SC",
+      "away": "Sitra",
+      "score": "0-1",
+      "league": "Premier League",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.23057593029464218,
+      "log_loss": 1.1363942072953537,
+      "probs": {
+        "home_win": 0.34706096641645734,
+        "draw": 0.3319647290683262,
+        "away_win": 0.3209743045152164
+      },
+      "date": "2026-01-15T16:00:00+00:00"
+    },
+    {
+      "id": 1506194,
+      "home": "Dutch Lions",
+      "away": "Steve Biko",
+      "score": "0-0",
+      "league": "GFA League",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.45293777199411994,
+      "log_loss": 1.8871774409872364,
+      "probs": {
+        "home_win": 0.7976685447073668,
+        "draw": 0.15149882028098297,
+        "away_win": 0.050832635011650064
+      },
+      "date": "2026-01-15T16:00:00+00:00"
+    },
+    {
+      "id": 1506390,
+      "home": "ASKO",
+      "away": "Diarra",
+      "score": "1-2",
+      "league": "Première Division",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.298778817821347,
+      "log_loss": 1.4399274431571416,
+      "probs": {
+        "home_win": 0.48866514571016156,
+        "draw": 0.27438990425389354,
+        "away_win": 0.2369449500359449
+      },
+      "date": "2026-01-15T16:00:00+00:00"
+    },
+    {
+      "id": 1506392,
+      "home": "Afrique Football Élite",
+      "away": "Binga",
+      "score": "1-2",
+      "league": "Première Division",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.16907886126562255,
+      "log_loss": 0.8710916936410136,
+      "probs": {
+        "home_win": 0.29335042625168956,
+        "draw": 0.28815514168151896,
+        "away_win": 0.4184944320667915
+      },
+      "date": "2026-01-15T16:00:00+00:00"
+    },
+    {
+      "id": 1485347,
+      "home": "Shabab Al Ahli Dubai",
+      "away": "Ajman",
+      "score": "3-1",
+      "league": "Pro League",
+      "predicted": "home_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.037914161484238214,
+      "log_loss": 0.31250248605839337,
+      "probs": {
+        "home_win": 0.7316138101097276,
+        "draw": 0.18755864594476798,
+        "away_win": 0.08082754394550443
+      },
+      "date": "2026-01-15T15:45:00+00:00"
+    },
+    {
+      "id": 1502198,
+      "home": "Al Arabi",
+      "away": "Al Fahaheel",
+      "score": "1-1",
+      "league": "Premier League",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.3329230891795744,
+      "log_loss": 1.571182549628353,
+      "probs": {
+        "home_win": 0.5655057101546154,
+        "draw": 0.2077993040142685,
+        "away_win": 0.22669498583111614
+      },
+      "date": "2026-01-15T15:45:00+00:00"
+    },
+    {
+      "id": 1488652,
+      "home": "Al Ahly",
+      "away": "El Geish",
+      "score": "1-2",
+      "league": "League Cup",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.29609500838376884,
+      "log_loss": 1.4140465884132556,
+      "probs": {
+        "home_win": 0.4989800105180639,
+        "draw": 0.25786265749459736,
+        "away_win": 0.24315733198733872
+      },
+      "date": "2026-01-15T15:00:00+00:00"
+    },
+    {
+      "id": 1488653,
+      "home": "Pyramids FC",
+      "away": "Petrojet",
+      "score": "0-7",
+      "league": "League Cup",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.0968535205239625,
+      "log_loss": 0.5798600122583365,
+      "probs": {
+        "home_win": 0.22806991304133456,
+        "draw": 0.21195333599906774,
+        "away_win": 0.5599767509595978
+      },
+      "date": "2026-01-15T15:00:00+00:00"
+    },
+    {
+      "id": 1489327,
+      "home": "BB Bodrumspor",
+      "away": "Konyaspor",
+      "score": "1-2",
+      "league": "Türkiye Kupası",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.2064471858264625,
+      "log_loss": 1.0076655827686372,
+      "probs": {
+        "home_win": 0.40301547441787683,
+        "draw": 0.23191431376965915,
+        "away_win": 0.36507021181246396
+      },
+      "date": "2026-01-15T15:00:00+00:00"
+    },
+    {
+      "id": 1494077,
+      "home": "Mostaganem",
+      "away": "JS Saoura",
+      "score": "0-2",
+      "league": "Coupe Nationale",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.16776443970440968,
+      "log_loss": 0.8644901693990226,
+      "probs": {
+        "home_win": 0.3105119316884757,
+        "draw": 0.2682217959873997,
+        "away_win": 0.4212662723241247
+      },
+      "date": "2026-01-15T15:00:00+00:00"
+    },
+    {
+      "id": 1501873,
+      "home": "Puskas Academy",
+      "away": "Slovan Liberec",
+      "score": "0-1",
+      "league": "Friendlies Clubs",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.20460501688995614,
+      "log_loss": 1.019642785854217,
+      "probs": {
+        "home_win": 0.29958931479858314,
+        "draw": 0.3396869124057633,
+        "away_win": 0.36072377279565354
+      },
+      "date": "2026-01-15T15:00:00+00:00"
+    },
+    {
+      "id": 1503535,
+      "home": "Dinamo Zagreb",
+      "away": "TSV Hartberg",
+      "score": "1-2",
+      "league": "Friendlies Clubs",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.16609079003851665,
+      "log_loss": 0.8570194461640849,
+      "probs": {
+        "home_win": 0.3136995592339304,
+        "draw": 0.261875219589081,
+        "away_win": 0.4244252211769887
+      },
+      "date": "2026-01-15T15:00:00+00:00"
+    },
+    {
+      "id": 1445773,
+      "home": "Katsina United",
+      "away": "Kun Khalifat FC",
+      "score": "2-0",
+      "league": "NPFL",
+      "predicted": "home_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.20807112216819057,
+      "log_loss": 1.0358915065232743,
+      "probs": {
+        "home_win": 0.3549098354112784,
+        "draw": 0.3217126668584628,
+        "away_win": 0.3233774977302588
+      },
+      "date": "2026-01-15T14:30:00+00:00"
+    },
+    {
+      "id": 1491606,
+      "home": "Al Wakrah",
+      "away": "Al-Duhail SC",
+      "score": "0-2",
+      "league": "Stars League",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.15042449948631686,
+      "log_loss": 0.794815368635547,
+      "probs": {
+        "home_win": 0.2856994478373391,
+        "draw": 0.26263593348311204,
+        "away_win": 0.4516646186795489
+      },
+      "date": "2026-01-15T14:30:00+00:00"
+    },
+    {
+      "id": 1503866,
+      "home": "Napredak",
+      "away": "FK Tobol Kostanay",
+      "score": "0-0",
+      "league": "Friendlies Clubs",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.287530763069772,
+      "log_loss": 1.1931639497219686,
+      "probs": {
+        "home_win": 0.6076215495870729,
+        "draw": 0.3032602443935039,
+        "away_win": 0.08911820601942326
+      },
+      "date": "2026-01-15T14:30:00+00:00"
+    },
+    {
+      "id": 1501874,
+      "home": "Red Bull Salzburg",
+      "away": "FK Crvena Zvezda",
+      "score": "2-0",
+      "league": "Friendlies Clubs",
+      "predicted": "away_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2602041925195066,
+      "log_loss": 1.237558501295591,
+      "probs": {
+        "home_win": 0.29009161233207914,
+        "draw": 0.2439188408228152,
+        "away_win": 0.46598954684510563
+      },
+      "date": "2026-01-15T14:00:00+00:00"
+    },
+    {
+      "id": 1502322,
+      "home": "Plzen",
+      "away": "Sonderjyske",
+      "score": "3-1",
+      "league": "Friendlies Clubs",
+      "predicted": "home_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.08206094065402703,
+      "log_loss": 0.5193695435961949,
+      "probs": {
+        "home_win": 0.5948954854352998,
+        "draw": 0.1995256766185539,
+        "away_win": 0.2055788379461464
+      },
+      "date": "2026-01-15T14:00:00+00:00"
+    },
+    {
+      "id": 1503864,
+      "home": "Debreceni VSC",
+      "away": "OFK Beograd",
+      "score": "1-2",
+      "league": "Friendlies Clubs",
+      "predicted": "away_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": true,
+      "brier": 0.16896469824978674,
+      "log_loss": 0.8676427624225513,
+      "probs": {
+        "home_win": 0.32312200955989095,
+        "draw": 0.25693770797573734,
+        "away_win": 0.4199402824643718
+      },
+      "date": "2026-01-15T14:00:00+00:00"
+    },
+    {
+      "id": 1503867,
+      "home": "Wolfsberger AC",
+      "away": "Diosgyori VTK",
+      "score": "0-2",
+      "league": "Friendlies Clubs",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3423402556952228,
+      "log_loss": 1.5794345825175113,
+      "probs": {
+        "home_win": 0.5989256484386692,
+        "draw": 0.19498275850395536,
+        "away_win": 0.20609159305737534
+      },
+      "date": "2026-01-15T14:00:00+00:00"
+    },
+    {
+      "id": 1504619,
+      "home": "Alamal Atbara",
+      "away": "Al-Ahly Merowe",
+      "score": "0-1",
+      "league": "Sudani Premier League",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.28568463789487747,
+      "log_loss": 1.4075241640958966,
+      "probs": {
+        "home_win": 0.4045204598956222,
+        "draw": 0.35073104935656635,
+        "away_win": 0.24474849074781158
+      },
+      "date": "2026-01-15T13:30:00+00:00"
+    },
+    {
+      "id": 1504621,
+      "home": "Al Taqadom",
+      "away": "Al Shorta",
+      "score": "1-2",
+      "league": "Sudani Premier League",
+      "predicted": "home_win",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.515528397123585,
+      "log_loss": 2.780437024619286,
+      "probs": {
+        "home_win": 0.8057815271926452,
+        "draw": 0.13220707186154362,
+        "away_win": 0.06201140094581103
+      },
+      "date": "2026-01-15T13:30:00+00:00"
+    },
+    {
+      "id": 1504622,
+      "home": "Haidob En Nahud",
+      "away": "Al Zamala Umm Ruwaba",
+      "score": "2-0",
+      "league": "Sudani Premier League",
+      "predicted": "home_win",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.12027304701902976,
+      "log_loss": 0.6673667610551277,
+      "probs": {
+        "home_win": 0.5130578043803793,
+        "draw": 0.2942159903843535,
+        "away_win": 0.19272620523526718
+      },
+      "date": "2026-01-15T13:30:00+00:00"
+    },
+    {
+      "id": 1504624,
+      "home": "Al Rabta Kosti",
+      "away": "Umm Mughad",
+      "score": "0-3",
+      "league": "Sudani Premier League",
+      "predicted": "draw",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3939432846095922,
+      "log_loss": 1.9800241940425343,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T13:30:00+00:00"
+    },
+    {
+      "id": 1502197,
+      "home": "Al Qadsia",
+      "away": "Al Shabab",
+      "score": "4-1",
+      "league": "Premier League",
+      "predicted": "draw",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.321090677245573,
+      "log_loss": 1.3969719322530836,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T13:20:00+00:00"
+    },
+    {
+      "id": 1503647,
+      "home": "Al Jazira",
+      "away": "Shamiya",
+      "score": "2-1",
+      "league": "Division 1",
+      "predicted": "draw",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.321090677245573,
+      "log_loss": 1.3969719322530836,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T13:20:00+00:00"
+    },
+    {
+      "id": 1503648,
+      "home": "Khaitan",
+      "away": "Yarmouk",
+      "score": "1-2",
+      "league": "Division 1",
+      "predicted": "draw",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3939432846095922,
+      "log_loss": 1.9800241940425343,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T13:20:00+00:00"
+    },
+    {
+      "id": 1504620,
+      "home": "Al-Merreikh II",
+      "away": "Al Hilal Karima",
+      "score": "3-1",
+      "league": "Sudani Premier League",
+      "predicted": "draw",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.321090677245573,
+      "log_loss": 1.3969719322530836,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T13:15:00+00:00"
+    },
+    {
+      "id": 1494376,
+      "home": "Bahla",
+      "away": "Sohar",
+      "score": "1-2",
+      "league": "Professional League",
+      "predicted": "draw",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3939432846095922,
+      "log_loss": 1.9800241940425343,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T13:05:00+00:00"
+    },
+    {
+      "id": 1416048,
+      "home": "Zanaco",
+      "away": "NAPSA Stars",
+      "score": "0-2",
+      "league": "Super League",
+      "predicted": "draw",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3939432846095922,
+      "log_loss": 1.9800241940425343,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T13:00:00+00:00"
+    },
+    {
+      "id": 1470588,
+      "home": "KCB",
+      "away": "Nairobi United",
+      "score": "0-2",
+      "league": "FKF Premier League",
+      "predicted": "draw",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3939432846095922,
+      "log_loss": 1.9800241940425343,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T13:00:00+00:00"
+    },
+    {
+      "id": 1482260,
+      "home": "Bahardar",
+      "away": "Mekelle Kenema",
+      "score": "0-0",
+      "league": "Premier League",
+      "predicted": "draw",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.07626101910354834,
+      "log_loss": 0.48680104701412846,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T13:00:00+00:00"
+    },
+    {
+      "id": 1503209,
+      "home": "Lubumbashi Sport",
+      "away": "Blessing",
+      "score": "1-1",
+      "league": "Ligue 1",
+      "predicted": "draw",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.07626101910354834,
+      "log_loss": 0.48680104701412846,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T13:00:00+00:00"
+    },
+    {
+      "id": 1503211,
+      "home": "Tshinkunku",
+      "away": "Groupe Bazano",
+      "score": "1-0",
+      "league": "Ligue 1",
+      "predicted": "draw",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.321090677245573,
+      "log_loss": 1.3969719322530836,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T13:00:00+00:00"
+    },
+    {
+      "id": 1503861,
+      "home": "FC Midtjylland",
+      "away": "Ferencvarosi TC",
+      "score": "1-1",
+      "league": "Friendlies Clubs",
+      "predicted": "draw",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.07626101910354834,
+      "log_loss": 0.48680104701412846,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T13:00:00+00:00"
+    },
+    {
+      "id": 1503868,
+      "home": "Odense",
+      "away": "Skive",
+      "score": "5-2",
+      "league": "Friendlies Clubs",
+      "predicted": "draw",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.321090677245573,
+      "log_loss": 1.3969719322530836,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T13:00:00+00:00"
+    },
+    {
+      "id": 1504653,
+      "home": "ES Tunis",
+      "away": "AS Gabes",
+      "score": "2-1",
+      "league": "Ligue 1",
+      "predicted": "draw",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.321090677245573,
+      "log_loss": 1.3969719322530836,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T13:00:00+00:00"
+    },
+    {
+      "id": 1504654,
+      "home": "AS Soliman",
+      "away": "JS Kairouanaise",
+      "score": "0-0",
+      "league": "Ligue 1",
+      "predicted": "draw",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.07626101910354834,
+      "log_loss": 0.48680104701412846,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T13:00:00+00:00"
+    },
+    {
+      "id": 1415491,
+      "home": "Partizani",
+      "away": "Vora",
+      "score": "0-1",
+      "league": "Superliga",
+      "predicted": "draw",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3939432846095922,
+      "log_loss": 1.9800241940425343,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T12:30:00+00:00"
+    },
+    {
+      "id": 1440880,
+      "home": "Abu Qair Semad",
+      "away": "Asyut Petrol",
+      "score": "1-0",
+      "league": "Second League",
+      "predicted": "draw",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.321090677245573,
+      "log_loss": 1.3969719322530836,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T12:30:00+00:00"
+    },
+    {
+      "id": 1440881,
+      "home": "Olympic El Qanah",
+      "away": "La Viena FC",
+      "score": "2-0",
+      "league": "Second League",
+      "predicted": "draw",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.321090677245573,
+      "log_loss": 1.3969719322530836,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T12:30:00+00:00"
+    },
+    {
+      "id": 1440883,
+      "home": "El Seka El Hadid",
+      "away": "Raya Ghazl",
+      "score": "2-1",
+      "league": "Second League",
+      "predicted": "draw",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.321090677245573,
+      "log_loss": 1.3969719322530836,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T12:30:00+00:00"
+    },
+    {
+      "id": 1445369,
+      "home": "Masar",
+      "away": "Tersana",
+      "score": "0-2",
+      "league": "Second League",
+      "predicted": "draw",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3939432846095922,
+      "log_loss": 1.9800241940425343,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T12:30:00+00:00"
+    },
+    {
+      "id": 1445370,
+      "home": "Maleyet Kafr El Zayiat",
+      "away": "Dayrout",
+      "score": "1-0",
+      "league": "Second League",
+      "predicted": "draw",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.321090677245573,
+      "log_loss": 1.3969719322530836,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T12:30:00+00:00"
+    },
+    {
+      "id": 1489329,
+      "home": "Eyüpspor",
+      "away": "76 Iğdır Belediyespor",
+      "score": "2-1",
+      "league": "Türkiye Kupası",
+      "predicted": "draw",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.321090677245573,
+      "log_loss": 1.3969719322530836,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T12:30:00+00:00"
+    },
+    {
+      "id": 1502933,
+      "home": "Lask Linz",
+      "away": "Jagiellonia",
+      "score": "4-1",
+      "league": "Friendlies Clubs",
+      "predicted": "draw",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.321090677245573,
+      "log_loss": 1.3969719322530836,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T12:30:00+00:00"
+    },
+    {
+      "id": 1482256,
+      "home": "Ethiopian Medhin",
+      "away": "Welwalo Adigrat Uni",
+      "score": "0-0",
+      "league": "Premier League",
+      "predicted": "draw",
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.07626101910354834,
+      "log_loss": 0.48680104701412846,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T12:00:00+00:00"
+    },
+    {
+      "id": 1502429,
+      "home": "Tatran Prešov",
+      "away": "Malženice",
+      "score": "3-2",
+      "league": "Tipsport Liga",
+      "predicted": "draw",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.321090677245573,
+      "log_loss": 1.3969719322530836,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T12:00:00+00:00"
+    },
+    {
+      "id": 1503534,
+      "home": "Arka Gdynia",
+      "away": "Gangwon FC",
+      "score": "4-0",
+      "league": "Friendlies Clubs",
+      "predicted": "draw",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.321090677245573,
+      "log_loss": 1.3969719322530836,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T12:00:00+00:00"
+    },
+    {
+      "id": 1503862,
+      "home": "Hobro",
+      "away": "Aarhus",
+      "score": "2-3",
+      "league": "Friendlies Clubs",
+      "predicted": "draw",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3939432846095922,
+      "log_loss": 1.9800241940425343,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T12:00:00+00:00"
+    },
+    {
+      "id": 1503863,
+      "home": "Botev Plovdiv",
+      "away": "Maritsa Plovdiv",
+      "score": "2-0",
+      "league": "Friendlies Clubs",
+      "predicted": "draw",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.321090677245573,
+      "log_loss": 1.3969719322530836,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T12:00:00+00:00"
+    },
+    {
+      "id": 1505787,
+      "home": "Fehérvár FC",
+      "away": "Puskás II",
+      "score": "4-1",
+      "league": "Friendlies Clubs",
+      "predicted": "draw",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.321090677245573,
+      "log_loss": 1.3969719322530836,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T12:00:00+00:00"
+    },
+    {
+      "id": 1506286,
+      "home": "Shkendija",
+      "away": "Akademija Pandev",
+      "score": "3-0",
+      "league": "Friendlies Clubs",
+      "predicted": "draw",
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.321090677245573,
+      "log_loss": 1.3969719322530836,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T12:00:00+00:00"
+    },
+    {
+      "id": 1507582,
+      "home": "Fratria",
+      "away": "Spartak Varna",
+      "score": "0-1",
+      "league": "Friendlies Clubs",
+      "predicted": "draw",
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3939432846095922,
+      "log_loss": 1.9800241940425343,
+      "probs": {
+        "home_win": 0.2473448079443306,
+        "draw": 0.6145892951573676,
+        "away_win": 0.13806589689830184
+      },
+      "date": "2026-01-15T12:00:00+00:00"
+    }
+  ],
+  "failed_matches": [
+    {
+      "id": 1456544,
+      "reason": "unsupported operand type(s) for -: 'NoneType' and "
+    },
+    {
+      "id": 1506730,
+      "reason": "unsupported operand type(s) for -: 'NoneType' and "
+    },
+    {
+      "id": 1500751,
+      "reason": "unsupported operand type(s) for -: 'NoneType' and "
+    },
+    {
+      "id": 1500754,
+      "reason": "unsupported operand type(s) for -: 'NoneType' and "
+    },
+    {
+      "id": 1506729,
+      "reason": "unsupported operand type(s) for -: 'NoneType' and "
+    },
+    {
+      "id": 1506728,
+      "reason": "unsupported operand type(s) for -: 'NoneType' and "
+    },
+    {
+      "id": 1506725,
+      "reason": "unsupported operand type(s) for -: 'NoneType' and "
+    },
+    {
+      "id": 1503210,
+      "reason": "unsupported operand type(s) for -: 'NoneType' and "
+    },
+    {
+      "id": 1504623,
+      "reason": "'NoneType' object has no attribute 'get'"
+    }
+  ]
+}

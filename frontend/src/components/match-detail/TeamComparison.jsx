@@ -6,27 +6,11 @@ import { TrendingUp, TrendingDown, Shield, Target, Zap, Activity } from 'lucide-
  * Dados vêm do Feature Engineering (backend)
  */
 export default function TeamComparison({ analysis, match }) {
-  console.log('🔍 TeamComparison - Verificando dados:', {
-    hasAnalysis: !!analysis,
-    hasAnalysisData: !!analysis?.analysis_data,
-    hasFeaturesSummary: !!analysis?.analysis_data?.features_summary,
-    featuresSummary: analysis?.analysis_data?.features_summary
-  });
-
   if (!analysis?.analysis_data?.features_summary) {
-    console.warn('⚠️ TeamComparison: features_summary não encontrado!');
     return null;
   }
 
   const { strength, form } = analysis.analysis_data.features_summary;
-  
-  console.log('📊 TeamComparison - Dados extraídos:', {
-    strength,
-    form
-  });
-  
-  console.log('🔍 DETALHES STRENGTH:', JSON.stringify(strength, null, 2));
-  console.log('🔍 DETALHES FORM:', JSON.stringify(form, null, 2));
   
   // Helper para normalizar valores para escala 0-100
   const normalize = (value, max = 3) => Math.min(Math.max((value / max) * 100, 0), 100);

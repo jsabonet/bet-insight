@@ -1290,12 +1290,27 @@ export default function MatchDetailPage() {
             onClose={() => setShowModal(false)}
             onAnalyze={async () => {
               try {
+                console.log('🚀 MatchDetailPage: Chamando unifiedAnalysis', {
+                  matchId: match.id,
+                  strategy: strategy,
+                  homeTeam: match.home_team,
+                  awayTeam: match.away_team
+                });
+                
                 // Chamar endpoint unificado com cache inteligente
                 const response = await matchesAPI.unifiedAnalysis(
                   match.id,
                   strategy,
-                  true // include_ai
+                  true, // include_ai
+                  false // force_refresh - IMPORTANTE: não forçar para testar cache
                 );
+                
+                console.log('✅ MatchDetailPage: Resposta recebida', {
+                  cached: response.data.cached,
+                  strategy: response.data.strategy,
+                  topBetsCount: response.data.decision_data?.top_bets?.length,
+                  firstBet: response.data.decision_data?.top_bets?.[0]?.market_display
+                });
                 
                 // Retornar dados já estruturados para o modal
                 return response.data;

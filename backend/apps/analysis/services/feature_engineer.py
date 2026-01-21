@@ -121,6 +121,15 @@ class FeatureEngineer:
             standings, enriched_data
         )
         logger.info(f"   ✅ {len(features['motivation'])} features de motivação")
+
+        # 11. ELO (Nova feature determinística baseada em standings + lesões)
+        logger.info("\n Calculando features de ELO...")
+        features['elo'] = self._calculate_elo_features(
+            standings,
+            enriched_data.get('recent_form', {}),
+            features.get('injuries_suspensions', {})
+        )
+        logger.info(f"   ✅ {len(features['elo'])} features de ELO")
         
         total_features = sum(len(v) for v in features.values())
         logger.info(f"\n{'='*80}")
@@ -128,6 +137,83 @@ class FeatureEngineer:
         logger.info(f"{'='*80}\n")
         
         return features
+
+    def _calculate_elo_features(self, standings, recent_form, injuries_features):
+        """
+        Calcula rating ELO simplificado por time e diferencial.
+
+        Baseia-se em métricas objetivas disponíveis (pontos por jogo e
+        saldo de gols por jogo), com ajuste por impacto de lesões.
+
+        Retorna:
+            {
+                'home_elo': float,
+                'away_elo': float,
+                'elo_differential': float,   # diferença bruta
+                'elo_diff': float            # diferença normalizada (~-3 a +3)
+            }
+        """
+        try:
+            if standings is None:
+                standings = {}
+
+            home_st = standings.get('home', {})
+            away_st = standings.get('away', {})
+
+            # Pontos e jogos
+            home_points = float(home_st.get('points', 0))
+            away_points = float(away_st.get('points', 0))
+            home_games = float(max(home_st.get('games_played', 0), 1))
+            away_games = float(max(away_st.get('games_played', 0), 1))
+
+            # Gols
+            home_gf = float(home_st.get('goals_for', 0))
+            home_ga = float(home_st.get('goals_against', 0))
+            away_gf = float(away_st.get('goals_for', 0))
+            away_ga = float(away_st.get('goals_against', 0))
+
+            # Pontos por jogo (PPG) e saldo de gols por jogo (GDpg)
+            home_ppg = home_points / home_games
+            away_ppg = away_points / away_games
+            home_gdpg = (home_gf - home_ga) / home_games
+            away_gdpg = (away_gf - away_ga) / away_games
+
+            # Média típica de liga (~1.35 PPG)
+            league_avg_ppg = 1.35
+
+            # ELO base 1500 + componentes objetivos
+            def elo_from_metrics(ppg, gdpg):
+                return 1500 + 25 * (ppg - league_avg_ppg) + 10 * gdpg
+
+            home_elo = elo_from_metrics(home_ppg, home_gdpg)
+            away_elo = elo_from_metrics(away_ppg, away_gdpg)
+
+            # Ajuste por lesões (se disponível)
+            if injuries_features:
+                home_injury = float(injuries_features.get('home_injury_impact', 0))
+                away_injury = float(injuries_features.get('away_injury_impact', 0))
+                # Cada ponto de impacto reduz ~3 pontos de ELO (conservador)
+                home_elo -= 3.0 * home_injury
+                away_elo -= 3.0 * away_injury
+
+            elo_diff = home_elo - away_elo
+            # Normalização para escala moderada utilizada em modelos
+            elo_diff_norm = elo_diff / 100.0  # ~ -3 a +3 nos casos comuns
+
+            return {
+                'home_elo': round(home_elo, 1),
+                'away_elo': round(away_elo, 1),
+                'elo_differential': round(elo_diff, 1),
+                'elo_diff': round(elo_diff_norm, 2)
+            }
+        except Exception:
+            # Fallback seguro
+            return {
+                'home_elo': 1500.0,
+                'away_elo': 1500.0,
+                'elo_differential': 0.0,
+                'elo_diff': 0.0
+            }
     
     def _calculate_strength_features(self, standings, home_stats, away_stats):
         """
@@ -264,6 +350,20 @@ class FeatureEngineer:
             'adjusted_form_diff': round(home_adjusted_form - away_adjusted_form, 2)
         }
     
+    def _calculate_time_decay_weight(self, days_ago):
+        """
+        Calcula peso time-decay exponencial para jogos recentes.
+        
+        Fórmula: w = exp(-λ * days_ago)
+        λ = 0.0065 (half-life ~100 dias)
+        
+        Jogos recentes (5-7 dias) = peso ~0.95-0.98
+        Jogos antigos (90 dias) = peso ~0.55
+        """
+        import math
+        lambda_decay = 0.0065
+        return math.exp(-lambda_decay * days_ago)
+    
     def _process_form_string(self, form_string):
         """
         Processa string de forma (ex: "WWLDW") em métricas
@@ -288,15 +388,21 @@ class FeatureEngineer:
             else:
                 points.append(0)
         
-        # Pesos para forma ponderada (mais recente = maior peso)
-        # Últimos 5 jogos: [1.0, 1.1, 1.2, 1.3, 1.5]
+        # Pesos para forma ponderada com time-decay exponencial
+        # Jogos recentes (últimos 5-7 dias) valem ~3x mais que jogos de 90 dias atrás
         n_games = len(points)
         if n_games >= 5:
-            weights = [1.0, 1.1, 1.2, 1.3, 1.5]
+            # Assumir jogos espaçados ~7 dias (típico de ligas)
+            # Mais recente = 0 dias, segundo mais recente = 7 dias, etc.
+            days_spacing = [0, 7, 14, 21, 28]  # Últimos 5 jogos
+            weights = [self._calculate_time_decay_weight(days) for days in days_spacing]
+            weights.reverse()  # Inverter para [mais antigo -> mais recente]
             points_to_use = points[-5:]
         else:
-            # Se tiver menos de 5, ajustar pesos
-            weights = [1.0 + (i * 0.1) for i in range(n_games)]
+            # Se tiver menos de 5, aplicar decay proporcional
+            days_spacing = [i * 7 for i in range(n_games)]
+            weights = [self._calculate_time_decay_weight(days) for days in days_spacing]
+            weights.reverse()
             points_to_use = points
         
         # Forma ponderada

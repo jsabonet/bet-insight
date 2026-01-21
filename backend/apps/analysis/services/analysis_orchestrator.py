@@ -42,8 +42,11 @@ class HybridAnalysisOrchestrator:
         home_strength = strength.get('home_goals_per_game', 1.2)
         away_strength = strength.get('away_goals_per_game', 1.2)
         weather_impact = weather.get('goal_impact', 0.0)
+        
+        # Obter league_id para calibração específica
+        league_id = match.league.api_football_id if match.league else None
 
-        ensemble_result = self.ensemble.predict(features, home_strength, away_strength, weather_impact)
+        ensemble_result = self.ensemble.predict(features, home_strength, away_strength, weather_impact, league_id)
 
         # 4) Decisão + value
         market_odds = features.get('market', {})
@@ -98,11 +101,16 @@ class HybridAnalysisOrchestrator:
             'risk': risk,
             'value_bets': decision_result.get('value_bets', []),
             'market_odds': market_odds,
+            'publish_filter': decision_result.get('publish_filter', {}),  # NOVO: Filtro de confiança
             'features_summary': {
                 'strength': strength,
                 'weather': weather,
             },
         }
+        
+        # Flag para indicar se a previsão deve ser exibida (alta qualidade)
+        publish_filter = decision_result.get('publish_filter', {})
+        should_publish = publish_filter.get('should_publish', True)
 
         return {
             'prediction': prediction_choice,
@@ -115,4 +123,5 @@ class HybridAnalysisOrchestrator:
             'reasoning': reasoning_text,
             'key_factors': key_factors,
             'analysis_data': analysis_data,
+            'should_publish': should_publish,  # NOVO: Flag de qualidade
         }

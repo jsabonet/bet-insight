@@ -1,0 +1,5065 @@
+{
+  "metadata": {
+    "timestamp": "20260117_131445",
+    "architecture": "HybridAnalysisOrchestrator (COMPLETA)",
+    "components": [
+      "MatchDataEnricher",
+      "FeatureEngineer",
+      "ModelEnsemble",
+      "DecisionEngine",
+      "AIAnalyzer"
+    ],
+    "total_matches": 120,
+    "processed": 120,
+    "failed": 0
+  },
+  "summary": {
+    "total_matches": 120,
+    "accuracy": 36.666666666666664,
+    "brier_score": 0.2393136366353684,
+    "log_loss": 1.1750989241191014,
+    "value_bets_found": 9,
+    "by_confidence": {
+      "5": {
+        "total": 5,
+        "correct": 1
+      },
+      "4": {
+        "total": 115,
+        "correct": 43
+      }
+    },
+    "filtered_metrics": {
+      "total_filtered": 120,
+      "coverage": 100.0,
+      "accuracy": 36.67,
+      "brier_score": 0.2393,
+      "log_loss": 1.1751
+    }
+  },
+  "market_metrics": {
+    "1x2_accuracy": 36.67,
+    "over_25_accuracy": 50.83,
+    "under_25_accuracy": 49.17,
+    "btts_accuracy": 61.67,
+    "recommended_pick_accuracy": 0.0
+  },
+  "detailed_results": [
+    {
+      "id": 1387856,
+      "home": "Paris Saint Germain",
+      "away": "Lille",
+      "score": "3-0",
+      "league": "Ligue 1",
+      "predicted": "away",
+      "predicted_vector": [
+        1,
+        0,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": true,
+      "brier": 0.08036930950245863,
+      "log_loss": 0.5113354366911094,
+      "consensus": {
+        "home_win": 0.5996941902044456,
+        "draw": 0.18090691215559837,
+        "away_win": 0.2193988976399561
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.219,
+          "fair_odd": 4.56,
+          "market_odd": 8.5,
+          "value_pct": 86.4,
+          "edge": 0.864,
+          "stake_suggestion": "3-5% do bankroll"
+        },
+        {
+          "market": "draw",
+          "market_display": "Empate",
+          "model_probability": 0.181,
+          "fair_odd": 5.53,
+          "market_odd": 5.9,
+          "value_pct": 6.7,
+          "edge": 0.067,
+          "stake_suggestion": "1-2% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 1.67,
+        "draw": 5.53,
+        "away_win": 4.56,
+        "over_2_5": 1.29,
+        "under_2_5": 4.5,
+        "btts": 1.31
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (60.0%) E alta confiança (0.82)",
+      "date": "2026-01-16T20:00:00+00:00"
+    },
+    {
+      "id": 1391013,
+      "home": "Espanyol",
+      "away": "Girona",
+      "score": "0-2",
+      "league": "La Liga",
+      "predicted": "home",
+      "predicted_vector": [
+        1,
+        0,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3098893337459494,
+      "log_loss": 1.4872558878520246,
+      "consensus": {
+        "home_win": 0.5115739143070673,
+        "draw": 0.26243413298978846,
+        "away_win": 0.22599195270314432
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "under_2_5",
+          "market_display": "Under 2.5 gols",
+          "model_probability": 0.602,
+          "fair_odd": 1.66,
+          "market_odd": 1.8,
+          "value_pct": 8.4,
+          "edge": 0.084,
+          "stake_suggestion": "1-2% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 1.95,
+        "draw": 3.81,
+        "away_win": 4.42,
+        "over_2_5": 2.52,
+        "under_2_5": 1.66,
+        "btts": 2.12
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta confiança (0.81)",
+      "date": "2026-01-16T20:00:00+00:00"
+    },
+    {
+      "id": 1378071,
+      "home": "Pisa",
+      "away": "Atalanta",
+      "score": "1-1",
+      "league": "Serie A",
+      "predicted": "home",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.28055912206926875,
+      "log_loss": 1.3302902142998698,
+      "consensus": {
+        "home_win": 0.24528960316630585,
+        "draw": 0.26440051735323833,
+        "away_win": 0.49030987948045585
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "home_win",
+          "market_display": "Vitória Casa",
+          "model_probability": 0.245,
+          "fair_odd": 4.08,
+          "market_odd": 7.0,
+          "value_pct": 71.6,
+          "edge": 0.716,
+          "stake_suggestion": "3-5% do bankroll"
+        },
+        {
+          "market": "under_2_5",
+          "market_display": "Under 2.5 gols",
+          "model_probability": 0.662,
+          "fair_odd": 1.51,
+          "market_odd": 1.95,
+          "value_pct": 29.1,
+          "edge": 0.291,
+          "stake_suggestion": "3-5% do bankroll"
+        },
+        {
+          "market": "draw",
+          "market_display": "Empate",
+          "model_probability": 0.265,
+          "fair_odd": 3.78,
+          "market_odd": 4.2,
+          "value_pct": 11.1,
+          "edge": 0.111,
+          "stake_suggestion": "2-3% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 4.08,
+        "draw": 3.78,
+        "away_win": 2.04,
+        "over_2_5": 2.98,
+        "under_2_5": 1.51,
+        "btts": 2.4
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta confiança (0.83)",
+      "date": "2026-01-16T19:45:00+00:00"
+    },
+    {
+      "id": 1388468,
+      "home": "Werder Bremen",
+      "away": "Eintracht Frankfurt",
+      "score": "3-3",
+      "league": "Bundesliga",
+      "predicted": "away",
+      "predicted_vector": [
+        0,
+        0,
+        1
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": false,
+      "brier": 0.3102657182890776,
+      "log_loss": 1.4817594525511697,
+      "consensus": {
+        "home_win": 0.2539909337342576,
+        "draw": 0.2272375228116437,
+        "away_win": 0.5187715434540987
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.518,
+          "fair_odd": 1.93,
+          "market_odd": 2.44,
+          "value_pct": 26.4,
+          "edge": 0.264,
+          "stake_suggestion": "3-5% do bankroll"
+        },
+        {
+          "market": "over_2_5",
+          "market_display": "Over 2.5 gols",
+          "model_probability": 0.654,
+          "fair_odd": 1.53,
+          "market_odd": 1.65,
+          "value_pct": 7.8,
+          "edge": 0.078,
+          "stake_suggestion": "1-2% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 3.94,
+        "draw": 4.4,
+        "away_win": 1.93,
+        "over_2_5": 1.53,
+        "under_2_5": 2.88,
+        "btts": 1.56
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta confiança (0.89)",
+      "date": "2026-01-16T19:30:00+00:00"
+    },
+    {
+      "id": 1387854,
+      "home": "Monaco",
+      "away": "Lorient",
+      "score": "1-3",
+      "league": "Ligue 1",
+      "predicted": "away",
+      "predicted_vector": [
+        1,
+        0,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.2667846353693666,
+      "log_loss": 1.2667805916422548,
+      "consensus": {
+        "home_win": 0.4742437641650003,
+        "draw": 0.2440190454709647,
+        "away_win": 0.281737190364035
+      },
+      "confidence": 5,
+      "value_bets": [
+        {
+          "market": "away_win",
+          "market_display": "Vitória Fora",
+          "model_probability": 0.282,
+          "fair_odd": 3.55,
+          "market_odd": 4.9,
+          "value_pct": 38.0,
+          "edge": 0.38,
+          "stake_suggestion": "3-5% do bankroll"
+        }
+      ],
+      "fair_odds": {
+        "home_win": 2.11,
+        "draw": 4.1,
+        "away_win": 3.55,
+        "over_2_5": 1.74,
+        "under_2_5": 2.35,
+        "btts": 1.64
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta confiança (0.85)",
+      "date": "2026-01-16T18:00:00+00:00"
+    },
+    {
+      "id": 1378015,
+      "home": "Como",
+      "away": "AC Milan",
+      "score": "1-3",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-15T19:45:00+00:00"
+    },
+    {
+      "id": 1388452,
+      "home": "FC Augsburg",
+      "away": "Union Berlin",
+      "score": "1-1",
+      "league": "Bundesliga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-15T19:30:00+00:00"
+    },
+    {
+      "id": 1378023,
+      "home": "Verona",
+      "away": "Bologna",
+      "score": "2-3",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-15T17:30:00+00:00"
+    },
+    {
+      "id": 1378018,
+      "home": "Inter",
+      "away": "Lecce",
+      "score": "1-0",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-14T19:45:00+00:00"
+    },
+    {
+      "id": 1388454,
+      "home": "1. FC Köln",
+      "away": "Bayern München",
+      "score": "1-3",
+      "league": "Bundesliga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-14T19:30:00+00:00"
+    },
+    {
+      "id": 1388456,
+      "home": "1899 Hoffenheim",
+      "away": "Borussia Mönchengladbach",
+      "score": "5-1",
+      "league": "Bundesliga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-14T19:30:00+00:00"
+    },
+    {
+      "id": 1388458,
+      "home": "RB Leipzig",
+      "away": "SC Freiburg",
+      "score": "2-0",
+      "league": "Bundesliga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-14T19:30:00+00:00"
+    },
+    {
+      "id": 1378021,
+      "home": "Napoli",
+      "away": "Parma",
+      "score": "0-0",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-14T17:30:00+00:00"
+    },
+    {
+      "id": 1388460,
+      "home": "VfL Wolfsburg",
+      "away": "FC St. Pauli",
+      "score": "2-1",
+      "league": "Bundesliga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-14T17:30:00+00:00"
+    },
+    {
+      "id": 1388453,
+      "home": "Borussia Dortmund",
+      "away": "Werder Bremen",
+      "score": "3-0",
+      "league": "Bundesliga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-13T19:30:00+00:00"
+    },
+    {
+      "id": 1388457,
+      "home": "FSV Mainz 05",
+      "away": "1. FC Heidenheim",
+      "score": "2-1",
+      "league": "Bundesliga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-13T19:30:00+00:00"
+    },
+    {
+      "id": 1388459,
+      "home": "VfB Stuttgart",
+      "away": "Eintracht Frankfurt",
+      "score": "3-2",
+      "league": "Bundesliga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-13T17:30:00+00:00"
+    },
+    {
+      "id": 1391006,
+      "home": "Sevilla",
+      "away": "Celta Vigo",
+      "score": "0-1",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-12T20:00:00+00:00"
+    },
+    {
+      "id": 1378059,
+      "home": "Juventus",
+      "away": "Cremonese",
+      "score": "5-0",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-12T19:45:00+00:00"
+    },
+    {
+      "id": 1378057,
+      "home": "Genoa",
+      "away": "Cagliari",
+      "score": "3-0",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-12T17:30:00+00:00"
+    },
+    {
+      "id": 1378058,
+      "home": "Inter",
+      "away": "Napoli",
+      "score": "2-2",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-11T19:45:00+00:00"
+    },
+    {
+      "id": 1378063,
+      "home": "Verona",
+      "away": "Lazio",
+      "score": "0-1",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-11T17:00:00+00:00"
+    },
+    {
+      "id": 1388444,
+      "home": "Bayern München",
+      "away": "VfL Wolfsburg",
+      "score": "8-1",
+      "league": "Bundesliga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-11T16:30:00+00:00"
+    },
+    {
+      "id": 1391003,
+      "home": "Levante",
+      "away": "Espanyol",
+      "score": "1-1",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-11T15:15:00+00:00"
+    },
+    {
+      "id": 1388445,
+      "home": "Borussia Mönchengladbach",
+      "away": "FC Augsburg",
+      "score": "4-0",
+      "league": "Bundesliga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-11T14:30:00+00:00"
+    },
+    {
+      "id": 1378056,
+      "home": "Fiorentina",
+      "away": "AC Milan",
+      "score": "1-1",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-11T14:00:00+00:00"
+    },
+    {
+      "id": 1391004,
+      "home": "Rayo Vallecano",
+      "away": "Mallorca",
+      "score": "2-1",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-11T13:00:00+00:00"
+    },
+    {
+      "id": 1378060,
+      "home": "Lecce",
+      "away": "Parma",
+      "score": "1-2",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-11T11:30:00+00:00"
+    },
+    {
+      "id": 1391007,
+      "home": "Valencia",
+      "away": "Elche",
+      "score": "1-1",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-10T20:00:00+00:00"
+    },
+    {
+      "id": 1378054,
+      "home": "Atalanta",
+      "away": "Torino",
+      "score": "2-0",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-10T19:45:00+00:00"
+    },
+    {
+      "id": 1388443,
+      "home": "Bayer Leverkusen",
+      "away": "VfB Stuttgart",
+      "score": "1-4",
+      "league": "Bundesliga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-10T17:30:00+00:00"
+    },
+    {
+      "id": 1391002,
+      "home": "Girona",
+      "away": "Osasuna",
+      "score": "1-0",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-10T17:30:00+00:00"
+    },
+    {
+      "id": 1378061,
+      "home": "AS Roma",
+      "away": "Sassuolo",
+      "score": "2-0",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-10T17:00:00+00:00"
+    },
+    {
+      "id": 1391008,
+      "home": "Villarreal",
+      "away": "Alaves",
+      "score": "3-1",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-10T15:15:00+00:00"
+    },
+    {
+      "id": 1388447,
+      "home": "SC Freiburg",
+      "away": "Hamburger SV",
+      "score": "2-1",
+      "league": "Bundesliga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-10T14:30:00+00:00"
+    },
+    {
+      "id": 1388448,
+      "home": "1. FC Heidenheim",
+      "away": "1. FC Köln",
+      "score": "2-2",
+      "league": "Bundesliga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-10T14:30:00+00:00"
+    },
+    {
+      "id": 1388450,
+      "home": "Union Berlin",
+      "away": "FSV Mainz 05",
+      "score": "2-2",
+      "league": "Bundesliga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-10T14:30:00+00:00"
+    },
+    {
+      "id": 1378055,
+      "home": "Como",
+      "away": "Bologna",
+      "score": "1-1",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-10T14:00:00+00:00"
+    },
+    {
+      "id": 1378062,
+      "home": "Udinese",
+      "away": "Pisa",
+      "score": "2-2",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-10T14:00:00+00:00"
+    },
+    {
+      "id": 1391005,
+      "home": "Oviedo",
+      "away": "Real Betis",
+      "score": "1-1",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-10T13:00:00+00:00"
+    },
+    {
+      "id": 1391001,
+      "home": "Getafe",
+      "away": "Real Sociedad",
+      "score": "1-2",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-09T20:00:00+00:00"
+    },
+    {
+      "id": 1388446,
+      "home": "Eintracht Frankfurt",
+      "away": "Borussia Dortmund",
+      "score": "3-3",
+      "league": "Bundesliga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-09T19:30:00+00:00"
+    },
+    {
+      "id": 1379169,
+      "home": "Arsenal",
+      "away": "Liverpool",
+      "score": "0-0",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-08T20:00:00+00:00"
+    },
+    {
+      "id": 1378048,
+      "home": "AC Milan",
+      "away": "Genoa",
+      "score": "1-1",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-08T19:45:00+00:00"
+    },
+    {
+      "id": 1378045,
+      "home": "Cremonese",
+      "away": "Cagliari",
+      "score": "2-2",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-08T17:30:00+00:00"
+    },
+    {
+      "id": 1379172,
+      "home": "Burnley",
+      "away": "Manchester United",
+      "score": "2-2",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-07T20:15:00+00:00"
+    },
+    {
+      "id": 1379177,
+      "home": "Newcastle",
+      "away": "Leeds",
+      "score": "4-3",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-07T20:15:00+00:00"
+    },
+    {
+      "id": 1378046,
+      "home": "Lazio",
+      "away": "Fiorentina",
+      "score": "2-2",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-07T19:45:00+00:00"
+    },
+    {
+      "id": 1378050,
+      "home": "Parma",
+      "away": "Inter",
+      "score": "0-2",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-07T19:45:00+00:00"
+    },
+    {
+      "id": 1378053,
+      "home": "Torino",
+      "away": "Udinese",
+      "score": "1-2",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-07T19:45:00+00:00"
+    },
+    {
+      "id": 1379170,
+      "home": "Bournemouth",
+      "away": "Tottenham",
+      "score": "3-2",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-07T19:30:00+00:00"
+    },
+    {
+      "id": 1379171,
+      "home": "Brentford",
+      "away": "Sunderland",
+      "score": "3-0",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-07T19:30:00+00:00"
+    },
+    {
+      "id": 1379173,
+      "home": "Crystal Palace",
+      "away": "Aston Villa",
+      "score": "0-0",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-07T19:30:00+00:00"
+    },
+    {
+      "id": 1379174,
+      "home": "Everton",
+      "away": "Wolves",
+      "score": "1-1",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-07T19:30:00+00:00"
+    },
+    {
+      "id": 1379175,
+      "home": "Fulham",
+      "away": "Chelsea",
+      "score": "2-1",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-07T19:30:00+00:00"
+    },
+    {
+      "id": 1379176,
+      "home": "Manchester City",
+      "away": "Brighton",
+      "score": "1-1",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-07T19:30:00+00:00"
+    },
+    {
+      "id": 1378044,
+      "home": "Bologna",
+      "away": "Atalanta",
+      "score": "0-2",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-07T17:30:00+00:00"
+    },
+    {
+      "id": 1378049,
+      "home": "Napoli",
+      "away": "Verona",
+      "score": "2-2",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-07T17:30:00+00:00"
+    },
+    {
+      "id": 1379178,
+      "home": "West Ham",
+      "away": "Nottingham Forest",
+      "score": "1-2",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-06T20:00:00+00:00"
+    },
+    {
+      "id": 1378052,
+      "home": "Sassuolo",
+      "away": "Juventus",
+      "score": "0-3",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-06T19:45:00+00:00"
+    },
+    {
+      "id": 1378047,
+      "home": "Lecce",
+      "away": "AS Roma",
+      "score": "0-2",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-06T17:00:00+00:00"
+    },
+    {
+      "id": 1378051,
+      "home": "Pisa",
+      "away": "Como",
+      "score": "0-3",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-06T14:00:00+00:00"
+    },
+    {
+      "id": 1390997,
+      "home": "Real Sociedad",
+      "away": "Atletico Madrid",
+      "score": "1-1",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T20:00:00+00:00"
+    },
+    {
+      "id": 1378039,
+      "home": "Inter",
+      "away": "Bologna",
+      "score": "3-1",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T19:45:00+00:00"
+    },
+    {
+      "id": 1387849,
+      "home": "Paris Saint Germain",
+      "away": "Paris FC",
+      "score": "2-1",
+      "league": "Ligue 1",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T19:45:00+00:00"
+    },
+    {
+      "id": 1379165,
+      "home": "Manchester City",
+      "away": "Chelsea",
+      "score": "1-1",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T17:30:00+00:00"
+    },
+    {
+      "id": 1390989,
+      "home": "Alaves",
+      "away": "Oviedo",
+      "score": "1-1",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T17:30:00+00:00"
+    },
+    {
+      "id": 1390993,
+      "home": "Mallorca",
+      "away": "Girona",
+      "score": "1-2",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T17:30:00+00:00"
+    },
+    {
+      "id": 1378043,
+      "home": "Verona",
+      "away": "Torino",
+      "score": "0-3",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T17:00:00+00:00"
+    },
+    {
+      "id": 1387842,
+      "home": "Stade Brestois 29",
+      "away": "Auxerre",
+      "score": "2-0",
+      "league": "Ligue 1",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T16:15:00+00:00"
+    },
+    {
+      "id": 1387843,
+      "home": "Le Havre",
+      "away": "Angers",
+      "score": "2-1",
+      "league": "Ligue 1",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T16:15:00+00:00"
+    },
+    {
+      "id": 1387845,
+      "home": "Lorient",
+      "away": "Metz",
+      "score": "1-1",
+      "league": "Ligue 1",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T16:15:00+00:00"
+    },
+    {
+      "id": 1379163,
+      "home": "Fulham",
+      "away": "Liverpool",
+      "score": "2-2",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T15:15:00+00:00"
+    },
+    {
+      "id": 1390996,
+      "home": "Real Madrid",
+      "away": "Real Betis",
+      "score": "5-1",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T15:15:00+00:00"
+    },
+    {
+      "id": 1379162,
+      "home": "Everton",
+      "away": "Brentford",
+      "score": "2-4",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T15:00:00+00:00"
+    },
+    {
+      "id": 1379166,
+      "home": "Newcastle",
+      "away": "Crystal Palace",
+      "score": "2-0",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T15:00:00+00:00"
+    },
+    {
+      "id": 1379167,
+      "home": "Tottenham",
+      "away": "Sunderland",
+      "score": "1-1",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T15:00:00+00:00"
+    },
+    {
+      "id": 1378037,
+      "home": "Fiorentina",
+      "away": "Cremonese",
+      "score": "1-0",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T14:00:00+00:00"
+    },
+    {
+      "id": 1387846,
+      "home": "Marseille",
+      "away": "Nantes",
+      "score": "0-2",
+      "league": "Ligue 1",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T14:00:00+00:00"
+    },
+    {
+      "id": 1390998,
+      "home": "Sevilla",
+      "away": "Levante",
+      "score": "0-3",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T13:00:00+00:00"
+    },
+    {
+      "id": 1379164,
+      "home": "Leeds",
+      "away": "Manchester United",
+      "score": "1-1",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T12:30:00+00:00"
+    },
+    {
+      "id": 1378041,
+      "home": "Lazio",
+      "away": "Napoli",
+      "score": "0-2",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-04T11:30:00+00:00"
+    },
+    {
+      "id": 1387844,
+      "home": "Lille",
+      "away": "Rennes",
+      "score": "0-2",
+      "league": "Ligue 1",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-03T20:05:00+00:00"
+    },
+    {
+      "id": 1390992,
+      "home": "Espanyol",
+      "away": "Barcelona",
+      "score": "0-2",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-03T20:00:00+00:00"
+    },
+    {
+      "id": 1378034,
+      "home": "Atalanta",
+      "away": "AS Roma",
+      "score": "1-0",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-03T19:45:00+00:00"
+    },
+    {
+      "id": 1387848,
+      "home": "Nice",
+      "away": "Strasbourg",
+      "score": "1-1",
+      "league": "Ligue 1",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-03T18:00:00+00:00"
+    },
+    {
+      "id": 1379160,
+      "home": "Bournemouth",
+      "away": "Arsenal",
+      "score": "2-3",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-03T17:30:00+00:00"
+    },
+    {
+      "id": 1390991,
+      "home": "Elche",
+      "away": "Villarreal",
+      "score": "1-3",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-03T17:30:00+00:00"
+    },
+    {
+      "id": 1378040,
+      "home": "Juventus",
+      "away": "Lecce",
+      "score": "1-1",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-03T17:00:00+00:00"
+    },
+    {
+      "id": 1387847,
+      "home": "Monaco",
+      "away": "Lyon",
+      "score": "1-3",
+      "league": "Ligue 1",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-03T16:00:00+00:00"
+    },
+    {
+      "id": 1390994,
+      "home": "Osasuna",
+      "away": "Athletic Club",
+      "score": "1-1",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-03T15:15:00+00:00"
+    },
+    {
+      "id": 1379161,
+      "home": "Brighton",
+      "away": "Burnley",
+      "score": "2-0",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-03T15:00:00+00:00"
+    },
+    {
+      "id": 1379168,
+      "home": "Wolves",
+      "away": "West Ham",
+      "score": "3-0",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-03T15:00:00+00:00"
+    },
+    {
+      "id": 1378038,
+      "home": "Genoa",
+      "away": "Pisa",
+      "score": "1-1",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-03T14:00:00+00:00"
+    },
+    {
+      "id": 1378042,
+      "home": "Sassuolo",
+      "away": "Parma",
+      "score": "1-1",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-03T14:00:00+00:00"
+    },
+    {
+      "id": 1390990,
+      "home": "Celta Vigo",
+      "away": "Valencia",
+      "score": "4-1",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-03T13:00:00+00:00"
+    },
+    {
+      "id": 1379159,
+      "home": "Aston Villa",
+      "away": "Nottingham Forest",
+      "score": "3-1",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-03T12:30:00+00:00"
+    },
+    {
+      "id": 1378036,
+      "home": "Como",
+      "away": "Udinese",
+      "score": "1-0",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-03T11:30:00+00:00"
+    },
+    {
+      "id": 1390995,
+      "home": "Rayo Vallecano",
+      "away": "Getafe",
+      "score": "1-1",
+      "league": "La Liga",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-02T20:00:00+00:00"
+    },
+    {
+      "id": 1378035,
+      "home": "Cagliari",
+      "away": "AC Milan",
+      "score": "0-1",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-02T19:45:00+00:00"
+    },
+    {
+      "id": 1387850,
+      "home": "Toulouse",
+      "away": "Lens",
+      "score": "0-3",
+      "league": "Ligue 1",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-02T19:45:00+00:00"
+    },
+    {
+      "id": 1379150,
+      "home": "Brentford",
+      "away": "Tottenham",
+      "score": "0-0",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-01T20:00:00+00:00"
+    },
+    {
+      "id": 1379157,
+      "home": "Sunderland",
+      "away": "Manchester City",
+      "score": "0-0",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-01T20:00:00+00:00"
+    },
+    {
+      "id": 1379153,
+      "home": "Crystal Palace",
+      "away": "Fulham",
+      "score": "1-1",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-01T17:30:00+00:00"
+    },
+    {
+      "id": 1379154,
+      "home": "Liverpool",
+      "away": "Leeds",
+      "score": "0-0",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2026-01-01T17:30:00+00:00"
+    },
+    {
+      "id": 1379149,
+      "home": "Arsenal",
+      "away": "Aston Villa",
+      "score": "4-1",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2025-12-30T20:15:00+00:00"
+    },
+    {
+      "id": 1379155,
+      "home": "Manchester United",
+      "away": "Wolves",
+      "score": "1-1",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2025-12-30T20:15:00+00:00"
+    },
+    {
+      "id": 1379151,
+      "home": "Burnley",
+      "away": "Newcastle",
+      "score": "1-3",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2025-12-30T19:30:00+00:00"
+    },
+    {
+      "id": 1379152,
+      "home": "Chelsea",
+      "away": "Bournemouth",
+      "score": "2-2",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2025-12-30T19:30:00+00:00"
+    },
+    {
+      "id": 1379156,
+      "home": "Nottingham Forest",
+      "away": "Everton",
+      "score": "0-2",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2025-12-30T19:30:00+00:00"
+    },
+    {
+      "id": 1379158,
+      "home": "West Ham",
+      "away": "Brighton",
+      "score": "2-2",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2025-12-30T19:30:00+00:00"
+    },
+    {
+      "id": 1378031,
+      "home": "AS Roma",
+      "away": "Genoa",
+      "score": "3-1",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2025-12-29T19:45:00+00:00"
+    },
+    {
+      "id": 1378024,
+      "home": "Atalanta",
+      "away": "Inter",
+      "score": "0-1",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2025-12-28T19:45:00+00:00"
+    },
+    {
+      "id": 1378025,
+      "home": "Bologna",
+      "away": "Sassuolo",
+      "score": "1-1",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2025-12-28T17:00:00+00:00"
+    },
+    {
+      "id": 1379143,
+      "home": "Crystal Palace",
+      "away": "Tottenham",
+      "score": "0-1",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2025-12-28T16:30:00+00:00"
+    },
+    {
+      "id": 1378026,
+      "home": "Cremonese",
+      "away": "Napoli",
+      "score": "0-2",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2025-12-28T14:00:00+00:00"
+    },
+    {
+      "id": 1379147,
+      "home": "Sunderland",
+      "away": "Leeds",
+      "score": "1-1",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        1,
+        0
+      ],
+      "correct": true,
+      "brier": 0.10077741814450351,
+      "log_loss": 0.5891014501652134,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2025-12-28T14:00:00+00:00"
+    },
+    {
+      "id": 1378028,
+      "home": "AC Milan",
+      "away": "Verona",
+      "score": "3-0",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        1,
+        0,
+        0
+      ],
+      "correct": false,
+      "brier": 0.2887307056401574,
+      "log_loss": 1.2986657252383331,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2025-12-28T11:30:00+00:00"
+    },
+    {
+      "id": 1378030,
+      "home": "Pisa",
+      "away": "Juventus",
+      "score": "0-2",
+      "league": "Serie A",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2025-12-27T19:45:00+00:00"
+    },
+    {
+      "id": 1379142,
+      "home": "Chelsea",
+      "away": "Aston Villa",
+      "score": "1-2",
+      "league": "Premier League",
+      "predicted": "draw",
+      "predicted_vector": [
+        0,
+        1,
+        0
+      ],
+      "actual": [
+        0,
+        0,
+        1
+      ],
+      "correct": false,
+      "brier": 0.3558086625248175,
+      "log_loss": 1.7586415748666642,
+      "consensus": {
+        "home_win": 0.27289566802783644,
+        "draw": 0.5548255992713172,
+        "away_win": 0.1722787327008463
+      },
+      "confidence": 4,
+      "value_bets": [],
+      "fair_odds": {
+        "home_win": 3.66,
+        "draw": 1.8,
+        "away_win": 5.8,
+        "over_2_5": 500.0,
+        "under_2_5": 1.01,
+        "btts": 98.81
+      },
+      "recommended_market": null,
+      "recommended_correct": false,
+      "should_publish": true,
+      "publish_reason": "Alta probabilidade (55.5%)",
+      "date": "2025-12-27T17:30:00+00:00"
+    }
+  ],
+  "failed_matches": []
+}

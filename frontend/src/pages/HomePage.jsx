@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { matchesAPI, authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useStats } from '../context/StatsContext';
+import { useStrategy } from '../context/StrategyContext';
 import { Clock, Flame, CalendarDays, Sparkles, Search, X } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
@@ -14,6 +15,7 @@ import LimitReachedModal from '../components/LimitReachedModal';
 export default function HomePage() {
   const { user } = useAuth();
   const { refreshStats } = useStats();
+  const { strategy } = useStrategy();
   const [allMatches, setAllMatches] = useState([]); // Armazenar todas as partidas
   const [matches, setMatches] = useState([]);
   const [displayedMatches, setDisplayedMatches] = useState([]); // Partidas exibidas (paginação)
@@ -260,7 +262,8 @@ export default function HomePage() {
           away_score: match.away_score,
           api_id: match.api_football_id || null,  // ID da API-Football
           football_data_id: match.football_data_id || null,  // ID da Football-Data.org (para H2H)
-          save_to_history: !!user  // Salvar no histórico se usuário estiver logado
+          save_to_history: !!user,  // Salvar no histórico se usuário estiver logado
+          strategy: strategy  // ✅ Estratégia de apostas (value ou multiple)
         };
 
         // LOG: Payload completo sendo enviado

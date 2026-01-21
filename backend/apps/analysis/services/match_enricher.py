@@ -78,6 +78,7 @@ class MatchDataEnricher:
             'rest_context': self._calculate_rest_context(home_team_id, away_team_id, league_id, season, match_date),
             'motivation': self._assess_motivation(table_context),
             'trends': self._calculate_trends(home_team_id, away_team_id, league_id, season),
+            'h2h': self._get_h2h(home_team_id, away_team_id),
             'season_context': self._get_season_context(fixture_details),
             'weather': weather_data  # Fase 3
         }
@@ -361,6 +362,20 @@ class MatchDataEnricher:
         logger.info(f"   ✅ Rodada: {round_info}, Temporada: {context['season']}")
         
         return context
+    
+    def _get_h2h(self, home_team_id, away_team_id):
+        """Busca histórico de confrontos diretos (H2H)"""
+        logger.info("\n⚔️ Buscando histórico H2H...")
+        time.sleep(0.5)  # Delay para respeitar rate limit
+        
+        h2h_data = self.api_service.fetch_h2h(home_team_id, away_team_id, last=10)
+        
+        if h2h_data and len(h2h_data) > 0:
+            logger.info(f"   ✅ {len(h2h_data)} confrontos diretos encontrados")
+        else:
+            logger.info("   ⚠️ Sem histórico H2H disponível")
+        
+        return h2h_data
     
     def _get_weather_data(self, fixture_details):
         """
