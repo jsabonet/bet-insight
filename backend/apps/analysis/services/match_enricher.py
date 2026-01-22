@@ -150,13 +150,20 @@ class MatchDataEnricher:
         
         odds = self.api_service.fetch_odds(fixture_id)
         
+        logger.info(f"   📊 fetch_odds retornou: {odds}")
+        logger.info(f"   📊 Tipo: {type(odds)}")
+        
         if odds:
-            logger.info(f"   ✅ Odds: Casa {odds.get('home_win', 'N/A')} | "
-                       f"Empate {odds.get('draw', 'N/A')} | "
-                       f"Fora {odds.get('away_win', 'N/A')}")
+            logger.info(f"   ✅ Odds recebidas:")
+            logger.info(f"      • Casa: {odds.get('home_win', 'N/A')}")
+            logger.info(f"      • Empate: {odds.get('draw', 'N/A')}")
+            logger.info(f"      • Fora: {odds.get('away_win', 'N/A')}")
+            logger.info(f"      • Over 2.5: {odds.get('over_25', 'N/A')}")
+            logger.info(f"      • Under 2.5: {odds.get('under_25', 'N/A')}")
+            logger.info(f"      • BTTS Yes: {odds.get('btts_yes', 'N/A')}")
             return odds
         else:
-            logger.info("   ⚠️ Odds não disponíveis - retornando dicionário vazio")
+            logger.warning("   ⚠️ fetch_odds retornou None ou vazio - retornando dicionário vazio")
             return {}  # Retornar {} em vez de None para evitar problemas com .get()
             
     
