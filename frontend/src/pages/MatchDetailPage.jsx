@@ -1338,6 +1338,13 @@ export default function MatchDetailPage() {
                 return response.data;
               } catch (error) {
                 console.error('Erro ao buscar análise unificada:', error);
+                
+                // Verificar se é erro de limite
+                if (error.response?.status === 429 || error.response?.data?.code === 'QUOTA_EXCEEDED') {
+                  setShowModal(false); // Fechar modal de análise
+                  setShowLimitModal(true); // Mostrar modal de limite
+                }
+                
                 throw error;
               }
             }}

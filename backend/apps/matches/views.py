@@ -1959,6 +1959,14 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             logger.info(f"   Strategy: {strategy}, Include AI: {include_ai}, Force: {force_refresh}")
             logger.info(f"{'='*80}\n")
             
+            # 🔥 VERIFICAR LIMITE ANTES DE PROCESSAR (se usuário autenticado)
+            if request.user.is_authenticated and not request.user.can_analyze():
+                logger.warning(f"⚠️ Usuário {request.user.username} atingiu limite diário antes de processar")
+                return Response(
+                    {'error': 'Limite diário de análises atingido', 'code': 'QUOTA_EXCEEDED'},
+                    status=status.HTTP_429_TOO_MANY_REQUESTS
+                )
+            
             # Inicializar cache_service (pode ser usado em ambos os casos)
             cache_service = get_cache() if not is_external_match else None
             
@@ -2173,6 +2181,65 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 logger.info(f"✅ Análise completa gerada e cacheada")
             else:
                 logger.info(f"✅ Análise completa gerada (match externo - sem cache)")
+            
+            # 🔥 SALVAR NO HISTÓRICO E DECREMENTAR CONTADOR
+            analysis_id = None
+            if request.user.is_authenticated:
+                try:
+                    # Verificar se usuário pode analisar
+                    if not request.user.can_analyze():
+                        logger.warning(f"⚠️ Usuário {request.user.username} atingiu limite diário")
+                        return Response(
+                            {'error': 'Limite diário de análises atingido', 'code': 'QUOTA_EXCEEDED'},
+                            status=status.HTTP_429_TOO_MANY_REQUESTS
+                        )
+                    
+                    # Preparar dados para salvar
+                    consensus = unified_response['statistical_data'].get('consensus', {})
+                    confidence = unified_response['statistical_data'].get('confidence', {})
+                    
+                    # Determinar predição
+                    home_prob = consensus.get('home_win', 0)
+                    draw_prob = consensus.get('draw', 0)
+                    away_prob = consensus.get('away_win', 0)
+                    
+                    if home_prob > draw_prob and home_prob > away_prob:
+                        prediction = 'home'
+                    elif away_prob > home_prob and away_prob > draw_prob:
+                        prediction = 'away'
+                    else:
+                        prediction = 'draw'
+                    
+                    # Criar registro de análise
+                    analysis = Analysis.objects.create(
+                        user=request.user,
+                        match=match if not is_external_match else None,
+                        match_external_id=api_id if is_external_match else None,
+                        home_team=match.home_team.name if not is_external_match else match_data.get('home_team', {}).get('name'),
+                        away_team=match.away_team.name if not is_external_match else match_data.get('away_team', {}).get('name'),
+                        league=match.league.name if not is_external_match else match_data.get('league'),
+                        prediction=prediction,
+                        confidence=confidence.get('level', 3),
+                        home_probability=home_prob,
+                        draw_probability=draw_prob,
+                        away_probability=away_prob,
+                        strategy=strategy
+                    )
+                    
+                    analysis_id = analysis.id
+                    
+                    # Decrementar contador do usuário
+                    request.user.analyses_today += 1
+                    request.user.save(update_fields=['analyses_today'])
+                    
+                    logger.info(f"✅ Análise salva no histórico (ID: {analysis_id}), contador: {request.user.analyses_today}/{request.user.daily_limit}")
+                    
+                    # Adicionar analysis_id na resposta
+                    unified_response['analysis_id'] = analysis_id
+                    
+                except Exception as save_error:
+                    logger.error(f"❌ Erro ao salvar análise no histórico: {save_error}", exc_info=True)
+                    # Continuar mesmo se falhar ao salvar
             
             return Response(unified_response)
             

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { X, Star, Sparkles, TrendingUp, AlertCircle, Target, Trophy, Zap, ClipboardList, Loader2, CheckCircle2, Brain, Copy, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useStrategy } from '../context/StrategyContext';
+import { useStats } from '../context/StatsContext';
 import { TeamLogo } from '../utils/logos';
 import { Skeleton } from './Skeleton';
 
@@ -15,6 +16,7 @@ import { Skeleton } from './Skeleton';
 export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) {
   const { user } = useAuth();
   const { strategy, setStrategy } = useStrategy();
+  const { refreshStats } = useStats();
   
   // Estados de loading por fase
   const [phase, setPhase] = useState(1); // 1, 2, 3
@@ -127,6 +129,12 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) 
         // Onda 3: AI Analysis
         setPhase(3);
         setAiAnalysis(result.ai_analysis || null);
+        
+        // 🔥 ATUALIZAR CONTADOR SE ANÁLISE FOI SALVA
+        if (result.analysis_id) {
+          console.log('✅ Análise salva (ID:', result.analysis_id, ') - atualizando contador');
+          refreshStats();
+        }
       }
 
     } catch (err) {

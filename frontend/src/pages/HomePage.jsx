@@ -435,6 +435,7 @@ export default function HomePage() {
             } catch (error) {
               console.error('Erro ao buscar análise:', error);
               if (error.response?.status === 429 || error.response?.data?.code === 'QUOTA_EXCEEDED') {
+                closeModal(); // Fechar modal antes de mostrar limite
                 setShowLimitModal(true);
               }
               throw error;
