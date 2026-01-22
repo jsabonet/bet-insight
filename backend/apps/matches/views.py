@@ -2182,18 +2182,10 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             else:
                 logger.info(f"✅ Análise completa gerada (match externo - sem cache)")
             
-            # 🔥 SALVAR NO HISTÓRICO E DECREMENTAR CONTADOR
+            # 🔥 SALVAR NO HISTÓRICO E INCREMENTAR CONTADOR
             analysis_id = None
             if request.user.is_authenticated:
                 try:
-                    # Verificar se usuário pode analisar
-                    if not request.user.can_analyze():
-                        logger.warning(f"⚠️ Usuário {request.user.username} atingiu limite diário")
-                        return Response(
-                            {'error': 'Limite diário de análises atingido', 'code': 'QUOTA_EXCEEDED'},
-                            status=status.HTTP_429_TOO_MANY_REQUESTS
-                        )
-                    
                     # Preparar dados para salvar
                     consensus = unified_response['statistical_data'].get('consensus', {})
                     confidence = unified_response['statistical_data'].get('confidence', {})
