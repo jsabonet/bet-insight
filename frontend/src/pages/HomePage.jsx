@@ -427,10 +427,12 @@ export default function HomePage() {
           onAnalyze={async (strategy) => {
             // Chamar API unificada
             try {
-              const response = await matchesAPI.unifiedAnalysis(selectedMatch.id, {
+              const response = await matchesAPI.unifiedAnalysis(
+                selectedMatch.id,
                 strategy,
-                include_ai: true
-              });
+                true, // include_ai
+                false // force_refresh
+              );
               return response.data;
             } catch (error) {
               console.error('Erro ao buscar análise:', error);
