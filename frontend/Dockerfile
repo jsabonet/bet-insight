@@ -7,7 +7,8 @@ WORKDIR /app
 COPY frontend/package*.json ./
 
 # Instalar dependências (inclui devDependencies para build)
-RUN npm ci
+# Use --legacy-peer-deps para resolver conflito de react-helmet-async com React 19
+RUN npm ci --legacy-peer-deps
 
 # Copiar código fonte
 COPY frontend/ .
