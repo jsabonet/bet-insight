@@ -2315,30 +2315,35 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                     draw_prob_pct = draw_prob * 100
                     away_prob_pct = away_prob * 100
                     
-                    # Criar registro de análise (APENAS PARA MATCHES DO BANCO)
-                    analysis = Analysis.objects.create(
+                    # Criar ou atualizar registro de análise (APENAS PARA MATCHES DO BANCO)
+                    analysis, created = Analysis.objects.update_or_create(
                         user=request.user,
                         match=match,
-                        prediction=prediction,
-                        confidence=confidence_level,
-                        home_probability=home_prob_pct,
-                        draw_probability=draw_prob_pct,
-                        away_probability=away_prob_pct,
-                        home_xg=unified_response['statistical_data'].get('poisson', {}).get('home_xg'),
-                        away_xg=unified_response['statistical_data'].get('poisson', {}).get('away_xg'),
-                        analysis_data=unified_response['decision_data'],
-                        reasoning=unified_response.get('ai_analysis', ''),
-                        key_factors=[]
+                        defaults={
+                            'prediction': prediction,
+                            'confidence': confidence_level,
+                            'home_probability': home_prob_pct,
+                            'draw_probability': draw_prob_pct,
+                            'away_probability': away_prob_pct,
+                            'home_xg': unified_response['statistical_data'].get('poisson', {}).get('home_xg'),
+                            'away_xg': unified_response['statistical_data'].get('poisson', {}).get('away_xg'),
+                            'analysis_data': unified_response['decision_data'],
+                            'reasoning': unified_response.get('ai_analysis', ''),
+                            'key_factors': []
+                        }
                     )
                     
                     analysis_id = analysis.id
                     
-                    # Incrementar contador do usuário
-                    request.user.daily_analysis_count += 1
-                    request.user.last_analysis_date = timezone.now().date()
-                    request.user.save(update_fields=['daily_analysis_count', 'last_analysis_date'])
-                    
-                    logger.info(f"✅ Análise salva no histórico (ID: {analysis_id}), contador: {request.user.daily_analysis_count}")
+                    # Incrementar contador do usuário apenas se for nova análise
+                    if created:
+                        request.user.daily_analysis_count += 1
+                        request.user.last_analysis_date = timezone.now().date()
+                        request.user.save(update_fields=['daily_analysis_count', 'last_analysis_date'])
+                        logger.info(f"✅ Nova análise salva no histórico (ID: {analysis_id}), contador: {request.user.daily_analysis_count}")
+                    else:
+                        logger.info(f"♻️ Análise atualizada no histórico (ID: {analysis_id})")
+
                     
                     # Adicionar analysis_id na resposta
                     unified_response['analysis_id'] = analysis_id
