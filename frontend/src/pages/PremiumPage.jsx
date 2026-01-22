@@ -8,6 +8,7 @@ import BottomNav from '../components/BottomNav';
 import Logo from '../components/Logo';
 import CheckoutModal from '../components/CheckoutModal';
 import api from '../services/api';
+import SEOHead from '../components/SEO/SEOHead';
 
 export default function PremiumPage() {
   const navigate = useNavigate();
@@ -200,6 +201,13 @@ export default function PremiumPage() {
 
   return (
     <div className="page-container">
+      <SEOHead
+        title="Planos Premium - Análises Ilimitadas | PlacerCerto"
+        description="Desbloqueie análises ilimitadas de futebol com modelos estatísticos avançados. Planos a partir de 49 MZN/semana. Sem compromisso, cancele quando quiser."
+        keywords="planos premium, assinatura futebol, análises ilimitadas, moçambique apostas"
+        canonicalUrl="https://placarcerto.digital/premium"
+      />
+      
       <Header title="Seja Premium" subtitle="Análises ilimitadas e recursos exclusivos" />
 
       <div className="page-content">

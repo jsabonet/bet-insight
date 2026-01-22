@@ -805,12 +805,12 @@ class FeatureEngineer:
         home_standing = standings.get('home', {})
         away_standing = standings.get('away', {})
         
-        # Posições na tabela
-        home_position = home_standing.get('position', 10)
-        away_position = away_standing.get('position', 10)
+        # Posições na tabela (garantir que nunca sejam None)
+        home_position = home_standing.get('position') or 10
+        away_position = away_standing.get('position') or 10
         
         # Total de times na liga (assumir 20 se não disponível)
-        total_teams = home_standing.get('total_teams', 20)
+        total_teams = home_standing.get('total_teams') or 20
         
         # Calcular distância para zonas críticas
         # Top 4 = Champions League, 5-6 = Europa League, Bottom 3 = Relegation
@@ -1078,6 +1078,10 @@ class FeatureEngineer:
             10 = Máxima motivação (luta por título ou contra rebaixamento)
             1 = Mínima motivação (meio de tabela sem objetivos)
             """
+            # ✅ Se position for None, retornar motivação neutra
+            if position is None:
+                return 5
+            
             # Zona de título (1-3)
             if position <= 3:
                 # Quanto mais perto do topo, mais motivação
@@ -1108,15 +1112,19 @@ class FeatureEngineer:
         home_motivation = calculate_team_motivation(home_position, home_points, total_teams)
         away_motivation = calculate_team_motivation(away_position, away_points, total_teams)
         
-        # Detectar pressões específicas
-        home_title_pressure = home_position <= 3
-        away_title_pressure = away_position <= 3
+        # Detectar pressões específicas (✅ verificar None)
+        home_title_pressure = home_position is not None and home_position <= 3
+        away_title_pressure = away_position is not None and away_position <= 3
         
-        home_relegation_pressure = home_position >= total_teams - 5
-        away_relegation_pressure = away_position >= total_teams - 5
+        home_relegation_pressure = home_position is not None and home_position >= total_teams - 5
+        away_relegation_pressure = away_position is not None and away_position >= total_teams - 5
         
         # Objetivos
         def determine_objective(position, total_teams):
+            # ✅ Se position for None, retornar objetivo neutro
+            if position is None:
+                return 'mid_table'
+            
             if position <= 1:
                 return 'title'
             elif position <= 4:

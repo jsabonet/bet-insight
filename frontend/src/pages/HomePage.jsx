@@ -10,6 +10,8 @@ import EmptyState from '../components/EmptyState';
 import { MatchListSkeleton, Skeleton } from '../components/Skeleton';
 import AnalysisModalProgressive from '../components/AnalysisModalProgressive';
 import LimitReachedModal from '../components/LimitReachedModal';
+import SEOHead from '../components/SEO/SEOHead';
+import { generateMatchListStructuredData, generateWebsiteStructuredData } from '../utils/structuredData';
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -277,6 +279,14 @@ export default function HomePage() {
 
   return (
     <div className="page-container">
+      <SEOHead
+        title="PlacerCerto - Análise Estatística Avançada de Futebol | Previsões Precisas"
+        description="Previsões de futebol com modelos estatísticos avançados (Poisson Bivariado + Regressão Logística). Análise quantitativa completa de partidas ao vivo e futuras das principais ligas de Moçambique, África e Europa. Estatísticas em tempo real e apostas inteligentes."
+        keywords="previsões futebol moçambique, análise estatística futebol, modelos matemáticos, apostas desportivas, estatísticas futebol ao vivo, PlacerCerto, moçambola, ligas africanas, poisson, regressão logística"
+        canonicalUrl="https://placarcerto.digital/"
+        structuredData={matches.length > 0 ? generateMatchListStructuredData(matches.slice(0, 20)) : generateWebsiteStructuredData()}
+      />
+      
       <Header showLogo={true} />
 
       <div className="page-content">
@@ -427,6 +437,10 @@ export default function HomePage() {
           onAnalyze={async (strategy) => {
             // Chamar API unificada
             try {
+              console.log('🔍 DEBUG HomePage - selectedMatch:', selectedMatch);
+              console.log('🔍 DEBUG HomePage - selectedMatch.id:', selectedMatch.id);
+              console.log('🔍 DEBUG HomePage - selectedMatch.api_football_id:', selectedMatch.api_football_id);
+              
               const response = await matchesAPI.unifiedAnalysis(
                 selectedMatch.id,
                 strategy,

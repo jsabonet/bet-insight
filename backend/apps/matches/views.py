@@ -1491,37 +1491,6 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                     }
                     logger.info(f"💰 Market odds da API: {len([v for v in market_odds.values() if v])} mercados disponíveis")
             
-            # Se não há odds reais, simular com base nas probabilidades + margem bookmaker (5%)
-            if not market_odds:
-                bookmaker_margin = 1.05
-                market_odds = {
-                    # 1X2
-                    'odds_home': round((1 / consensus.get('home_win', 0.33)) / bookmaker_margin, 2),
-                    'odds_draw': round((1 / consensus.get('draw', 0.33)) / bookmaker_margin, 2),
-                    'odds_away': round((1 / consensus.get('away_win', 0.33)) / bookmaker_margin, 2),
-                    # Over/Under 2.5
-                    'odds_over25': round((1 / poisson_pred['probabilities'].get('over_2_5', 0.5)) / bookmaker_margin, 2),
-                    'odds_under25': round((1 / poisson_pred['probabilities'].get('under_2_5', 0.5)) / bookmaker_margin, 2),
-                    # Over/Under 1.5
-                    'odds_over15': round((1 / poisson_pred['probabilities'].get('over_1_5', 0.7)) / bookmaker_margin, 2),
-                    'odds_under15': round((1 / poisson_pred['probabilities'].get('under_1_5', 0.3)) / bookmaker_margin, 2),
-                    # Over/Under 3.5
-                    'odds_over35': round((1 / poisson_pred['probabilities'].get('over_3_5', 0.3)) / bookmaker_margin, 2),
-                    'odds_under35': round((1 / poisson_pred['probabilities'].get('under_3_5', 0.7)) / bookmaker_margin, 2),
-                    # BTTS
-                    'odds_btts': round((1 / poisson_pred['probabilities'].get('btts', 0.5)) / bookmaker_margin, 2),
-                    # Team Totals - Casa
-                    'odds_home_over_0_5': round((1 / poisson_pred['probabilities'].get('team_home_over_0_5', 0.8)) / bookmaker_margin, 2),
-                    'odds_home_over_1_5': round((1 / poisson_pred['probabilities'].get('team_home_over_1_5', 0.4)) / bookmaker_margin, 2),
-                    # Team Totals - Fora
-                    'odds_away_over_0_5': round((1 / poisson_pred['probabilities'].get('team_away_over_0_5', 0.8)) / bookmaker_margin, 2),
-                    'odds_away_over_1_5': round((1 / poisson_pred['probabilities'].get('team_away_over_1_5', 0.4)) / bookmaker_margin, 2),
-                    # Clean Sheets
-                    'odds_home_clean_sheet': round((1 / poisson_pred['probabilities'].get('clean_sheet_home', 0.2)) / bookmaker_margin, 2),
-                    'odds_away_clean_sheet': round((1 / poisson_pred['probabilities'].get('clean_sheet_away', 0.2)) / bookmaker_margin, 2),
-                }
-                logger.info("💰 Market odds simuladas (fallback)")
-            
             # Ensemble com 3 modelos: 50% Poisson + 35% Logística + 15% Market Prior
             # Market Prior = probabilidades implícitas das odds do mercado
             market_prior = self._calculate_market_prior(market_odds)
@@ -1554,25 +1523,43 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             if total > 0:
                 consensus = {k: v/total for k, v in consensus.items()}
             
-            # Calcular odds justas
+            # Calcular odds justas a partir do consensus
             fair_odds = {
                 'home_win': round(1 / consensus['home_win'], 2) if consensus['home_win'] > 0 else 999,
                 'draw': round(1 / consensus['draw'], 2) if consensus['draw'] > 0 else 999,
                 'away_win': round(1 / consensus['away_win'], 2) if consensus['away_win'] > 0 else 999,
             }
             
-            # Gerar market_odds (com margem de bookmaker 5%)
-            bookmaker_margin = 1.05
-            market_odds = {
-                'odds_home': round(fair_odds['home_win'] / bookmaker_margin, 2) if fair_odds['home_win'] < 999 else None,
-                'odds_draw': round(fair_odds['draw'] / bookmaker_margin, 2) if fair_odds['draw'] < 999 else None,
-                'odds_away': round(fair_odds['away_win'] / bookmaker_margin, 2) if fair_odds['away_win'] < 999 else None,
-                'odds_over_25': round(2.0 / bookmaker_margin, 2),  # Valor padrão
-                'odds_btts_yes': round(2.0 / bookmaker_margin, 2),  # Valor padrão
-            }
-            
-            logger.info(f"💰 MARKET_ODDS GERADOS:")
-            logger.info(f"   Home: {market_odds['odds_home']} | Draw: {market_odds['odds_draw']} | Away: {market_odds['odds_away']}")
+            # Se não há odds reais, simular com base nas probabilidades do consensus + margem bookmaker (5%)
+            if not market_odds:
+                bookmaker_margin = 1.05
+                market_odds = {
+                    # 1X2
+                    'odds_home': round((1 / consensus.get('home_win', 0.33)) / bookmaker_margin, 2),
+                    'odds_draw': round((1 / consensus.get('draw', 0.33)) / bookmaker_margin, 2),
+                    'odds_away': round((1 / consensus.get('away_win', 0.33)) / bookmaker_margin, 2),
+                    # Over/Under 2.5
+                    'odds_over25': round((1 / poisson_pred['probabilities'].get('over_2_5', 0.5)) / bookmaker_margin, 2),
+                    'odds_under25': round((1 / poisson_pred['probabilities'].get('under_2_5', 0.5)) / bookmaker_margin, 2),
+                    # Over/Under 1.5
+                    'odds_over15': round((1 / poisson_pred['probabilities'].get('over_1_5', 0.7)) / bookmaker_margin, 2),
+                    'odds_under15': round((1 / poisson_pred['probabilities'].get('under_1_5', 0.3)) / bookmaker_margin, 2),
+                    # Over/Under 3.5
+                    'odds_over35': round((1 / poisson_pred['probabilities'].get('over_3_5', 0.3)) / bookmaker_margin, 2),
+                    'odds_under35': round((1 / poisson_pred['probabilities'].get('under_3_5', 0.7)) / bookmaker_margin, 2),
+                    # BTTS
+                    'odds_btts': round((1 / poisson_pred['probabilities'].get('btts', 0.5)) / bookmaker_margin, 2),
+                    # Team Totals - Casa
+                    'odds_home_over_0_5': round((1 / poisson_pred['probabilities'].get('team_home_over_0_5', 0.8)) / bookmaker_margin, 2),
+                    'odds_home_over_1_5': round((1 / poisson_pred['probabilities'].get('team_home_over_1_5', 0.4)) / bookmaker_margin, 2),
+                    # Team Totals - Fora
+                    'odds_away_over_0_5': round((1 / poisson_pred['probabilities'].get('team_away_over_0_5', 0.8)) / bookmaker_margin, 2),
+                    'odds_away_over_1_5': round((1 / poisson_pred['probabilities'].get('team_away_over_1_5', 0.4)) / bookmaker_margin, 2),
+                    # Clean Sheets
+                    'odds_home_clean_sheet': round((1 / poisson_pred['probabilities'].get('clean_sheet_home', 0.2)) / bookmaker_margin, 2),
+                    'odds_away_clean_sheet': round((1 / poisson_pred['probabilities'].get('clean_sheet_away', 0.2)) / bookmaker_margin, 2),
+                }
+                logger.info("💰 Market odds simuladas com base no consensus")
             
             # Confiança baseada em diferença de probabilidades
             prob_diff = abs(consensus['home_win'] - consensus['away_win'])
@@ -1927,19 +1914,114 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         - Cache Hit: ~50ms (90% das requests após primeira análise)
         - Cache Miss: 2-8s (depende de include_ai)
         """
+        # LOG IMEDIATO PARA CONFIRMAR EXECUÇÃO
+        print("="*100)
+        print("TESTE TESTE TESTE - UNIFIED_ANALYSIS FOI CHAMADO - VERSAO NOVA")
+        print(f"Match ID recebido: {self.kwargs.get('pk')}")
+        print("="*100)
+        
         from apps.analysis.services.cache_service import get_cache
+        
+        logger.info("="*80)
+        logger.info("🚀🚀🚀 UNIFIED_ANALYSIS INICIADO - VERSÃO ATUALIZADA")
+        logger.info("="*80)
         
         try:
             # Tentar buscar match do banco de dados
+            match_id = self.kwargs.get('pk')
+            match = None
+            is_external_match = False
+            
+            logger.info(f"🔍 UNIFIED_ANALYSIS - Iniciando busca do match. ID recebido: {match_id} (tipo: {type(match_id)})")
+            
+            # 1. Tentar buscar por ID do banco
             try:
+                logger.info(f"📍 Tentativa 1: Buscar por self.get_object()...")
                 match = self.get_object()
-                is_external_match = False
-                logger.info(f"✅ Match encontrado no banco de dados: {match.id}")
-            except Exception as e:
-                # Match não existe no banco - tratar como match externo
-                is_external_match = True
-                match = None
-                logger.info(f"⚠️ Match não encontrado no banco (404) - tratando como match externo")
+                logger.info(f"✅ Match encontrado no banco de dados por ID: {match.id}")
+            except Exception as e1:
+                logger.warning(f"⚠️ get_object() falhou: {type(e1).__name__}: {e1}")
+                # 2. Tentar buscar por api_football_id
+                try:
+                    logger.info(f"📍 Tentativa 2: Buscar por api_football_id={match_id}...")
+                    match = Match.objects.get(api_football_id=match_id)
+                    logger.info(f"✅ Match encontrado por api_football_id: {match_id} → DB ID: {match.id}")
+                except Match.DoesNotExist as e2:
+                    logger.warning(f"⚠️ Match.DoesNotExist: Match {match_id} não existe na tabela")
+                    # 3. Match não existe - criar automaticamente antes de processar
+                    logger.info(f"⚠️ Match {match_id} não encontrado no banco - tentando criar automaticamente...")
+                    
+                    from .services.football_api import FootballAPIService
+                    api_service = FootballAPIService()
+                    
+                    try:
+                        logger.info(f"📡 Buscando dados do match {match_id} da API externa...")
+                        match_data = api_service.get_fixture_by_id(match_id)
+                        logger.info(f"📡 Resposta da API: success={match_data.get('success') if match_data else None}")
+                        
+                        if match_data and match_data.get('success') and match_data.get('fixture'):
+                            fixture = match_data['fixture']
+                            logger.info(f"✅ Dados do fixture recebidos: {fixture['teams']['home']['name']} vs {fixture['teams']['away']['name']}")
+                            
+                            # Buscar ou criar times
+                            logger.info(f"👥 Criando/buscando time casa (ID: {fixture['teams']['home']['id']})")
+                            home_team, created_home = Team.objects.get_or_create(
+                                api_football_id=fixture['teams']['home']['id'],
+                                defaults={
+                                    'name': fixture['teams']['home']['name'],
+                                    'logo': fixture['teams']['home']['logo']
+                                }
+                            )
+                            logger.info(f"✅ Time casa: {home_team.name} ({'criado' if created_home else 'existente'})")
+                            
+                            logger.info(f"👥 Criando/buscando time fora (ID: {fixture['teams']['away']['id']})")
+                            away_team, created_away = Team.objects.get_or_create(
+                                api_football_id=fixture['teams']['away']['id'],
+                                defaults={
+                                    'name': fixture['teams']['away']['name'],
+                                    'logo': fixture['teams']['away']['logo']
+                                }
+                            )
+                            logger.info(f"✅ Time fora: {away_team.name} ({'criado' if created_away else 'existente'})")
+                            
+                            # Buscar ou criar a League
+                            logger.info(f"🏆 Criando/buscando liga (ID: {fixture['league']['id']})")
+                            from apps.matches.models import League
+                            league, created_league = League.objects.get_or_create(
+                                api_football_id=fixture['league']['id'],
+                                defaults={
+                                    'name': fixture['league']['name'],
+                                    'country': fixture['league'].get('country', ''),
+                                    'logo': fixture['league'].get('logo', '')
+                                }
+                            )
+                            logger.info(f"✅ Liga: {league.name} ({'criada' if created_league else 'existente'})")
+                            
+                            # Criar o match no banco
+                            logger.info(f"⚽ Criando match no banco de dados...")
+                            match = Match.objects.create(
+                                api_football_id=match_id,
+                                league=league,
+                                home_team=home_team,
+                                away_team=away_team,
+                                match_date=fixture['fixture']['date'],
+                                status=fixture['fixture']['status']['short'],
+                                round=fixture['league'].get('round', '')
+                            )
+                            
+                            # ✅ IMPORTANTE: Match criado com sucesso, NÃO é externo!
+                            is_external_match = False
+                            logger.info(f"✅✅✅ Match criado COM SUCESSO no banco: ID {match.id} (api_football_id: {match_id})")
+                            logger.info(f"✅ is_external_match = {is_external_match} - SERÁ SALVO NO HISTÓRICO!")
+                        else:
+                            # Se falhar ao buscar da API, marcar como externo
+                            logger.warning(f"⚠️ API não retornou fixture válido - tratando como externo")
+                            logger.warning(f"⚠️ match_data: {match_data}")
+                            is_external_match = True
+                    except Exception as create_error:
+                        logger.error(f"❌ ERRO ao criar match automaticamente: {create_error}", exc_info=True)
+                        logger.error(f"❌ Tipo do erro: {type(create_error).__name__}")
+                        is_external_match = True
             
             strategy = request.data.get('strategy', 'value')
             include_ai = request.data.get('include_ai', True)
@@ -2155,6 +2237,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 
                 # Onda 2: Decision data (top_bets)
                 'decision_data': {
+                    # Usar 'top_bets' como nome padrão (value_bets do orchestrator é renomeado)
                     'top_bets': analysis_result.get('analysis_data', {}).get('decision', {}).get('top_bets', []) if is_external_match else analysis_result.get('analysis_data', {}).get('value_bets', []),
                     'recommendation': analysis_result.get('analysis_data', {}).get('decision', {}).get('recommendation', {}) if is_external_match else analysis_result.get('analysis_data', {}).get('recommendation', {}),
                     'risk': analysis_result.get('analysis_data', {}).get('decision', {}).get('risk', 'medium') if is_external_match else analysis_result.get('analysis_data', {}).get('risk', 'medium'),
@@ -2184,8 +2267,20 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             
             # 🔥 SALVAR NO HISTÓRICO E INCREMENTAR CONTADOR
             analysis_id = None
-            if request.user.is_authenticated:
+            
+            logger.info(f"🔍 SALVAMENTO - Estado antes de salvar:")
+            logger.info(f"   - Usuário autenticado: {request.user.is_authenticated}")
+            logger.info(f"   - User: {request.user if request.user.is_authenticated else 'AnonymousUser'}")
+            logger.info(f"   - is_external_match: {is_external_match}")
+            logger.info(f"   - match existe: {match is not None}")
+            logger.info(f"   - match.id: {match.id if match else 'N/A'}")
+            
+            if request.user.is_authenticated and not is_external_match and match:
+                # ⚠️ Só salvar se for match do banco (não external)
                 try:
+                    logger.info(f"🔍 SALVAMENTO - Iniciando criação de Analysis...")
+                    logger.info(f"🔍 DEBUG - unified_response['decision_data']: {unified_response.get('decision_data', {})}")
+                    
                     # Preparar dados para salvar
                     consensus = unified_response['statistical_data'].get('consensus', {})
                     confidence = unified_response['statistical_data'].get('confidence', {})
@@ -2202,36 +2297,70 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                     else:
                         prediction = 'draw'
                     
-                    # Criar registro de análise
+                    # ✅ Converter confidence de string para número (1-5)
+                    confidence_level = confidence.get('level', 3)
+                    if isinstance(confidence_level, str):
+                        # Mapear string → número
+                        confidence_map = {
+                            'very_low': 1,
+                            'low': 2,
+                            'medium': 3,
+                            'high': 4,
+                            'very_high': 5
+                        }
+                        confidence_level = confidence_map.get(confidence_level, 3)
+                    
+                    # ✅ Converter probabilidades de decimal (0-1) para porcentagem (0-100)
+                    home_prob_pct = home_prob * 100
+                    draw_prob_pct = draw_prob * 100
+                    away_prob_pct = away_prob * 100
+                    
+                    # Criar registro de análise (APENAS PARA MATCHES DO BANCO)
                     analysis = Analysis.objects.create(
                         user=request.user,
-                        match=match if not is_external_match else None,
-                        match_external_id=api_id if is_external_match else None,
-                        home_team=match.home_team.name if not is_external_match else match_data.get('home_team', {}).get('name'),
-                        away_team=match.away_team.name if not is_external_match else match_data.get('away_team', {}).get('name'),
-                        league=match.league.name if not is_external_match else match_data.get('league'),
+                        match=match,
                         prediction=prediction,
-                        confidence=confidence.get('level', 3),
-                        home_probability=home_prob,
-                        draw_probability=draw_prob,
-                        away_probability=away_prob,
-                        strategy=strategy
+                        confidence=confidence_level,
+                        home_probability=home_prob_pct,
+                        draw_probability=draw_prob_pct,
+                        away_probability=away_prob_pct,
+                        home_xg=unified_response['statistical_data'].get('poisson', {}).get('home_xg'),
+                        away_xg=unified_response['statistical_data'].get('poisson', {}).get('away_xg'),
+                        analysis_data=unified_response['decision_data'],
+                        reasoning=unified_response.get('ai_analysis', ''),
+                        key_factors=[]
                     )
                     
                     analysis_id = analysis.id
                     
-                    # Decrementar contador do usuário
-                    request.user.analyses_today += 1
-                    request.user.save(update_fields=['analyses_today'])
+                    # Incrementar contador do usuário
+                    request.user.daily_analysis_count += 1
+                    request.user.last_analysis_date = timezone.now().date()
+                    request.user.save(update_fields=['daily_analysis_count', 'last_analysis_date'])
                     
-                    logger.info(f"✅ Análise salva no histórico (ID: {analysis_id}), contador: {request.user.analyses_today}/{request.user.daily_limit}")
+                    logger.info(f"✅ Análise salva no histórico (ID: {analysis_id}), contador: {request.user.daily_analysis_count}")
                     
                     # Adicionar analysis_id na resposta
                     unified_response['analysis_id'] = analysis_id
+                    logger.info(f"🔍 SALVAMENTO - analysis_id adicionado à resposta: {analysis_id}")
                     
                 except Exception as save_error:
                     logger.error(f"❌ Erro ao salvar análise no histórico: {save_error}", exc_info=True)
                     # Continuar mesmo se falhar ao salvar
+            elif request.user.is_authenticated and is_external_match:
+                # ⚠️ Match externo: incrementar contador mas não salvar histórico
+                logger.warning(f"⚠️ SALVAMENTO - Match VERDADEIRAMENTE externo ({api_id if is_external_match else 'N/A'}) - incrementando contador sem salvar histórico")
+                request.user.daily_analysis_count += 1
+                request.user.last_analysis_date = timezone.now().date()
+                request.user.save(update_fields=['daily_analysis_count', 'last_analysis_date'])
+                logger.info(f"✅ Contador incrementado: {request.user.daily_analysis_count}")
+            else:
+                logger.warning(f"⚠️ SALVAMENTO - Análise NÃO será salva. Razões:")
+                logger.warning(f"   - Usuário autenticado: {request.user.is_authenticated}")
+                logger.warning(f"   - is_external_match: {is_external_match}")
+                logger.warning(f"   - match existe: {match is not None}")
+            
+            logger.info(f"🔍 RESPOSTA FINAL - Keys: {list(unified_response.keys())}, has analysis_id: {'analysis_id' in unified_response}")
             
             return Response(unified_response)
             

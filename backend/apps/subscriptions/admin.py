@@ -1,8 +1,9 @@
 from django.contrib import admin
 from .models import Subscription, Payment
+from config.admin import admin_site
 
 
-@admin.register(Subscription)
+@admin.register(Subscription, site=admin_site)
 class SubscriptionAdmin(admin.ModelAdmin):
     list_display = ['user', 'plan', 'status', 'start_date', 'end_date', 'auto_renew', 'amount_paid']
     list_filter = ['status', 'plan', 'auto_renew', 'created_at']
@@ -43,7 +44,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
     activate_subscriptions.short_description = "Ativar assinaturas selecionadas"
 
 
-@admin.register(Payment)
+@admin.register(Payment, site=admin_site)
 class PaymentAdmin(admin.ModelAdmin):
     list_display = ['user', 'amount', 'status', 'phone_number', 'transaction_id', 'created_at']
     list_filter = ['status', 'payment_method', 'created_at']

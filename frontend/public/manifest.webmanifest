@@ -1,12 +1,16 @@
 {
-  "name": "PlacarCerto",
-  "short_name": "PlacarCerto",
-  "description": "Análises inteligentes de futebol com IA",
+  "name": "PlacerCerto - Análise Estatística Avançada de Futebol",
+  "short_name": "PlacerCerto",
+  "description": "Previsões precisas de futebol com modelos estatísticos avançados (Poisson + Regressão). Análise quantitativa de partidas, estatísticas em tempo real e apostas inteligentes.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#16a34a",
+  "categories": ["sports", "lifestyle", "entertainment"],
+  "lang": "pt-PT",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/favicon.svg",
@@ -19,6 +23,42 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable"
+    },
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-1.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Partidas de Hoje",
+      "short_name": "Hoje",
+      "description": "Ver partidas de hoje",
+      "url": "/?filter=today",
+      "icons": [{ "src": "/favicon.svg", "sizes": "96x96" }]
+    },
+    {
+      "name": "Minhas Análises",
+      "short_name": "Análises",
+      "description": "Ver minhas análises salvas",
+      "url": "/my-analyses",
+      "icons": [{ "src": "/favicon.svg", "sizes": "96x96" }]
     }
   ]
 }

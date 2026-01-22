@@ -12,6 +12,8 @@ import LimitReachedModal from '../components/LimitReachedModal';
 import { TeamLogo, LeagueLogo } from '../utils/logos';
 import { MatchDetailHeaderSkeleton, AnalysisCardSkeleton } from '../components/Skeleton';
 import SectionNav from '../components/match-detail/SectionNav';
+import SEOHead from '../components/SEO/SEOHead';
+import { generateMatchStructuredData } from '../utils/structuredData';
 
 // Lazy load componentes pesados
 const AtAGlance = lazy(() => import('../components/match-detail/AtAGlance'));
@@ -750,6 +752,19 @@ export default function MatchDetailPage() {
 
   return (
     <div className="page-container">
+      {match && (
+        <SEOHead
+          title={`${match.home_team?.name || 'Home'} vs ${match.away_team?.name || 'Away'} - Análise Estatística | PlacerCerto`}
+          description={`Análise estatística completa: ${match.home_team?.name} vs ${match.away_team?.name}. Modelos Poisson + Regressão Logística, estatísticas detalhadas, form, head-to-head e previsões de ${match.league?.name || 'partida'}.`}
+          keywords={`${match.home_team?.name}, ${match.away_team?.name}, previsão ${match.league?.name}, análise estatística futebol, ${match.home_team?.country || ''} futebol`}
+          canonicalUrl={`https://placarcerto.digital/matches/${match.id}`}
+          ogType="article"
+          publishedTime={match.created_at}
+          modifiedTime={match.updated_at}
+          structuredData={generateMatchStructuredData(match)}
+        />
+      )}
+      
       <Header title={match ? "Análise da Partida" : "Carregando..."} />
       
       <div className="page-content pb-24">

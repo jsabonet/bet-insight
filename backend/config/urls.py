@@ -16,10 +16,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.contrib.sitemaps.views import sitemap
 from rest_framework.routers import DefaultRouter
 from apps.matches.views import LeagueViewSet, TeamViewSet, MatchViewSet
 from apps.analysis.views import AnalysisViewSet
 from apps.subscriptions.views import SubscriptionViewSet, PaymentViewSet
+from config.admin import admin_site
+from apps.seo.sitemaps import sitemaps
+from apps.seo.views import robots_txt
 
 # Router para ViewSets
 router = DefaultRouter()
@@ -31,8 +35,12 @@ router.register(r'subscriptions', SubscriptionViewSet, basename='subscription')
 router.register(r'payments', PaymentViewSet, basename='payment')
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('admin/', admin_site.urls),
     path('api/users/', include('apps.users.urls')),
     path('api/subscriptions/', include('apps.subscriptions.urls')),
     path('api/', include(router.urls)),
+    
+    # SEO URLs
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
+    path('robots.txt', robots_txt, name='robots_txt'),
 ]

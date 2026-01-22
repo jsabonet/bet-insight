@@ -3,6 +3,8 @@ import { useEffect } from 'react';
 import { Target, Users, Zap, Brain, TrendingUp, Shield, Heart, Mail, CheckCircle2 } from 'lucide-react';
 import Logo from '../components/Logo';
 import Footer from '../components/Footer';
+import SEOHead from '../components/SEO/SEOHead';
+import { generateFAQStructuredData } from '../utils/structuredData';
 
 export default function AboutPage() {
   useEffect(() => {
@@ -35,8 +37,8 @@ export default function AboutPage() {
   const team = [
     {
       name: 'Equipa de Desenvolvimento',
-      role: 'Tecnologia & IA',
-      description: 'Especialistas em machine learning e análise de dados desportivos.'
+      role: 'Tecnologia & Estatística',
+      description: 'Especialistas em modelos estatísticos e análise quantitativa de dados desportivos.'
     },
     {
       name: 'Analistas Desportivos',
@@ -52,6 +54,13 @@ export default function AboutPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <SEOHead
+        title="Sobre o PlacerCerto - Análise Estatística de Futebol"
+        description="Conheça o PlacerCerto: plataforma de análise estatística de futebol com modelos matemáticos avançados (Poisson + Regressão). Metodologia transparente e baseada em ciência."
+        keywords="sobre placercerto, metodologia estatística, modelos poisson, regressão logística, análise quantitativa futebol"
+        canonicalUrl="https://placarcerto.digital/about"
+      />
+      
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -73,10 +82,10 @@ export default function AboutPage() {
       <section className="bg-gradient-to-br from-primary-600 to-primary-700 text-white py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-5xl lg:text-6xl font-bold mb-6">
-            Sobre o PlacarCerto
+            Sobre o PlacerCerto
           </h1>
           <p className="text-xl text-primary-100 max-w-3xl mx-auto">
-            Transformamos dados complexos de futebol em insights claros e precisos usando inteligência artificial avançada
+            Transformamos dados complexos de futebol em insights claros e precisos usando modelos estatísticos avançados
           </p>
         </div>
       </section>

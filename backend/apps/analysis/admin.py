@@ -1,8 +1,9 @@
 from django.contrib import admin
 from .models import Analysis
+from config.admin import admin_site
 
 
-@admin.register(Analysis)
+@admin.register(Analysis, site=admin_site)
 class AnalysisAdmin(admin.ModelAdmin):
     list_display = ['user', 'match', 'prediction', 'confidence', 'is_correct', 'created_at']
     list_filter = ['prediction', 'confidence', 'is_correct', 'created_at']

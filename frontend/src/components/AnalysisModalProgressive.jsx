@@ -130,11 +130,11 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) 
         setPhase(3);
         setAiAnalysis(result.ai_analysis || null);
         
-        // 🔥 ATUALIZAR CONTADOR SE ANÁLISE FOI SALVA
-        if (result.analysis_id) {
-          console.log('✅ Análise salva (ID:', result.analysis_id, ') - atualizando contador');
-          refreshStats();
-        }
+        // 🔥 ATUALIZAR CONTADOR APÓS ANÁLISE
+        // Sempre chamar refreshStats(), mesmo sem analysis_id
+        // (matches externos incrementam contador mas não salvam histórico)
+        console.log('🔄 Atualizando contador após análise');
+        refreshStats();
       }
 
     } catch (err) {

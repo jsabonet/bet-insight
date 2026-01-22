@@ -18,7 +18,7 @@ export default function Footer() {
     ],
     support: [
       { name: 'Suporte', href: 'mailto:suporte@placarcerto.co.mz' },
-      { name: 'FAQ', href: '/about' },
+      { name: 'FAQ', href: '/faq' },
       { name: 'Contato', href: 'mailto:contato@placarcerto.co.mz' }
     ]
   };

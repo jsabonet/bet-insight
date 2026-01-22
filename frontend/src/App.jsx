@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { StatsProvider } from './context/StatsContext';
@@ -17,6 +18,7 @@ import PaymentConfirmation from './pages/PaymentConfirmation';
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import AboutPage from './pages/AboutPage';
+import FAQPage from './pages/FAQPage';
 import CookieConsent from './components/CookieConsent';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -84,9 +86,10 @@ function PublicRoute({ children }) {
 
 function App() {
   return (
-    <Router>
-      <ScrollToTop />
-      <ThemeProvider>
+    <HelmetProvider>
+      <Router>
+        <ScrollToTop />
+        <ThemeProvider>
         <AuthProvider>
           <StatsProvider>            <StrategyProvider>            <Routes>
           {/* Public Routes */}
@@ -120,6 +123,7 @@ function App() {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/faq" element={<FAQPage />} />
           
           {/* Protected Routes */}
           <Route
@@ -201,6 +205,7 @@ function App() {
         </AuthProvider>
       </ThemeProvider>
     </Router>
+    </HelmetProvider>
   );
 }
 

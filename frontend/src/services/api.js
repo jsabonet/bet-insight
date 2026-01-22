@@ -125,7 +125,7 @@ export const leaguesAPI = {
 // Analysis endpoints
 export const analysisAPI = {
   getAll: (params) => api.get('/analyses/', { params }),
-  getUserAnalyses: () => api.get('/analyses/'),
+  getUserAnalyses: (page = 1) => api.get(`/analyses/?page=${page}`),
   requestAnalysis: (matchId) => api.post('/analyses/request_analysis/', { match_id: matchId }),
   getMyStats: () => api.get('/analyses/my_stats/'),
 };

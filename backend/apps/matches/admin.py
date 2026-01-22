@@ -1,8 +1,9 @@
 from django.contrib import admin
 from .models import League, Team, Match
+from config.admin import admin_site
 
 
-@admin.register(League)
+@admin.register(League, site=admin_site)
 class LeagueAdmin(admin.ModelAdmin):
     list_display = ['name', 'country', 'is_active', 'priority', 'created_at']
     list_filter = ['is_active', 'country']
@@ -10,14 +11,14 @@ class LeagueAdmin(admin.ModelAdmin):
     ordering = ['-priority', 'name']
 
 
-@admin.register(Team)
+@admin.register(Team, site=admin_site)
 class TeamAdmin(admin.ModelAdmin):
     list_display = ['name', 'country', 'created_at']
     search_fields = ['name', 'country']
     ordering = ['name']
 
 
-@admin.register(Match)
+@admin.register(Match, site=admin_site)
 class MatchAdmin(admin.ModelAdmin):
     list_display = ['home_team', 'away_team', 'league', 'match_date', 'status', 'home_score', 'away_score']
     list_filter = ['status', 'league', 'match_date']

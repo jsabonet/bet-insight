@@ -1,9 +1,10 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import User
+from config.admin import admin_site
 
 
-@admin.register(User)
+@admin.register(User, site=admin_site)
 class UserAdmin(BaseUserAdmin):
     list_display = ['email', 'username', 'is_premium', 'premium_until', 'daily_analysis_count', 'total_analyses', 'created_at']
     list_filter = ['is_premium', 'is_staff', 'is_active', 'created_at']

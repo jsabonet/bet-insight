@@ -4,12 +4,13 @@ import { analysisAPI } from '../services/api';
 import api from '../services/api';
 import { useStats } from '../context/StatsContext';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, TrendingUp, Target, Star } from 'lucide-react';
+import { Calendar, TrendingUp, Target, Star, Loader2 } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
 import EmptyState from '../components/EmptyState';
 import { MatchListSkeleton } from '../components/Skeleton';
-import AnalysisModal from '../components/AnalysisModal';
+import AnalysisModalProgressive from '../components/AnalysisModalProgressive';
+import SEOHead from '../components/SEO/SEOHead';
 
 export default function MyAnalysesPage() {
   const navigate = useNavigate();
@@ -24,6 +25,12 @@ export default function MyAnalysesPage() {
     accuracy: 0,
   });
   const [userStats, setUserStats] = useState(null);
+  
+  // Estados de paginação
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -36,17 +43,37 @@ export default function MyAnalysesPage() {
     loadUserStats();
   }, [refreshTrigger]);
 
-  const loadAnalyses = async () => {
+  const loadAnalyses = async (page = 1) => {
     try {
-      const response = await analysisAPI.getUserAnalyses();
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+      
+      const response = await analysisAPI.getUserAnalyses(page);
       console.log('📊 Análises carregadas:', response.data);
       console.log('📊 Primeira análise (se existir):', response.data.results?.[0]);
       
       const analysesData = response.data.results || response.data || [];
-      setAnalyses(analysesData);
       
-      // Calculate stats
-      const total = analysesData.length || 0;
+      // Se for página 1, substitui. Senão, adiciona
+      if (page === 1) {
+        setAnalyses(analysesData);
+      } else {
+        setAnalyses(prev => [...prev, ...analysesData]);
+      }
+      
+      // Atualizar informações de paginação
+      setTotalCount(response.data.count || analysesData.length);
+      setCurrentPage(page);
+      
+      // Calcular total de páginas (20 itens por página)
+      const pageSize = 20;
+      setTotalPages(Math.ceil((response.data.count || analysesData.length) / pageSize));
+      
+      // Calculate stats baseado no count total
+      const total = response.data.count || analysesData.length;
       const today = analysesData.filter(a => {
         const analysisDate = new Date(a.created_at);
         const todayDate = new Date();
@@ -63,6 +90,7 @@ export default function MyAnalysesPage() {
       console.error('Detalhes:', error.response?.data);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -94,6 +122,13 @@ export default function MyAnalysesPage() {
 
   return (
     <div className="page-container">
+      <SEOHead
+        title="Minhas Análises | PlacerCerto"
+        description="Histórico das suas análises estatísticas de futebol. Acompanhe suas previsões, acertos e estatísticas detalhadas."
+        keywords="minhas análises, histórico previsões, estatísticas pessoais"
+        noindex={true}
+      />
+      
       <Header title="Minhas Análises" subtitle={`${stats.total} análises realizadas`} />
       
       <div className="page-content">
@@ -210,19 +245,139 @@ export default function MyAnalysesPage() {
                 </div>
               </div>
             ))}
+            
+            {/* Paginação */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => loadAnalyses(currentPage - 1)}
+                  disabled={currentPage === 1 || loadingMore}
+                  className="btn-secondary px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  ← Anterior
+                </button>
+                
+                <div className="flex items-center gap-1">
+                  {[...Array(totalPages)].map((_, idx) => {
+                    const pageNum = idx + 1;
+                    // Mostrar: primeira, última, atual, e adjacentes
+                    const showPage = 
+                      pageNum === 1 || 
+                      pageNum === totalPages || 
+                      Math.abs(pageNum - currentPage) <= 1;
+                    
+                    // Mostrar reticências
+                    const showEllipsis = 
+                      (pageNum === 2 && currentPage > 3) ||
+                      (pageNum === totalPages - 1 && currentPage < totalPages - 2);
+                    
+                    if (showEllipsis) {
+                      return <span key={pageNum} className="px-2 text-gray-500">...</span>;
+                    }
+                    
+                    if (!showPage) return null;
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => loadAnalyses(pageNum)}
+                        disabled={loadingMore}
+                        className={`min-w-[40px] h-10 rounded-lg font-medium transition-all ${
+                          pageNum === currentPage
+                            ? 'bg-primary-600 text-white'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        } disabled:opacity-50`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <button
+                  onClick={() => loadAnalyses(currentPage + 1)}
+                  disabled={currentPage === totalPages || loadingMore}
+                  className="btn-secondary px-4 py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Próxima →
+                </button>
+              </div>
+            )}
+            
+            {loadingMore && (
+              <div className="mt-4 text-center">
+                <div className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Carregando mais análises...
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       <BottomNav />
 
-      {/* Modal de Análise */}
+      {/* Modal de Análise Progressivo */}
       {selectedAnalysis && (
-        <AnalysisModal
-          isOpen={!!selectedAnalysis}
+        <AnalysisModalProgressive
+          match={{
+            id: selectedAnalysis.match.id,
+            home_team: {
+              ...selectedAnalysis.match.home_team,
+              logo: selectedAnalysis.match.home_team.logo_url || selectedAnalysis.match.home_team.logo || '',
+            },
+            away_team: {
+              ...selectedAnalysis.match.away_team,
+              logo: selectedAnalysis.match.away_team.logo_url || selectedAnalysis.match.away_team.logo || '',
+            },
+            league: selectedAnalysis.match.league,
+            match_date: selectedAnalysis.match.match_date,
+          }}
           onClose={() => setSelectedAnalysis(null)}
-          analysis={selectedAnalysis}
-          match={selectedAnalysis.match}
+          onAnalyze={async (strategy) => {
+            // Retornar dados da análise salva formatados para o modal progressivo
+            console.log('🔍 DEBUG MyAnalyses - selectedAnalysis:', selectedAnalysis);
+            console.log('🔍 DEBUG MyAnalyses - analysis_data:', selectedAnalysis.analysis_data);
+            
+            // Probabilidades já vêm como 0-100 (porcentagem), precisam ficar como 0-1 (decimal)
+            const consensus = {
+              home_win: selectedAnalysis.home_probability / 100,
+              draw: selectedAnalysis.draw_probability / 100,
+              away_win: selectedAnalysis.away_probability / 100,
+            };
+            
+            const response = {
+              statistical_data: {
+                consensus: consensus,
+                confidence: {
+                  level: selectedAnalysis.confidence,
+                  score: selectedAnalysis.confidence / 5,
+                  label: selectedAnalysis.confidence_display,
+                },
+                poisson: {
+                  home_xg: selectedAnalysis.home_xg || 0,
+                  away_xg: selectedAnalysis.away_xg || 0,
+                },
+                enriched_data: {}, // Não temos dados enriquecidos nas análises salvas
+              },
+              decision_data: {
+                // Se analysis_data tem top_bets, usar. Senão, criar estrutura vazia
+                top_bets: selectedAnalysis.analysis_data?.top_bets || [],
+                recommendation: selectedAnalysis.analysis_data?.recommendation || {
+                  market: selectedAnalysis.prediction,
+                  outcome: selectedAnalysis.prediction_display,
+                  probability: consensus[selectedAnalysis.prediction === 'home' ? 'home_win' : selectedAnalysis.prediction === 'away' ? 'away_win' : 'draw'],
+                  confidence: selectedAnalysis.confidence,
+                },
+                risk: selectedAnalysis.analysis_data?.risk || 'medium',
+              },
+              ai_analysis: selectedAnalysis.reasoning || '',
+            };
+            
+            console.log('🔍 DEBUG MyAnalyses - response sendo retornado:', response);
+            return response;
+          }}
         />
       )}
     </div>

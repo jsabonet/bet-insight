@@ -4,6 +4,8 @@ import { TrendingUp, Brain, Shield, Zap, Clock, Target, ArrowRight, Star, CheckC
 import Logo from '../components/Logo';
 import Footer from '../components/Footer';
 import { useTheme } from '../context/ThemeContext';
+import SEOHead from '../components/SEO/SEOHead';
+import { generateWebsiteStructuredData, generateFAQStructuredData } from '../utils/structuredData';
 
 export default function LandingPage() {
   const { theme } = useTheme();
@@ -15,8 +17,8 @@ export default function LandingPage() {
   const features = [
     {
       icon: Brain,
-      title: 'Análise com IA',
-      description: 'Inteligência artificial avançada processa estatísticas em tempo real para previsões precisas.'
+      title: 'Análise Estatística Avançada',
+      description: 'Modelos matemáticos comprovados (Poisson + Regressão) processam estatísticas para previsões precisas.'
     },
     {
       icon: TrendingUp,
@@ -41,7 +43,7 @@ export default function LandingPage() {
     {
       icon: Target,
       title: 'Previsões Precisas',
-      description: 'Algoritmos refinados que aprendem e melhoram continuamente.'
+      description: 'Modelos estatísticos refinados com 109 variáveis de análise.'
     }
   ];
 
@@ -54,6 +56,14 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <SEOHead
+        title="PlacerCerto - Análise Estatística Avançada de Futebol | Previsões Precisas"
+        description="Plataforma de análise estatística de futebol com modelos matemáticos avançados (Poisson Bivariado + Regressão Logística). Previsões precisas baseadas em 109 variáveis. Ligas de Moçambique, África e Europa."
+        keywords="previsões futebol, análise estatística, modelos poisson, regressão logística, estatísticas futebol moçambique, apostas inteligentes, PlacerCerto"
+        canonicalUrl="https://placarcerto.digital/"
+        structuredData={generateWebsiteStructuredData()}
+      />
+      
       {/* Header */}
       <header className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -83,18 +93,18 @@ export default function LandingPage() {
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary-100 dark:bg-primary-900/30 rounded-full text-primary-700 dark:text-primary-300 text-sm font-semibold">
               <Zap className="w-4 h-4" />
-              Análise Inteligente de Futebol
+              Análise Estatística Avançada de Futebol
             </div>
             
             <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white leading-tight">
               Previsões de Futebol
               <span className="block text-primary-600 dark:text-primary-400">
-                Com Inteligência Artificial
+                Com Modelos Estatísticos
               </span>
             </h1>
             
             <p className="text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
-              Tome decisões informadas com análises estatísticas avançadas, histórico de confrontos e previsões precisas baseadas em IA.
+              Tome decisões informadas com análises estatísticas avançadas, histórico de confrontos e previsões precisas baseadas em modelos matemáticos (Poisson + Regressão).
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">

@@ -119,8 +119,12 @@ class DecisionEngine:
         logger.info(f"   Poisson xG: Home={model_predictions.get('poisson', {}).get('expected_goals', {}).get('home')}, Away={model_predictions.get('poisson', {}).get('expected_goals', {}).get('away')}")
         logger.info(f"   Weather Adjusted: {model_predictions.get('poisson', {}).get('weather_adjusted', False)}")
         
+        # ✅ Garantir que market_odds seja um dict
+        if market_odds is None:
+            market_odds = {}
+        
         logger.info("\n💰 Market Odds:")
-        logger.info(f"   Home: {market_odds.get('home')}, Draw: {market_odds.get('draw')}, Away: {market_odds.get('away')}")
+        logger.info(f"   Home: {market_odds.get('home_win')}, Draw: {market_odds.get('draw')}, Away: {market_odds.get('away_win')}")
         logger.info(f"   Over 2.5: {market_odds.get('over_2_5')}, Under 2.5: {market_odds.get('under_2_5')}")
         
         # 1. Calcular odds justas dos modelos
@@ -600,7 +604,8 @@ class DecisionEngine:
             market_odd = market_odds.get(odds_key, 0)  # ✅ Usar chave direta
             fair_odd = fair_odds.get(market, 0)
             
-            if prob >= 0.15 and market_odd > 0 and fair_odd > 0:  # Reduzido de 30% para 15%
+            # ✅ Verificar se market_odd não é None antes de comparar
+            if prob >= 0.15 and market_odd is not None and market_odd > 0 and fair_odd > 0:  # Reduzido de 30% para 15%
                 ev_pct = ((market_odd / fair_odd) - 1) * 100
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 
@@ -626,7 +631,8 @@ class DecisionEngine:
             
             logger.info(f"DEBUG Over/Under 2.5: market={market}, prob={prob:.2f}, market_odd={market_odd}, fair_odd={fair_odd}")
             
-            if prob >= 0.30 and market_odd > 0 and fair_odd > 0:
+            # ✅ Verificar se market_odd não é None antes de comparar
+            if prob >= 0.30 and market_odd is not None and market_odd > 0 and fair_odd > 0:
                 ev_pct = ((market_odd / fair_odd) - 1) * 100
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 

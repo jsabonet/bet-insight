@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sitemaps",  # Para SEO
     
     # Third-party apps
     "rest_framework",
@@ -55,6 +56,7 @@ INSTALLED_APPS = [
     "apps.matches",
     "apps.analysis",
     "apps.subscriptions",
+    "apps.seo",  # SEO otimização
 ]
 
 MIDDLEWARE = [
