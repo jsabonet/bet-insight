@@ -21,6 +21,7 @@ export default function PremiumPage() {
   const [userStats, setUserStats] = useState(null);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     loadPlans();
     loadCurrentSubscription();
   }, []);

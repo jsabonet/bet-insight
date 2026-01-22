@@ -4,6 +4,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { StatsProvider } from './context/StatsContext';
 import { StrategyProvider } from './context/StrategyContext';
 import Logo from './components/Logo';
+import ScrollToTop from './components/ScrollToTop';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -84,6 +85,7 @@ function PublicRoute({ children }) {
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <ThemeProvider>
         <AuthProvider>
           <StatsProvider>            <StrategyProvider>            <Routes>

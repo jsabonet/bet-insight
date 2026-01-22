@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { matchesAPI, analysisAPI, authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -7,20 +7,23 @@ import { useStrategy } from '../context/StrategyContext';
 import { ArrowLeft, Brain, AlertCircle, Sparkles, ChevronDown, CheckCircle, HelpCircle, Info, X } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
-import LoadingMascot from '../components/LoadingMascot';
 import AnalysisModalProgressive from '../components/AnalysisModalProgressive';
 import LimitReachedModal from '../components/LimitReachedModal';
 import { TeamLogo, LeagueLogo } from '../utils/logos';
-import AtAGlance from '../components/match-detail/AtAGlance';
-import GoalsAndPoisson from '../components/match-detail/GoalsAndPoisson';
-import TeamComparison from '../components/match-detail/TeamComparison';
-import ValueBetsSection from '../components/match-detail/ValueBetsSection';
-import MatchContext from '../components/match-detail/MatchContext';
-import MatchStatistics from '../components/match-detail/MatchStatistics';
-import Lineups from '../components/match-detail/Lineups';
-import HeadToHead from '../components/match-detail/HeadToHead';
-import TeamForm from '../components/match-detail/TeamForm';
-import LeagueStandings from '../components/match-detail/LeagueStandings';
+import { MatchDetailHeaderSkeleton, AnalysisCardSkeleton } from '../components/Skeleton';
+import SectionNav from '../components/match-detail/SectionNav';
+
+// Lazy load componentes pesados
+const AtAGlance = lazy(() => import('../components/match-detail/AtAGlance'));
+const GoalsAndPoisson = lazy(() => import('../components/match-detail/GoalsAndPoisson'));
+const TeamComparison = lazy(() => import('../components/match-detail/TeamComparison'));
+const ValueBetsSection = lazy(() => import('../components/match-detail/ValueBetsSection'));
+const MatchContext = lazy(() => import('../components/match-detail/MatchContext'));
+const MatchStatistics = lazy(() => import('../components/match-detail/MatchStatistics'));
+const Lineups = lazy(() => import('../components/match-detail/Lineups'));
+const HeadToHead = lazy(() => import('../components/match-detail/HeadToHead'));
+const TeamForm = lazy(() => import('../components/match-detail/TeamForm'));
+const LeagueStandings = lazy(() => import('../components/match-detail/LeagueStandings'));
 
 export default function MatchDetailPage() {
   const { id } = useParams();
@@ -32,9 +35,8 @@ export default function MatchDetailPage() {
   const [match, setMatch] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [statisticalData, setStatisticalData] = useState(null); // Dados estatísticos separados da IA
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // ✅ Começar sem loading para UI instantânea
   const [loadingStats, setLoadingStats] = useState(false); // Loading específico para dados estatísticos
-  const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState('');
   const [isExternalMatch, setIsExternalMatch] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -146,6 +148,7 @@ export default function MatchDetailPage() {
   };
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     loadMatchDetails();
   }, [id]);
 
@@ -243,10 +246,9 @@ export default function MatchDetailPage() {
       setMatch(response.data);
       setIsExternalMatch(false);
       
-      // Carregar preview estatístico rápido
-      console.log('🚀 Iniciando loadStatisticalData (preview rápido)...');
-      await loadStatisticalData(response.data, false);
-      console.log('✅ loadStatisticalData concluído');
+      // ✅ Carregar preview em paralelo (não bloquear UI)
+      console.log('🚀 Iniciando loadStatisticalData em paralelo...');
+      loadStatisticalData(response.data, false); // Sem await - paralelo!
     } catch (error) {
       // Se 404, tentar buscar da API externa
       if (error.response?.status === 404) {
@@ -263,10 +265,9 @@ export default function MatchDetailPage() {
           setMatch(apiResponse.data.match);
           setIsExternalMatch(true);
           
-          // Carregar preview estatístico rápido
-          console.log('🚀 Iniciando loadStatisticalData (preview rápido)...');
-          await loadStatisticalData(apiResponse.data.match, true);
-          console.log('✅ loadStatisticalData concluído');
+          // ✅ Carregar preview em paralelo
+          console.log('🚀 Iniciando loadStatisticalData em paralelo...');
+          loadStatisticalData(apiResponse.data.match, true); // Sem await - paralelo!
         } catch (apiError) {
           console.error('❌ Erro ao carregar partida da API:', apiError);
           setError('Erro ao carregar detalhes da partida');
@@ -277,7 +278,6 @@ export default function MatchDetailPage() {
       }
     } finally {
       console.log('🏁 loadMatchDetails FINALIZADO');
-      setLoading(false);
     }
   };
 
@@ -414,7 +414,8 @@ export default function MatchDetailPage() {
       console.warn('⚠️ Erro na pré-checagem de limite:', e.message);
     }
 
-    setAnalyzing(true);
+    // 🚀 NOVO: Abrir modal IMEDIATAMENTE (sem loading fullscreen)
+    setShowModal(true);
     const loadingStartTime = performance.now();
 
     try {
@@ -693,15 +694,13 @@ export default function MatchDetailPage() {
         console.log('🔴 Modal NÃO PODE abrir sem match');
         console.log('🔵'.repeat(40) + '\n');
         setError('Erro: dados da partida não disponíveis');
-        setAnalyzing(false);
+        setShowModal(false); // Fechar modal se já aberto
         return;
       }
       
-      // Fechar loading e abrir modal
-      setAnalyzing(false);
-      setShowModal(true);
+      // Modal já está aberto, não precisa mais de setAnalyzing(false) e setShowModal(true)
       
-      // 🕐 TEMPO PARA ABRIR MODAL
+      // 🕐 TEMPO PARA COMPLETAR ANÁLISE
       const modalOpenTime = performance.now();
       const modalTime = modalOpenTime - startTime;
       console.log(`\n✅ MODAL SERÁ ABERTO em ${(modalTime / 1000).toFixed(2)}s desde o início`);
@@ -720,36 +719,30 @@ export default function MatchDetailPage() {
       if (errorCode === 'QUOTA_EXCEEDED' || statusCode === 429) {
         // Mostrar modal de limite atingido e não exibir banner de erro
         setError('');
+        setShowModal(false); // Fechar modal de análise
         setShowLimitModal(true);
       } else {
         const errorMsg = err.response?.data?.error || 'Erro ao gerar análise';
         setError(errorMsg);
+        setShowModal(false); // Fechar modal em caso de erro
       }
     } finally {
-      setAnalyzing(false);
+      // Não precisa mais de setAnalyzing(false) pois modal já está aberto
       const finalTime = performance.now();
       const totalFinalTime = finalTime - startTime;
       console.log(`\n🏁 PROCESSO FINALIZADO em ${(totalFinalTime / 1000).toFixed(2)}s`);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="page-container">
-        <Header title="Carregando..." />
-        <div className="page-content">
-          <LoadingMascot message="Carregando detalhes da partida..." />
-        </div>
-      </div>
-    );
-  }
+  // ✅ Renderizar skeleton se ainda não tem dados, mas nunca bloquear
+  const isInitialLoad = !match;
 
-  if (!match) {
+  if (!match && error) {
     return (
       <div className="page-container">
         <Header title="Erro" />
         <div className="page-content">
-          <p className="text-center text-gray-600 dark:text-gray-400">Partida não encontrada</p>
+          <p className="text-center text-red-600 dark:text-red-400">{error}</p>
         </div>
       </div>
     );
@@ -757,7 +750,7 @@ export default function MatchDetailPage() {
 
   return (
     <div className="page-container">
-      <Header title="Análise da Partida" />
+      <Header title={match ? "Análise da Partida" : "Carregando..."} />
       
       <div className="page-content pb-24">
         <button
@@ -768,6 +761,18 @@ export default function MatchDetailPage() {
           Voltar
         </button>
 
+        {/* ✅ Skeleton enquanto carrega */}
+        {!match ? (
+          <>
+            <MatchDetailHeaderSkeleton />
+            <div className="space-y-6 mt-6">
+              <AnalysisCardSkeleton />
+              <AnalysisCardSkeleton />
+              <AnalysisCardSkeleton />
+            </div>
+          </>
+        ) : (
+          <>
         {/* Header da Partida */}
         <div className="card animate-slide-up mb-6">
           {/* Liga */}
@@ -979,6 +984,9 @@ export default function MatchDetailPage() {
           )}
         </div>
 
+        {/* Menu de Navegação das Seções */}
+        <SectionNav />
+
         {/* Análise Visual - Mostra SEMPRE que houver dados estatísticos */}
         {statisticalData && (
           <div className="space-y-6 animate-fade-in">
@@ -1043,32 +1051,32 @@ export default function MatchDetailPage() {
                 </div>
                 <button
                   onClick={handleRequestAnalysis}
-                  disabled={analyzing}
+                  disabled={showModal}
                   className="btn-primary inline-flex items-center gap-2 whitespace-nowrap w-full sm:w-auto justify-center"
                 >
                   <Sparkles className="w-5 h-5" />
-                  {analyzing ? 'Gerando...' : 'Gerar Análise'}
+                  {showModal ? 'Analisando...' : 'Gerar Análise'}
                 </button>
               </div>
             </div>
             
             {/* Visão Geral Rápida */}
-            <div className="card">
+            <div id="overview" className="card scroll-mt-24">
               <AtAGlance analysis={statisticalData} match={match} />
             </div>
 
             {/* Comparação Visual dos Times */}
-            <div className="card">
+            <div id="comparison" className="card scroll-mt-24">
               <TeamComparison analysis={statisticalData} match={match} />
             </div>
 
             {/* Gols & Poisson */}
-            <div className="card">
+            <div id="goals" className="card scroll-mt-24">
               <GoalsAndPoisson analysis={statisticalData} />
             </div>
 
             {/* Value Bets & Odds */}
-            <div className="card">
+            <div id="valuebets" className="card scroll-mt-24">
               <ValueBetsSection analysis={statisticalData} match={match} />
             </div>
 
@@ -1188,80 +1196,92 @@ export default function MatchDetailPage() {
             </div>
 
             {/* Contexto da Partida */}
-            <div className="card">
-              <MatchContext analysis={statisticalData} match={match} />
+            <div id="context" className="card scroll-mt-24">
+              <Suspense fallback={<AnalysisCardSkeleton />}>
+                <MatchContext analysis={statisticalData} match={match} />
+              </Suspense>
 
               {/* Escalações (Lineups) */}
               {match.lineups && match.lineups.length > 0 && (
-                <div className="mt-8">
-                  <Lineups lineups={match.lineups} match={match} />
+                <div id="lineups" className="mt-8 scroll-mt-24">
+                  <Suspense fallback={<AnalysisCardSkeleton />}>
+                    <Lineups lineups={match.lineups} match={match} />
+                  </Suspense>
                 </div>
               )}
 
               {/* Estatísticas Detalhadas da Partida */}
               {match.statistics && match.statistics.length > 0 && (
-                <div className="mt-8">
-                  <MatchStatistics statistics={match.statistics} match={match} />
+                <div id="statistics" className="mt-8 scroll-mt-24">
+                  <Suspense fallback={<AnalysisCardSkeleton />}>
+                    <MatchStatistics statistics={match.statistics} match={match} />
+                  </Suspense>
                 </div>
               )}
             </div>
 
             {/* Confrontos Diretos (H2H) */}
             {match.h2h && match.h2h.length > 0 && (
-              <div className="card">
-                <HeadToHead 
-                  h2h={match.h2h} 
-                  homeTeam={{
-                    id: match.home_team?.id,
-                    name: match.home_team?.name,
-                    logo: match.home_team?.logo
-                  }}
-                  awayTeam={{
-                    id: match.away_team?.id,
-                    name: match.away_team?.name,
-                    logo: match.away_team?.logo
-                  }}
-                />
+              <div id="h2h" className="card scroll-mt-24">
+                <Suspense fallback={<AnalysisCardSkeleton />}>
+                  <HeadToHead 
+                    h2h={match.h2h} 
+                    homeTeam={{
+                      id: match.home_team?.id,
+                      name: match.home_team?.name,
+                      logo: match.home_team?.logo
+                    }}
+                    awayTeam={{
+                      id: match.away_team?.id,
+                      name: match.away_team?.name,
+                      logo: match.away_team?.logo
+                    }}
+                  />
+                </Suspense>
               </div>
             )}
 
             {/* Últimos Jogos dos Times */}
             {((match.home_last_matches && match.home_last_matches.length > 0) || 
               (match.away_last_matches && match.away_last_matches.length > 0)) && (
-              <div className="card">
-                <TeamForm 
-                  homeTeam={{
-                    id: match.home_team?.id,
-                    name: match.home_team?.name,
-                    logo: match.home_team?.logo
-                  }}
-                  awayTeam={{
-                    id: match.away_team?.id,
-                    name: match.away_team?.name,
-                    logo: match.away_team?.logo
-                  }}
-                  homeLastMatches={match.home_last_matches}
-                  awayLastMatches={match.away_last_matches}
-                />
+              <div id="form" className="card scroll-mt-24">
+                <Suspense fallback={<div className="animate-pulse"><AnalysisCardSkeleton /></div>}>
+                  <TeamForm 
+                    homeTeam={{
+                      id: match.home_team?.id,
+                      name: match.home_team?.name,
+                      logo: match.home_team?.logo
+                    }}
+                    awayTeam={{
+                      id: match.away_team?.id,
+                      name: match.away_team?.name,
+                      logo: match.away_team?.logo
+                    }}
+                    homeLastMatches={match.home_last_matches}
+                    awayLastMatches={match.away_last_matches}
+                  />
+                </Suspense>
               </div>
             )}
 
             {/* Classificação da Liga */}
             {match.standings && match.standings.length > 0 && (
-              <div className="card">
-                <LeagueStandings 
-                  standings={match.standings}
-                  homeTeam={{
-                    id: match.home_team?.id,
-                    name: match.home_team?.name,
-                    logo: match.home_team?.logo
-                  }}
-                  awayTeam={{
-                    id: match.away_team?.id,
-                    name: match.away_team?.name,
-                    logo: match.away_team?.logo
-                  }}
-                />
+              <div id="standings" className="card scroll-mt-24">
+                <Suspense fallback={<div className="animate-pulse"><AnalysisCardSkeleton /></div>}>
+                  <LeagueStandings 
+                    standings={match.standings}
+                    homeTeam={{
+                      id: match.home_team?.id,
+                      name: match.home_team?.name,
+                      logo: match.home_team?.logo
+                    }}
+                    awayTeam={{
+                      id: match.away_team?.id,
+                      name: match.away_team?.name,
+                      logo: match.away_team?.logo
+                    }}
+                  />
+                </Suspense>
               </div>
             )}
           </div>
@@ -1269,14 +1289,13 @@ export default function MatchDetailPage() {
 
         {/* Loading dos dados estatísticos */}
         {loadingStats && !statisticalData && (
-          <div className="card">
-            <div className="text-center py-8">
-              <LoadingMascot message="Calculando probabilidades e estatísticas..." />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-4">
-                Processando 40+ variáveis estatísticas...
-              </p>
-            </div>
+          <div className="space-y-6">
+            <AnalysisCardSkeleton />
+            <AnalysisCardSkeleton />
+            <AnalysisCardSkeleton />
           </div>
+        )}
+          </>
         )}
       </div>
 
@@ -1288,11 +1307,14 @@ export default function MatchDetailPage() {
           <AnalysisModalProgressive
             match={match}
             onClose={() => setShowModal(false)}
-            onAnalyze={async () => {
+            onAnalyze={async (modalStrategy) => {
               try {
+                // Usar estratégia do modal (passada como parâmetro) ou a global
+                const strategyToUse = modalStrategy || strategy;
+                
                 console.log('🚀 MatchDetailPage: Chamando unifiedAnalysis', {
                   matchId: match.id,
-                  strategy: strategy,
+                  strategy: strategyToUse,
                   homeTeam: match.home_team,
                   awayTeam: match.away_team
                 });
@@ -1300,7 +1322,7 @@ export default function MatchDetailPage() {
                 // Chamar endpoint unificado com cache inteligente
                 const response = await matchesAPI.unifiedAnalysis(
                   match.id,
-                  strategy,
+                  strategyToUse,
                   true, // include_ai
                   false // force_refresh - IMPORTANTE: não forçar para testar cache
                 );
@@ -1331,7 +1353,7 @@ export default function MatchDetailPage() {
       {/* Disclaimer Full Modal */}
       {showDisclaimerFull && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto scrollbar-hide">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <AlertCircle className="w-5 h-5 text-amber-600" />
@@ -1398,18 +1420,6 @@ export default function MatchDetailPage() {
             >
               Entendi
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Analyzing Overlay */}
-      {analyzing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl max-w-sm mx-4">
-            <LoadingMascot message="Gerando análise estatística..." />
-            <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-4">
-              Calculando probabilidades, xG e detectando value bets...
-            </p>
           </div>
         </div>
       )}

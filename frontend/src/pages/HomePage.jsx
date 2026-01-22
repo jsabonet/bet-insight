@@ -2,20 +2,18 @@ import { useState, useEffect } from 'react';
 import { matchesAPI, authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useStats } from '../context/StatsContext';
-import { useStrategy } from '../context/StrategyContext';
 import { Clock, Flame, CalendarDays, Sparkles, Search, X } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
 import MatchCard from '../components/MatchCard';
 import EmptyState from '../components/EmptyState';
-import LoadingMascot from '../components/LoadingMascot';
-import AnalysisModal from '../components/AnalysisModal';
+import { MatchListSkeleton, Skeleton } from '../components/Skeleton';
+import AnalysisModalProgressive from '../components/AnalysisModalProgressive';
 import LimitReachedModal from '../components/LimitReachedModal';
 
 export default function HomePage() {
   const { user } = useAuth();
   const { refreshStats } = useStats();
-  const { strategy } = useStrategy();
   const [allMatches, setAllMatches] = useState([]); // Armazenar todas as partidas
   const [matches, setMatches] = useState([]);
   const [displayedMatches, setDisplayedMatches] = useState([]); // Partidas exibidas (paginação)
@@ -26,9 +24,7 @@ export default function HomePage() {
   const [selectedLeague, setSelectedLeague] = useState('all');
   const [leagues, setLeagues] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [analyzing, setAnalyzing] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState(null);
-  const [analysis, setAnalysis] = useState(null);
   const [isMockData, setIsMockData] = useState(false);
   const [dataSource, setDataSource] = useState('');
   const [showLimitModal, setShowLimitModal] = useState(false);
@@ -120,6 +116,9 @@ export default function HomePage() {
     if (filter !== 'all') {
       const now = new Date();
       const today = now.toISOString().split('T')[0];
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowStr = tomorrow.toISOString().split('T')[0];
       
       filteredMatches = filteredMatches.filter(m => {
         const matchDate = new Date(m.match_date || m.date);
@@ -133,14 +132,9 @@ export default function HomePage() {
           // Partidas de hoje
           return matchDay === today;
         } else if (filter === 'upcoming') {
-          // Partidas futuras: APENAS partidas que ainda NÃO ocorreram
-          // SEMPRE verificar o horário, independente do status
-          const matchDate = new Date(m.match_date || m.date);
-          const isFuture = matchDate > now;
-          
-          // Só mostrar se o horário for futuro
-          // Ignorar status desatualizado da API
-          return isFuture;
+          // Partidas futuras: hoje e amanhã apenas
+          // Priorizar jogos de hoje que ainda não começaram
+          return (matchDay === today || matchDay === tomorrowStr) && matchDate >= now;
         }
         return true;
       });
@@ -152,6 +146,32 @@ export default function HomePage() {
         (m.league?.name || m.league) === selectedLeague
       );
     }
+    
+    // Ordenar: PRIMEIRO por data (hoje antes de amanhã), DEPOIS por prioridade da liga
+    filteredMatches.sort((a, b) => {
+      const dateA = new Date(a.match_date || a.date);
+      const dateB = new Date(b.match_date || b.date);
+      
+      // Extrair apenas o dia (sem hora) para agrupar por dia
+      const dayA = dateA.toISOString().split('T')[0];
+      const dayB = dateB.toISOString().split('T')[0];
+      
+      // Se são de dias diferentes, ordenar por dia (mais próximo primeiro)
+      if (dayA !== dayB) {
+        return dateA - dateB;
+      }
+      
+      // Se são do mesmo dia, ordenar por prioridade da liga (ligas principais primeiro)
+      const priorityA = a.league_priority || 3;
+      const priorityB = b.league_priority || 3;
+      
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+      
+      // Se mesma prioridade e mesmo dia, ordenar por hora do jogo
+      return dateA - dateB;
+    });
     
     // Busca local: não filtrar aqui, será tratada pela busca híbrida
     
@@ -231,246 +251,21 @@ export default function HomePage() {
     }
   };
 
-  const handleAnalyze = async (matchId) => {
-    // Pré-checagem: evitar abrir loading se limite já atingido
-    try {
-      const stats = await authAPI.getStats();
-      if (!stats.data.can_analyze) {
-        setShowLimitModal(true);
-        return;
-      }
-    } catch (e) {
-      // Se stats falhar, continua fluxo normal
+  const handleAnalyze = (matchId) => {
+    // Encontrar a partida para exibir no modal
+    const match = matches.find(m => m.id === matchId);
+    
+    if (!match) {
+      console.error('Partida não encontrada:', matchId);
+      return;
     }
-
-    setAnalyzing(true);
-    try {
-      // Encontrar a partida para exibir no modal
-      const match = matches.find(m => m.id === matchId);
-      setSelectedMatch(match);
-
-      // Usar quick_analyze para partidas da API (não consome limite)
-      if (match) {
-        const payload = {
-          home_team: match.home_team.name || match.home_team,
-          away_team: match.away_team.name || match.away_team,
-          league: match.league.name || match.league,
-          date: match.date,
-          status: match.status,
-          venue: match.venue,
-          home_score: match.home_score,
-          away_score: match.away_score,
-          api_id: match.api_football_id || null,  // ID da API-Football
-          football_data_id: match.football_data_id || null,  // ID da Football-Data.org (para H2H)
-          save_to_history: !!user,  // Salvar no histórico se usuário estiver logado
-          strategy: strategy  // ✅ Estratégia de apostas (value ou multiple)
-        };
-
-        // LOG: Payload completo sendo enviado
-        console.log('\n' + '='.repeat(80));
-        console.log('📤 HOMEPAGE: Enviando requisição de análise');
-        console.log('='.repeat(80));
-        console.log('⏰ Timestamp:', new Date().toISOString());
-        console.log('\n📊 PAYLOAD COMPLETO:');
-        console.log('-'.repeat(80));
-        Object.entries(payload).forEach(([key, value]) => {
-          const status = value !== null && value !== undefined && value !== '' ? '✅' : '⚠️  NULL';
-          const tipo = value === null ? 'null' : typeof value;
-          console.log(`   ${status} ${key.padEnd(20)} = ${value} (${tipo})`);
-        });
-        console.log('-'.repeat(80));
-        
-        // Verificar IDs das APIs
-        console.log('\n🔍 VERIFICAÇÃO DE IDs DAS APIs:');
-        console.log(`   ${payload.api_id ? '✅' : '❌'} api_id (API-Football): ${payload.api_id}`);
-        console.log(`   ${payload.football_data_id ? '✅' : '❌'} football_data_id (Football-Data.org): ${payload.football_data_id}`);
-        console.log('='.repeat(80) + '\n');
-
-        const response = await matchesAPI.quickAnalyze(payload);
-        
-        // LOG: Resposta recebida
-        console.log('\n' + '='.repeat(80));
-        console.log('📥 HOMEPAGE: Resposta da análise recebida');
-        console.log('='.repeat(80));
-        console.log('✅ Status:', response.status);
-        console.log('⭐ Confiança:', response.data.confidence, '/5');
-        if (response.data.metadata) {
-          console.log('\n📊 METADATA (dados analisados):');
-          console.log('   Previsões (API-Football):', response.data.metadata.has_predictions ? '✅' : '❌');
-          console.log('   Estatísticas ao vivo:', response.data.metadata.has_statistics ? '✅' : '❌');
-          console.log('   H2H (Football-Data):', response.data.metadata.has_h2h ? '✅' : '❌');
-          if (response.data.metadata.has_h2h) {
-            console.log('   └─ Jogos H2H analisados:', response.data.metadata.h2h_count);
-          }
-          console.log('   Detalhes da partida:', response.data.metadata.has_fixture_details ? '✅' : '❌');
-        }
-        
-        // 🔥 NOVO: Logs de dados enriquecidos
-        if (response.data.enriched_data) {
-          console.log('\n🔥 DADOS ENRIQUECIDOS RECEBIDOS:');
-          console.log('='.repeat(80));
-          const enriched = response.data.enriched_data;
-          
-          // Tabela
-          if (enriched.table_context) {
-            console.log('\n📊 POSIÇÃO NA TABELA:');
-            const home = enriched.table_context.home;
-            const away = enriched.table_context.away;
-            console.log(`   Casa: ${home.position}º lugar, ${home.points} pts (Forma: ${home.form})`);
-            console.log(`   Fora: ${away.position}º lugar, ${away.points} pts (Forma: ${away.form})`);
-          }
-          
-          // Lesões
-          if (enriched.injuries) {
-            const homeInjuries = enriched.injuries.home?.length || 0;
-            const awayInjuries = enriched.injuries.away?.length || 0;
-            console.log(`\n🚑 LESÕES/SUSPENSÕES: ${homeInjuries} (casa), ${awayInjuries} (fora)`);
-          }
-          
-          // Odds
-          if (enriched.odds) {
-            console.log('\n💰 ODDS:');
-            console.log(`   Casa: ${enriched.odds.home_win} | Empate: ${enriched.odds.draw} | Fora: ${enriched.odds.away_win}`);
-            if (enriched.odds.over_25) {
-              console.log(`   Over 2.5: ${enriched.odds.over_25} | Under 2.5: ${enriched.odds.under_25}`);
-            }
-          } else {
-            console.log('\n💰 ODDS: ⚠️ Não disponíveis para esta partida');
-          }
-          
-          // Estatísticas detalhadas
-          if (enriched.home_stats || enriched.away_stats) {
-            console.log('\n📈 ESTATÍSTICAS DOS TIMES:');
-            if (enriched.home_stats) {
-              console.log(`   Casa: ${enriched.home_stats.goals_per_game_avg?.toFixed(2)} gols/jogo`);
-            }
-            if (enriched.away_stats) {
-              console.log(`   Fora: ${enriched.away_stats.goals_per_game_avg?.toFixed(2)} gols/jogo`);
-            }
-          }
-          
-          // 🔥 TENDÊNCIAS OVER/UNDER E BTTS
-          if (enriched.trends) {
-            console.log('\n📊 TENDÊNCIAS (últimos 10 jogos):');
-            if (enriched.trends.home) {
-              console.log(`   🏠 Casa: Over 2.5: ${enriched.trends.home.over_25_pct?.toFixed(0)}% | BTTS: ${enriched.trends.home.btts_pct?.toFixed(0)}%`);
-            }
-            if (enriched.trends.away) {
-              console.log(`   ✈️ Fora: Over 2.5: ${enriched.trends.away.over_25_pct?.toFixed(0)}% | BTTS: ${enriched.trends.away.btts_pct?.toFixed(0)}%`);
-            }
-            if (enriched.trends.combined_over_25_pct) {
-              console.log(`   💡 Probabilidade combinada Over 2.5: ${enriched.trends.combined_over_25_pct?.toFixed(0)}%`);
-              console.log(`   💡 Probabilidade combinada BTTS: ${enriched.trends.combined_btts_pct?.toFixed(0)}%`);
-            }
-          }
-          
-          // ⏱️ DESCANSO ENTRE JOGOS
-          if (enriched.rest_context) {
-            console.log('\n⏱️ DESCANSO ENTRE JOGOS:');
-            console.log(`   🏠 Casa: ${enriched.rest_context.home_days_rest} dias de descanso`);
-            console.log(`   ✈️ Fora: ${enriched.rest_context.away_days_rest} dias de descanso`);
-            console.log(`   📊 Vantagem física: ${enriched.rest_context.advantage === 'home' ? '🏠 Casa' : enriched.rest_context.advantage === 'away' ? '✈️ Fora' : '⚖️ Igual'}`);
-          }
-          
-          // 🎖️ MOTIVAÇÃO
-          if (enriched.motivation) {
-            console.log('\n🎖️ MOTIVAÇÃO E CONTEXTO:');
-            if (enriched.motivation.context) {
-              console.log(`   ${enriched.motivation.context}`);
-            }
-            console.log(`   🏠 Casa: ${enriched.motivation.home?.toUpperCase()} - ${enriched.motivation.home_reason}`);
-            console.log(`   ✈️ Fora: ${enriched.motivation.away?.toUpperCase()} - ${enriched.motivation.away_reason}`);
-          }
-          
-          // 🔄 HISTÓRICO DIRETO (H2H) - FOOTBALL-DATA.ORG
-          if (enriched.h2h && Array.isArray(enriched.h2h)) {
-            console.log('\n🔄 HISTÓRICO DIRETO (H2H):');
-            console.log(`   📊 Total de confrontos: ${enriched.h2h.length} jogos`);
-            
-            // Contar vitórias
-            let homeWins = 0, awayWins = 0, draws = 0;
-            enriched.h2h.forEach(match => {
-              if (match.score?.fullTime) {
-                const homeScore = match.score.fullTime.home;
-                const awayScore = match.score.fullTime.away;
-                if (homeScore > awayScore) homeWins++;
-                else if (awayScore > homeScore) awayWins++;
-                else draws++;
-              }
-            });
-            
-            console.log(`   🏠 Vitórias Casa: ${homeWins}`);
-            console.log(`   ✈️ Vitórias Fora: ${awayWins}`);
-            console.log(`   ⚖️ Empates: ${draws}`);
-            
-            // Mostrar últimos 3 jogos
-            const recent = enriched.h2h.slice(0, 3);
-            console.log(`   📋 Últimos confrontos:`);
-            recent.forEach((match, i) => {
-              const date = new Date(match.utcDate).toLocaleDateString('pt-BR');
-              const score = match.score?.fullTime ? 
-                `${match.score.fullTime.home}-${match.score.fullTime.away}` : 
-                'N/A';
-              console.log(`      ${i+1}. ${date}: ${match.homeTeam.name} ${score} ${match.awayTeam.name}`);
-            });
-          } else if (enriched.football_data_id) {
-            console.log('\n🔄 HISTÓRICO DIRETO (H2H):');
-            console.log(`   ℹ️ football_data_id=${enriched.football_data_id} mapeado, mas H2H não disponível`);
-          } else {
-            console.log('\n🔄 HISTÓRICO DIRETO (H2H):');
-            console.log(`   ⚠️ Não disponível (football_data_id não mapeado)`);
-          }
-          
-          // Contexto da temporada
-          if (enriched.season_context) {
-            console.log(`\n📅 TEMPORADA: ${enriched.season_context.season} - ${enriched.season_context.round}`);
-          }
-        }
-        console.log('='.repeat(80) + '\n');
-        
-        // 🔥 NOVO: Log dos dados estruturados do modal completo
-        if (response.data.prediction_display) {
-          console.log('\n🎯 DADOS ESTRUTURADOS PARA MODAL COMPLETO:');
-          console.log('='.repeat(80));
-          console.log('📊 Predição:', response.data.prediction_display);
-          console.log('⭐ Confiança Display:', response.data.confidence_display);
-          console.log('📈 Probabilidades:');
-          console.log(`   🏠 Casa: ${response.data.home_probability}%`);
-          console.log(`   🤝 Empate: ${response.data.draw_probability}%`);
-          console.log(`   ✈️ Fora: ${response.data.away_probability}%`);
-          console.log('🔑 Key Factors:', response.data.key_factors?.length || 0, 'itens');
-          response.data.key_factors?.forEach((factor, i) => {
-            console.log(`   ${i+1}. ${factor}`);
-          });
-          console.log('='.repeat(80) + '\n');
-        }
-        
-        setAnalysis(response.data);
-
-        // Atualizar contador no header quando salvar no histórico
-        if (response.data.analysis_id) {
-          console.log('🔄 Atualizando contador: analysis_id encontrado, chamando refreshStats()');
-          refreshStats();
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao analisar partida:', error);
-      const errorCode = error.response?.data?.code;
-      const statusCode = error.response?.status;
-      if (errorCode === 'QUOTA_EXCEEDED' || statusCode === 429) {
-        // Abrir modal de limite atingido (sem alert)
-        setShowLimitModal(true);
-      } else {
-        // Opcional: manter silencioso ou usar outro fluxo de erro amigável
-      }
-    } finally {
-      setAnalyzing(false);
-    }
+    
+    // Abrir modal progressivo diretamente (sem loading)
+    setSelectedMatch(match);
   };
 
   const closeModal = () => {
     setSelectedMatch(null);
-    setAnalysis(null);
   };
 
   const filters = [
@@ -571,7 +366,7 @@ export default function HomePage() {
 
         {/* Matches List */}
         {loading ? (
-          <LoadingMascot message="Carregando partidas..." />
+          <MatchListSkeleton count={8} />
         ) : displayedMatches.length === 0 ? (
           <EmptyState
             variant="no-matches"
@@ -624,31 +419,33 @@ export default function HomePage() {
 
       <BottomNav />
 
-      {/* Analysis Modal */}
-      {analysis && (
-        <AnalysisModal
+      {/* Analysis Modal Progressivo */}
+      {selectedMatch && (
+        <AnalysisModalProgressive
           match={selectedMatch}
-          analysis={analysis}
-          metadata={analysis.metadata}
           onClose={closeModal}
+          onAnalyze={async (strategy) => {
+            // Chamar API unificada
+            try {
+              const response = await matchesAPI.unifiedAnalysis(selectedMatch.id, {
+                strategy,
+                include_ai: true
+              });
+              return response.data;
+            } catch (error) {
+              console.error('Erro ao buscar análise:', error);
+              if (error.response?.status === 429 || error.response?.data?.code === 'QUOTA_EXCEEDED') {
+                setShowLimitModal(true);
+              }
+              throw error;
+            }
+          }}
         />
       )}
 
       {/* Daily Limit Reached Modal */}
       {showLimitModal && (
         <LimitReachedModal onClose={() => setShowLimitModal(false)} dailyLimit={3} />
-      )}
-
-      {/* Analyzing Overlay */}
-      {analyzing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-2xl max-w-sm mx-4">
-            <LoadingMascot message="Gerando análise com IA..." />
-            <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-4">
-              Isso pode levar alguns segundos...
-            </p>
-          </div>
-        </div>
       )}
     </div>
   );

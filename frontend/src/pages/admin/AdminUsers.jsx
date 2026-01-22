@@ -15,7 +15,7 @@ import {
   CreditCard
 } from 'lucide-react';
 import Header from '../../components/Header';
-import LoadingMascot from '../../components/LoadingMascot';
+import { Skeleton } from '../../components/Skeleton';
 import BottomNav from '../../components/BottomNav';
 import UserAvatar from '../../components/UserAvatar';
 import EditUserModal from '../../components/EditUserModal';
@@ -36,6 +36,7 @@ export default function AdminUsers() {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     if (!user?.is_staff && !user?.is_superuser) {
       navigate('/');
       return;
@@ -133,7 +134,30 @@ export default function AdminUsers() {
       <div className="page-container">
         <Header title="Usuários" />
         <div className="page-content">
-          <LoadingMascot message="Carregando usuários..." />
+          {/* User List Skeleton */}
+          <div className="space-y-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="card p-4">
+                <div className="flex items-center gap-4">
+                  {/* Avatar */}
+                  <Skeleton className="w-12 h-12 rounded-full flex-shrink-0" />
+                  
+                  {/* User Info */}
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-5 w-48" />
+                    <Skeleton className="h-4 w-64" />
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    <Skeleton className="h-9 w-9 rounded-lg" />
+                    <Skeleton className="h-9 w-9 rounded-lg" />
+                    <Skeleton className="h-9 w-9 rounded-lg" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );

@@ -253,30 +253,45 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         football_api = FootballAPIService()
         all_matches = []
         
-        # OTIMIZAÇÃO CRÍTICA: Reduzir requisições para não esgotar plano PRO
-        # Em vez de buscar 30 partidas de 10 ligas (300 req), buscar apenas 2-3 ligas principais
-        logger.info("⚽ Buscando próximas partidas (MODO ECONÔMICO - 3 ligas apenas)...")
+        # Buscar TODAS as partidas dos próximos dias (não filtrar por liga)
+        logger.info("⚽ Buscando TODAS as partidas disponíveis...")
         
-        # Apenas 3 ligas mais populares (reduzir de 10 para 3)
-        major_leagues = {
-            'Premier League': 39,
-            'La Liga': 140,
-            'Serie A': 135,
-        }
-        
-        for league_name, league_id in major_leagues.items():
-            # Buscar apenas 10 partidas (em vez de 30)
-            result = football_api.get_fixtures_by_league(
-                league_id,
-                next_matches=10  # Reduzido de 30 para 10
-            )
+        # Buscar partidas dos próximos 3 dias para ter variedade
+        today = datetime.now()
+        for i in range(3):  # Hoje, amanhã e depois
+            target_date = (today + timedelta(days=i)).strftime('%Y-%m-%d')
+            result = football_api.get_fixtures_by_date(target_date)
             
             if result['success'] and result['fixtures']:
                 all_matches.extend(result['fixtures'])
-                logger.info(f"   {league_name}: {len(result['fixtures'])} partidas")
+                logger.info(f"   {target_date}: {len(result['fixtures'])} partidas")
         
-        # TOTAL: Apenas 3 requisições (em vez de 10)
-        logger.info(f"   Total de requisições: 3 (economia de 70%)")
+        # Definir ligas principais para priorização (serão exibidas primeiro)
+        PRIORITY_LEAGUES = {
+            'Premier League': 1,
+            'La Liga': 1,
+            'Serie A': 1,
+            'Bundesliga': 1,
+            'Ligue 1': 1,
+            'Eredivisie': 2,
+            'Liga Portugal': 2,
+            'Championship': 2,
+            'Brasileirão Série A': 1,
+            'Serie B': 2,
+            'Brasileirão Série B': 2,
+            'Copa Libertadores': 1,
+            'UEFA Champions League': 1,
+            'UEFA Europa League': 2,
+            'UEFA Conference League': 2,
+            'Scottish Premiership': 2,
+            'Belgian Pro League': 2,
+            'Süper Lig': 2,
+            'La Liga 2': 3,
+            'Bundesliga 2': 3,
+            'Ligue 2': 3,
+        }
+        
+        logger.info(f"   Total de partidas brutas: {len(all_matches)}")
         
         # Se encontrou partidas reais, retorná-las
         if all_matches:
@@ -288,8 +303,17 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             matches_list.sort(key=lambda x: x['fixture']['date'])
             
             logger.info(f"Total de {len(matches_list)} partidas únicas encontradas")
-            # Remover limite - carregar TODAS as partidas
+            
+            # Formatar partidas e adicionar prioridade da liga
             matches = self._format_api_matches(matches_list)
+            
+            # Adicionar prioridade às partidas baseado na liga
+            for match in matches:
+                league_name = match.get('league', {}).get('name', '') if isinstance(match.get('league'), dict) else match.get('league', '')
+                match['league_priority'] = PRIORITY_LEAGUES.get(league_name, 3)  # 3 = outras ligas
+            
+            # Ordenar por prioridade da liga (menor = mais importante) e depois por data
+            matches.sort(key=lambda x: (x.get('league_priority', 3), x.get('match_date', '')))
             
             response_data = {
                 'date': date,
@@ -499,6 +523,73 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             match_date = fixture['fixture']['date']
             fixture_id = fixture['fixture']['id']  # ID real da API
             
+            # Normalizar nome da liga para evitar duplicatas
+            league_name = fixture['league']['name']
+            league_id = fixture['league']['id']
+            league_country = fixture['league'].get('country', '')
+            
+            # Mapear IDs de ligas conhecidas para nomes consistentes (com país quando necessário)
+            LEAGUE_NAME_MAP = {
+                # Inglaterra
+                39: 'Premier League',
+                40: 'Championship',
+                41: 'League One',
+                42: 'League Two',
+                
+                # Espanha
+                140: 'La Liga',
+                141: 'La Liga 2',
+                
+                # Itália
+                135: 'Serie A',
+                136: 'Serie B',
+                
+                # Alemanha
+                78: 'Bundesliga',
+                79: 'Bundesliga 2',
+                
+                # França
+                61: 'Ligue 1',
+                62: 'Ligue 2',
+                
+                # Portugal
+                94: 'Liga Portugal',
+                
+                # Holanda
+                88: 'Eredivisie',
+                
+                # Brasil
+                71: 'Brasileirão Série A',
+                72: 'Brasileirão Série B',
+                
+                # Competições Internacionais
+                2: 'UEFA Champions League',
+                3: 'UEFA Europa League',
+                848: 'UEFA Conference League',
+                13: 'Copa Libertadores',
+                11: 'Copa Sudamericana',
+                
+                # Escócia
+                179: 'Scottish Premiership',
+                
+                # Bélgica
+                144: 'Belgian Pro League',
+                
+                # Turquia
+                203: 'Süper Lig',
+            }
+            
+            # Usar nome normalizado se disponível, caso contrário adicionar país ao nome
+            if league_id in LEAGUE_NAME_MAP:
+                normalized_league_name = LEAGUE_NAME_MAP[league_id]
+            else:
+                # Para ligas não mapeadas, adicionar país se o nome for genérico
+                generic_names = ['Premier League', 'First Division', 'Segunda División', 'Serie A', 'Serie B', 'Division 1', 'Division 2']
+                if any(generic in league_name for generic in generic_names) and league_country:
+                    normalized_league_name = f"{league_name} ({league_country})"
+                else:
+                    normalized_league_name = league_name
+            
             # Enriquecer lineups com URLs de fotos dos jogadores
             lineups = fixture.get('lineups', [])
             for lineup in lineups:
@@ -531,7 +622,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 },
                 'league': {
                     'id': fixture['league']['id'],
-                    'name': fixture['league']['name'],
+                    'name': normalized_league_name,  # Usar nome normalizado
                     'logo': fixture['league']['logo'],
                     'country': fixture['league'].get('country', ''),
                 },
@@ -1839,82 +1930,249 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         from apps.analysis.services.cache_service import get_cache
         
         try:
-            match = self.get_object()
+            # Tentar buscar match do banco de dados
+            try:
+                match = self.get_object()
+                is_external_match = False
+                logger.info(f"✅ Match encontrado no banco de dados: {match.id}")
+            except Exception as e:
+                # Match não existe no banco - tratar como match externo
+                is_external_match = True
+                match = None
+                logger.info(f"⚠️ Match não encontrado no banco (404) - tratando como match externo")
+            
             strategy = request.data.get('strategy', 'value')
             include_ai = request.data.get('include_ai', True)
             force_refresh = request.data.get('force_refresh', False)
             
+            # Garantir que strategy é string
+            if isinstance(strategy, dict):
+                strategy = strategy.get('strategy', 'value')
+            if not isinstance(strategy, str):
+                strategy = 'value'
+            
             logger.info(f"\n{'='*80}")
-            logger.info(f"🚀 UNIFIED ANALYSIS - Match {match.id}")
+            if is_external_match:
+                logger.info(f"🚀 UNIFIED ANALYSIS - Match EXTERNO (API ID: {self.kwargs.get('pk')})")
+            else:
+                logger.info(f"🚀 UNIFIED ANALYSIS - Match {match.id}")
             logger.info(f"   Strategy: {strategy}, Include AI: {include_ai}, Force: {force_refresh}")
             logger.info(f"{'='*80}\n")
             
-            # Verificar cache (se não forçar refresh)
-            cache_service = get_cache()
+            # Inicializar cache_service (pode ser usado em ambos os casos)
+            cache_service = get_cache() if not is_external_match else None
             
-            if not force_refresh:
-                cached_result = cache_service.get(match.id, strategy, include_ai)
+            # Inicializar api_id (para ambos os casos)
+            api_id = self.kwargs.get('pk') if is_external_match else (match.id if match else None)
+            
+            # SE FOR MATCH EXTERNO: usar quick_analyze internamente
+            if is_external_match:
+                logger.info("🌐 Match externo detectado - usando lógica de quick_analyze...")
                 
-                if cached_result:
-                    logger.info("✅ Retornando dados do CACHE")
-                    return Response({
-                        **cached_result,
-                        'cached': True,
-                        'cache_stats': cache_service.stats()
-                    })
+                # api_id já foi definido acima
+                
+                from .services.football_api import FootballAPIService
+                api_service = FootballAPIService()
+                
+                try:
+                    # Buscar dados básicos do match
+                    fixture_result = api_service.get_fixture_by_id(api_id)
+                    
+                    if not fixture_result.get('success') or not fixture_result.get('fixture'):
+                        raise Exception(f"Não foi possível buscar fixture {api_id} da API")
+                    
+                    fixture = fixture_result['fixture']
+                    
+                    # Construir match_data para análise
+                    match_data = {
+                        'home_team': {'name': fixture['teams']['home']['name']},
+                        'away_team': {'name': fixture['teams']['away']['name']},
+                        'league': fixture.get('league', {}).get('name', 'Liga desconhecida'),
+                        'date': fixture.get('fixture', {}).get('date'),
+                        'status': fixture.get('fixture', {}).get('status', {}).get('short'),
+                        'venue': fixture.get('fixture', {}).get('venue', {}).get('name'),
+                        'home_score': fixture.get('goals', {}).get('home'),
+                        'away_score': fixture.get('goals', {}).get('away'),
+                        'api_id': api_id
+                    }
+                    
+                    logger.info(f"✅ Dados do match externo carregados: {match_data['home_team']['name']} vs {match_data['away_team']['name']}")
+                    
+                    # Enriquecer dados (buscar estatísticas, predictions, etc.)
+                    from apps.analysis.services.match_enricher import MatchDataEnricher
+                    enricher = MatchDataEnricher()
+                    match_data = enricher.enrich(match_data)
+                    
+                    # Executar análise estatística + decisão
+                    from apps.analysis.services.feature_engineer import FeatureEngineer
+                    from apps.analysis.services.statistical_models import ModelEnsemble
+                    from apps.analysis.services.decision_engine import DecisionEngine
+                    from apps.analysis.services.ai_analyzer import AIAnalyzer
+                    
+                    # Feature Engineering
+                    engineer = FeatureEngineer()
+                    features = engineer.engineer_all_features(match_data)
+                    
+                    # Modelos estatísticos usando ModelEnsemble
+                    home_strength = match_data.get('home_stats', {}).get('goals_per_game_avg', 1.5)
+                    away_strength = match_data.get('away_stats', {}).get('goals_per_game_avg', 1.3)
+                    home_defense = match_data.get('home_stats', {}).get('conceded_per_game_avg', 1.3)
+                    away_defense = match_data.get('away_stats', {}).get('conceded_per_game_avg', 1.3)
+                    
+                    # Ajustar pela forma recente
+                    form_diff = features.get('form', {}).get('adjusted_form_diff', 0)
+                    home_strength += form_diff * 0.1
+                    away_strength -= form_diff * 0.1
+                    
+                    weather_impact = features.get('weather', {}).get('goal_impact', 0.0)
+                    
+                    # Usar ModelEnsemble (combina Poisson + Logistic)
+                    ensemble = ModelEnsemble()
+                    model_predictions = ensemble.predict(
+                        features, 
+                        home_strength, 
+                        away_strength, 
+                        weather_impact,
+                        league_id=match_data.get('fixture', {}).get('league_id'),
+                        home_defense=home_defense, 
+                        away_defense=away_defense
+                    )
+                    
+                    # Decision Engine - Preparar odds do mercado
+                    raw_odds = match_data.get('odds') or {}
+                    logger.info(f"🔍 RAW_ODDS tipo: {type(raw_odds)}, valor: {raw_odds}")
+                    
+                    # Converter formato da API para formato esperado pelo Decision Engine
+                    if raw_odds.get('home_win'):
+                        market_odds = {
+                            'home': raw_odds.get('home_win'),
+                            'draw': raw_odds.get('draw'),
+                            'away': raw_odds.get('away_win'),
+                            'over_2_5': raw_odds.get('over_25'),
+                            'under_2_5': raw_odds.get('under_25'),
+                            'btts_yes': raw_odds.get('btts_yes'),
+                            'btts_no': raw_odds.get('btts_no'),
+                        }
+                        logger.info(f"💰 Market odds: Home={market_odds['home']}, Draw={market_odds['draw']}, Away={market_odds['away']}")
+                    else:
+                        market_odds = None
+                        logger.warning("⚠️ Sem odds da API - análise será feita sem cálculo de EV")
+                    
+                    decision_engine = DecisionEngine()
+                    decision = decision_engine.make_decision(
+                        model_predictions=model_predictions,
+                        features=features,
+                        market_odds=market_odds,
+                        strategy=strategy
+                    )
+                    
+                    # IA (se solicitado) - SEMPRE gerar quando include_ai=True
+                    ai_analysis = None
+                    if include_ai:
+                        logger.info(f"🤖 Chamando IA para análise...")
+                        ai_analyzer = AIAnalyzer()
+                        ai_result = ai_analyzer.explain_decision(
+                            decision_data=decision,
+                            enriched_data=match_data,
+                            strategy=strategy
+                        )
+                        ai_analysis = ai_result.get('analysis', '')
+                    
+                    # Estruturar resposta
+                    analysis_result = {
+                        'analysis_data': {
+                            'model_predictions': model_predictions,
+                            'decision': decision,
+                            'fair_odds': decision.get('fair_odds', {}),
+                            'market_odds': market_odds,
+                        },
+                        'enriched_data': match_data.get('enriched_data', {}),
+                        'analysis': ai_analysis
+                    }
+                    
+                except Exception as e:
+                    logger.error(f"❌ Erro ao processar match externo: {e}", exc_info=True)
+                    return Response(
+                        {'error': 'Erro ao processar match externo', 'details': str(e)},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
             
-            # Cache miss ou force refresh: gerar análise
-            logger.info("🔄 Cache MISS: gerando nova análise...")
+            else:
+                # MATCH DO BANCO DE DADOS: usar cache e orchestrator normal
+                # Verificar cache (se não forçar refresh)
+                if not force_refresh:
+                    cached_result = cache_service.get(match.id, strategy, include_ai)
+                    
+                    if cached_result:
+                        logger.info("✅ Retornando dados do CACHE")
+                        return Response({
+                            **cached_result,
+                            'cached': True,
+                            'cache_stats': cache_service.stats()
+                        })
+                
+                # Cache miss ou force refresh: gerar análise
+                logger.info("🔄 Cache MISS: gerando nova análise...")
+                
+                # Usar AnalysisOrchestrator existente (método run)
+                orchestrator = HybridAnalysisOrchestrator()
+                analysis_result = orchestrator.run(match)
+                
+                # Se include_ai=False, remover a análise IA
+                if not include_ai:
+                    analysis_result['reasoning'] = None
+                    logger.info("⏭️ include_ai=False: removendo análise de IA")
             
-            # Usar AnalysisOrchestrator existente
-            orchestrator = HybridAnalysisOrchestrator()
-            
-            analysis_result = orchestrator.analyze_match(
-                match=match,
-                strategy=strategy,
-                include_ai_analysis=include_ai
-            )
-            
-            # Estruturar resposta unificada
+            # Estruturar resposta unificada (para ambos os casos)
             unified_response = {
                 'phase': 'complete',
-                'cached': False,
-                'match_id': match.id,
+                'cached': False if is_external_match else False,  # Externos nunca em cache
+                'match_id': api_id if is_external_match else match.id,
                 'strategy': strategy,
+                
+                # Adicionar informações do match (para external matches)
+                'match_info': {
+                    'home_team': {'name': match_data.get('home_team', {}).get('name', 'Casa')} if is_external_match else {'name': match.home_team},
+                    'away_team': {'name': match_data.get('away_team', {}).get('name', 'Fora')} if is_external_match else {'name': match.away_team},
+                    'league': {'name': match_data.get('league', 'N/A')} if is_external_match else {'name': match.league.name if match.league else 'N/A'},
+                    'match_date': match_data.get('date') if is_external_match else (match.match_date.isoformat() if match.match_date else None),
+                } if is_external_match else None,
                 
                 # Onda 1: Dados estatísticos (preview)
                 'statistical_data': {
-                    'consensus': analysis_result.get('analysis_data', {}).get('model_predictions', {}).get('consensus', {}),
-                    'confidence': analysis_result.get('analysis_data', {}).get('decision', {}).get('confidence', {}),
-                    'poisson': analysis_result.get('analysis_data', {}).get('model_predictions', {}).get('poisson', {}),
+                    'consensus': analysis_result.get('analysis_data', {}).get('model_predictions', {}).get('consensus', {}) if is_external_match else analysis_result.get('analysis_data', {}).get('consensus', {}),
+                    'confidence': analysis_result.get('analysis_data', {}).get('decision', {}).get('confidence', {}) if is_external_match else analysis_result.get('analysis_data', {}).get('confidence', {}),
+                    'poisson': analysis_result.get('analysis_data', {}).get('model_predictions', {}).get('poisson', {}) if is_external_match else analysis_result.get('analysis_data', {}).get('poisson', {}),
                 },
                 
                 # Onda 2: Decision data (top_bets)
                 'decision_data': {
-                    'top_bets': analysis_result.get('analysis_data', {}).get('decision', {}).get('top_bets', []),
-                    'recommendation': analysis_result.get('analysis_data', {}).get('decision', {}).get('recommendation', {}),
-                    'risk': analysis_result.get('analysis_data', {}).get('decision', {}).get('risk', 'medium'),
+                    'top_bets': analysis_result.get('analysis_data', {}).get('decision', {}).get('top_bets', []) if is_external_match else analysis_result.get('analysis_data', {}).get('value_bets', []),
+                    'recommendation': analysis_result.get('analysis_data', {}).get('decision', {}).get('recommendation', {}) if is_external_match else analysis_result.get('analysis_data', {}).get('recommendation', {}),
+                    'risk': analysis_result.get('analysis_data', {}).get('decision', {}).get('risk', 'medium') if is_external_match else analysis_result.get('analysis_data', {}).get('risk', 'medium'),
                 },
                 
                 # Onda 3: Análise IA (se solicitado)
-                'ai_analysis': analysis_result.get('analysis', '') if include_ai else None,
+                'ai_analysis': analysis_result.get('analysis', '') if is_external_match else analysis_result.get('reasoning', ''),
                 
                 # Metadata
                 'metadata': {
                     'enriched_data': analysis_result.get('enriched_data', {}),
-                    'fair_odds': analysis_result.get('analysis_data', {}).get('fair_odds', {}),
+                    'fair_odds': analysis_result.get('analysis_data', {}).get('decision', {}).get('fair_odds', {}) if is_external_match else analysis_result.get('analysis_data', {}).get('fair_odds', {}),
                     'market_odds': analysis_result.get('analysis_data', {}).get('market_odds', {}),
                     'generated_at': timezone.now().isoformat(),
                 },
                 
-                # Stats
-                'cache_stats': cache_service.stats()
+                # Stats (não há cache para externos)
+                'cache_stats': {} if is_external_match else cache_service.stats()
             }
             
-            # Salvar no cache
-            cache_service.set(match.id, strategy, unified_response, include_ai)
-            
-            logger.info(f"✅ Análise completa gerada e cacheada")
+            # Salvar no cache (apenas se for match do banco)
+            if not is_external_match and cache_service:
+                cache_service.set(match.id, strategy, unified_response, include_ai)
+                logger.info(f"✅ Análise completa gerada e cacheada")
+            else:
+                logger.info(f"✅ Análise completa gerada (match externo - sem cache)")
             
             return Response(unified_response)
             

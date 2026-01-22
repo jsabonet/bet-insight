@@ -8,7 +8,7 @@ import { Calendar, TrendingUp, Target, Star } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
 import EmptyState from '../components/EmptyState';
-import LoadingMascot from '../components/LoadingMascot';
+import { MatchListSkeleton } from '../components/Skeleton';
 import AnalysisModal from '../components/AnalysisModal';
 
 export default function MyAnalysesPage() {
@@ -26,6 +26,7 @@ export default function MyAnalysesPage() {
   const [userStats, setUserStats] = useState(null);
 
   useEffect(() => {
+    window.scrollTo(0, 0);
     loadAnalyses();
     loadUserStats();
   }, []);
@@ -85,7 +86,7 @@ export default function MyAnalysesPage() {
       <div className="page-container">
         <Header title="Minhas Análises" />
         <div className="page-content">
-          <LoadingMascot message="Carregando suas análises..." />
+          <MatchListSkeleton count={5} />
         </div>
       </div>
     );

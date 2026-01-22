@@ -105,6 +105,12 @@ class DecisionEngine:
             }
         """
         logger.info(f"\n{'='*80}")
+        
+        # Garantir que strategy é string
+        if not isinstance(strategy, str):
+            logger.warning(f"⚠️ Strategy não é string: {type(strategy)} - usando 'value'")
+            strategy = 'value'
+        
         logger.info(f"🎯 DECISION ENGINE - Gerando recomendação (Estratégia: {strategy.upper()})")
         logger.info(f"{'='*80}\n")
         

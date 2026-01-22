@@ -97,9 +97,8 @@ class AIAnalyzer:
             generation_time = time.time() - start_time
             
             # 3. Gerar header padronizado + resposta da IA
-            header = self._generate_header(decision_data, enriched_data)
             ai_response = response.text.strip()
-            formatted_analysis = f"{header}\n\n{ai_response}"
+            formatted_analysis = f"{ai_response}"
             
             result = {
                 'success': True,
@@ -157,23 +156,7 @@ class AIAnalyzer:
         else:
             predicao = "Empate"
         
-        header = f"""⚽ {home_team} vs {away_team}
-🏆 {league}
-📅 {match_date}
-{'⭐' * confidence.get('stars', 3)} Confiança: {confidence.get('stars', 3)}/5
-
-📊 RESULTADO MAIS PROVÁVEL: {predicao}
-
-📈 PROBABILIDADES:
-🏠 {home_team}: {prob_home*100:.1f}%
-🤝 Empate: {prob_draw*100:.1f}%
-✈️ {away_team}: {prob_away*100:.1f}%
-
-💡 NOTA: O resultado mais provável pode ser diferente da melhor aposta (maior value).
-         A análise abaixo busca OPORTUNIDADES DE VALUE, não apenas favoritismo."""
         
-        return header
-
     def _generate_cache_key_internal(self, decision_data: Dict, enriched_data: Dict) -> str:
         """Método auxiliar para gerar chave de cache"""
         fixture = enriched_data.get('fixture_details', {})
