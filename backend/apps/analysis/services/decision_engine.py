@@ -591,6 +591,14 @@ class DecisionEngine:
         poisson_probs = model_predictions.get('poisson', {}).get('probabilities', {})
         fair_odds = self._calculate_fair_odds(model_predictions)
         
+        # ✅ Garantir que market_odds seja dict (não None)
+        if market_odds is None:
+            market_odds = {}
+            logger.warning("⚠️ market_odds is None - convertido para {} vazio")
+        
+        logger.info(f"🔍 DEBUG select_top_bets - market_odds type: {type(market_odds)}, value: {market_odds}")
+        logger.info(f"🔍 DEBUG select_top_bets - consensus: {consensus}")
+        
         # Preparar candidatos
         candidates = []
         
@@ -603,6 +611,8 @@ class DecisionEngine:
             prob = consensus.get(prob_key, 0)
             market_odd = market_odds.get(odds_key, 0)  # ✅ Usar chave direta
             fair_odd = fair_odds.get(market, 0)
+            
+            logger.info(f"🔍 Candidato {market}: prob={prob:.3f}, market_odd={market_odd}, fair_odd={fair_odd:.2f}")
             
             # ✅ Verificar se market_odd não é None antes de comparar
             if prob >= 0.15 and market_odd is not None and market_odd > 0 and fair_odd > 0:  # Reduzido de 30% para 15%
