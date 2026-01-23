@@ -124,7 +124,7 @@ class DecisionEngine:
             market_odds = {}
         
         logger.info("\n💰 Market Odds:")
-        logger.info(f"   Home: {market_odds.get('home_win')}, Draw: {market_odds.get('draw')}, Away: {market_odds.get('away_win')}")
+        logger.info(f"   Home: {market_odds.get('home')}, Draw: {market_odds.get('draw')}, Away: {market_odds.get('away')}")
         logger.info(f"   Over 2.5: {market_odds.get('over_2_5')}, Under 2.5: {market_odds.get('under_2_5')}")
         
         # 1. Calcular odds justas dos modelos

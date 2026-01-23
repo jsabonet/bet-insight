@@ -2162,6 +2162,10 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                         strategy=strategy
                     )
                     
+                    # DEBUG: Verificar top_bets na decisão
+                    logger.info(f"🔍 DECISION retornou top_bets: {decision.get('top_bets', [])}")
+                    logger.info(f"🔍 DECISION keys: {list(decision.keys())}")
+                    
                     # IA (se solicitado) - SEMPRE gerar quando include_ai=True
                     ai_analysis = None
                     if include_ai:
