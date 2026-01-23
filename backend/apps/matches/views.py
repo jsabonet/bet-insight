@@ -2093,6 +2093,10 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                     enricher = MatchDataEnricher()
                     match_data = enricher.enrich(match_data)
                     
+                    # DEBUG: Verificar se odds existem após enrichment
+                    logger.info(f"🔍 APÓS ENRICHMENT - match_data.keys(): {list(match_data.keys())}")
+                    logger.info(f"🔍 APÓS ENRICHMENT - match_data.get('odds'): {match_data.get('odds')}")
+                    
                     # Executar análise estatística + decisão
                     from apps.analysis.services.feature_engineer import FeatureEngineer
                     from apps.analysis.services.statistical_models import ModelEnsemble
