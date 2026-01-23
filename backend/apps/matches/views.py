@@ -584,8 +584,39 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 normalized_league_name = LEAGUE_NAME_MAP[league_id]
             else:
                 # Para ligas não mapeadas, adicionar país se o nome for genérico
-                generic_names = ['Premier League', 'First Division', 'Segunda División', 'Serie A', 'Serie B', 'Division 1', 'Division 2']
+                generic_names = [
+                    'Premier League',
+                    'Premiership',
+                    'First Division',
+                    'Segunda División',
+                    'Segunda Division',
+                    'Serie A',
+                    'Serie B',
+                    'Serie C',
+                    'Division 1',
+                    'Division 2',
+                    'Division 3',
+                    'Ligue 1',
+                    'Ligue 2',
+                    'Championship',
+                    'Super League',
+                    'Super Cup',
+                    'Primera Division',
+                    'Primera División',
+                    'National League',
+                    'Pro League',
+                    'Professional League',
+                    'League One',
+                    'League Two',
+                    'Cup',
+                    'FA Cup',
+                    'League Cup',
+                    'Primeira Liga',
+                    'Segunda Liga',
+                    'Tercera Division'
+                ]
                 if any(generic in league_name for generic in generic_names) and league_country:
+                    # Se não for a liga principal mapeada, adicionar país
                     normalized_league_name = f"{league_name} ({league_country})"
                 else:
                     normalized_league_name = league_name
@@ -714,10 +745,25 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             }
             
             # Resposta completa compatível com o frontend
+            # Calcular análises restantes inline (fix temporário)
+            from apps.subscriptions.plan_config import get_plan_limit
+            limit = None
+            try:
+                active_sub = request.user.subscriptions.filter(status='active', end_date__gt=timezone.now()).first()
+                if active_sub and active_sub.plan_slug:
+                    limit = get_plan_limit(active_sub.plan_slug)
+            except Exception:
+                limit = None
+            
+            if limit is None:
+                limit = 3 if not request.user.is_staff and not request.user.is_superuser else 999
+            
+            remaining = max(0, limit - request.user.daily_analysis_count) if hasattr(request.user, 'daily_analysis_count') else limit
+            
             payload = {
                 'analysis': reasoning,
                 'confidence': confidence,
-                'remaining_analyses': request.user.get_remaining_analyses(),
+                'remaining_analyses': remaining,
                 'saved': True,
                 'saved_analysis': {
                     'id': analysis.id,
@@ -2139,7 +2185,9 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                     logger.info(f"🔍 RAW_ODDS tipo: {type(raw_odds)}, valor: {raw_odds}")
                     
                     # Converter formato da API para formato esperado pelo Decision Engine
-                    if raw_odds.get('home_win'):
+                    has_odds = bool(raw_odds.get('home_win'))
+                    
+                    if has_odds:
                         market_odds = {
                             'home': raw_odds.get('home_win'),
                             'draw': raw_odds.get('draw'),
@@ -2152,7 +2200,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                         logger.info(f"💰 Market odds da API: Home={market_odds['home']}, Draw={market_odds['draw']}, Away={market_odds['away']}")
                     else:
                         market_odds = None
-                        logger.warning("⚠️ Sem odds da API - top_bets será vazio")
+                        logger.warning(f"⚠️ Sem odds da API para fixture {api_id} - Liga pode não ter cobertura de bookmakers")
                     
                     decision_engine = DecisionEngine()
                     decision = decision_engine.make_decision(
@@ -2212,11 +2260,11 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                         })
                 
                 # Cache miss ou force refresh: gerar análise
-                logger.info("🔄 Cache MISS: gerando nova análise...")
+                logger.info(f"🔄 Cache MISS: gerando nova análise com estratégia {strategy}...")
                 
                 # Usar AnalysisOrchestrator existente (método run)
                 orchestrator = HybridAnalysisOrchestrator()
-                analysis_result = orchestrator.run(match)
+                analysis_result = orchestrator.run(match, strategy=strategy)
                 
                 # Se include_ai=False, remover a análise IA
                 if not include_ai:
@@ -2247,10 +2295,11 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 
                 # Onda 2: Decision data (top_bets)
                 'decision_data': {
-                    # Usar 'top_bets' como nome padrão (value_bets do orchestrator é renomeado)
-                    'top_bets': analysis_result.get('analysis_data', {}).get('decision', {}).get('top_bets', []) if is_external_match else analysis_result.get('analysis_data', {}).get('value_bets', []),
+                    # Usar 'top_bets' - agora com estrutura completa do DecisionEngine
+                    'top_bets': analysis_result.get('analysis_data', {}).get('decision', {}).get('top_bets', []) if is_external_match else analysis_result.get('analysis_data', {}).get('top_bets', []),
                     'recommendation': analysis_result.get('analysis_data', {}).get('decision', {}).get('recommendation', {}) if is_external_match else analysis_result.get('analysis_data', {}).get('recommendation', {}),
                     'risk': analysis_result.get('analysis_data', {}).get('decision', {}).get('risk', 'medium') if is_external_match else analysis_result.get('analysis_data', {}).get('risk', 'medium'),
+                    'has_odds': bool(analysis_result.get('analysis_data', {}).get('market_odds')),  # Flag para frontend
                 },
                 
                 # Onda 3: Análise IA (se solicitado)

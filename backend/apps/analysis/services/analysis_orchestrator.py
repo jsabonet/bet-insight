@@ -22,10 +22,17 @@ class HybridAnalysisOrchestrator:
         self.decision = DecisionEngine()
         self.ai = AIAnalyzer()
 
-    def run(self, match: Match) -> Dict:
-        """Executa a análise híbrida e retorna payload pronto para persistir/exibir."""
+    def run(self, match: Match, strategy: str = 'value') -> Dict:
+        """Executa a análise híbrida e retorna payload pronto para persistir/exibir.
+        
+        Args:
+            match: Match object do banco de dados
+            strategy: 'value' (apostas simples, EV máximo) ou 'multiple' (bilhetes, probabilidade alta)
+        """
         if not match.api_football_id:
             raise ValueError("Partida sem API Football ID para enriquecimento.")
+
+        logger.info(f"🎯 [Orchestrator] Executando análise com estratégia: {strategy.upper()}")
 
         # 1) Enriquecer dados
         match_data = {
@@ -49,8 +56,34 @@ class HybridAnalysisOrchestrator:
         ensemble_result = self.ensemble.predict(features, home_strength, away_strength, weather_impact, league_id)
 
         # 4) Decisão + value
-        market_odds = features.get('market', {})
-        decision_result = self.decision.make_decision(ensemble_result, features, market_odds)
+        # Preparar market_odds no formato correto para o DecisionEngine
+        # O enricher retorna odds em enriched['odds'], não em features['market']
+        raw_odds = enriched.get('odds', {})
+        if raw_odds and raw_odds.get('home_win'):
+            # Converter formato do enricher para formato do DecisionEngine
+            market_odds = {
+                'home': raw_odds.get('home_win'),
+                'draw': raw_odds.get('draw'),
+                'away': raw_odds.get('away_win'),
+                'over_2_5': raw_odds.get('over_25'),
+                'under_2_5': raw_odds.get('under_25'),
+                'btts_yes': raw_odds.get('btts_yes'),
+                'btts_no': raw_odds.get('btts_no'),
+            }
+            logger.info(f"💰 [Orchestrator] Market odds preparados: Home={market_odds.get('home')}, Draw={market_odds.get('draw')}, Away={market_odds.get('away')}")
+        else:
+            # Sem odds da API - DecisionEngine não gerará top_bets
+            market_odds = None
+            logger.warning(f"⚠️ [Orchestrator] Sem odds disponíveis - top_bets será vazio")
+        
+        decision_result = self.decision.make_decision(ensemble_result, features, market_odds, strategy=strategy)
+        
+        # Log para confirmar top_bets
+        top_bets = decision_result.get('top_bets', [])
+        logger.info(f"✅ [Orchestrator] DecisionEngine retornou {len(top_bets)} top_bets com estratégia {strategy}")
+        if top_bets:
+            for i, bet in enumerate(top_bets, 1):
+                logger.info(f"   #{i}: {bet.get('market_display')} - Prob: {bet.get('probability', 0)*100:.1f}%, EV: {bet.get('ev_pct', 0):+.1f}%")
 
         # 5) IA explica (opcional)
         ai_result = self.ai.explain_decision(decision_result, enriched)
@@ -99,7 +132,8 @@ class HybridAnalysisOrchestrator:
             'recommendation': recommendation,
             'confidence': confidence,
             'risk': risk,
-            'value_bets': decision_result.get('value_bets', []),
+            'value_bets': decision_result.get('value_bets', []),  # DEPRECATED: Mantido para compatibilidade
+            'top_bets': decision_result.get('top_bets', []),  # NOVO: Top bets com estrutura completa
             'market_odds': market_odds,
             'publish_filter': decision_result.get('publish_filter', {}),  # NOVO: Filtro de confiança
             'features_summary': {
