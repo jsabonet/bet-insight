@@ -1997,21 +1997,23 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                             )
                             logger.info(f"✅ Liga: {league.name} ({'criada' if created_league else 'existente'})")
                             
-                            # Criar o match no banco
-                            logger.info(f"⚽ Criando match no banco de dados...")
-                            match = Match.objects.create(
+                            # Criar o match no banco (ou buscar se já existe)
+                            logger.info(f"⚽ Criando/buscando match no banco de dados...")
+                            match, created = Match.objects.get_or_create(
                                 api_football_id=match_id,
-                                league=league,
-                                home_team=home_team,
-                                away_team=away_team,
-                                match_date=fixture['fixture']['date'],
-                                status=fixture['fixture']['status']['short'],
-                                round=fixture['league'].get('round', '')
+                                defaults={
+                                    'league': league,
+                                    'home_team': home_team,
+                                    'away_team': away_team,
+                                    'match_date': fixture['fixture']['date'],
+                                    'status': fixture['fixture']['status']['short'],
+                                    'round': fixture['league'].get('round', '')
+                                }
                             )
                             
-                            # ✅ IMPORTANTE: Match criado com sucesso, NÃO é externo!
+                            # ✅ IMPORTANTE: Match criado/encontrado com sucesso, NÃO é externo!
                             is_external_match = False
-                            logger.info(f"✅✅✅ Match criado COM SUCESSO no banco: ID {match.id} (api_football_id: {match_id})")
+                            logger.info(f"✅✅✅ Match {'criado' if created else 'encontrado'} no banco: ID {match.id} (api_football_id: {match_id})")
                             logger.info(f"✅ is_external_match = {is_external_match} - SERÁ SALVO NO HISTÓRICO!")
                         else:
                             # Se falhar ao buscar da API, marcar como externo
