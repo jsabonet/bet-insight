@@ -2149,29 +2149,10 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                             'btts_yes': raw_odds.get('btts_yes'),
                             'btts_no': raw_odds.get('btts_no'),
                         }
-                        logger.info(f"💰 Market odds: Home={market_odds['home']}, Draw={market_odds['draw']}, Away={market_odds['away']}")
+                        logger.info(f"💰 Market odds da API: Home={market_odds['home']}, Draw={market_odds['draw']}, Away={market_odds['away']}")
                     else:
-                        # ✅ FIX: Usar odds do features['market'] se disponíveis (fallback)
-                        market_features = features.get('market', {})
-                        odds_home = market_features.get('odds_home', 0)
-                        odds_draw = market_features.get('odds_draw', 0)
-                        odds_away = market_features.get('odds_away', 0)
-                        
-                        # Se as odds são os defaults (3.0, 3.4, 3.0), significa que não há odds reais
-                        # Nesse caso, deixar como None para que top_bets fique vazio
-                        if odds_home == 3.0 and odds_draw == 3.4 and odds_away == 3.0:
-                            market_odds = None
-                            logger.warning("⚠️ Sem odds reais da API - top_bets será vazio (correto)")
-                        else:
-                            # Se há odds diferentes dos defaults, usá-las
-                            market_odds = {
-                                'home': odds_home,
-                                'draw': odds_draw,
-                                'away': odds_away,
-                                'over_2_5': market_features.get('odds_over_25', 0),
-                                'under_2_5': market_features.get('odds_under_25', 0),
-                            }
-                            logger.info(f"💰 Market odds (fallback): Home={market_odds['home']}, Draw={market_odds['draw']}, Away={market_odds['away']}")
+                        market_odds = None
+                        logger.warning("⚠️ Sem odds da API - top_bets será vazio")
                     
                     decision_engine = DecisionEngine()
                     decision = decision_engine.make_decision(
