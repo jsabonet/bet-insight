@@ -165,6 +165,8 @@ class DecisionEngine:
         
         # 6. SELEÇÃO OBJETIVA das top 3 apostas (SEM IA)
         logger.info(f"\n6️⃣ Selecionando top 3 apostas (decisão objetiva, estratégia={strategy})...")
+        logger.info(f"🔍 DEBUG ANTES DE CHAMAR select_top_bets - market_odds: {market_odds}")
+        logger.info(f"🔍 DEBUG ANTES DE CHAMAR select_top_bets - features['market']: {features.get('market')}")
         top_bets = self.select_top_bets(model_predictions, market_odds, confidence, risk, strategy=strategy)
         
         for bet in top_bets:
