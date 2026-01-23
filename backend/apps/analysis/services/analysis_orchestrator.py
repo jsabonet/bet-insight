@@ -86,7 +86,7 @@ class HybridAnalysisOrchestrator:
                 logger.info(f"   #{i}: {bet.get('market_display')} - Prob: {bet.get('probability', 0)*100:.1f}%, EV: {bet.get('ev_pct', 0):+.1f}%")
 
         # 5) IA explica (opcional)
-        ai_result = self.ai.explain_decision(decision_result, enriched)
+        ai_result = self.ai.explain_decision(decision_result, enriched, strategy=strategy)
 
         # 6) Formatar saída
         consensus = ensemble_result.get('consensus', {})
