@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "collected_at": "2026-01-25T12:31:34.146947",
+    "total_matches": 0,
+    "total_errors": 0,
+    "leagues": [
+      "Premier League",
+      "La Liga",
+      "Serie A",
+      "Bundesliga",
+      "Ligue 1",
+      "Primeira Liga",
+      "Eredivisie",
+      "Super Lig",
+      "Jupiler Pro League",
+      "Champions League"
+    ],
+    "seasons": [
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ]
+  },
+  "data": [],
+  "errors": []
+}

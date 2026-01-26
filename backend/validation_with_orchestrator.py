@@ -6,6 +6,7 @@ import os
 import sys
 import django
 from datetime import datetime, timedelta
+from pathlib import Path
 import json
 import numpy as np
 
@@ -77,20 +78,60 @@ def calculate_metrics(probs_dict, actual):
 
 def is_market_hit(market, h_score, a_score):
     """Avalia acerto de um mercado dado o placar real."""
-    total_goals = (h_score or 0) + (a_score or 0)
+    h = h_score or 0
+    a = a_score or 0
+    total_goals = h + a
+    
+    # 1X2
     if market == 'home_win':
-        return (h_score or 0) > (a_score or 0)
+        return h > a
     if market == 'draw':
-        return (h_score or 0) == (a_score or 0)
+        return h == a
     if market == 'away_win':
-        return (h_score or 0) < (a_score or 0)
+        return h < a
+    
+    # Over/Under
+    if market == 'over_1_5':
+        return total_goals >= 2
+    if market == 'under_1_5':
+        return total_goals <= 1
     if market == 'over_2_5':
         return total_goals >= 3
     if market == 'under_2_5':
         return total_goals <= 2
+    if market == 'over_3_5':
+        return total_goals >= 4
+    if market == 'under_3_5':
+        return total_goals <= 3
+    
+    # BTTS
     if market == 'btts':
-        return (h_score or 0) > 0 and (a_score or 0) > 0
-    # btts_no (não disponível como consenso), manter falso por padrão
+        return h > 0 and a > 0
+    if market == 'btts_no':
+        return h == 0 or a == 0
+    
+    # Double Chance
+    if market == 'double_chance_1x':
+        return h >= a  # Casa vence OU empate
+    if market == 'double_chance_12':
+        return h != a  # Casa vence OU fora vence (não empata)
+    if market == 'double_chance_x2':
+        return h <= a  # Empate OU fora vence
+    
+    # Team Goals
+    if market == 'home_over_05':
+        return h >= 1
+    if market == 'home_over_15':
+        return h >= 2
+    if market == 'home_over_25':
+        return h >= 3
+    if market == 'away_over_05':
+        return a >= 1
+    if market == 'away_over_15':
+        return a >= 2
+    if market == 'away_over_25':
+        return a >= 3
+    
     return False
 
 print("\n" + "="*80)
@@ -98,81 +139,64 @@ print("VALIDAÇÃO COM ARQUITETURA HÍBRIDA COMPLETA")
 print("Usando HybridAnalysisOrchestrator (enricher + FE + ensemble + decision + AI)")
 print("="*80 + "\n")
 
-api = FootballAPIService()
 orchestrator = HybridAnalysisOrchestrator()
 
-# Configuração: focar em ligas profissionais (evitar amistosos)
-# Premier League (39), La Liga (140), Bundesliga (78), Serie A (135), Ligue 1 (61)
-TARGET_LEAGUES = {39, 140, 78, 135, 61}
-ALLOWED_TYPES = {"League"}  # Ignora "Friendlies" e "Cup" por padrão
+# MUDANÇA: Ler do dataset local em vez da API
+print("Carregando dataset histórico (training_dataset.json)...")
+dataset_path = Path(__file__).parent / 'ml_training' / 'training_dataset.json'
 
-# Buscar partidas finalizadas
-print("Coletando partidas dos últimos 30 dias (incluindo dados recentes)...")
-all_fixtures = []
-
-# Buscar de 7 a 37 dias atrás (últimos 30 dias - maximizar chances de dados completos)
-for days_ago in range(7, 37):
-    date = (datetime.now() - timedelta(days=days_ago)).strftime('%Y-%m-%d')
-    print(f"  {date}...", end=" ")
+try:
+    with open(dataset_path, 'r', encoding='utf-8') as f:
+        dataset = json.load(f)
     
-    try:
-        result = api.get_fixtures_by_date(date)
-        
-        # DEBUG: Ver o que a API retorna
-        if not result.get('success'):
-            print(f"❌ API falhou: {result.get('error', 'unknown')[:50]}")
-            continue
-            
-        if result.get('success'):
-            # Filtrar partidas finalizadas e pertencentes às ligas alvo (ou tipo permitido)
-            finished = []
-            for f in result['fixtures']:
-                try:
-                    is_finished = f['fixture']['status']['short'] == 'FT'
-                    league_id = f['league'].get('id')
-                    league_type = f['league'].get('type')
-                    league_name = f['league'].get('name', '')
+    print(f"✅ Dataset carregado: {len(dataset['data'])} partidas")
+    
+    # Converter dataset para formato esperado (similar à API)
+    all_fixtures = []
+    for match_data in dataset['data']:
+        # Construir estrutura similar à retornada pela API
+        fixture = {
+            'fixture': {
+                'id': match_data['fixture_id'],
+                'date': match_data['date'],
+                'status': {'short': 'FT'},
+            },
+            'teams': {
+                'home': {'name': match_data['teams']['home']},
+                'away': {'name': match_data['teams']['away']}
+            },
+            'goals': {
+                'home': match_data['result']['home_goals'],
+                'away': match_data['result']['away_goals']
+            },
+            'league': {
+                'id': match_data['league_id'],
+                'name': match_data['league'],
+                'country': 'Unknown',
+                'type': 'League'
+            }
+        }
+        all_fixtures.append(fixture)
+    
+    print(f"Conversão concluída: {len(all_fixtures)} partidas convertidas")
+    
+except FileNotFoundError:
+    print(f"❌ Dataset não encontrado em: {dataset_path}")
+    print("Execute primeiro: python ml_training/collect_historical_data.py")
+    sys.exit(1)
+except Exception as e:
+    print(f"❌ Erro ao carregar dataset: {e}")
+    sys.exit(1)
 
-                    # Regra: incluir se for liga alvo OU tipo "League" e não contiver "Friendlies"
-                    include = (
-                        (league_id in TARGET_LEAGUES) or
-                        (league_type in ALLOWED_TYPES and 'Friendlies' not in league_name)
-                    )
-
-                    if is_finished and include:
-                        finished.append(f)
-                except Exception:
-                    # Se houver qualquer estrutura inesperada, ignorar fixture
-                    continue
-            all_fixtures.extend(finished)
-            print(f"{len(finished)} partidas")
-        else:
-            print("0 partidas")
-    except Exception as e:
-        print(f"Erro: {str(e)[:30]}")
-
-# Remover duplicatas
-unique_fixtures = {}
-for f in all_fixtures:
-    fid = f['fixture']['id']
-    if fid not in unique_fixtures:
-        unique_fixtures[fid] = f
-
-all_fixtures = list(unique_fixtures.values())
-print(f"\nPartidas únicas: {len(all_fixtures)}")
-
-# Limitar a 120 partidas
-if len(all_fixtures) > 120:
-    print(f"Limitando a 120 partidas mais recentes...")
-    all_fixtures = sorted(all_fixtures, key=lambda x: x['fixture']['date'], reverse=True)[:120]
-
+# Não limitar a quantidade - usar TODAS as partidas do dataset para validação robusta
 print(f"\nAnalisando {len(all_fixtures)} partidas com ARQUITETURA COMPLETA...")
-print("="*80 + "\n")
+print("(Usando dataset histórico em vez de API)")
 
 # Processar partidas
 results = []
 failed = []
 processed = 0
+total_fixtures = len(all_fixtures)
 
 for i, fixture_data in enumerate(all_fixtures, 1):
     fid = fixture_data['fixture']['id']
@@ -182,25 +206,33 @@ for i, fixture_data in enumerate(all_fixtures, 1):
     a_score = fixture_data['goals']['away']
     league_name = fixture_data['league']['name']
     
-    if i % 10 == 0 or i == 1:
-        print(f"[{i}/{len(all_fixtures)}] Processando com orchestrator...")
+    # Mostrar progresso a cada partida
+    percentage = (i / total_fixtures) * 100
+    print(f"\r[{i}/{total_fixtures}] ({percentage:.1f}%) Processando: {home_name} vs {away_name}...", end="", flush=True)
     
     try:
-        # Criar objetos temporários para análise
-        league, _ = League.objects.get_or_create(
-            name=league_name,
-            defaults={'country': fixture_data['league']['country']}
-        )
+        # Criar objetos temporários para análise (usar filter().first() para evitar duplicatas)
+        league = League.objects.filter(name=league_name).first()
+        if not league:
+            league, _ = League.objects.get_or_create(
+                name=league_name,
+                defaults={'country': fixture_data['league']['country']}
+            )
         
-        home_team, _ = Team.objects.get_or_create(
-            name=home_name,
-            defaults={'country': fixture_data['teams']['home'].get('country', 'Unknown')}
-        )
+        # Usar filter().first() para evitar erro com times duplicados
+        home_team = Team.objects.filter(name=home_name).first()
+        if not home_team:
+            home_team, _ = Team.objects.get_or_create(
+                name=home_name,
+                defaults={'country': fixture_data['teams']['home'].get('country', 'Unknown')}
+            )
         
-        away_team, _ = Team.objects.get_or_create(
-            name=away_name,
-            defaults={'country': fixture_data['teams']['away'].get('country', 'Unknown')}
-        )
+        away_team = Team.objects.filter(name=away_name).first()
+        if not away_team:
+            away_team, _ = Team.objects.get_or_create(
+                name=away_name,
+                defaults={'country': fixture_data['teams']['away'].get('country', 'Unknown')}
+            )
         
         match_date = datetime.fromisoformat(fixture_data['fixture']['date'].replace('Z', '+00:00'))
         
@@ -244,14 +276,15 @@ for i, fixture_data in enumerate(all_fixtures, 1):
             'predicted_vector': predicted,
             'actual': actual,
             'correct': is_correct,
+            'correct_1x2': is_correct,  # Adicionar para análise final
             'brier': brier,
             'log_loss': log_loss_val,
             'consensus': consensus,
             'confidence': confidence,
             'value_bets': value_bets,
             'fair_odds': fair_odds,
-            'recommended_market': analysis_result.get('recommendation', {}).get('market'),
-            'recommended_correct': is_market_hit(analysis_result.get('recommendation', {}).get('market', ''), h_score, a_score),
+            'recommended_market': analysis_result.get('analysis_data', {}).get('recommendation', {}).get('market'),
+            'recommended_correct': is_market_hit(analysis_result.get('analysis_data', {}).get('recommendation', {}).get('market', ''), h_score, a_score),
             'should_publish': analysis_result.get('should_publish', True),  # NOVO: Flag de filtro
             'publish_reason': analysis_result.get('analysis_data', {}).get('publish_filter', {}).get('reason', 'N/A'),
             'date': fixture_data['fixture']['date']
@@ -261,7 +294,7 @@ for i, fixture_data in enumerate(all_fixtures, 1):
         
     except Exception as e:
         error_msg = str(e)[:100]
-        print(f"  ❌ Erro na partida {fid}: {error_msg}")
+        print(f"  [X] Erro na partida {fid}: {error_msg}")  # Removido emoji para compatibilidade Windows
         failed.append({
             'id': fid,
             'home': home_name,
@@ -315,12 +348,22 @@ for r in results:
 # Value bets encontrados
 total_value_bets = sum(len(r['value_bets']) for r in results)
 
-# Métricas multi-mercado
+# Métricas multi-mercado (EXPANDIDO: todos os mercados implementados)
 market_metrics = {
     '1x2': {
         'total': len(results),
         'correct': sum(1 for r in results if r['correct'])
     },
+    # Over/Under 1.5
+    'over_1_5': {
+        'total': len(results),
+        'correct': sum(1 for r in results if is_market_hit('over_1_5', int(r['score'].split('-')[0]), int(r['score'].split('-')[1])))
+    },
+    'under_1_5': {
+        'total': len(results),
+        'correct': sum(1 for r in results if is_market_hit('under_1_5', int(r['score'].split('-')[0]), int(r['score'].split('-')[1])))
+    },
+    # Over/Under 2.5
     'over_2_5': {
         'total': len(results),
         'correct': sum(1 for r in results if is_market_hit('over_2_5', int(r['score'].split('-')[0]), int(r['score'].split('-')[1])))
@@ -329,10 +372,55 @@ market_metrics = {
         'total': len(results),
         'correct': sum(1 for r in results if is_market_hit('under_2_5', int(r['score'].split('-')[0]), int(r['score'].split('-')[1])))
     },
+    # Over/Under 3.5
+    'over_3_5': {
+        'total': len(results),
+        'correct': sum(1 for r in results if is_market_hit('over_3_5', int(r['score'].split('-')[0]), int(r['score'].split('-')[1])))
+    },
+    'under_3_5': {
+        'total': len(results),
+        'correct': sum(1 for r in results if is_market_hit('under_3_5', int(r['score'].split('-')[0]), int(r['score'].split('-')[1])))
+    },
+    # BTTS
     'btts': {
         'total': len(results),
         'correct': sum(1 for r in results if is_market_hit('btts', int(r['score'].split('-')[0]), int(r['score'].split('-')[1])))
     },
+    'btts_no': {
+        'total': len(results),
+        'correct': sum(1 for r in results if is_market_hit('btts_no', int(r['score'].split('-')[0]), int(r['score'].split('-')[1])))
+    },
+    # Double Chance
+    'double_chance_1x': {
+        'total': len(results),
+        'correct': sum(1 for r in results if is_market_hit('double_chance_1x', int(r['score'].split('-')[0]), int(r['score'].split('-')[1])))
+    },
+    'double_chance_12': {
+        'total': len(results),
+        'correct': sum(1 for r in results if is_market_hit('double_chance_12', int(r['score'].split('-')[0]), int(r['score'].split('-')[1])))
+    },
+    'double_chance_x2': {
+        'total': len(results),
+        'correct': sum(1 for r in results if is_market_hit('double_chance_x2', int(r['score'].split('-')[0]), int(r['score'].split('-')[1])))
+    },
+    # Team Goals
+    'home_over_05': {
+        'total': len(results),
+        'correct': sum(1 for r in results if is_market_hit('home_over_05', int(r['score'].split('-')[0]), int(r['score'].split('-')[1])))
+    },
+    'home_over_15': {
+        'total': len(results),
+        'correct': sum(1 for r in results if is_market_hit('home_over_15', int(r['score'].split('-')[0]), int(r['score'].split('-')[1])))
+    },
+    'away_over_05': {
+        'total': len(results),
+        'correct': sum(1 for r in results if is_market_hit('away_over_05', int(r['score'].split('-')[0]), int(r['score'].split('-')[1])))
+    },
+    'away_over_15': {
+        'total': len(results),
+        'correct': sum(1 for r in results if is_market_hit('away_over_15', int(r['score'].split('-')[0]), int(r['score'].split('-')[1])))
+    },
+    # Pick recomendado
     'recommended_pick': {
         'total': len([r for r in results if r.get('recommended_market')]),
         'correct': sum(1 for r in results if r.get('recommended_market') and r.get('recommended_correct'))
@@ -368,10 +456,28 @@ output_data = {
         }
     },
     'market_metrics': {
+        # 1X2
         '1x2_accuracy': round(market_metrics['1x2']['correct'] / max(1, market_metrics['1x2']['total']) * 100, 2),
+        # Over/Under
+        'over_15_accuracy': round(market_metrics['over_1_5']['correct'] / max(1, market_metrics['over_1_5']['total']) * 100, 2),
+        'under_15_accuracy': round(market_metrics['under_1_5']['correct'] / max(1, market_metrics['under_1_5']['total']) * 100, 2),
         'over_25_accuracy': round(market_metrics['over_2_5']['correct'] / max(1, market_metrics['over_2_5']['total']) * 100, 2),
         'under_25_accuracy': round(market_metrics['under_2_5']['correct'] / max(1, market_metrics['under_2_5']['total']) * 100, 2),
+        'over_35_accuracy': round(market_metrics['over_3_5']['correct'] / max(1, market_metrics['over_3_5']['total']) * 100, 2),
+        'under_35_accuracy': round(market_metrics['under_3_5']['correct'] / max(1, market_metrics['under_3_5']['total']) * 100, 2),
+        # BTTS
         'btts_accuracy': round(market_metrics['btts']['correct'] / max(1, market_metrics['btts']['total']) * 100, 2),
+        'btts_no_accuracy': round(market_metrics['btts_no']['correct'] / max(1, market_metrics['btts_no']['total']) * 100, 2),
+        # Double Chance
+        'double_chance_1x_accuracy': round(market_metrics['double_chance_1x']['correct'] / max(1, market_metrics['double_chance_1x']['total']) * 100, 2),
+        'double_chance_12_accuracy': round(market_metrics['double_chance_12']['correct'] / max(1, market_metrics['double_chance_12']['total']) * 100, 2),
+        'double_chance_x2_accuracy': round(market_metrics['double_chance_x2']['correct'] / max(1, market_metrics['double_chance_x2']['total']) * 100, 2),
+        # Team Goals
+        'home_over_05_accuracy': round(market_metrics['home_over_05']['correct'] / max(1, market_metrics['home_over_05']['total']) * 100, 2),
+        'home_over_15_accuracy': round(market_metrics['home_over_15']['correct'] / max(1, market_metrics['home_over_15']['total']) * 100, 2),
+        'away_over_05_accuracy': round(market_metrics['away_over_05']['correct'] / max(1, market_metrics['away_over_05']['total']) * 100, 2),
+        'away_over_15_accuracy': round(market_metrics['away_over_15']['correct'] / max(1, market_metrics['away_over_15']['total']) * 100, 2),
+        # Recomendação
         'recommended_pick_accuracy': round(market_metrics['recommended_pick']['correct'] / max(1, market_metrics['recommended_pick']['total']) * 100, 2)
     },
     'detailed_results': results,
@@ -406,10 +512,39 @@ print(f"Log Loss filtrado: {filtered_log_loss:.4f} (vs {avg_log_loss:.4f} geral)
 print(f"\nGanho de acurácia: {filtered_accuracy - accuracy:+.2f}% (trade-off: -{100-coverage:.1f}% volume)")
 print()
 print("Métricas por mercado:")
-print(f"  1X2 (consenso): {market_metrics['1x2']['correct']}/{market_metrics['1x2']['total']} ({market_metrics['1x2']['correct']/max(1,market_metrics['1x2']['total'])*100:.2f}%)")
+print("\n📊 1X2:")
+print(f"  Consenso 1X2: {market_metrics['1x2']['correct']}/{market_metrics['1x2']['total']} ({market_metrics['1x2']['correct']/max(1,market_metrics['1x2']['total'])*100:.2f}%)")
+
+print("\n📈 Over/Under 1.5:")
+print(f"  Over 1.5: {market_metrics['over_1_5']['correct']}/{market_metrics['over_1_5']['total']} ({market_metrics['over_1_5']['correct']/max(1,market_metrics['over_1_5']['total'])*100:.2f}%)")
+print(f"  Under 1.5: {market_metrics['under_1_5']['correct']}/{market_metrics['under_1_5']['total']} ({market_metrics['under_1_5']['correct']/max(1,market_metrics['under_1_5']['total'])*100:.2f}%)")
+
+print("\n📈 Over/Under 2.5:")
 print(f"  Over 2.5: {market_metrics['over_2_5']['correct']}/{market_metrics['over_2_5']['total']} ({market_metrics['over_2_5']['correct']/max(1,market_metrics['over_2_5']['total'])*100:.2f}%)")
 print(f"  Under 2.5: {market_metrics['under_2_5']['correct']}/{market_metrics['under_2_5']['total']} ({market_metrics['under_2_5']['correct']/max(1,market_metrics['under_2_5']['total'])*100:.2f}%)")
-print(f"  BTTS (Sim): {market_metrics['btts']['correct']}/{market_metrics['btts']['total']} ({market_metrics['btts']['correct']/max(1,market_metrics['btts']['total'])*100:.2f}%)")
+
+print("\n📈 Over/Under 3.5:")
+print(f"  Over 3.5: {market_metrics['over_3_5']['correct']}/{market_metrics['over_3_5']['total']} ({market_metrics['over_3_5']['correct']/max(1,market_metrics['over_3_5']['total'])*100:.2f}%)")
+print(f"  Under 3.5: {market_metrics['under_3_5']['correct']}/{market_metrics['under_3_5']['total']} ({market_metrics['under_3_5']['correct']/max(1,market_metrics['under_3_5']['total'])*100:.2f}%)")
+
+print("\n⚽ BTTS (Ambas Marcam):")
+print(f"  BTTS Sim: {market_metrics['btts']['correct']}/{market_metrics['btts']['total']} ({market_metrics['btts']['correct']/max(1,market_metrics['btts']['total'])*100:.2f}%)")
+print(f"  BTTS Não: {market_metrics['btts_no']['correct']}/{market_metrics['btts_no']['total']} ({market_metrics['btts_no']['correct']/max(1,market_metrics['btts_no']['total'])*100:.2f}%)")
+
+print("\n🎲 Double Chance:")
+print(f"  1X (Casa/Empate): {market_metrics['double_chance_1x']['correct']}/{market_metrics['double_chance_1x']['total']} ({market_metrics['double_chance_1x']['correct']/max(1,market_metrics['double_chance_1x']['total'])*100:.2f}%)")
+print(f"  12 (Casa/Fora): {market_metrics['double_chance_12']['correct']}/{market_metrics['double_chance_12']['total']} ({market_metrics['double_chance_12']['correct']/max(1,market_metrics['double_chance_12']['total'])*100:.2f}%)")
+print(f"  X2 (Empate/Fora): {market_metrics['double_chance_x2']['correct']}/{market_metrics['double_chance_x2']['total']} ({market_metrics['double_chance_x2']['correct']/max(1,market_metrics['double_chance_x2']['total'])*100:.2f}%)")
+
+print("\n🏠 Team Goals Casa:")
+print(f"  Casa Over 0.5: {market_metrics['home_over_05']['correct']}/{market_metrics['home_over_05']['total']} ({market_metrics['home_over_05']['correct']/max(1,market_metrics['home_over_05']['total'])*100:.2f}%)")
+print(f"  Casa Over 1.5: {market_metrics['home_over_15']['correct']}/{market_metrics['home_over_15']['total']} ({market_metrics['home_over_15']['correct']/max(1,market_metrics['home_over_15']['total'])*100:.2f}%)")
+
+print("\n✈️ Team Goals Fora:")
+print(f"  Fora Over 0.5: {market_metrics['away_over_05']['correct']}/{market_metrics['away_over_05']['total']} ({market_metrics['away_over_05']['correct']/max(1,market_metrics['away_over_05']['total'])*100:.2f}%)")
+print(f"  Fora Over 1.5: {market_metrics['away_over_15']['correct']}/{market_metrics['away_over_15']['total']} ({market_metrics['away_over_15']['correct']/max(1,market_metrics['away_over_15']['total'])*100:.2f}%)")
+
+print("\n🎯 Recomendação:")
 print(f"  Pick recomendado: {market_metrics['recommended_pick']['correct']}/{market_metrics['recommended_pick']['total']} ({market_metrics['recommended_pick']['correct']/max(1,market_metrics['recommended_pick']['total'])*100:.2f}%)")
 print()
 print(f"Resultados salvos em: {output_file}")

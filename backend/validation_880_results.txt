@@ -1,0 +1,9 @@
+VALIDAÇÃO DE 880 PARTIDAS COMPLETAS
+===================================
+
+Acurácia Global: 572/880 (65.0%)
+
+Resultados por tipo:
+  HOME: 220/392 (56.1%)
+  DRAW: 198/222 (89.2%)
+  AWAY: 154/266 (57.9%)

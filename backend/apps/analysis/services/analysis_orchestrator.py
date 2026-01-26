@@ -5,7 +5,7 @@ from typing import Dict
 from apps.matches.models import Match
 from .match_enricher import MatchDataEnricher
 from .feature_engineer import FeatureEngineer
-from .statistical_models import ModelEnsemble
+from .ml_integration import ModelEnsembleML
 from .decision_engine import DecisionEngine
 from .ai_analyzer import AIAnalyzer
 
@@ -13,12 +13,12 @@ logger = logging.getLogger(__name__)
 
 
 class HybridAnalysisOrchestrator:
-    """Coordena o fluxo híbrido: enriquecimento → features → modelos → decisão → IA (explicação)."""
+    """Coordena o fluxo híbrido: enriquecimento → features → modelos ML → decisão → IA (explicação)."""
 
     def __init__(self):
         self.enricher = MatchDataEnricher()
         self.fe = FeatureEngineer()
-        self.ensemble = ModelEnsemble()
+        self.ensemble = ModelEnsembleML()  # 🤖 USANDO ML TREINADO
         self.decision = DecisionEngine()
         self.ai = AIAnalyzer()
 
@@ -96,13 +96,20 @@ class HybridAnalysisOrchestrator:
         confidence = decision_result.get('confidence', {})
         risk = decision_result.get('risk', 'medium')
 
-        # Mapear predição para choices
-        market_to_prediction = {
-            'home_win': 'home',
-            'draw': 'draw',
-            'away_win': 'away',
-        }
-        prediction_choice = market_to_prediction.get(recommendation.get('market'), 'home')
+        # Determinar predição 1X2 baseada no CONSENSO (não na recomendação)
+        if consensus:
+            max_outcome = max(consensus.items(), key=lambda x: x[1])
+            logger.info(f"🎯 [DEBUG] Consensus max: {max_outcome[0]} = {max_outcome[1]*100:.1f}%")
+            market_to_prediction = {
+                'home_win': 'home',
+                'draw': 'draw',
+                'away_win': 'away',
+            }
+            prediction_choice = market_to_prediction.get(max_outcome[0], 'home')
+            logger.info(f"🎯 [DEBUG] Prediction choice: {prediction_choice}")
+        else:
+            logger.warning(f"⚠️ [DEBUG] Consensus vazio! Usando fallback 'home'")
+            prediction_choice = 'home'  # fallback seguro
 
         # Confiança int (1-5)
         confidence_int = int(confidence.get('stars', 3))

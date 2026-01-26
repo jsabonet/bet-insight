@@ -98,7 +98,37 @@ export default function HomePage() {
       
       // Extrair ligas únicas
       const uniqueLeagues = [...new Set(fetchedMatches.map(m => m.league?.name || m.league))];
-      setLeagues(uniqueLeagues);
+      
+      // Ordenar ligas: principais sem sufixo primeiro, depois com país
+      const sortedLeagues = uniqueLeagues.sort((a, b) => {
+        // Ligas principais (sem país no nome) - prioridade MÁXIMA
+        const mainLeagues = [
+          'Premier League',
+          'La Liga',
+          'Serie A',
+          'Bundesliga',
+          'Ligue 1',
+          'Ligue 2',
+          'Championship',
+          'Liga Portugal',
+          'Eredivisie',
+          'Brasileirão Série A',
+          'UEFA Champions League',
+          'UEFA Europa League',
+          'Copa Libertadores'
+        ];
+        
+        const aIsMain = mainLeagues.includes(a);
+        const bIsMain = mainLeagues.includes(b);
+        
+        if (aIsMain && !bIsMain) return -1;
+        if (!aIsMain && bIsMain) return 1;
+        
+        // Se ambas são principais ou ambas não são, ordenar alfabeticamente
+        return a.localeCompare(b);
+      });
+      
+      setLeagues(sortedLeagues);
     } catch (error) {
       console.error('Erro ao carregar partidas:', error);
     } finally {

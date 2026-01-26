@@ -483,25 +483,25 @@ class DecisionEngine:
                 }
             # Se value bet tem probabilidade baixa, cair para resultado mais provável (continua abaixo)
         
-        # PRIORIDADE 3: Resultado mais provável
-        # AJUSTE: Favorecer empate se probabilidade >= 25% OU diferença entre casa/fora < 5%
+        # PRIORIDADE 3: Resultado mais provável (SEM VIÉS)
+        # CORREÇÃO: Usar threshold realista baseado em validação (36% accuracy → 55%+ esperado)
         prob_home = consensus.get('home_win', 0)
         prob_draw = consensus.get('draw', 0)
         prob_away = consensus.get('away_win', 0)
         
-        # Regra 1: Empate com probabilidade >= 25% (ajustado para capturar mais empates)
-        if prob_draw >= 0.25:
-            market_name = 'draw'
-            probability = prob_draw
-        # Regra 2: Empate técnico (diferença < 5% entre casa e fora)
-        elif abs(prob_home - prob_away) < 0.05 and prob_draw >= 0.20:
-            market_name = 'draw'
-            probability = prob_draw
-        # Regra 3: Resultado mais provável
-        else:
-            max_market = max(consensus.items(), key=lambda x: x[1])
-            market_name = max_market[0]
-            probability = max_market[1]
+        # Análise: Distribuição real de resultados é ~30% Casa, ~42% Empate, ~30% Fora
+        # Sistema estava prevendo Empate 72% das vezes (threshold 25% era muito baixo)
+        
+        # SEMPRE escolher resultado com MAIOR probabilidade (sem viés)
+        # Análise mostrou: probabilidades médias são Casa 42%, Empate 26%, Fora 31%
+        # Mas em empates reais, empate raramente é máximo (fica 23-30%)
+        
+        # Estratégia: Escolher máximo DIRETO, sem threshold artificial
+        max_market = max(consensus.items(), key=lambda x: x[1])
+        market_name = max_market[0]
+        probability = max_market[1]
+        
+        # Sem overrides - deixar probabilidades decidirem naturalmente
         
         # Buscar odd do mercado
         market_mapping = {
@@ -685,109 +685,117 @@ class DecisionEngine:
                 'category': 'btts'
             })
         
-        # NOTE: Over/Under 1.5 e 3.5 comentados - API não retorna essas odds
-        # # Over/Under 1.5
-        # for market, prob_key in [('over_1_5', 'over_1_5'), ('under_1_5', 'under_1_5')]:
-        #     prob = poisson_probs.get(prob_key, 0)
-        #     market_odd = market_odds.get('over_1_5' if 'over' in market else 'under_1_5', 0)
-        #     fair_odd = fair_odds.get(market, 0)
-        #     
-        #     if prob >= 0.30 and market_odd > 0 and fair_odd > 0:
-        #         ev_pct = ((market_odd / fair_odd) - 1) * 100
-        #         score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
-        #         
-        #         candidates.append({
-        #             'market': market,
-        #             'market_display': self._format_market_name(market),
-        #             'pick': self._format_pick(market),
-        #             'probability': prob,
-        #             'market_odd': market_odd,
-        #             'fair_odd': fair_odd,
-        #             'ev_pct': ev_pct,
-        #             'score': score,
-        #             'category': 'totals'
-        #         })
+        # NOVOS MERCADOS: Over/Under 1.5, 3.5, Dupla Chance
+        # Over/Under 1.5 (threshold reduzido para incluir mais casos)
+        for market, prob_key in [('over_1_5', 'over_1_5'), ('under_1_5', 'under_1_5')]:
+            prob = poisson_probs.get(prob_key, 0)
+            market_odd = market_odds.get(prob_key, 0)
+            fair_odd = fair_odds.get(market, 0)
+            
+            # Threshold 25% para VALUE, 35% seria rejeitado por MULTIPLE de qualquer forma
+            if prob >= 0.25 and market_odd is not None and market_odd > 0 and fair_odd > 0:
+                ev_pct = ((market_odd / fair_odd) - 1) * 100
+                score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
+                
+                logger.debug(f"   Candidato {market}: prob={prob:.2f}, EV={ev_pct:+.1f}%, score={score:.3f}")
+                
+                candidates.append({
+                    'market': market,
+                    'market_display': f"{'Over' if 'over' in market else 'Under'} 1.5 gols",
+                    'pick': 'Sim' if 'over' in market else 'Não',
+                    'probability': prob,
+                    'market_odd': market_odd,
+                    'fair_odd': fair_odd,
+                    'ev_pct': ev_pct,
+                    'score': score,
+                    'category': 'totals'
+                })
         
-        # # Over/Under 3.5
-        # for market, prob_key in [('over_3_5', 'over_3_5'), ('under_3_5', 'under_3_5')]:
-        #     prob = poisson_probs.get(prob_key, 0)
-        #     market_odd = market_odds.get('over_3_5' if 'over' in market else 'under_3_5', 0)
-        #     fair_odd = fair_odds.get(market, 0)
-        #     
-        #     if prob >= 0.30 and market_odd > 0 and fair_odd > 0:
-        #         ev_pct = ((market_odd / fair_odd) - 1) * 100
-        #         score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
-        #         
-        #         candidates.append({
-        #             'market': market,
-        #             'market_display': self._format_market_name(market),
-        #             'pick': self._format_pick(market),
-        #             'probability': prob,
-        #             'market_odd': market_odd,
-        #             'fair_odd': fair_odd,
-        #             'ev_pct': ev_pct,
-        #             'score': score,
-        #             'category': 'totals'
-        #         })
+        # Over/Under 3.5 (threshold mais baixo pois raramente passa de 40%)
+        for market, prob_key in [('over_3_5', 'over_3_5'), ('under_3_5', 'under_3_5')]:
+            prob = poisson_probs.get(prob_key, 0)
+            market_odd = market_odds.get(prob_key, 0)
+            fair_odd = fair_odds.get(market, 0)
+            
+            # Threshold 20% para VALUE (jogos ofensivos), MULTIPLE vai filtrar naturalmente
+            if prob >= 0.20 and market_odd is not None and market_odd > 0 and fair_odd > 0:
+                ev_pct = ((market_odd / fair_odd) - 1) * 100
+                score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
+                
+                logger.debug(f"   Candidato {market}: prob={prob:.2f}, EV={ev_pct:+.1f}%, score={score:.3f}")
+                
+                candidates.append({
+                    'market': market,
+                    'market_display': f"{'Over' if 'over' in market else 'Under'} 3.5 gols",
+                    'pick': 'Sim' if 'over' in market else 'Não',
+                    'probability': prob,
+                    'market_odd': market_odd,
+                    'fair_odd': fair_odd,
+                    'ev_pct': ev_pct,
+                    'score': score,
+                    'category': 'totals'
+                })
         
-        # NOTE: Team Total Goals, Clean Sheets - API não retorna essas odds
-        # # Team Total Goals - Casa
-        # for market, prob_key in [('home_over_0_5', 'team_home_over_0_5'), ('home_over_1_5', 'team_home_over_1_5')]:
-        #     prob = poisson_probs.get(prob_key, 0)
-        #     market_odd = market_odds.get(market, 0)
-        #     fair_odd = fair_odds.get(market, 0)
-        #     
-        #     if prob >= 0.30 and market_odd > 0 and fair_odd > 0:
-        #         ev_pct = ((market_odd / fair_odd) - 1) * 100
-        #         score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
-        #         
-        #         candidates.append({
-        #             'market': market,
-        #             'market_display': self._format_market_name(market),
-        #             'pick': self._format_pick(market),
-        #             'probability': prob,
-        #             'market_odd': market_odd,
-        #             'fair_odd': fair_odd,
-        #             'ev_pct': ev_pct,
-        #             'score': score,
-        #             'category': 'team_totals'
-        #         })
-        # 
-        # # Team Total Goals - Fora
-        # for market, prob_key in [('away_over_0_5', 'team_away_over_0_5'), ('away_over_1_5', 'team_away_over_1_5')]:
-        #     prob = poisson_probs.get(prob_key, 0)
-        #     market_odd = market_odds.get(f'odds_{market}', 0)
-        #     fair_odd = fair_odds.get(market, 0)
-        #     
-        #     if prob >= 0.30 and market_odd > 0 and fair_odd > 0:
-        #         ev_pct = ((market_odd / fair_odd) - 1) * 100
-        #         score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
-        #         
-        #         candidates.append({
-        #             'market': market,
-        #             'market_display': self._format_market_name(market),
-        #             'pick': self._format_pick(market),
-        #             'probability': prob,
-        #             'market_odd': market_odd,
-        #             'fair_odd': fair_odd,
-        #             'ev_pct': ev_pct,
-        #             'score': score,
-        #             'category': 'team_totals'
-        #         })
+        # Dupla Chance (usando fair odds calculadas)
+        prob_1x = consensus.get('home_win', 0) + consensus.get('draw', 0)
+        prob_12 = consensus.get('home_win', 0) + consensus.get('away_win', 0)
+        prob_x2 = consensus.get('draw', 0) + consensus.get('away_win', 0)
         
-        # NOTE: Clean Sheets comentado - API não retorna essas odds
-        # for market, prob_key in [('home_clean_sheet', 'clean_sheet_home'), ('away_clean_sheet', 'clean_sheet_away')]:
-        #     prob = poisson_probs.get(prob_key, 0)
-        #     market_odd = market_odds.get(market, 0)
-        #     fair_odd = fair_odds.get(market, 0)
-        #     
-        #     if prob >= 0.15 and market_odd > 0 and fair_odd > 0:
-        #         ev_pct = ((market_odd / fair_odd) - 1) * 100
-        #         score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
-        #         
-        #         candidates.append({
-        #             'market': market,
-        #             'market_display': self._format_market_name(market),
+        for market_key, display, prob in [
+            ('double_chance_1x', 'Casa ou Empate (1X)', prob_1x),
+            ('double_chance_12', 'Casa ou Fora (12)', prob_12),
+            ('double_chance_x2', 'Empate ou Fora (X2)', prob_x2)
+        ]:
+            if prob >= 0.60:  # Dupla chance só faz sentido com alta probabilidade
+                fair_odd = (1 / prob) * 1.05 if prob > 0 else 0
+                market_odd = market_odds.get(market_key, fair_odd)  # Use fair se não tiver market
+                
+                if fair_odd > 0:
+                    ev_pct = ((market_odd / fair_odd) - 1) * 100
+                    score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
+                    
+                    logger.debug(f"   Candidato {market_key}: prob={prob:.2f}, EV={ev_pct:+.1f}%, score={score:.3f}")
+                    
+                    candidates.append({
+                        'market': market_key,
+                        'market_display': display,
+                        'pick': 'Sim',
+                        'probability': prob,
+                        'market_odd': market_odd,
+                        'fair_odd': fair_odd,
+                        'ev_pct': ev_pct,
+                        'score': score,
+                        'category': 'double_chance'
+                    })
+        
+        # Team Total Goals (usando fair odds se disponível)
+        for market_key, prob_key, display in [
+            ('home_over_05', 'home_over_05', 'Casa Over 0.5'),
+            ('home_over_15', 'home_over_15', 'Casa Over 1.5'),
+            ('away_over_05', 'away_over_05', 'Fora Over 0.5'),
+            ('away_over_15', 'away_over_15', 'Fora Over 1.5')
+        ]:
+            prob = poisson_probs.get(prob_key, 0)
+            fair_odd = fair_odds.get(market_key, 0)
+            market_odd = market_odds.get(market_key, fair_odd if fair_odd > 0 else 0)
+            
+            if prob >= 0.50 and fair_odd > 0:  # Só incluir com prob >= 50%
+                ev_pct = ((market_odd / fair_odd) - 1) * 100 if market_odd > 0 else 0
+                score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
+                
+                logger.debug(f"   Candidato {market_key}: prob={prob:.2f}, EV={ev_pct:+.1f}%, score={score:.3f}")
+                
+                candidates.append({
+                    'market': market_key,
+                    'market_display': display,
+                    'pick': 'Sim',
+                    'probability': prob,
+                    'market_odd': market_odd if market_odd > 0 else fair_odd,
+                    'fair_odd': fair_odd,
+                    'ev_pct': ev_pct,
+                    'score': score,
+                    'category': 'team_goals'
+                })
         #             'pick': self._format_pick(market),
         #             'probability': prob,
         #             'market_odd': market_odd,
@@ -837,26 +845,26 @@ class DecisionEngine:
             others = sorted(value_candidates, key=lambda x: x['score'], reverse=True)
             used_categories = set()
             
-            logger.info("   Top 5 candidatos VALUE por score:")
-            for i, c in enumerate(others[:5], 1):
-                logger.info(f"      {i}. {c['market_display']} - Prob: {c['probability']*100:.1f}%, EV: {c['ev_pct']:+.1f}%, Score: {c['score']:.3f}")
+            logger.info("   Top 7 candidatos VALUE por score (expandido):")
+            for i, c in enumerate(others[:7], 1):
+                logger.info(f"      {i}. [{c['category']}] {c['market_display']} - Prob: {c['probability']*100:.1f}%, EV: {c['ev_pct']:+.1f}%, Score: {c['score']:.3f}")
             
         else:
-            # MODO MULTIPLE: Top 3 por score (prob² domina), SEM forçar 1X2
+            # MODO MULTIPLE: Top 5 por score (prob² domina), SEM forçar 1X2
             logger.info("   📋 Aplicando lógica MULTIPLE: puro ranking por score (prob² + EV)")
             
             # Ordenar TODOS os candidatos válidos por score
             others = sorted(valid_candidates, key=lambda x: x['score'], reverse=True)
             used_categories = set()
             
-            logger.info("   Top 5 candidatos por score:")
-            for i, c in enumerate(others[:5], 1):
-                logger.info(f"      {i}. {c['market_display']} - Prob: {c['probability']*100:.1f}%, EV: {c['ev_pct']:+.1f}%, Score: {c['score']:.3f}")
+            logger.info("   Top 7 candidatos por score (expandido):")
+            for i, c in enumerate(others[:7], 1):
+                logger.info(f"      {i}. [{c['category']}] {c['market_display']} - Prob: {c['probability']*100:.1f}%, EV: {c['ev_pct']:+.1f}%, Score: {c['score']:.3f}")
         
-        # #2 e #3: Próximos melhores (preferindo categorias diferentes)
+        # Top 5 (expandido de 3 para incluir mais mercados diversos)
         used_markets = set()  # ✅ Rastrear mercados já usados
         for candidate in others:
-            if len(selected) >= 3:
+            if len(selected) >= 5:  # Expandido de 3 para 5
                 break
             
             # ✅ Evitar duplicatas de mercado
@@ -927,14 +935,15 @@ class DecisionEngine:
             prob_weight = probability ** 2  # Quadrático (65%→42%, 30%→9%)
             ev_weight = max(0.5, 1 + (ev_pct / 200))  # EV com metade do peso
             
-            # FILTRO FLEXÍVEL PARA BILHETES:
-            # - Favoritos absolutos (≥70%): aceita até EV -15% (foco total em probabilidade)
+            # FILTRO FLEXÍVEL PARA BILHETES (AJUSTADO para incluir mais mercados):
+            # - Favoritos absolutos (≥70%): aceita até EV -15%
             # - Favoritos normais (≥60%): aceita até EV -10%
             # - Prováveis (≥50%): aceita até EV -5%
-            # Bilhetes = combinar apostas PROVÁVEIS, não buscar value
+            # - Razoáveis (≥40%): aceita até EV -3% (NOVO - para O/U 3.5, Under 1.5)
+            # - Possíveis (≥30%): aceita até EV 0% (NOVO - apenas para VALUE positivo)
             
             if probability >= 0.70:
-                # Favorito absoluto: aceita grande perda de value (ex: Inter 76% @ 1.16)
+                # Favorito absoluto: aceita grande perda de value
                 if ev_pct < -15:
                     logger.debug(f"   ❌ MULTIPLE: Rejeitado - prob={probability:.2f} (≥70%) mas EV={ev_pct:.1f}% < -15%")
                     return 0
@@ -943,14 +952,34 @@ class DecisionEngine:
                 if ev_pct < -10:
                     logger.debug(f"   ❌ MULTIPLE: Rejeitado - prob={probability:.2f} (≥60%) mas EV={ev_pct:.1f}% < -10%")
                     return 0
+            elif probability >= 0.40:
+                # Razoável: aceita perda pequena (NOVO - para mercados como O/U 3.5)
+                if ev_pct < -3:
+                    logger.debug(f"   ❌ MULTIPLE: Rejeitado - prob={probability:.2f} (≥40%) mas EV={ev_pct:.1f}% < -3%")
+                    return 0
+            elif probability >= 0.60:
+                # Favorito: aceita perda moderada
+                if ev_pct < -10:
+                    logger.debug(f"   ❌ MULTIPLE: Rejeitado - prob={probability:.2f} (≥60%) mas EV={ev_pct:.1f}% < -10%")
+                    return 0
             elif probability >= 0.50:
-                # Provável: aceita pequena perda
+                # Provável: aceita perda mínima
                 if ev_pct < -5:
                     logger.debug(f"   ❌ MULTIPLE: Rejeitado - prob={probability:.2f} (≥50%) mas EV={ev_pct:.1f}% < -5%")
                     return 0
+            elif probability >= 0.40:
+                # Razoável: aceita perda pequena (para O/U 3.5, mercados defensivos)
+                if ev_pct < -3:
+                    logger.debug(f"   ❌ MULTIPLE: Rejeitado - prob={probability:.2f} (≥40%) mas EV={ev_pct:.1f}% < -3%")
+                    return 0
+            elif probability >= 0.30:
+                # Possível: só aceita com EV positivo ou neutro
+                if ev_pct < 0:
+                    logger.debug(f"   ❌ MULTIPLE: Rejeitado - prob={probability:.2f} (≥30%) mas EV={ev_pct:.1f}% < 0%")
+                    return 0
             else:
-                # Menos de 50%: rejeita para bilhete
-                logger.debug(f"   ❌ MULTIPLE: Rejeitado - prob={probability:.2f} < 50%")
+                # Probabilidade < 30%: rejeitar (muito arriscado para bilhetes)
+                logger.debug(f"   ❌ MULTIPLE: Rejeitado - prob={probability:.2f} < 30% (muito arriscado para bilhetes)")
                 return 0
             
             logger.debug(f"   ✅ MULTIPLE: prob={probability:.2f}² = {prob_weight:.3f}, ev={ev_pct:.1f}% → ev_weight={ev_weight:.3f}")

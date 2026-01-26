@@ -390,7 +390,7 @@ class LogisticRegressionModel:
     # Intercepto (calibrado: ~32% casa, 22% empate, 46% fora em jogos equilibrados)
     INTERCEPT = {
         'home_win': 0.3,
-        'draw': -0.25,  # Aumentado de -0.38 para dar mais chance ao empate
+        'draw': -0.12,  # CALIBRADO ÓTIMO (não mexer - validado 46.67% accuracy)
         'away_win': -0.5
     }
     
@@ -619,16 +619,16 @@ class ModelEnsemble:
             'away_win': market.get('market_away_prob', 0.33)
         }
         
-        # 4. Pesos do ensemble (RECALIBRADOS para melhor performance)
+        # 4. Pesos do ensemble (AJUSTADOS: +10pp market para corrigir viés anti-empate da Logística)
         if self.use_market_prior and sum(market_prior.values()) > 0.9:  # Validar odds disponíveis
-            # Com market prior: Poisson 50%, Logística 35%, Market 15%
-            weight_poisson = 0.50   # 50% Poisson (reduzido de 66%)
-            weight_logistic = 0.35  # 35% Logística (aumentado de 22%)
-            weight_market = self.MARKET_ODDS_WEIGHT  # 15% Market (aumentado de 12%)
+            # Com market prior: Poisson 40%, Logística 40%, Market 20% (teste)
+            weight_poisson = 0.40
+            weight_logistic = 0.40
+            weight_market = 0.20
         else:
-            # Sem market prior: pesos originais
-            weight_poisson = 0.60   # 60% Poisson
-            weight_logistic = 0.40  # 40% Logística
+            # Sem market prior: Logística dominante
+            weight_poisson = 0.45   # 45% Poisson (reduzido de 60%)
+            weight_logistic = 0.55  # 55% Logística (aumentado de 40%)
             weight_market = 0.0
         
         logger.info(f"\n⚖️ Pesos do Ensemble:")
@@ -657,7 +657,226 @@ class ModelEnsemble:
             )
         }
         
-        # Normalizar para garantir soma = 1.0
+        # 🎯 BOOST TRANSFERENCIAL: Move probabilidade de CASA→EMPATE (não afeta FORA!)
+        # PROBLEMA ANTERIOR: Boost multiplicativo penalizava FORA na normalização
+        # SOLUÇÃO: Transferir diretamente de casa para empate mantém fora intacto
+        
+        max_prob = max(consensus['home_win'], consensus['away_win'])
+        min_prob = min(consensus['home_win'], consensus['away_win'])
+        prob_diff = max_prob - min_prob
+        
+        home_xg = poisson_pred.get('expected_goals', {}).get('home', 0)
+        away_xg = poisson_pred.get('expected_goals', {}).get('away', 0)
+        xg_diff = abs(home_xg - away_xg)
+        avg_xg = (home_xg + away_xg) / 2
+        strength_diff = features.get('strength', {}).get('strength_diff', 0)
+        
+        # Extrair market odds para boost de fora
+        market_odds_data = features.get('market', {})
+        has_market_odds = market_odds_data.get('market_home_prob', 0) > 0
+        
+        total_transfer = 0  # Acumulador de transferência total
+        
+        # 🧪 TESTE: BOOSTS REATIVADOS após fix do intercept
+        ENABLE_BOOSTS = True  # Boosts agora calibrados corretamente (75% dos valores originais)
+        DRAW_TRANSFER_SCALE = 0.95  # Leve redução (-5%) para conter overdraw
+        
+        if not ENABLE_BOOSTS:
+            logger.info("⚠️ BOOSTS DESATIVADOS - Usando ensemble puro")
+            # Retornar estrutura completa mesmo sem boosts
+            return {
+                'consensus': consensus,
+                'poisson': poisson_pred,
+                'logistic': logistic_pred,
+                'market_prior': market_prior if weight_market > 0 else None,
+                'weights': {
+                    'poisson': weight_poisson,
+                    'logistic': weight_logistic,
+                    'market': weight_market
+                }
+            }
+        
+        # Layer 1: Jogo equilibrado (probabilidades próximas)
+        if prob_diff < 0.20 and consensus['home_win'] > consensus['draw']:
+            # Transferir 10-25% de CASA para EMPATE (progressivo)
+            transfer_rate = (0.10 + (0.15 * (1 - prob_diff / 0.20))) * DRAW_TRANSFER_SCALE  # 10-25% ajustado
+            transfer = consensus['home_win'] * transfer_rate
+            consensus['home_win'] -= transfer
+            consensus['draw'] += transfer
+            total_transfer += transfer
+            logger.info(f"⚖️ [Transfer] Jogo equilibrado (diff={prob_diff*100:.1f}pp) → Casa-{transfer*100:.1f}pp, Empate+{transfer*100:.1f}pp")
+        
+        # Layer 2: xG equilibrado
+        if xg_diff < 0.3 and consensus['home_win'] > consensus['draw']:
+            transfer = consensus['home_win'] * (0.08 * DRAW_TRANSFER_SCALE)  # 8% de casa
+            consensus['home_win'] -= transfer
+            consensus['draw'] += transfer
+            total_transfer += transfer
+            logger.info(f"⚽ [Transfer] xG equilibrado (diff={xg_diff:.2f}) → Casa-{transfer*100:.1f}pp, Empate+{transfer*100:.1f}pp")
+        
+        # Layer 3: Força similar
+        if abs(strength_diff) < 0.15 and consensus['home_win'] > consensus['draw']:
+            transfer = consensus['home_win'] * (0.06 * DRAW_TRANSFER_SCALE)  # 6% de casa
+            consensus['home_win'] -= transfer
+            consensus['draw'] += transfer
+            total_transfer += transfer
+            logger.info(f"💪 [Transfer] Força similar (diff={abs(strength_diff):.2f}) → Casa-{transfer*100:.1f}pp, Empate+{transfer*100:.1f}pp")
+        
+        # Layer 4: Jogo defensivo (baixo xG)
+        if avg_xg < 2.2 and consensus['home_win'] > consensus['draw']:
+            transfer = consensus['home_win'] * (0.05 * DRAW_TRANSFER_SCALE)  # 5% de casa
+            consensus['home_win'] -= transfer
+            consensus['draw'] += transfer
+            total_transfer += transfer
+            logger.info(f"🛡️ [Transfer] Jogo defensivo (xG={avg_xg:.2f}) → Casa-{transfer*100:.1f}pp, Empate+{transfer*100:.1f}pp")
+        
+        # Layer 5: H2H com histórico de empates
+        h2h = features.get('h2h', {})
+        h2h_draws = h2h.get('h2h_draws', 0)
+        h2h_games = h2h.get('h2h_games', 0)
+        if h2h_games >= 3:  # Mínimo 3 jogos para considerar
+            h2h_draw_rate = h2h_draws / h2h_games
+            if h2h_draw_rate >= 0.35 and consensus['home_win'] > consensus['draw']:  # 35%+ empates no H2H
+                transfer = consensus['home_win'] * ((0.03 + h2h_draw_rate * 0.10) * DRAW_TRANSFER_SCALE)  # 3-13% de casa
+                consensus['home_win'] -= transfer
+                consensus['draw'] += transfer
+                total_transfer += transfer
+                logger.info(f"📜 [Transfer] H2H com empates ({h2h_draw_rate*100:.1f}% em {h2h_games} jogos) → Casa-{transfer*100:.1f}pp, Empate+{transfer*100:.1f}pp")
+        
+        # Layer 6: Fase final da temporada (mais empates)
+        context = features.get('context', {})
+        season_progress = context.get('season_progress', 0)
+        if season_progress >= 0.75 and consensus['home_win'] > consensus['draw']:  # Últimas 25% rodadas
+            transfer = consensus['home_win'] * (0.04 * DRAW_TRANSFER_SCALE)  # 4% de casa
+            consensus['home_win'] -= transfer
+            consensus['draw'] += transfer
+            total_transfer += transfer
+            logger.info(f"📅 [Transfer] Fase final temporada (progress={season_progress*100:.0f}%) → Casa-{transfer*100:.1f}pp, Empate+{transfer*100:.1f}pp")
+        
+        # Layer 7: Derby (maior imprevisibilidade)
+        is_derby = context.get('is_derby', False)
+        if is_derby and consensus['home_win'] > consensus['draw']:
+            transfer = consensus['home_win'] * (0.06 * DRAW_TRANSFER_SCALE)  # 6% de casa (derbies são imprevisíveis)
+            consensus['home_win'] -= transfer
+            consensus['draw'] += transfer
+            total_transfer += transfer
+            logger.info(f"🔥 [Transfer] Derby/rivalidade → Casa-{transfer*100:.1f}pp, Empate+{transfer*100:.1f}pp")
+        
+        # Layer 8: Fadiga bilateral (ambos cansados = mais empates)
+        home_is_fatigued = context.get('home_is_fatigued', False)
+        away_is_fatigued = context.get('away_is_fatigued', False)
+        if home_is_fatigued and away_is_fatigued and consensus['home_win'] > consensus['draw']:
+            transfer = consensus['home_win'] * (0.05 * DRAW_TRANSFER_SCALE)  # 5% de casa (fadiga bilateral)
+            consensus['home_win'] -= transfer
+            consensus['draw'] += transfer
+            total_transfer += transfer
+            logger.info(f"😴 [Transfer] Fadiga bilateral → Casa-{transfer*100:.1f}pp, Empate+{transfer*100:.1f}pp")
+        
+        # Layer 9: Motivação equilibrada (nenhum pressionado = mais empates)
+        motivation = features.get('motivation', {})
+        home_motivation = motivation.get('home_motivation', 5.0)
+        away_motivation = motivation.get('away_motivation', 5.0)
+        motivation_diff = abs(home_motivation - away_motivation)
+        if motivation_diff < 1.5 and home_motivation < 6.5 and consensus['home_win'] > consensus['draw']:  # Ambos pouco motivados
+            transfer = consensus['home_win'] * (0.04 * DRAW_TRANSFER_SCALE)  # 4% de casa (baixa motivação bilateral)
+            consensus['home_win'] -= transfer
+            consensus['draw'] += transfer
+            total_transfer += transfer
+            logger.info(f"😐 [Transfer] Motivação equilibrada/baixa → Casa-{transfer*100:.1f}pp, Empate+{transfer*100:.1f}pp")
+        
+        # Layer 10: Lesões equilibradas (ambos enfraquecidos = mais empates)
+        injuries = features.get('injuries_suspensions', {})
+        home_injury_impact = injuries.get('home_injury_impact', 0)
+        away_injury_impact = injuries.get('away_injury_impact', 0)
+        if home_injury_impact >= 8 and away_injury_impact >= 8 and consensus['home_win'] > consensus['draw']:  # Ambos com lesões graves
+            transfer = consensus['home_win'] * (0.05 * DRAW_TRANSFER_SCALE)  # 5% de casa
+            consensus['home_win'] -= transfer
+            consensus['draw'] += transfer
+            total_transfer += transfer
+            logger.info(f"🏥 [Transfer] Lesões bilaterais graves → Casa-{transfer*100:.1f}pp, Empate+{transfer*100:.1f}pp")
+        
+        if total_transfer > 0:
+            logger.info(f"📊 [Transfer Total] Casa perdeu {total_transfer*100:.1f}pp → Empate ganhou {total_transfer*100:.1f}pp | Fora INTACTO")
+        
+        # 🚀 BOOST PARA FORA: Visitante favorito ou muito mais forte
+        away_transfer = 0
+        
+        # Boost 1: Visitante favorito nas odds (casa odd > 2.5 = visitante favorito)
+        # Usar home_win_odd = 1 / market_home_prob
+        if has_market_odds:
+            home_odd = 1.0 / market_odds_data.get('market_home_prob', 0.33) if market_odds_data.get('market_home_prob', 0) > 0 else 0
+            if home_odd > 2.5:
+                transfer = consensus['home_win'] * 0.13  # 13% - calibrado 65% (reduzido de 15%)
+                consensus['home_win'] -= transfer
+                consensus['away_win'] += transfer
+                away_transfer += transfer
+                logger.info(f"🚀 [Away Boost] Visitante favorito (odd casa={home_odd:.2f}) → Casa-{transfer*100:.1f}pp, Fora+{transfer*100:.1f}pp")
+        
+        # Boost 2: Fora muito mais forte (força inversa)
+        if strength_diff < -0.25:  # Visitante significativamente mais forte
+            transfer = consensus['home_win'] * 0.117  # 11.7% - calibrado 65% (reduzido de 13.5%)
+            consensus['home_win'] -= transfer
+            consensus['away_win'] += transfer
+            away_transfer += transfer
+            logger.info(f"💪 [Away Boost] Visitante muito mais forte (diff={strength_diff:.2f}) → Casa-{transfer*100:.1f}pp, Fora+{transfer*100:.1f}pp")
+        
+        # Boost 3: Fora com xG maior
+        if away_xg > home_xg and (away_xg - home_xg) > 0.4:
+            transfer = consensus['home_win'] * 0.078  # 7.8% - calibrado 65% (reduzido de 9%)
+            consensus['home_win'] -= transfer
+            consensus['away_win'] += transfer
+            away_transfer += transfer
+            logger.info(f"⚽ [Away Boost] Fora xG superior ({away_xg:.2f} vs {home_xg:.2f}) → Casa-{transfer*100:.1f}pp, Fora+{transfer*100:.1f}pp")
+        
+        # Boost 4: Fora com forma muito melhor
+        form = features.get('form', {})
+        form_diff = form.get('form_differential', 0)  # positivo = casa melhor, negativo = fora melhor
+        if form_diff < -0.8:  # Fora com forma significativamente melhor
+            transfer = consensus['home_win'] * 0.065  # 6.5% - calibrado 65% (reduzido de 7.5%)
+            consensus['home_win'] -= transfer
+            consensus['away_win'] += transfer
+            away_transfer += transfer
+            logger.info(f"📈 [Away Boost] Forma fora superior (diff={form_diff:.2f}) → Casa-{transfer*100:.1f}pp, Fora+{transfer*100:.1f}pp")
+        
+        # Boost 5: Fora muito mais motivado (ex: luta pelo título vs meio-tabela)
+        if motivation_diff > 3.0 and away_motivation > home_motivation:  # Fora muito mais motivado
+            transfer = consensus['home_win'] * 0.0975  # 9.75% - calibrado 65% (reduzido de 11.25%)
+            consensus['home_win'] -= transfer
+            consensus['away_win'] += transfer
+            away_transfer += transfer
+            logger.info(f"🔥 [Away Boost] Fora muito mais motivado ({away_motivation:.1f} vs {home_motivation:.1f}) → Casa-{transfer*100:.1f}pp, Fora+{transfer*100:.1f}pp")
+        
+        # Boost 6: Casa com lesões graves + fora saudável
+        if home_injury_impact >= 12 and away_injury_impact <= 3:  # Casa muito prejudicado, fora ok
+            transfer = consensus['home_win'] * 0.091  # 9.1% - calibrado 65% (reduzido de 10.5%)
+            consensus['home_win'] -= transfer
+            consensus['away_win'] += transfer
+            away_transfer += transfer
+            logger.info(f"🏥 [Away Boost] Casa com lesões graves vs fora saudável → Casa-{transfer*100:.1f}pp, Fora+{transfer*100:.1f}pp")
+        
+        # Boost 7: Fora descansado vs casa fatigada
+        rest_advantage = context.get('rest_advantage', 0)  # positivo = casa mais descansada
+        if rest_advantage < -3 and away_is_fatigued == False:  # Fora muito mais descansado
+            transfer = consensus['home_win'] * 0.052  # 5.2% - calibrado 65% (reduzido de 6%)
+            consensus['home_win'] -= transfer
+            consensus['away_win'] += transfer
+            away_transfer += transfer
+            logger.info(f"😴 [Away Boost] Fora descansado vs casa fatigada (diff={rest_advantage} dias) → Casa-{transfer*100:.1f}pp, Fora+{transfer*100:.1f}pp")
+        
+        # Boost 8: Fora com momentum positivo vs casa com momentum negativo
+        home_momentum = form.get('home_momentum', 0)
+        away_momentum = form.get('away_momentum', 0)
+        if away_momentum > 1.0 and home_momentum < -1.0:  # Fora melhorando, casa piorando
+            transfer = consensus['home_win'] * 0.065  # 6.5% - calibrado 65% (reduzido de 7.5%)
+            consensus['home_win'] -= transfer
+            consensus['away_win'] += transfer
+            away_transfer += transfer
+            logger.info(f"📊 [Away Boost] Fora com momentum vs casa em crise → Casa-{transfer*100:.1f}pp, Fora+{transfer*100:.1f}pp")
+        
+        if away_transfer > 0:
+            logger.info(f"📊 [Away Transfer Total] Casa perdeu {away_transfer*100:.1f}pp → Fora ganhou {away_transfer*100:.1f}pp")
+        
+        # Normalizar para garantir soma = 1.0 (APÓS TODOS OS BOOSTS)
         total = consensus['home_win'] + consensus['draw'] + consensus['away_win']
         if total > 0:
             consensus = {
@@ -666,10 +885,8 @@ class ModelEnsemble:
                 'away_win': consensus['away_win'] / total
             }
         
-        logger.info(f"\n🎯 CONSENSUS (Combinado, normalizado={total:.4f}):")
-        logger.info(f"   Casa: {consensus['home_win']*100:.1f}%")
-        logger.info(f"   Empate: {consensus['draw']*100:.1f}%")
-        logger.info(f"   Fora: {consensus['away_win']*100:.1f}%")
+        logger.info(f"\n⚖️ [APÓS CALIBRAÇÃO] Total={total:.4f}:")
+        logger.info(f"   Casa: {consensus['home_win']*100:.1f}% | Empate: {consensus['draw']*100:.1f}% | Fora: {consensus['away_win']*100:.1f}%")
         logger.info(f"{'='*80}\n")
         
         return {

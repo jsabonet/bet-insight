@@ -124,7 +124,15 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) 
         setStatisticalData(statsWithEnriched);
         
         // Onda 2: Top bets
-        setTopBets(result.decision_data?.top_bets || []);
+        const hasOdds = result.decision_data?.has_odds !== false; // Default true se não informado
+        const bets = result.decision_data?.top_bets || [];
+        
+        setTopBets(bets);
+        
+        // Verificar se não há odds disponíveis
+        if (!hasOdds || (bets.length === 0 && result.decision_data)) {
+          console.log('⚠️ Sem odds disponíveis para esta partida');
+        }
         
         // Onda 3: AI Analysis
         setPhase(3);
@@ -596,6 +604,23 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) 
                   </p>
                 </div>
               ))}
+            </div>
+          )}
+          
+          {/* ============ ONDA 2: Sem Odds Disponíveis ============ */}
+          {phase >= 2 && topBets && topBets.length === 0 && (
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4 animate-fade-in">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-amber-900 dark:text-amber-200 mb-1">
+                    Odds não disponíveis
+                  </p>
+                  <p className="text-sm text-amber-800 dark:text-amber-300">
+                    Bookmakers não oferecem mercado para esta liga. As análises estatísticas e predições estão disponíveis, mas não é possível calcular apostas recomendadas.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
