@@ -37,7 +37,7 @@ export default function Footer() {
           <div className="lg:col-span-2">
             <Logo variant="default" size="md" showText={true} />
             <p className="mt-4 text-gray-600 dark:text-gray-400 max-w-sm">
-              Análises inteligentes de futebol com inteligência artificial. Estatísticas, previsões e insights para você tomar decisões informadas.
+              Análises estatísticas avançadas de futebol. Previsões precisas, estatísticas detalhadas e insights para decisões informadas.
             </p>
             
             <div className="mt-6 space-y-2">

@@ -152,7 +152,7 @@ export default function LandingPage() {
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-3xl"></div>
               <Logo variant="default" size="2xl" showText={false} className="mx-auto" />
               <div className="mt-8 space-y-4">
-                {['Análise de IA', 'Estatísticas em Tempo Real', 'Histórico Completo'].map((feature, i) => (
+                {['Análise Estatística', 'Dados em Tempo Real', 'Histórico Completo'].map((feature, i) => (
                   <div key={i} className="flex items-center gap-3 text-white">
                     <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
                     <span className="font-medium">{feature}</span>
@@ -180,8 +180,8 @@ export default function LandingPage() {
                   <Brain className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">IA</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Avançada</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">109</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Variáveis</p>
                 </div>
               </div>
             </div>
