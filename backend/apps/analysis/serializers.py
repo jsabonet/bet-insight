@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Analysis
+from .models import Analysis, DailyBet
 from apps.matches.serializers import MatchDetailSerializer
 
 
@@ -39,3 +39,46 @@ class AnalysisRequestSerializer(serializers.Serializer):
         except Match.DoesNotExist:
             raise serializers.ValidationError("Partida não encontrada.")
         return value
+
+
+class DailyBetSerializer(serializers.ModelSerializer):
+    """Serializer para apostas diárias geradas automaticamente"""
+    
+    bet_type_display = serializers.CharField(source='get_bet_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    roi = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = DailyBet
+        fields = [
+            'id', 'date', 'bet_type', 'bet_type_display', 'status', 'status_display',
+            'selections', 'total_odd', 'fair_odd', 'combined_probability',
+            'expected_value', 'suggested_stake', 'actual_result',
+            'is_validated', 'created_at', 'validated_at', 'roi'
+        ]
+        read_only_fields = fields  # Todas são read-only (geradas automaticamente)
+    
+    def get_roi(self, obj):
+        """Retorna ROI da aposta se validada"""
+        return obj.get_roi()
+
+
+class DailyBetListSerializer(serializers.ModelSerializer):
+    """Serializer simplificado para listagem de apostas diárias"""
+    
+    bet_type_display = serializers.CharField(source='get_bet_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    selections_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = DailyBet
+        fields = [
+            'id', 'date', 'bet_type', 'bet_type_display', 'status', 'status_display',
+            'selections_count', 'total_odd', 'combined_probability',
+            'expected_value', 'suggested_stake', 'is_validated', 'created_at'
+        ]
+    
+    def get_selections_count(self, obj):
+        """Retorna quantidade de apostas no bilhete"""
+        return len(obj.selections) if obj.selections else 0
+

@@ -1200,9 +1200,18 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             saved = False
             saved_info = None
 
+        # Filtrar análise IA inválida antes de retornar
+        ai_analysis_text = result.get('analysis')
+        if ai_analysis_text and (
+            ai_analysis_text == 'None' or 
+            ('ANÁLISE COMPLETA DE APOSTAS' in str(ai_analysis_text) and 'Via Placar Certo' in str(ai_analysis_text))
+        ):
+            logger.warning("⚠️ Análise IA inválida no quick_analyze - removendo")
+            ai_analysis_text = None
+
         return Response({
-            'analysis': result.get('analysis'),  # Texto da IA (legado - manter compatibilidade)
-            'reasoning': result.get('analysis'),  # Texto da IA (novo - usado pelo AnalysisModal)
+            'analysis': ai_analysis_text,  # Texto da IA (legado - manter compatibilidade)
+            'reasoning': ai_analysis_text,  # Texto da IA (novo - usado pelo AnalysisModal)
             'confidence': decision_data['confidence']['stars'],  # Confiança do Decision Engine
             'confidence_display': f"{decision_data['confidence']['level']} ({decision_data['confidence']['stars']}/5)",
             'prediction_display': decision_data['recommendation']['pick'],
@@ -2224,7 +2233,18 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                             enriched_data=match_data,
                             strategy=strategy
                         )
-                        ai_analysis = ai_result.get('analysis', '')
+                        raw_analysis = ai_result.get('analysis', '')
+                        
+                        # Filtrar APENAS análises com o texto estruturado COMPLETO antigo
+                        # Aceitar fallback (que tem formato similar à IA)
+                        if raw_analysis and \
+                           raw_analysis != 'None' and \
+                           not ('ANÁLISE COMPLETA DE APOSTAS' in str(raw_analysis) and 'Via Placar Certo' in str(raw_analysis)):
+                            ai_analysis = raw_analysis
+                        else:
+                            if raw_analysis:
+                                logger.warning("⚠️ Análise IA inválida - ignorando")
+                            ai_analysis = None
                     
                     # Estruturar resposta
                     analysis_result = {

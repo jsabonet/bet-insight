@@ -323,8 +323,10 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) 
         }
       }
       
-      // Análise IA
-      if (aiAnalysis) {
+      // Análise IA (apenas se for válida e não for o texto estruturado COMPLETO antigo)
+      if (aiAnalysis && 
+          aiAnalysis !== 'None' && 
+          !(aiAnalysis.includes('ANÁLISE COMPLETA DE APOSTAS') && aiAnalysis.includes('Via Placar Certo'))) {
         text += `🤖 ANÁLISE IA\n`;
         text += `${aiAnalysis}\n`;
         text += `\n`;
@@ -847,7 +849,9 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) 
           )}
 
           {/* ============ ONDA 3: Análise IA (Carregado) ============ */}
-          {aiAnalysis && (
+          {aiAnalysis && 
+           aiAnalysis !== 'None' && 
+           !(aiAnalysis.includes('ANÁLISE COMPLETA DE APOSTAS') && aiAnalysis.includes('Via Placar Certo')) && (
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-6 space-y-4 animate-fade-in">
               <div className="flex items-center gap-2 mb-4">
                 <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />

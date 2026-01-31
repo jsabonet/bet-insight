@@ -47,7 +47,7 @@ export const defaultFAQs = [
   },
   {
     question: "As previsões são feitas por inteligência artificial?",
-    answer: "Não. As previsões são geradas por modelos estatísticos comprovados (Poisson e Regressão Logística). A IA (Gemini) apenas interpreta os resultados numéricos e gera explicações em linguagem natural, mas não influencia os cálculos."
+    answer: "Não. As previsões são geradas exclusivamente por modelos estatísticos comprovados (Poisson Bivariado e Regressão Logística) com base em 109 variáveis quantitativas. Todas as análises são puramente matemáticas e verificáveis."
   },
   {
     question: "Quantas análises posso fazer gratuitamente?",

@@ -2,6 +2,15 @@
 Script de treino de Machine Learning para predição 1X2
 Usa XGBoost/LightGBM com dados históricos completos
 """
+import os
+import sys
+import django
+
+# Setup Django ANTES de importar modelos
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+django.setup()
+
 import json
 import numpy as np
 import pandas as pd
@@ -31,37 +40,78 @@ class FootballMLTrainer:
         self.results = {}
         
     def load_dataset(self):
-        """Carrega dataset JSON e converte para DataFrame"""
+        """Carrega dataset do BANCO DE DADOS Django"""
         logger.info("="*80)
-        logger.info("📂 CARREGANDO DATASET")
+        logger.info("📂 CARREGANDO DATASET DO BANCO DE DADOS")
         logger.info("="*80)
         
-        with open(self.dataset_path, 'r', encoding='utf-8') as f:
-            dataset = json.load(f)
+        from apps.matches.models import Match
+        from apps.analysis.services.analysis_orchestrator import HybridAnalysisOrchestrator
         
-        metadata = dataset['metadata']
-        data = dataset['data']
+        # Buscar todas as partidas finalizadas
+        matches = Match.objects.filter(
+            status='finished',
+            home_score__isnull=False,
+            away_score__isnull=False
+        ).select_related('league')[:1000]  # Começar com 1000 para teste
         
-        logger.info(f"📊 Total de partidas: {metadata['total_matches']}")
-        logger.info(f"🏆 Ligas: {', '.join(metadata['leagues'][:3])}...")
-        logger.info(f"📅 Temporadas: {metadata['seasons']}")
+        total = matches.count()
+        logger.info(f"📊 Total de partidas encontradas: {total}")
         
-        # Converter para DataFrame
+        if total == 0:
+            raise ValueError("Nenhuma partida encontrada no banco!")
+        
+        orchestrator = HybridAnalysisOrchestrator()
         rows = []
-        for match in data:
-            row = {
-                'fixture_id': match['fixture_id'],
-                'league': match['league'],
-                'season': match['season'],
-                'label': match['label'],
-                **match['features']  # Unpack todas as features
-            }
-            rows.append(row)
+        errors = 0
+        
+        for i, match in enumerate(matches, 1):
+            try:
+                # Determinar label (resultado real)
+                if match.home_score > match.away_score:
+                    label = 0  # Casa
+                elif match.away_score > match.home_score:
+                    label = 2  # Fora
+                else:
+                    label = 1  # Empate
+                
+                # Enriquecer e extrair features
+                match_data = {'api_id': match.api_football_id}
+                enriched = orchestrator.enricher.enrich(match_data)
+                features = orchestrator.fe.engineer_all_features(enriched)
+                
+                # Flatten features para DataFrame
+                row = {
+                    'fixture_id': match.api_football_id,
+                    'league': match.league.name if match.league else 'Unknown',
+                    'season': match.match_date.year if match.match_date else 2024,
+                    'label': label
+                }
+                
+                # Adicionar todas as features
+                for category, feature_dict in features.items():
+                    if isinstance(feature_dict, dict):
+                        for key, value in feature_dict.items():
+                            row[f"{category}.{key}"] = value
+                
+                rows.append(row)
+                
+                if i % 100 == 0:
+                    logger.info(f"   Processadas: {i}/{total} ({i/total*100:.1f}%)")
+                    
+            except Exception as e:
+                errors += 1
+                if errors <= 5:
+                    logger.warning(f"   Erro na partida {match.id}: {str(e)[:100]}")
+                continue
+        
+        logger.info(f"✅ Partidas processadas: {len(rows)}")
+        logger.info(f"❌ Erros: {errors}")
         
         self.df = pd.DataFrame(rows)
         
         logger.info(f"✅ DataFrame criado: {self.df.shape[0]} linhas × {self.df.shape[1]} colunas")
-        logger.info(f"📊 Features disponíveis: {self.df.shape[1] - 4}")  # -4 = (fixture_id, league, season, label)
+        logger.info(f"📊 Features disponíveis: {self.df.shape[1] - 4}")
         
         # Verificar distribuição de labels
         label_counts = self.df['label'].value_counts().sort_index()

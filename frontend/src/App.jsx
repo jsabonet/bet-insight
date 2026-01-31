@@ -19,6 +19,7 @@ import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
 import AboutPage from './pages/AboutPage';
 import FAQPage from './pages/FAQPage';
+import DailyBetsPage from './pages/DailyBetsPage';
 import CookieConsent from './components/CookieConsent';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -131,6 +132,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <HomePage />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/daily-bets"
+            element={
+              <ProtectedRoute>
+                <DailyBetsPage />
               </ProtectedRoute>
             }
           />

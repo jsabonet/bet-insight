@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useStats } from '../context/StatsContext';
-import { Bell, Star, Sun, Moon } from 'lucide-react';
+import { Bell, Star, Sun, Moon, Target } from 'lucide-react';
 import Logo from './Logo';
 import UserAvatar from './UserAvatar';
 import DailyLimitIndicator from './DailyLimitIndicator';
@@ -11,6 +12,7 @@ import { authAPI } from '../services/api';
 import InstallPWAButton from './InstallPWAButton';
 
 export default function Header({ title, subtitle, showLogo = false }) {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { refreshTrigger } = useStats();
@@ -55,6 +57,13 @@ export default function Header({ title, subtitle, showLogo = false }) {
 
           <div className="flex items-center gap-2">
             <InstallPWAButton />
+            <button
+              onClick={() => navigate('/daily-bets')}
+              className="relative w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 backdrop-blur-sm rounded-xl flex items-center justify-center hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/30"
+              aria-label="Bilhetes Diários"
+            >
+              <Target className="w-5 h-5 text-white" />
+            </button>
             <button 
               onClick={toggleTheme}
               className="w-10 h-10 bg-white/15 dark:bg-gray-700/50 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-white/25 dark:hover:bg-gray-600/50 transition-all border border-white/30 dark:border-gray-600/50"

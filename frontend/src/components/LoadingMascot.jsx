@@ -77,7 +77,7 @@ export default function LoadingMascot({ message = 'Analisando...' }) {
         {message}
       </p>
       <p className="text-sm text-gray-500">
-        Nossa IA está trabalhando para você
+        Nossos modelos estão analisando para você
       </p>
 
       {/* Loading dots */}

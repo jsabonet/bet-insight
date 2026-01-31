@@ -169,7 +169,7 @@ export default function Logo({ variant = 'default', size = 'md', showText = true
             PlacarCerto
           </span>
           <span className="text-xs text-green-600 dark:text-green-400 font-medium tracking-wide">
-            Futebol + IA
+            Futebol + Estatística
           </span>
         </div>
       )}

@@ -805,10 +805,19 @@ class DecisionEngine:
         #             'category': 'specials'
         #         })
         
-        # DEBUG: Ver candidatos
+        # DEBUG: Ver candidatos e detectar viés por categoria
         only_1x2 = [c for c in candidates if c['category'] == '1x2']
-        candidates_info = [(c['pick'], c['probability']*100, c['score']) for c in only_1x2]
-        logger.info(f"   Candidatos 1X2: {candidates_info}")
+        only_totals = [c for c in candidates if c['category'] == 'totals']
+        only_btts = [c for c in candidates if c['category'] == 'btts']
+        only_dc = [c for c in candidates if c['category'] == 'double_chance']
+        only_team = [c for c in candidates if c['category'] == 'team_goals']
+        
+        logger.info(f"   📊 ANÁLISE DE CANDIDATOS POR CATEGORIA:")
+        logger.info(f"      1X2: {len(only_1x2)} candidatos" + (f" (avg prob: {sum(c['probability'] for c in only_1x2) / len(only_1x2) * 100:.1f}%)" if only_1x2 else ""))
+        logger.info(f"      Totals: {len(only_totals)} candidatos" + (f" (avg prob: {sum(c['probability'] for c in only_totals) / len(only_totals) * 100:.1f}%)" if only_totals else ""))
+        logger.info(f"      BTTS: {len(only_btts)} candidatos" + (f" (avg prob: {sum(c['probability'] for c in only_btts) / len(only_btts) * 100:.1f}%)" if only_btts else ""))
+        logger.info(f"      Double Chance: {len(only_dc)} candidatos" + (f" (avg prob: {sum(c['probability'] for c in only_dc) / len(only_dc) * 100:.1f}%)" if only_dc else ""))
+        logger.info(f"      Team Goals: {len(only_team)} candidatos" + (f" (avg prob: {sum(c['probability'] for c in only_team) / len(only_team) * 100:.1f}%)" if only_team else ""))
         logger.info(f"   Total de candidatos: {len(candidates)}")
         
         # Filtrar candidatos com score > 0 (já aplica filtro do strategy)
@@ -831,13 +840,28 @@ class DecisionEngine:
         selected = []
         
         if strategy == 'value':
-            # MODO VALUE: Ordenar por score (prioriza EV), SEM forçar 1X2
-            logger.info("   ⚡ Aplicando lógica VALUE: puro ranking por score (prioriza EV)")
+            # MODO VALUE: Priorizar VALUE REAL (EV positivo ou neutro)
+            logger.info("   ⚡ Aplicando lógica VALUE: priorizando EV positivo/neutro (value betting)")
             
-            # Filtro adicional para VALUE: rejeitar EV muito negativo (< -5%)
-            value_candidates = [c for c in valid_candidates if c['ev_pct'] >= -5]
+            # MUDANÇA CRÍTICA: VALUE deve buscar apostas com value REAL (EV ≥ 0%)
+            # Só aceitar EV negativo se não houver opções com EV positivo
+            positive_ev = [c for c in valid_candidates if c['ev_pct'] >= 0]
+            neutral_ev = [c for c in valid_candidates if c['ev_pct'] >= -2]
+            all_candidates = [c for c in valid_candidates if c['ev_pct'] >= -5]
             
-            if not value_candidates:
+            if positive_ev:
+                # Ideal: apostas com value real
+                value_candidates = positive_ev
+                logger.info(f"   ✅ {len(positive_ev)} apostas com EV positivo encontradas - usando apenas estas")
+            elif neutral_ev:
+                # Aceitável: apostas neutras
+                value_candidates = neutral_ev
+                logger.warning(f"   ⚠️ Nenhuma aposta com EV positivo - usando {len(neutral_ev)} apostas com EV neutro (≥ -2%)")
+            elif all_candidates:
+                # Último recurso: apostas com EV até -5%
+                value_candidates = all_candidates
+                logger.warning(f"   ⚠️ Nenhuma aposta com EV positivo/neutro - usando {len(all_candidates)} apostas com EV ≥ -5%")
+            else:
                 logger.warning("   ⚠️ Nenhuma aposta com EV aceitável (todas < -5%)")
                 return []
             
@@ -845,26 +869,26 @@ class DecisionEngine:
             others = sorted(value_candidates, key=lambda x: x['score'], reverse=True)
             used_categories = set()
             
-            logger.info("   Top 7 candidatos VALUE por score (expandido):")
-            for i, c in enumerate(others[:7], 1):
+            logger.info("   Top 5 candidatos VALUE por score:")
+            for i, c in enumerate(others[:5], 1):
                 logger.info(f"      {i}. [{c['category']}] {c['market_display']} - Prob: {c['probability']*100:.1f}%, EV: {c['ev_pct']:+.1f}%, Score: {c['score']:.3f}")
             
         else:
-            # MODO MULTIPLE: Top 5 por score (prob² domina), SEM forçar 1X2
-            logger.info("   📋 Aplicando lógica MULTIPLE: puro ranking por score (prob² + EV)")
+            # MODO MULTIPLE: Top 3 por score (prob^1.5 domina), SEM forçar 1X2
+            logger.info("   📋 Aplicando lógica MULTIPLE: puro ranking por score (prob^1.5 + EV)")
             
             # Ordenar TODOS os candidatos válidos por score
             others = sorted(valid_candidates, key=lambda x: x['score'], reverse=True)
             used_categories = set()
             
-            logger.info("   Top 7 candidatos por score (expandido):")
-            for i, c in enumerate(others[:7], 1):
+            logger.info("   Top 5 candidatos por score:")
+            for i, c in enumerate(others[:5], 1):
                 logger.info(f"      {i}. [{c['category']}] {c['market_display']} - Prob: {c['probability']*100:.1f}%, EV: {c['ev_pct']:+.1f}%, Score: {c['score']:.3f}")
         
-        # Top 5 (expandido de 3 para incluir mais mercados diversos)
+        # Top 3 (mantendo foco nas melhores apostas)
         used_markets = set()  # ✅ Rastrear mercados já usados
         for candidate in others:
-            if len(selected) >= 5:  # Expandido de 3 para 5
+            if len(selected) >= 3:  # Top 3 apostas
                 break
             
             # ✅ Evitar duplicatas de mercado
@@ -909,18 +933,29 @@ class DecisionEngine:
         Score OBJETIVO para ranking de apostas.
         
         Formula adaptada por estratégia:
-        - VALUE: prob × (1 + EV/100) × conf_factor × risk_factor
-        - MULTIPLE: prob² × (1 + EV/200) × conf_factor × risk_factor
+        - VALUE: prob × ev_weight × conf × risk
+          * EV < 0: ev_weight = max(0.3, 1 + EV/20) - penalização severa
+          * EV ≥ 0: ev_weight = 1 + EV/30 - amplificação forte
+        - MULTIPLE: prob^1.5 × (1 + EV/200) × conf × risk
         
         Modo VALUE:
-        - Prioriza probabilidade linear
-        - EV tem peso normal (100%)
-        - Aceita qualquer probabilidade
+        - Probabilidade linear (sem penalização)
+        - EV DOMINANTE:
+          * EV negativo: peso 5x maior (-2% → -10% de impacto vs -2% original)
+          * EV positivo: peso 3x maior (+30% → +100% de impacto vs +30% original)
+        - Objetivo: Apostas com EV +20% superam favoritos 85% com EV -2%
         
         Modo MULTIPLE:
-        - Prioriza probabilidade QUADRÁTICA (65%→42%, 30%→9%)
-        - EV tem metade do peso (50%)
-        - Filtro rígido: prob ≥ 50% E EV ≥ +5%
+        - Probabilidade QUADRÁTICA elevada a 1.5 (65%→52%, 30%→16%)
+        - EV tem metade do peso (dividido por 200)
+        - Objetivo: Favoritos 70% superam underdogs 40% mesmo com EV maior
+        
+        Exemplos MODE VALUE (conf=1.0, risk=1.0):
+        - Under 2.5: prob=52.3%, EV=+23% → score = 0.523 × 1.767 = 0.924 ✅
+        - 1X: prob=86.6%, EV=-2% → score = 0.866 × 0.9 = 0.779
+        - Casa Over 0.5: prob=83.2%, EV=-3% → score = 0.832 × 0.85 = 0.707
+        
+        Resultado: Under 2.5 (+23% EV) vence favoritos com EV negativo!
         """
         conf_factor = confidence.get('score', 0.5)
         
@@ -931,16 +966,17 @@ class DecisionEngine:
         }.get(risk, 1.0)
         
         if strategy == 'multiple':
-            # MODO BILHETE: Prioriza MUITO mais probabilidade
-            prob_weight = probability ** 2  # Quadrático (65%→42%, 30%→9%)
+            # MODO BILHETE: Prioriza probabilidade (SEM penalizar excessivamente)
+            # Mudança: prob^1.5 em vez de prob^2 (65%→52%, 45%→30% - mais justo)
+            prob_weight = probability ** 1.5  
             ev_weight = max(0.5, 1 + (ev_pct / 200))  # EV com metade do peso
             
-            # FILTRO FLEXÍVEL PARA BILHETES (AJUSTADO para incluir mais mercados):
+            # FILTRO BALANCEADO PARA BILHETES (correção de duplicação):
             # - Favoritos absolutos (≥70%): aceita até EV -15%
-            # - Favoritos normais (≥60%): aceita até EV -10%
+            # - Favoritos fortes (≥60%): aceita até EV -10%
             # - Prováveis (≥50%): aceita até EV -5%
-            # - Razoáveis (≥40%): aceita até EV -3% (NOVO - para O/U 3.5, Under 1.5)
-            # - Possíveis (≥30%): aceita até EV 0% (NOVO - apenas para VALUE positivo)
+            # - Razoáveis (≥40%): aceita até EV -3%
+            # - Possíveis (≥30%): aceita até EV 0%
             
             if probability >= 0.70:
                 # Favorito absoluto: aceita grande perda de value
@@ -948,17 +984,7 @@ class DecisionEngine:
                     logger.debug(f"   ❌ MULTIPLE: Rejeitado - prob={probability:.2f} (≥70%) mas EV={ev_pct:.1f}% < -15%")
                     return 0
             elif probability >= 0.60:
-                # Favorito: aceita perda moderada
-                if ev_pct < -10:
-                    logger.debug(f"   ❌ MULTIPLE: Rejeitado - prob={probability:.2f} (≥60%) mas EV={ev_pct:.1f}% < -10%")
-                    return 0
-            elif probability >= 0.40:
-                # Razoável: aceita perda pequena (NOVO - para mercados como O/U 3.5)
-                if ev_pct < -3:
-                    logger.debug(f"   ❌ MULTIPLE: Rejeitado - prob={probability:.2f} (≥40%) mas EV={ev_pct:.1f}% < -3%")
-                    return 0
-            elif probability >= 0.60:
-                # Favorito: aceita perda moderada
+                # Favorito forte: aceita perda moderada
                 if ev_pct < -10:
                     logger.debug(f"   ❌ MULTIPLE: Rejeitado - prob={probability:.2f} (≥60%) mas EV={ev_pct:.1f}% < -10%")
                     return 0
@@ -968,7 +994,7 @@ class DecisionEngine:
                     logger.debug(f"   ❌ MULTIPLE: Rejeitado - prob={probability:.2f} (≥50%) mas EV={ev_pct:.1f}% < -5%")
                     return 0
             elif probability >= 0.40:
-                # Razoável: aceita perda pequena (para O/U 3.5, mercados defensivos)
+                # Razoável: aceita perda pequena
                 if ev_pct < -3:
                     logger.debug(f"   ❌ MULTIPLE: Rejeitado - prob={probability:.2f} (≥40%) mas EV={ev_pct:.1f}% < -3%")
                     return 0
@@ -982,13 +1008,21 @@ class DecisionEngine:
                 logger.debug(f"   ❌ MULTIPLE: Rejeitado - prob={probability:.2f} < 30% (muito arriscado para bilhetes)")
                 return 0
             
-            logger.debug(f"   ✅ MULTIPLE: prob={probability:.2f}² = {prob_weight:.3f}, ev={ev_pct:.1f}% → ev_weight={ev_weight:.3f}")
+            logger.debug(f"   ✅ MULTIPLE: prob={probability:.2f}^1.5 = {prob_weight:.3f}, ev={ev_pct:.1f}% → ev_weight={ev_weight:.3f}")
         else:
-            # MODO VALUE: Código original
+            # MODO VALUE: EV DOMINA - penaliza drasticamente EV negativo
             prob_weight = probability
-            ev_weight = max(0.5, 1 + (ev_pct / 100))
             
-            logger.debug(f"   ✅ VALUE: prob={probability:.2f} (linear), ev={ev_pct:.1f}% → ev_weight={ev_weight:.3f}")
+            if ev_pct < 0:
+                # EV negativo: penalização severa (peso 5x maior)
+                # -2% → 0.9, -5% → 0.75, -10% → 0.5
+                ev_weight = max(0.3, 1 + (ev_pct / 20))
+            else:
+                # EV positivo: amplificação forte (peso 3x maior)
+                # +5% → 1.17, +10% → 1.33, +20% → 1.67, +30% → 2.0
+                ev_weight = 1 + (ev_pct / 30)
+            
+            logger.debug(f"   ✅ VALUE: prob={probability:.2f} (linear), ev={ev_pct:.1f}% → ev_weight={ev_weight:.3f} ({'PENALIZADO' if ev_pct < 0 else 'AMPLIFICADO'})")
         
         score = prob_weight * ev_weight * conf_factor * risk_factor
         logger.debug(f"   📊 Score final: {prob_weight:.3f} × {ev_weight:.3f} × {conf_factor:.3f} × {risk_factor:.3f} = {score:.3f}")

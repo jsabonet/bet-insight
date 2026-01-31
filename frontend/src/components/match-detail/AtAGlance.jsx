@@ -315,7 +315,7 @@ export default function AtAGlance({ analysis, match }) {
                 <div className="flex gap-3">
                   <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center font-bold text-sm flex-shrink-0">30%</div>
                   <div>
-                    <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Confiança da IA</h4>
+                    <h4 className="font-semibold text-sm text-gray-900 dark:text-white">Score de Confiança</h4>
                     <p className="text-xs text-gray-600 dark:text-gray-400">Baseado na avaliação de estrelas (1-5)</p>
                   </div>
                 </div>

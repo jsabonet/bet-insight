@@ -42,6 +42,23 @@ class HybridAnalysisOrchestrator:
 
         # 2) Feature engineering
         features = self.fe.engineer_all_features(enriched)
+        
+        # LOG: Features geradas
+        logger.info(f"\n{'='*80}")
+        logger.info(f"📊 [Orchestrator] FEATURES GERADAS - Resumo por Categoria")
+        logger.info(f"{'='*80}")
+        total_features = 0
+        for category, category_features in features.items():
+            count = len(category_features)
+            total_features += count
+            logger.info(f"   {category.upper()}: {count} features")
+            # Log primeiras 3 features de cada categoria
+            for i, (key, value) in enumerate(list(category_features.items())[:3]):
+                logger.info(f"      - {key}: {value}")
+            if count > 3:
+                logger.info(f"      ... (+{count-3} features)")
+        logger.info(f"\n   TOTAL: {total_features} features geradas")
+        logger.info(f"{'='*80}\n")
 
         # 3) Modelos estatísticos
         strength = features.get('strength', {})
@@ -50,10 +67,48 @@ class HybridAnalysisOrchestrator:
         away_strength = strength.get('away_goals_per_game', 1.2)
         weather_impact = weather.get('goal_impact', 0.0)
         
+        # LOG: Features críticas para modelos
+        logger.info(f"🔧 [Orchestrator] FEATURES CRÍTICAS PARA ENSEMBLE:")
+        logger.info(f"   Home Strength: {home_strength:.2f} gols/jogo")
+        logger.info(f"   Away Strength: {away_strength:.2f} gols/jogo")
+        logger.info(f"   Weather Impact: {weather_impact:.2f}")
+        logger.info(f"   League ID: {match.league.api_football_id if match.league else 'N/A'}")
+        
         # Obter league_id para calibração específica
         league_id = match.league.api_football_id if match.league else None
 
         ensemble_result = self.ensemble.predict(features, home_strength, away_strength, weather_impact, league_id)
+        
+        # LOG: Resultado do Ensemble
+        logger.info(f"\n{'='*80}")
+        logger.info(f"🎲 [Orchestrator] RESULTADO DO ENSEMBLE")
+        logger.info(f"{'='*80}")
+        consensus = ensemble_result.get('consensus', {})
+        logger.info(f"   Consensus:")
+        logger.info(f"      Home: {consensus.get('home_win', 0)*100:.1f}%")
+        logger.info(f"      Draw: {consensus.get('draw', 0)*100:.1f}%")
+        logger.info(f"      Away: {consensus.get('away_win', 0)*100:.1f}%")
+        
+        poisson_probs = ensemble_result.get('poisson', {}).get('probabilities', {})
+        logger.info(f"   Poisson 1X2:")
+        logger.info(f"      Home: {poisson_probs.get('home_win', 0)*100:.1f}%")
+        logger.info(f"      Draw: {poisson_probs.get('draw', 0)*100:.1f}%")
+        logger.info(f"      Away: {poisson_probs.get('away_win', 0)*100:.1f}%")
+        
+        logistic_probs = ensemble_result.get('logistic', {})
+        if logistic_probs:
+            logger.info(f"   Logística 1X2:")
+            logger.info(f"      Home: {logistic_probs.get('home_win', 0)*100:.1f}%")
+            logger.info(f"      Draw: {logistic_probs.get('draw', 0)*100:.1f}%")
+            logger.info(f"      Away: {logistic_probs.get('away_win', 0)*100:.1f}%")
+        
+        market_probs = ensemble_result.get('market', {})
+        if market_probs:
+            logger.info(f"   Market Prior:")
+            logger.info(f"      Home: {market_probs.get('home_win', 0)*100:.1f}%")
+            logger.info(f"      Draw: {market_probs.get('draw', 0)*100:.1f}%")
+            logger.info(f"      Away: {market_probs.get('away_win', 0)*100:.1f}%")
+        logger.info(f"{'='*80}\n")
 
         # 4) Decisão + value
         # Preparar market_odds no formato correto para o DecisionEngine
@@ -78,15 +133,53 @@ class HybridAnalysisOrchestrator:
         
         decision_result = self.decision.make_decision(ensemble_result, features, market_odds, strategy=strategy)
         
+        # LOG: Resultado do Decision Engine
+        logger.info(f"\n{'='*80}")
+        logger.info(f"🎯 [Orchestrator] DECISION ENGINE - Top Bets Geradas")
+        logger.info(f"{'='*80}")
+        top_bets = decision_result.get('top_bets', [])
+        logger.info(f"   Total de apostas: {len(top_bets)}")
+        for i, bet in enumerate(top_bets[:5], 1):
+            logger.info(f"   #{i}: {bet.get('market_display', 'N/A')}")
+            logger.info(f"      Probability: {bet.get('probability', 0)*100:.1f}%")
+            logger.info(f"      Market Odd: {bet.get('market_odd', 0):.2f}")
+            logger.info(f"      Fair Odd: {bet.get('fair_odd', 0):.2f}")
+            logger.info(f"      EV: {bet.get('ev_pct', 0):+.1f}%")
+            logger.info(f"      Stake: {bet.get('stake', 0):.1f}u")
+        
+        recommendation = decision_result.get('recommendation', {})
+        logger.info(f"\n   Recomendação Principal: {recommendation.get('market_display', 'N/A')}")
+        logger.info(f"      Probability: {recommendation.get('probability', 0)*100:.1f}%")
+        logger.info(f"      Fair Odd: {recommendation.get('fair_odd', 0):.2f}")
+        
+        publish_filter = decision_result.get('publish_filter', {})
+        logger.info(f"\n   Filtro de Publicação:")
+        logger.info(f"      Should Publish: {publish_filter.get('should_publish', True)}")
+        logger.info(f"      Reason: {publish_filter.get('reason', 'N/A')}")
+        logger.info(f"{'='*80}\n")
+        
         # Log para confirmar top_bets
         top_bets = decision_result.get('top_bets', [])
         logger.info(f"✅ [Orchestrator] DecisionEngine retornou {len(top_bets)} top_bets com estratégia {strategy}")
+        # LOG para confirmar top_bets (remover duplicado abaixo)
         if top_bets:
             for i, bet in enumerate(top_bets, 1):
                 logger.info(f"   #{i}: {bet.get('market_display')} - Prob: {bet.get('probability', 0)*100:.1f}%, EV: {bet.get('ev_pct', 0):+.1f}%")
 
         # 5) IA explica (opcional)
         ai_result = self.ai.explain_decision(decision_result, enriched, strategy=strategy)
+        
+        # LOG: AI Analysis
+        logger.info(f"\n{'='*80}")
+        logger.info(f"🤖 [Orchestrator] AI ANALYSIS")
+        logger.info(f"{'='*80}")
+        if ai_result.get('success'):
+            logger.info(f"   Status: ✅ Sucesso")
+            logger.info(f"   Análise gerada: {len(ai_result.get('analysis', ''))} caracteres")
+        else:
+            logger.info(f"   Status: ❌ Falha")
+            logger.info(f"   Erro: {ai_result.get('error', 'N/A')}")
+        logger.info(f"{'='*80}\n")
 
         # 6) Formatar saída
         consensus = ensemble_result.get('consensus', {})

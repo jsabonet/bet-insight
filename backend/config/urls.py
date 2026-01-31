@@ -19,7 +19,7 @@ from django.urls import path, include
 from django.contrib.sitemaps.views import sitemap
 from rest_framework.routers import DefaultRouter
 from apps.matches.views import LeagueViewSet, TeamViewSet, MatchViewSet
-from apps.analysis.views import AnalysisViewSet
+from apps.analysis.views import AnalysisViewSet, DailyBetViewSet
 from apps.subscriptions.views import SubscriptionViewSet, PaymentViewSet
 from config.admin import admin_site
 from apps.seo.sitemaps import sitemaps
@@ -31,6 +31,7 @@ router.register(r'leagues', LeagueViewSet, basename='league')
 router.register(r'teams', TeamViewSet, basename='team')
 router.register(r'matches', MatchViewSet, basename='match')
 router.register(r'analyses', AnalysisViewSet, basename='analysis')
+router.register(r'daily-bets', DailyBetViewSet, basename='daily-bet')
 router.register(r'subscriptions', SubscriptionViewSet, basename='subscription')
 router.register(r'payments', PaymentViewSet, basename='payment')
 

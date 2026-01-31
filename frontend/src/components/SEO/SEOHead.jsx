@@ -30,7 +30,7 @@ const SEOHead = ({
     name: 'PlacerCerto',
     url: siteUrl,
     logo: `${siteUrl}/logo-512x512.png`,
-    description: 'Plataforma de análise inteligente de futebol com IA',
+    description: 'Plataforma de análise estatística de futebol com modelos matemáticos',
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'Customer Service',

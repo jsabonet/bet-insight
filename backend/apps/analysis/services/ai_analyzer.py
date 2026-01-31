@@ -66,7 +66,7 @@ class AIAnalyzer:
                 return cached_result
             
             if not self.model:
-                return self._fallback_explanation(decision_data, enriched_data)
+                return self._fallback_explanation(decision_data, enriched_data, strategy=strategy)
             
             # 2. PROMPT (adaptar por estratégia)
             prompt = self._build_prompt(decision_data, enriched_data, strategy=strategy)
@@ -92,7 +92,7 @@ class AIAnalyzer:
                 logger.info(f"📝 Resposta: {len(response.text)} chars")
             except Exception as e:
                 logger.warning(f"⚠️ Erro na IA: {e}")
-                return self._fallback_explanation(decision_data, enriched_data)
+                return self._fallback_explanation(decision_data, enriched_data, strategy=strategy)
             
             generation_time = time.time() - start_time
             
@@ -115,7 +115,7 @@ class AIAnalyzer:
             
         except Exception as e:
             logger.error(f"Erro ao gerar explicação: {e}")
-            return self._fallback_explanation(decision_data, enriched_data)
+            return self._fallback_explanation(decision_data, enriched_data, strategy=strategy)
     
     def _generate_cache_key(self, decision_data: Dict, enriched_data: Dict) -> str:
         """Gera chave de cache única"""
@@ -171,88 +171,110 @@ class AIAnalyzer:
         key_str = f"{home}_{away}_{date}_{pick}"
         return f"ai_explanation:{hashlib.md5(key_str.encode()).hexdigest()}"
     
-    def _fallback_explanation(self, decision_data: Dict, enriched_data: Dict) -> Dict:
-        """Fallback quando IA falha - usar cabeçalho + análise simples"""
-        recommendation = decision_data.get('recommendation', {})
+    def _fallback_explanation(self, decision_data: Dict, enriched_data: Dict, strategy: str = 'value') -> Dict:
+        """Fallback quando IA falha - gerar análise baseada em regras (formato similar à IA)"""
+        logger.warning(f"⚠️ IA não disponível - usando fallback baseado em regras (estratégia={strategy})")
+        
+        # Extrair dados necessários
+        top_bets = decision_data.get('top_bets', [])
         confidence = decision_data.get('confidence', {})
         risk = decision_data.get('risk', 'medium')
         model_probs = decision_data.get('model_probabilities', {})
-        poisson = model_probs.get('poisson', {})
         consensus = model_probs.get('consensus', {})
         
-        # Gerar cabeçalho usando método compartilhado
-        header = self._generate_header(decision_data, enriched_data)
+        if not top_bets:
+            return {
+                'success': False,
+                'analysis': None,
+                'reasoning': None,
+                'generation_time': 0.0,
+                'cached': False,
+                'fallback': True
+            }
         
-        # Extrair dados para cálculos
-        pick = recommendation.get('pick', 'home_win')
-        market_odd = recommendation.get('odd', 1.50)
+        # Pegar a melhor aposta (maior score)
+        best_bet = top_bets[0] if len(top_bets) > 0 else None
         
-        # Determinar probabilidade baseada no pick
-        prob = consensus.get('home_win', 0.5) if 'home' in pick else consensus.get('away_win', 0.5)
-        if 'draw' in pick:
-            prob = consensus.get('draw', 0.3)
+        if not best_bet:
+            return {
+                'success': False,
+                'analysis': None,
+                'reasoning': None,
+                'generation_time': 0.0,
+                'cached': False,
+                'fallback': True
+            }
         
-        # Calcular odd justa e EV
-        fair_odd = round(1 / prob, 2) if prob > 0 else 2.00
-        ev_pct = ((market_odd / fair_odd - 1) * 100) if fair_odd > 0 else 0
+        # Gerar análise adaptada à estratégia
+        if strategy == 'multiple':
+            # MODO BILHETE: Foco em probabilidade e combinação
+            analysis = f"""📋 MELHOR PARA BILHETE
+---------------------------------------
+Aposta: {best_bet['market_display']}
+Odd: {best_bet['market_odd']:.2f} (ideal para bilhetes: 1.30-2.00)
+Probabilidade: {best_bet['probability']*100:.1f}% (mínimo 50%)
+Stake: {best_bet['stake_units']:.1f} unidades
+
+PORQUE INCLUIR NO BILHETE:
+• {best_bet['reason']}
+• Alta probabilidade ({best_bet['probability']*100:.1f}% de chance)
+• Odd moderada (boa para combinar com outras apostas)
+
+💡 DICA DE BILHETE:
+Combine com 2-3 apostas similares de outros jogos.
+Odd total esperada: 3.00-8.00
+Probabilidade combinada: 15-30%
+
+---------------------------------------
+OUTRAS OPÇÕES PARA BILHETE:
+---------------------------------------
+"""
+            # Adicionar alternativas com prob >= 50%
+            for bet in top_bets[1:]:
+                if bet['probability'] >= 0.5:
+                    analysis += f"{bet['market_display']}\n"
+            
+            analysis += """
+⚠️ ATENÇÃO:
+Bilhetes são mais arriscados. Mesmo com alta probabilidade individual,
+apenas ~20% dos bilhetes 3x acertam todas as apostas.
+Use em favoritos consistentes, não underdogs.
+
+---------------------------------------"""
         
-        # Análise simplificada
-        analysis_body = f"""
+        else:
+            # MODO VALUE: Foco em EV e lucro longo prazo
+            analysis = f"""🎯 RECOMENDAÇÃO PRINCIPAL
 ---------------------------------------
-📋 ANÁLISE COMPLETA DE APOSTAS
----------------------------------------
+Aposta: {best_bet['market_display']}
+Odd: {best_bet['market_odd']:.2f}
+EV: {best_bet['ev_pct']:+.1f}%
+Stake: {best_bet['stake_units']:.1f} unidades
+Risco: {risk.upper()}
 
-⭐ Confiança: {confidence.get('stars', 3)}/5 • Risco: {risk.upper()}
-📊 Probabilidades (consenso): Casa {consensus.get('home_win', 0)*100:.1f}% | Empate {consensus.get('draw', 0)*100:.1f}% | Fora {consensus.get('away_win', 0)*100:.1f}%
-xG esperado: {poisson.get('expected_goals', {}).get('home', 1.2):.2f} x {poisson.get('expected_goals', {}).get('away', 1.0):.2f} • Placar provável: {poisson.get('most_likely_score', '1-1')}
+PORQUE APOSTAR:
+• {best_bet['reason']}
+• Probabilidade calculada: {best_bet['probability']*100:.1f}%
+• Confiança do modelo: {confidence.get('stars', 3)}/5
 
----------------------------------------
-💰 APOSTA RECOMENDADA
----------------------------------------
+⚠️ NÃO APOSTE SE:
+• A odd cair abaixo de {best_bet['fair_odd']:.2f}
+• Houver mudanças significativas nas condições do jogo
+"""
 
-🎯 MELHOR OPORTUNIDADE
----------------------------------------
-📌 Mercado: 1X2
-🎲 Aposte em: {pick}
-💵 Odd disponível: {market_odd:.2f}
-⚖️ Odd justa: {fair_odd:.2f}
-💡 Vantagem (EV): {ev_pct:+.1f}%
-💰 Stake recomendado: {1.0 if ev_pct > 3 else 0.5} unidade{'s' if ev_pct > 3 else ''}
-⚠️ Risco: {risk.upper()}
-
-🎯 O QUE FAZER:
-✅ Aposte AGORA se odd ≥ {fair_odd * 0.95:.2f}
-❌ NÃO aposte se odd < {fair_odd * 0.95:.2f}
-
-🔍 PORQUÊ APOSTAR NISTO?
-• Probabilidade calculada: {prob*100:.1f}%
-• Expected Value: {ev_pct:+.1f}%
-• Modelo Poisson indica xG {poisson.get('expected_goals', {}).get('home', 1.2):.2f} x {poisson.get('expected_goals', {}).get('away', 1.0):.2f}
-
----------------------------------------
-📝 RESUMO RÁPIDO
----------------------------------------
-✅ Mercado: {pick}
-💰 Odd mínima: {fair_odd * 0.95:.2f}
-💵 Stake: {1.0 if ev_pct > 3 else 0.5} unidade{'s' if ev_pct > 3 else ''}
-
----------------------------------------
-🚫 QUANDO NÃO APOSTAR
----------------------------------------
-❌ Se a odd cair abaixo de {fair_odd * 0.95:.2f}
-❌ Se houver lesões de última hora em jogadores-chave
-❌ Se houver mudanças significativas nas condições do jogo
-
---------------------------
-✅ Via Placar Certo"""
-        
-        # Combinar header + body
-        formatted = f"{header}\n\n{analysis_body}"
+            # Adicionar alternativas se houver
+            if len(top_bets) > 1:
+                analysis += "\n---------------------------------------\nALTERNATIVAS:\n---------------------------------------\n"
+                
+                for i, bet in enumerate(top_bets[1:3], 2):  # Máximo 2 alternativas
+                    analysis += f"• Aposta #{i}: {bet['market_display']} - {bet['reason']}\n"
+            
+            analysis += "\n---------------------------------------"
         
         return {
             'success': True,
-            'analysis': formatted,
-            'reasoning': formatted,
+            'analysis': analysis,
+            'reasoning': analysis,
             'generation_time': 0.0,
             'cached': False,
             'fallback': True

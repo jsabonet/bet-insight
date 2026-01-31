@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { matchesAPI, authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useStats } from '../context/StatsContext';
@@ -14,6 +15,7 @@ import SEOHead from '../components/SEO/SEOHead';
 import { generateMatchListStructuredData, generateWebsiteStructuredData } from '../utils/structuredData';
 
 export default function HomePage() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { refreshStats } = useStats();
   const [allMatches, setAllMatches] = useState([]); // Armazenar todas as partidas
@@ -163,6 +165,9 @@ export default function HomePage() {
         } else if (filter === 'today') {
           // Partidas de hoje
           return matchDay === today;
+        } else if (filter === 'tomorrow') {
+          // Partidas de amanhã
+          return matchDay === tomorrowStr;
         } else if (filter === 'upcoming') {
           // Partidas futuras: hoje e amanhã apenas
           // Priorizar jogos de hoje que ainda não começaram
@@ -303,6 +308,7 @@ export default function HomePage() {
   const filters = [
     { id: 'upcoming', label: 'Próximas', icon: Clock },
     { id: 'today', label: 'Hoje', icon: CalendarDays },
+    { id: 'tomorrow', label: 'Amanhã', icon: CalendarDays },
     { id: 'live', label: 'Ao Vivo', icon: Flame },
     { id: 'all', label: 'Todas', icon: Sparkles },
   ];
@@ -312,7 +318,7 @@ export default function HomePage() {
       <SEOHead
         title="PlacerCerto - Análise Estatística Avançada de Futebol | Previsões Precisas"
         description="Previsões de futebol com modelos estatísticos avançados (Poisson Bivariado + Regressão Logística). Análise quantitativa completa de partidas ao vivo e futuras das principais ligas de Moçambique, África e Europa. Estatísticas em tempo real e apostas inteligentes."
-        keywords="previsões futebol moçambique, análise estatística futebol, modelos matemáticos, apostas desportivas, estatísticas futebol ao vivo, PlacerCerto, moçambola, ligas africanas, poisson, regressão logística"
+        keywords="previsões futebol moçambique, análise estatística futebol, modelos matemáticos, apostas desportivas, estatísticas futebol ao vivo, PlacerCerto, moçambola, ligas africanas, poisson bivariado, regressão logística, value bets"
         canonicalUrl="https://placarcerto.digital/"
         structuredData={matches.length > 0 ? generateMatchListStructuredData(matches.slice(0, 20)) : generateWebsiteStructuredData()}
       />
@@ -320,8 +326,6 @@ export default function HomePage() {
       <Header showLogo={true} />
 
       <div className="page-content">
-        {/* Data Source Indicator removed per request */}
-
         {/* Search Bar */}
         <div className="mb-4">
           <div className="relative">
@@ -453,6 +457,13 @@ export default function HomePage() {
         <style>{`
           .no-scrollbar::-webkit-scrollbar {
             display: none;
+          }
+          @keyframes pulse-subtle {
+            0%, 100% { transform: scale(1.05); }
+            50% { transform: scale(1.08); }
+          }
+          .animate-pulse-subtle {
+            animation: pulse-subtle 2s ease-in-out infinite;
           }
         `}</style>
       </div>
