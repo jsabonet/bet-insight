@@ -1,0 +1,19 @@
+{
+  "market": "home_totals",
+  "accuracy": 0.7888888888888889,
+  "train_size": 360,
+  "test_size": 90,
+  "n_classes": 4,
+  "params": {
+    "objective": "multi:softmax",
+    "num_class": 4,
+    "max_depth": 5,
+    "learning_rate": 0.1,
+    "n_estimators": 150,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "random_state": 42,
+    "eval_metric": "mlogloss"
+  },
+  "timestamp": "2026-02-06T17:19:24.657618"
+}

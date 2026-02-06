@@ -131,6 +131,16 @@ class FeatureEngineer:
         )
         logger.info(f"   ✅ {len(features['elo'])} features de ELO")
         
+        # 12. COMPETITION TYPE (Detecção e ajuste para copas vs ligas)
+        logger.info("\n1️⃣2️⃣ Calculando features de TIPO DE COMPETIÇÃO...")
+        features['competition'] = self._calculate_competition_features(
+            enriched_data
+        )
+        logger.info(f"   ✅ {len(features['competition'])} features de competição")
+        if features['competition'].get('is_cup_competition'):
+            logger.info(f"      🏆 COPA DETECTADA: {features['competition'].get('competition_name')}")
+            logger.info(f"      📉 Fator de ajuste xG: {features['competition'].get('knockout_adjustment_factor')}")
+        
         total_features = sum(len(v) for v in features.values())
         logger.info(f"\n{'='*80}")
         logger.info(f"✅ TOTAL: {total_features} features engineered")
@@ -879,6 +889,71 @@ class FeatureEngineer:
             'away_distance_to_top4': away_distance_to_top4,
             'home_distance_to_relegation': home_distance_to_relegation,
             'away_distance_to_relegation': away_distance_to_relegation
+        }
+    
+    def _calculate_competition_features(self, enriched_data):
+        """
+        Detecta tipo de competição (copa vs liga) e aplica fator de ajuste.
+        
+        COPAS tendem a ter jogos mais defensivos/cautelosos que LIGAS.
+        Análise mostrou erro médio de +1.96 gols em copas (sistema superestima).
+        
+        Returns:
+            dict com:
+            - is_cup_competition: bool
+            - competition_name: str
+            - knockout_adjustment_factor: float (0.75-1.0, quanto menor mais defensivo)
+            - round_stage: str (semifinal, quartas, etc)
+        """
+        fixture_data = enriched_data.get('fixture_details', {})
+        league_info = fixture_data.get('league', {})
+        
+        league_name = league_info.get('name', '').lower()
+        round_info = league_info.get('round', '').lower()  # Round está DENTRO de league
+        
+        # Palavras-chave que identificam competições de copa
+        cup_keywords = [
+            'cup', 'copa', 'coupe', 'coppa', 'pokal', 'beker', 
+            'taca', 'taça', 'trophy', 'knockout', 'eliminatoria'
+        ]
+        
+        # Detectar se é copa
+        is_cup = any(keyword in league_name for keyword in cup_keywords)
+        
+        # Detectar fase da competição (knockout)
+        knockout_stage = ''
+        adjustment_factor = 1.0  # Padrão para ligas (sem ajuste)
+        
+        if is_cup:
+            # Identificar fase específica
+            if 'final' in round_info and 'semi' not in round_info:
+                knockout_stage = 'final'
+                adjustment_factor = 0.60  # Final: -40% xG (muito defensivo)
+            elif 'semi' in round_info or 'semi-final' in round_info:
+                knockout_stage = 'semifinal'
+                adjustment_factor = 0.65  # Semifinal: -35% xG (análise mostrou necessidade)
+            elif 'quarter' in round_info or 'quartas' in round_info:
+                knockout_stage = 'quarterfinal'
+                adjustment_factor = 0.80  # Quartas: -20% xG
+            elif 'round of 16' in round_info or 'oitavas' in round_info or '1/8' in round_info:
+                knockout_stage = 'round_of_16'
+                adjustment_factor = 0.85  # Oitavas: -15% xG
+            else:
+                # Fases iniciais de copa (ainda elimin human atória mas menos crítica)
+                knockout_stage = 'early_rounds'
+                adjustment_factor = 0.90  # Fases iniciais: -10% xG
+        
+        # VALIDAÇÃO DE SEGURANÇA: Ligas SEMPRE têm fator 1.0
+        if not is_cup:
+            adjustment_factor = 1.0
+            knockout_stage = 'league'
+        
+        return {
+            'is_cup_competition': is_cup,
+            'competition_name': league_info.get('name', 'Unknown'),
+            'knockout_adjustment_factor': round(adjustment_factor, 2),
+            'round_stage': knockout_stage,
+            'is_knockout_stage': bool(is_cup and knockout_stage and knockout_stage != 'early_rounds')
         }
     
     def _detect_derby(self, home_team, away_team):

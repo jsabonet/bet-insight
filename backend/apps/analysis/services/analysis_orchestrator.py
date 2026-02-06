@@ -15,12 +15,13 @@ logger = logging.getLogger(__name__)
 class HybridAnalysisOrchestrator:
     """Coordena o fluxo híbrido: enriquecimento → features → modelos ML → decisão → IA (explicação)."""
 
-    def __init__(self):
+    def __init__(self, enable_cup_adjustment: bool = True):
         self.enricher = MatchDataEnricher()
         self.fe = FeatureEngineer()
         self.ensemble = ModelEnsembleML()  # 🤖 USANDO ML TREINADO
         self.decision = DecisionEngine()
         self.ai = AIAnalyzer()
+        self.enable_cup_adjustment = enable_cup_adjustment  # Flag global para ativar/desativar ajuste de copas
 
     def run(self, match: Match, strategy: str = 'value') -> Dict:
         """Executa a análise híbrida e retorna payload pronto para persistir/exibir.
@@ -63,9 +64,26 @@ class HybridAnalysisOrchestrator:
         # 3) Modelos estatísticos
         strength = features.get('strength', {})
         weather = features.get('weather', {})
+        competition = features.get('competition', {})  # NOVO: features de competição
         home_strength = strength.get('home_goals_per_game', 1.2)
         away_strength = strength.get('away_goals_per_game', 1.2)
         weather_impact = weather.get('goal_impact', 0.0)
+        
+        # PROTEÇÃO: Garantir que ligas NUNCA sejam afetadas
+        is_cup = competition.get('is_cup_competition', False)
+        knockout_adjustment_raw = competition.get('knockout_adjustment_factor', 1.0)
+        
+        # VALIDAÇÃO TRIPLA DE SEGURANÇA:
+        # 1. Flag global do orchestrator
+        # 2. Competição deve ser copa
+        # 3. Fator deve ser menor que 1.0
+        if self.enable_cup_adjustment and is_cup and knockout_adjustment_raw < 1.0:
+            knockout_adjustment = knockout_adjustment_raw
+            logger.info(f"✅ [Orchestrator] AJUSTE DE COPA ATIVO")
+        else:
+            knockout_adjustment = 1.0  # FORÇAR 1.0 para ligas (SEM ALTERAÇÃO)
+            if is_cup and not self.enable_cup_adjustment:
+                logger.info(f"⚠️ [Orchestrator] Copa detectada mas ajuste DESATIVADO por configuração")
         
         # LOG: Features críticas para modelos
         logger.info(f"🔧 [Orchestrator] FEATURES CRÍTICAS PARA ENSEMBLE:")
@@ -73,11 +91,17 @@ class HybridAnalysisOrchestrator:
         logger.info(f"   Away Strength: {away_strength:.2f} gols/jogo")
         logger.info(f"   Weather Impact: {weather_impact:.2f}")
         logger.info(f"   League ID: {match.league.api_football_id if match.league else 'N/A'}")
+        logger.info(f"   Tipo Competição: {'COPA' if is_cup else 'LIGA'}")
+        logger.info(f"   Knockout Adjustment: {knockout_adjustment:.2f} {'(ATIVO)' if knockout_adjustment < 1.0 else '(INATIVO - Liga ou desabilitado)'}")
+        if knockout_adjustment < 1.0:
+            logger.info(f"      🏆 Fase: {competition.get('round_stage', 'N/A')}")
+            logger.info(f"      📉 Redução xG: {(1.0 - knockout_adjustment) * 100:.0f}%")
         
         # Obter league_id para calibração específica
         league_id = match.league.api_football_id if match.league else None
 
-        ensemble_result = self.ensemble.predict(features, home_strength, away_strength, weather_impact, league_id)
+        ensemble_result = self.ensemble.predict(features, home_strength, away_strength, weather_impact, league_id,
+                                               knockout_adjustment=knockout_adjustment)
         
         # LOG: Resultado do Ensemble
         logger.info(f"\n{'='*80}")

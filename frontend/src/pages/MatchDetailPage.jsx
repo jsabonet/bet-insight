@@ -1057,7 +1057,7 @@ export default function MatchDetailPage() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-1">
-                      Análise Inteligente da IA
+                      Análise Inteligente
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                       Gere uma explicação detalhada e contextualizada sobre os dados estatísticos desta partida

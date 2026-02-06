@@ -1,0 +1,18 @@
+{
+  "market": "odd_even",
+  "accuracy": 0.5352941176470588,
+  "train_size": 680,
+  "test_size": 170,
+  "n_classes": 2,
+  "params": {
+    "objective": "binary:logistic",
+    "max_depth": 4,
+    "learning_rate": 0.1,
+    "n_estimators": 100,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "random_state": 42,
+    "eval_metric": "logloss"
+  },
+  "timestamp": "2026-02-06T19:55:57.244802"
+}

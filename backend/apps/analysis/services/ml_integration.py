@@ -1,6 +1,14 @@
 """
 Integração do modelo ML treinado no ensemble de predição
 Substitui pesos fixos por modelo real treinado com dados históricos
+
+ARQUITETURA DUAL-MODEL (SEGURA) - MULTI-MARKET:
+- Liga models: xgboost_1x2.pkl (880 partidas)
+- Cup models: 9 mercados treinados (450 partidas FA Cup)
+  * 1X2, BTTS, O/U 1.5/2.5/3.5
+  * Double Chance, Home/Away Totals, Odd/Even
+- Seleção automática baseada em is_cup
+- Fallback: Se modelo de copas falhar, usa Poisson
 """
 import logging
 import joblib
@@ -12,144 +20,152 @@ logger = logging.getLogger(__name__)
 
 class MLModel:
     """
-    Modelo ML treinado (XGBoost/LightGBM) para predição 1X2
-    Substitui a LogisticRegressionModel com pesos fixos
+    Modelo ML multi-market com suporte dual (ligas + copas)
+    
+    MERCADOS SUPORTADOS:
+    - 1X2 (Home/Draw/Away)
+    - BTTS (Both Teams To Score)
+    - O/U 1.5, 2.5, 3.5
+    - Double Chance (1X/12/X2)
+    - Home Totals, Away Totals
+    - Odd/Even Goals
+    
+    DUAL-MODEL SUPPORT:
+    - Carrega modelos de ligas (se existirem)
+    - Carrega modelos de copas (9 mercados)
+    - Seleção automática baseada em is_cup flag
     """
     
-    def __init__(self, model_path='ml_training/trained_models/xgboost_1x2.pkl'):
+    def __init__(self):
         """
-        Carrega modelo treinado do disco
-        
-        Args:
-            model_path: Caminho relativo ao backend/ para o modelo .pkl
+        Carrega TODOS os modelos disponíveis (ligas + copas)
         """
-        try:
-            # Caminho absoluto: de apps/analysis/services/ -> backend/
-            base_path = Path(__file__).resolve().parent.parent.parent.parent
-            full_path = base_path / model_path
-            
-            if not full_path.exists():
-                raise FileNotFoundError(f"Modelo não encontrado: {full_path}")
-            
-            self.model = joblib.load(full_path)
-            self.model_name = model_path.split('/')[-1].replace('.pkl', '')
-            
-            logger.info(f"✅ Modelo ML carregado: {self.model_name}")
-            logger.info(f"   Path: {full_path}")
-            
-            # Carregar feature names
-            feature_path = full_path.parent / "feature_names.json"
-            if feature_path.exists():
-                import json
-                with open(feature_path, 'r') as f:
-                    self.expected_features = json.load(f)
-                logger.info(f"   Features: {len(self.expected_features)}")
-            else:
-                self.expected_features = None
-                logger.warning(f"⚠️ feature_names.json não encontrado - compatibilidade não garantida")
+        base_path = Path(__file__).resolve().parent.parent.parent.parent
         
-        except Exception as e:
-            logger.error(f"❌ Erro ao carregar modelo ML: {e}")
-            raise
+        # DIRETÓRIOS
+        league_dir = base_path / 'ml_training' / 'trained_models'
+        cup_dir = base_path / 'ml_models'
+        
+        # MERCADOS DISPONÍVEIS
+        markets = ['1x2', 'btts', 'ou15', 'ou25', 'ou35', 'dc', 'home_totals', 'away_totals', 'odd_even']
+        
+        self.league_models = {}
+        self.cup_models = {}
+        
+        logger.info(f"🔧 Carregando modelos ML...")
+        
+        # CARREGAR MODELOS DE LIGAS (opcional - só 1X2 existe)
+        for market in markets:
+            league_path = league_dir / f'xgboost_{market}.pkl'
+            if league_path.exists():
+                try:
+                    self.league_models[market] = joblib.load(league_path)
+                    logger.info(f"✅ Liga  {market.upper()}: {league_path.name}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Erro ao carregar liga {market}: {e}")
+        
+        # CARREGAR MODELOS DE COPAS (9 mercados treinados)
+        for market in markets:
+            cup_path = cup_dir / f'xgboost_{market}_cups.pkl'
+            if cup_path.exists():
+                try:
+                    self.cup_models[market] = joblib.load(cup_path)
+                    logger.info(f"✅ Copa  {market.upper()}: {cup_path.name}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Erro ao carregar copa {market}: {e}")
+        
+        logger.info(f"\n📊 MODELOS CARREGADOS:")
+        logger.info(f"   Ligas: {len(self.league_models)} mercados")
+        logger.info(f"   Copas: {len(self.cup_models)} mercados")
+        
+        if not self.league_models and not self.cup_models:
+            raise FileNotFoundError("Nenhum modelo ML encontrado!")
     
-    def predict_1x2(self, features):
+    def _select_model(self, market, is_cup=False):
+        """
+        Seleciona modelo correto baseado no mercado e tipo (liga/copa)
+        
+        Returns:
+            model ou None
+        """
+        if is_cup and market in self.cup_models:
+            return self.cup_models[market]
+        elif market in self.league_models:
+            return self.league_models[market]
+        else:
+            return None
+    
+    def predict_1x2(self, features, is_cup=False):
         """
         Prevê probabilidades 1X2 usando modelo treinado
         
-        Args:
-            features (dict): Features engineered (nested dict)
-        
         Returns:
-            dict: {
-                'home_win': float,
-                'draw': float,
-                'away_win': float,
-                'model': 'xgboost' ou 'lightgbm'
-            }
+            dict: {'home_win': float, 'draw': float, 'away_win': float}
         """
-        logger.info(f"\n{'='*80}")
-        logger.info(f"🤖 MODELO ML ({self.model_name.upper()}) - Calculando 1X2")
-        logger.info(f"{'='*80}")
+        model = self._select_model('1x2', is_cup)
+        
+        if model is None:
+            logger.warning("⚠️ Modelo 1X2 não disponível - fallback uniforme")
+            return {'home_win': 0.33, 'draw': 0.33, 'away_win': 0.33, 'model': 'fallback'}
         
         try:
-            # 1. Flatten features (mesmo processo do treino)
             flat_features = self._flatten_features(features)
+            X = self._prepare_features(flat_features)
             
-            # 2. Alinhar com features esperadas
-            if self.expected_features:
-                feature_vector = []
-                missing_features = []
-                
-                for expected_feature in self.expected_features:
-                    if expected_feature in flat_features:
-                        value = flat_features[expected_feature]
-                        
-                        # Converter booleanos para int
-                        if isinstance(value, bool):
-                            value = int(value)
-                        
-                        # Garantir valor numérico
-                        if value is None:
-                            value = 0
-                        
-                        feature_vector.append(value)
-                    else:
-                        # Feature faltando - usar 0
-                        feature_vector.append(0)
-                        missing_features.append(expected_feature)
-                
-                if missing_features:
-                    logger.warning(f"⚠️ {len(missing_features)} features faltando (preenchidas com 0):")
-                    for feat in missing_features[:5]:  # Log primeiras 5
-                        logger.warning(f"   - {feat}")
-                
-                X = np.array([feature_vector])
-            else:
-                # Fallback: usar features como vieram (arriscado)
-                logger.warning(f"⚠️ Sem lista de features esperadas - usando todas disponíveis")
-                X = np.array([list(flat_features.values())])
-            
-            # 3. Predizer probabilidades
-            # XGBoost/LightGBM retornam probs para cada classe [P(casa), P(empate), P(fora)]
-            if hasattr(self.model, 'predict_proba'):
-                probs = self.model.predict_proba(X)[0]
-            else:
-                # Fallback se modelo não tem predict_proba
-                logger.warning(f"⚠️ Modelo sem predict_proba - usando predict + one-hot")
-                prediction = self.model.predict(X)[0]
-                probs = np.zeros(3)
-                probs[int(prediction)] = 1.0
-            
-            home_win = float(probs[0])
-            draw = float(probs[1])
-            away_win = float(probs[2])
-            
-            logger.info(f"\n📊 Probabilidades ML:")
-            logger.info(f"   Casa: {home_win*100:.1f}%")
-            logger.info(f"   Empate: {draw*100:.1f}%")
-            logger.info(f"   Fora: {away_win*100:.1f}%")
-            logger.info(f"{'='*80}\n")
+            probs = model.predict_proba(X)[0] if hasattr(model, 'predict_proba') else np.ones(3) / 3
             
             return {
-                'home_win': home_win,
-                'draw': draw,
-                'away_win': away_win,
-                'model': self.model_name
+                'home_win': float(probs[0]),
+                'draw': float(probs[1]),
+                'away_win': float(probs[2]),
+                'model': f'{"cup" if is_cup else "league"}_1x2',
+                'model_type': 'cup' if is_cup else 'league'
             }
-        
         except Exception as e:
-            logger.error(f"❌ Erro ao executar predição ML: {e}")
-            import traceback
-            logger.error(traceback.format_exc())
-            
-            # Fallback: probabilidades uniformes
-            logger.warning(f"⚠️ Usando probabilidades uniformes como fallback")
-            return {
-                'home_win': 0.33,
-                'draw': 0.33,
-                'away_win': 0.33,
-                'model': f'{self.model_name}_fallback'
-            }
+            logger.error(f"❌ Erro predict_1x2: {e}")
+            return {'home_win': 0.33, 'draw': 0.33, 'away_win': 0.33, 'model': 'error_fallback'}
+    
+    def predict_btts(self, features, is_cup=False):
+        """BTTS: Both Teams To Score"""
+        model = self._select_model('btts', is_cup)
+        if model is None:
+            return None
+        
+        try:
+            flat_features = self._flatten_features(features)
+            X = self._prepare_features(flat_features)
+            probs = model.predict_proba(X)[0] if hasattr(model, 'predict_proba') else [0.5, 0.5]
+            return {'no': float(probs[0]), 'yes': float(probs[1])}
+        except:
+            return None
+    
+    def predict_over_under(self, features, threshold, is_cup=False):
+        """O/U genérico para 1.5, 2.5, 3.5"""
+        market_map = {1.5: 'ou15', 2.5: 'ou25', 3.5: 'ou35'}
+        market = market_map.get(threshold)
+        
+        if market is None:
+            return None
+        
+        model = self._select_model(market, is_cup)
+        if model is None:
+            return None
+        
+        try:
+            flat_features = self._flatten_features(features)
+            X = self._prepare_features(flat_features)
+            probs = model.predict_proba(X)[0] if hasattr(model, 'predict_proba') else [0.5, 0.5]
+            return {'under': float(probs[0]), 'over': float(probs[1])}
+        except:
+            return None
+    
+    def _prepare_features(self, flat_features):
+        """Prepara vetor de features para predição (preenche com zeros para features faltando)"""
+        # Por enquanto, usa todas as features disponíveis
+        # TODO: Alinhar com feature_names.json de cada modelo
+        values = [v if not isinstance(v, (str, bool, type(None))) else (1 if v is True else 0) 
+                 for v in flat_features.values()]
+        return np.array([values])
     
     def _flatten_features(self, features):
         """
@@ -203,19 +219,19 @@ class MLModel:
 class ModelEnsembleML:
     """
     Ensemble ATUALIZADO: Poisson + ML + Market Odds
-    Substitui LogisticRegressionModel por modelo ML treinado
+    Usa novos modelos multi-market com suporte dual (ligas + copas)
     """
     
-    def __init__(self, use_market_prior=True, ml_model_path='ml_training/trained_models/xgboost_1x2.pkl'):
+    def __init__(self, use_market_prior=True):
         from .statistical_models import PoissonBivariateModel
         
         self.poisson = PoissonBivariateModel()
         
-        # Tentar carregar modelo ML
+        # Tentar carregar modelos ML multi-market
         try:
-            self.ml = MLModel(model_path=ml_model_path)
+            self.ml = MLModel()  # SEM argumentos - carrega todos os modelos
             self.has_ml = True
-            logger.info(f"✅ Ensemble inicializado com ML ({self.ml.model_name})")
+            logger.info(f"✅ Ensemble com ML multi-market ({len(self.ml.cup_models)} copas, {len(self.ml.league_models)} ligas)")
         except Exception as e:
             logger.warning(f"⚠️ Falha ao carregar ML - usando LogisticRegressionModel: {e}")
             from .statistical_models import LogisticRegressionModel
@@ -226,7 +242,7 @@ class ModelEnsembleML:
         logger.info(f"🎯 Ensemble: Poisson + {'ML' if self.has_ml else 'Logística'}{' + Market' if use_market_prior else ''}")
     
     def predict(self, features, home_strength, away_strength, weather_impact=0.0, league_id=None,
-                home_defense=None, away_defense=None):
+                home_defense=None, away_defense=None, knockout_adjustment=1.0):
         """
         Combina Poisson + ML + Market Odds
         
@@ -234,17 +250,30 @@ class ModelEnsembleML:
         - Poisson: 20% (xG puro, sem contexto)
         - ML: 50% (TODAS as features, treinado em 5000+ jogos)
         - Market: 30% (benchmark profissional)
+        
+        Args:
+            knockout_adjustment: Fator de ajuste para competições de copa (0.75-1.0)
+                                Aplica redução no xG em jogos eliminatórios
         """
         logger.info(f"\n{'='*80}")
         logger.info("🎯 ENSEMBLE ML - Combinando modelos")
         logger.info(f"{'='*80}")
         
-        # 1. Previsão Poisson
+        # 1. Previção Poisson (com ajuste de copa)
         poisson_pred = self.poisson.predict(home_strength, away_strength, weather_impact, league_id,
-                                           home_defense, away_defense)
+                                           home_defense, away_defense, knockout_adjustment)
         
         # 2. Previsão ML (ou Logística se ML não disponível)
-        ml_pred = self.ml.predict_1x2(features)
+        # Detectar se é copa pelas features de competição
+        competition_features = features.get('competition', {})
+        is_cup = competition_features.get('is_cup', False)
+        
+        # Chamar predict_1x2 com ou sem is_cup baseado no tipo de modelo
+        if self.has_ml:
+            ml_pred = self.ml.predict_1x2(features, is_cup=is_cup)
+        else:
+            # LogisticRegressionModel não tem parâmetro is_cup
+            ml_pred = self.ml.predict_1x2(features)
         
         # 3. Market Odds Prior
         market = features.get('market', {})

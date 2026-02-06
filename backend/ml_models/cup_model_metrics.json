@@ -1,0 +1,17 @@
+{
+  "accuracy": 0.8777777777777778,
+  "train_size": 360,
+  "test_size": 90,
+  "params": {
+    "objective": "multi:softmax",
+    "num_class": 3,
+    "max_depth": 5,
+    "learning_rate": 0.1,
+    "n_estimators": 150,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "random_state": 42,
+    "eval_metric": "mlogloss"
+  },
+  "timestamp": "2026-02-06T16:03:21.646591"
+}

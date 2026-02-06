@@ -1,0 +1,18 @@
+{
+  "market": "ou35",
+  "accuracy": 0.9111111111111111,
+  "train_size": 360,
+  "test_size": 90,
+  "n_classes": 2,
+  "params": {
+    "objective": "binary:logistic",
+    "max_depth": 4,
+    "learning_rate": 0.1,
+    "n_estimators": 100,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "random_state": 42,
+    "eval_metric": "logloss"
+  },
+  "timestamp": "2026-02-06T17:19:21.673262"
+}

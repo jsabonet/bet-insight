@@ -62,7 +62,7 @@ class PoissonBivariateModel:
             return 0.0
     
     def predict(self, home_strength, away_strength, weather_impact=0.0, league_id=None, 
-                home_defense=None, away_defense=None):
+                home_defense=None, away_defense=None, knockout_adjustment=1.0):
         """
         Prevê distribuição de placares e probabilidades de mercados
         
@@ -73,6 +73,7 @@ class PoissonBivariateModel:
             league_id (int): ID da liga para calibração específica de HOME_ADVANTAGE
             home_defense (float): Força defensiva casa (gols sofridos/jogo) - NOVO
             away_defense (float): Força defensiva fora (gols sofridos/jogo) - NOVO
+            knockout_adjustment (float): Fator de ajuste para copas (0.75-1.0, default=1.0)
         
         Returns:
             dict: {
@@ -91,7 +92,8 @@ class PoissonBivariateModel:
                     'btts': float  # Ambas Marcam (Both Teams To Score)
                 },
                 'score_distribution': [...],
-                'weather_adjusted': bool
+                'weather_adjusted': bool,
+                'knockout_adjusted': bool
             }
         """
         logger.info(f"\n{'='*80}")
@@ -142,6 +144,17 @@ class PoissonBivariateModel:
             lambda_away += weather_impact
             weather_adjusted = True
             logger.info(f"\n🌦️ Ajuste Climático: {weather_impact:+.2f} gols")
+        
+        # 3. Ajuste para competições de copa (NOVO)
+        knockout_adjusted = False
+        if knockout_adjustment < 1.0:
+            lambda_home *= knockout_adjustment
+            lambda_away *= knockout_adjustment
+            knockout_adjusted = True
+            reduction_pct = (1.0 - knockout_adjustment) * 100
+            logger.info(f"\n🏆 Ajuste Copa/Knockout: -{reduction_pct:.0f}% xG")
+            logger.info(f"   ⚽ Casa: {lambda_home:.2f} gols (ajustado)")
+            logger.info(f"   ⚽ Fora: {lambda_away:.2f} gols (ajustado)")
         
         # Garantir que lambdas sejam positivos
         lambda_home = max(0.1, lambda_home)
@@ -341,6 +354,7 @@ class PoissonBivariateModel:
             },
             'score_distribution': top_scores,
             'weather_adjusted': weather_adjusted,
+            'knockout_adjusted': knockout_adjusted,
             'model': 'poisson_bivariate'
         }
     
