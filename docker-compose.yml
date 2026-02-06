@@ -104,6 +104,60 @@ services:
       timeout: 10s
       retries: 3
 
+  # Celery Worker - Processa tasks em background
+  celery_worker:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    container_name: placarcerto_celery_worker
+    restart: unless-stopped
+    command: celery -A config worker --loglevel=info --pool=solo
+    env_file:
+      - ./backend/.env.production
+    environment:
+      - DB_HOST=db
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    networks:
+      - app_network
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+
+  # Celery Beat - Scheduler de tasks periódicas
+  celery_beat:
+    build:
+      context: .
+      dockerfile: ./backend/Dockerfile
+    container_name: placarcerto_celery_beat
+    restart: unless-stopped
+    command: celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    env_file:
+      - ./backend/.env.production
+    environment:
+      - DB_HOST=db
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    networks:
+      - app_network
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_started
+      celery_worker:
+        condition: service_started
+
   # Certbot para SSL (opcional, executar manualmente)
   certbot:
     image: certbot/certbot:latest
