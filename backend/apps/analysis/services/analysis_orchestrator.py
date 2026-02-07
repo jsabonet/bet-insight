@@ -8,17 +8,21 @@ from .feature_engineer import FeatureEngineer
 from .ml_integration import ModelEnsembleML
 from .decision_engine import DecisionEngine
 from .ai_analyzer import AIAnalyzer
+from .context_analyzer import ContextAnalyzer  # NOVO
+from .market_selector import MarketSelector    # NOVO
 
 logger = logging.getLogger(__name__)
 
 
 class HybridAnalysisOrchestrator:
-    """Coordena o fluxo híbrido: enriquecimento → features → modelos ML → decisão → IA (explicação)."""
+    """Coordena o fluxo híbrido: enriquecimento → features → contexto → modelos ML → seleção contextual → decisão → IA."""
 
     def __init__(self, enable_cup_adjustment: bool = True):
         self.enricher = MatchDataEnricher()
         self.fe = FeatureEngineer()
+        self.context_analyzer = ContextAnalyzer()  # NOVO
         self.ensemble = ModelEnsembleML()  # 🤖 USANDO ML TREINADO
+        self.market_selector = MarketSelector()    # NOVO
         self.decision = DecisionEngine()
         self.ai = AIAnalyzer()
         self.enable_cup_adjustment = enable_cup_adjustment  # Flag global para ativar/desativar ajuste de copas
@@ -61,6 +65,12 @@ class HybridAnalysisOrchestrator:
         logger.info(f"\n   TOTAL: {total_features} features geradas")
         logger.info(f"{'='*80}\n")
 
+        # 2.5) NOVO: Análise contextual
+        context_analysis = self.context_analyzer.analyze(features)
+        logger.info(f"🔍 [Orchestrator] Padrões contextuais detectados: {len(context_analysis.get('patterns', []))}")
+        for pattern in context_analysis.get('patterns', []):
+            logger.info(f"   - {pattern['name']}: {pattern['confidence']:.0%}")
+
         # 3) Modelos estatísticos
         strength = features.get('strength', {})
         weather = features.get('weather', {})
@@ -101,7 +111,8 @@ class HybridAnalysisOrchestrator:
         league_id = match.league.api_football_id if match.league else None
 
         ensemble_result = self.ensemble.predict(features, home_strength, away_strength, weather_impact, league_id,
-                                               knockout_adjustment=knockout_adjustment)
+                                               knockout_adjustment=knockout_adjustment,
+                                               context_analysis=context_analysis)  # NOVO: passar contexto
         
         # LOG: Resultado do Ensemble
         logger.info(f"\n{'='*80}")
@@ -155,7 +166,14 @@ class HybridAnalysisOrchestrator:
             market_odds = None
             logger.warning(f"⚠️ [Orchestrator] Sem odds disponíveis - top_bets será vazio")
         
-        decision_result = self.decision.make_decision(ensemble_result, features, market_odds, strategy=strategy)
+        # NOVO: Passar context_analysis para DecisionEngine
+        decision_result = self.decision.make_decision(
+            ensemble_result, 
+            features, 
+            market_odds, 
+            strategy=strategy,
+            context_analysis=context_analysis  # NOVO
+        )
         
         # LOG: Resultado do Decision Engine
         logger.info(f"\n{'='*80}")
@@ -166,7 +184,8 @@ class HybridAnalysisOrchestrator:
         for i, bet in enumerate(top_bets[:5], 1):
             logger.info(f"   #{i}: {bet.get('market_display', 'N/A')}")
             logger.info(f"      Probability: {bet.get('probability', 0)*100:.1f}%")
-            logger.info(f"      Market Odd: {bet.get('market_odd', 0):.2f}")
+            market_odd = bet.get('market_odd', 0) or 0  # Tratar None como 0
+            logger.info(f"      Market Odd: {market_odd:.2f}")
             logger.info(f"      Fair Odd: {bet.get('fair_odd', 0):.2f}")
             logger.info(f"      EV: {bet.get('ev_pct', 0):+.1f}%")
             logger.info(f"      Stake: {bet.get('stake', 0):.1f}u")

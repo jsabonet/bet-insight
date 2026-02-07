@@ -300,6 +300,65 @@ class PoissonBivariateModel:
         logger.info(f"      Ímpar: {prob_odd*100:.1f}%")
         logger.info(f"      Par: {prob_even*100:.1f}%")
         
+        # 8. Over/Under 0.5 e 4.5
+        prob_over_05 = 1 - score_matrix[0, 0]  # Qualquer placar exceto 0-0
+        prob_under_05 = score_matrix[0, 0]  # Apenas 0-0
+        
+        prob_over_45 = sum(score_matrix[h, a] for h in range(7) for a in range(7) if h + a > 4.5)
+        prob_under_45 = sum(score_matrix[h, a] for h in range(7) for a in range(7) if h + a <= 4.5)
+        
+        logger.info(f"   Over/Under 0.5:")
+        logger.info(f"      Over: {prob_over_05*100:.1f}%")
+        logger.info(f"      Under (0-0): {prob_under_05*100:.1f}%")
+        logger.info(f"   Over/Under 4.5:")
+        logger.info(f"      Over: {prob_over_45*100:.1f}%")
+        logger.info(f"      Under: {prob_under_45*100:.1f}%")
+        
+        # 9. Double Chance
+        prob_1X = prob_home_win + prob_draw
+        prob_12 = prob_home_win + prob_away_win
+        prob_X2 = prob_draw + prob_away_win
+        
+        logger.info(f"   Double Chance:")
+        logger.info(f"      1X (Casa ou Empate): {prob_1X*100:.1f}%")
+        logger.info(f"      12 (Casa ou Fora): {prob_12*100:.1f}%")
+        logger.info(f"      X2 (Empate ou Fora): {prob_X2*100:.1f}%")
+        
+        # 10. Asian Lines (split bets)
+        # Over 2.25 = 50% Over 2 + 50% Over 2.5
+        prob_over_2 = sum(score_matrix[h, a] for h in range(7) for a in range(7) if h + a > 2)
+        prob_over_2_25 = (prob_over_2 + prob_over_25) / 2
+        prob_under_2_25 = 1 - prob_over_2_25
+        
+        # Over 2.75 = 50% Over 2.5 + 50% Over 3
+        prob_over_3 = sum(score_matrix[h, a] for h in range(7) for a in range(7) if h + a > 3)
+        prob_over_2_75 = (prob_over_25 + prob_over_3) / 2
+        prob_under_2_75 = 1 - prob_over_2_75
+        
+        # Over 1.75 = 50% Over 1.5 + 50% Over 2
+        prob_over_1_75 = (prob_over_15 + prob_over_2) / 2
+        prob_under_1_75 = 1 - prob_over_1_75
+        
+        # Over 3.25 = 50% Over 3 + 50% Over 3.5
+        prob_over_3_25 = (prob_over_3 + prob_over_35) / 2
+        prob_under_3_25 = 1 - prob_over_3_25
+        
+        logger.info(f"   Asian Lines:")
+        logger.info(f"      Over 2.25: {prob_over_2_25*100:.1f}%")
+        logger.info(f"      Over 2.75: {prob_over_2_75*100:.1f}%")
+        
+        # 11. Team Totals (under)
+        home_under_05 = 1 - home_over_05
+        home_under_15 = 1 - home_over_15
+        home_under_25 = 1 - home_over_25
+        away_under_05 = 1 - away_over_05
+        away_under_15 = 1 - away_over_15
+        away_under_25 = 1 - away_over_25
+        
+        # 12. Winning Margin (any team)
+        any_by_1 = home_by_1 + away_by_1
+        any_by_2plus = home_by_2plus + away_by_2plus
+        
         # 6. Top 10 placares mais prováveis
         top_scores = []
         flat_indices = np.argsort(score_matrix.ravel())[::-1][:10]
@@ -324,30 +383,71 @@ class PoissonBivariateModel:
             },
             'most_likely_score': most_likely_score,
             'probabilities': {
+                # 1X2
                 'home_win': float(prob_home_win),
                 'draw': float(prob_draw),
                 'away_win': float(prob_away_win),
+                
+                # Double Chance
+                '1X': float(prob_1X),
+                '12': float(prob_12),
+                'X2': float(prob_X2),
+                
+                # Over/Under Total
+                'over_0_5': float(prob_over_05),
+                'under_0_5': float(prob_under_05),
                 'over_1_5': float(prob_over_15),
                 'under_1_5': float(prob_under_15),
                 'over_2_5': float(prob_over_25),
                 'under_2_5': float(prob_under_25),
                 'over_3_5': float(prob_over_35),
                 'under_3_5': float(prob_under_35),
+                'over_4_5': float(prob_over_45),
+                'under_4_5': float(prob_under_45),
+                
+                # Asian Lines
+                'over_1_75': float(prob_over_1_75),
+                'under_1_75': float(prob_under_1_75),
+                'over_2_25': float(prob_over_2_25),
+                'under_2_25': float(prob_under_2_25),
+                'over_2_75': float(prob_over_2_75),
+                'under_2_75': float(prob_under_2_75),
+                'over_3_25': float(prob_over_3_25),
+                'under_3_25': float(prob_under_3_25),
+                
+                # BTTS
                 'btts': float(prob_btts),
+                'btts_yes': float(prob_btts),
+                'btts_no': float(1 - prob_btts),
+                
+                # Clean Sheets
                 'home_clean_sheet': float(prob_home_clean_sheet),
                 'away_clean_sheet': float(prob_away_clean_sheet),
-                # Team Total Goals
-                'home_over_05': float(home_over_05),
-                'home_over_15': float(home_over_15),
-                'home_over_25': float(home_over_25),
-                'away_over_05': float(away_over_05),
-                'away_over_15': float(away_over_15),
-                'away_over_25': float(away_over_25),
+                
+                # Team Total Goals - Home
+                'home_over_0.5': float(home_over_05),
+                'home_under_0.5': float(home_under_05),
+                'home_over_1.5': float(home_over_15),
+                'home_under_1.5': float(home_under_15),
+                'home_over_2.5': float(home_over_25),
+                'home_under_2.5': float(home_under_25),
+                
+                # Team Total Goals - Away
+                'away_over_0.5': float(away_over_05),
+                'away_under_0.5': float(away_under_05),
+                'away_over_1.5': float(away_over_15),
+                'away_under_1.5': float(away_under_15),
+                'away_over_2.5': float(away_over_25),
+                'away_under_2.5': float(away_under_25),
+                
                 # Winning Margins
-                'home_win_by_1': float(home_by_1),
-                'home_win_by_2plus': float(home_by_2plus),
-                'away_win_by_1': float(away_by_1),
-                'away_win_by_2plus': float(away_by_2plus),
+                'home_by_1': float(home_by_1),
+                'home_by_2plus': float(home_by_2plus),
+                'away_by_1': float(away_by_1),
+                'away_by_2plus': float(away_by_2plus),
+                'any_by_1': float(any_by_1),
+                'any_by_2plus': float(any_by_2plus),
+                
                 # Odd/Even
                 'odd_goals': float(prob_odd),
                 'even_goals': float(prob_even)

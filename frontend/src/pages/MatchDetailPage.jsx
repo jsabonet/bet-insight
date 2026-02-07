@@ -1352,7 +1352,12 @@ export default function MatchDetailPage() {
                 // Retornar dados já estruturados para o modal
                 return response.data;
               } catch (error) {
-                console.error('Erro ao buscar análise unificada:', error);
+                console.error('❌ Erro ao buscar análise unificada:', error);
+                console.error('📍 Erro detalhes:', {
+                  status: error.response?.status,
+                  data: error.response?.data,
+                  message: error.message
+                });
                 
                 // Verificar se é erro de limite
                 if (error.response?.status === 429 || error.response?.data?.code === 'QUOTA_EXCEEDED') {

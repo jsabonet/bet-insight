@@ -25,7 +25,7 @@ class MatchListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Match
         fields = [
-            'id', 'league', 'home_team', 'away_team', 'match_date',
+            'id', 'api_football_id', 'league', 'home_team', 'away_team', 'match_date',
             'status', 'home_score', 'away_score', 'is_analysis_available'
         ]
 
@@ -41,7 +41,7 @@ class MatchDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Match
         fields = [
-            'id', 'league', 'home_team', 'away_team', 'match_date',
+            'id', 'api_football_id', 'league', 'home_team', 'away_team', 'match_date',
             'status', 'round', 'home_score', 'away_score', 
             'is_analysis_available', 'stats_cache', 'result', 'is_upcoming'
         ]

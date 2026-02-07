@@ -213,13 +213,13 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) 
           text += `${index + 1}. ${bet.market_display}\n`;
           text += `   📊 Probabilidade: ${formatProb(bet.probability)}%\n`;
           if (bet.market_odd) {
-            text += `   💰 Odd: ${bet.market_odd.toFixed(2)}\n`;
+            text += `   💰 Odd: ${(bet.market_odd || 0).toFixed(2)}\n`;
           }
           if (bet.expected_value) {
-            text += `   📈 Valor Esperado: ${bet.expected_value > 0 ? '+' : ''}${(bet.expected_value * 100).toFixed(1)}%\n`;
+            text += `   📈 Valor Esperado: ${bet.expected_value > 0 ? '+' : ''}${((bet.expected_value || 0) * 100).toFixed(1)}%\n`;
           }
           if (bet.stake_units) {
-            text += `   💵 Stake: ${bet.stake_units.toFixed(1)}u\n`;
+            text += `   💵 Stake: ${(bet.stake_units || 0).toFixed(1)}u\n`;
           }
           if (bet.reason) {
             text += `   ℹ️ ${bet.reason}\n`;
@@ -566,7 +566,7 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) 
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-bold text-gray-900 dark:text-white">
-                        {bet.market_odd.toFixed(2)}
+                        {(bet.market_odd || 0).toFixed(2)}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">odd</p>
                     </div>
@@ -590,7 +590,7 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) 
                           ? 'text-green-600 dark:text-green-400' 
                           : 'text-red-600 dark:text-red-400'
                       }`}>
-                        {bet.ev_pct >= 0 ? '+' : ''}{bet.ev_pct.toFixed(1)}%
+                        {bet.ev_pct >= 0 ? '+' : ''}{(bet.ev_pct || 0).toFixed(1)}%
                       </p>
                     </div>
                     <div className="bg-purple-50 dark:bg-purple-900/20 rounded px-2 py-1">

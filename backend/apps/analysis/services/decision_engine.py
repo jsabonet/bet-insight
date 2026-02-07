@@ -4,6 +4,7 @@ Combina modelos estatísticos e identifica value bets
 """
 import logging
 import numpy as np
+from .market_selector import MarketSelector  # NOVO
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,12 @@ class DecisionEngine:
     3. Calcula confiança da previsão
     4. Avalia risco
     5. Gera recomendação final
+    6. NOVO: Usa análise contextual para selecionar mercados apropriados
     """
+    
+    def __init__(self):
+        """Inicializa o Decision Engine com MarketSelector."""
+        self.market_selector = MarketSelector()
     
     def should_publish_prediction(self, consensus, confidence, threshold_prob=0.52, threshold_conf=0.75):
         """
@@ -84,15 +90,16 @@ class DecisionEngine:
             'filter_passed': filter_status
         }
     
-    def make_decision(self, model_predictions, features, market_odds, strategy='value'):
+    def make_decision(self, model_predictions, features, market_odds, strategy='value', context_analysis=None):
         """
-        Decisão final baseada em modelos + mercado
+        Decisão final baseada em modelos + mercado + contexto
         
         Args:
             model_predictions (dict): Previsões dos modelos (Poisson + Logística)
             features (dict): Features engineered
             market_odds (dict): Odds do mercado
             strategy (str): 'value' (EV máximo) ou 'multiple' (prob alta + EV positivo)
+            context_analysis (dict): Análise contextual do ContextAnalyzer (NOVO)
         
         Returns:
             dict: {
@@ -101,7 +108,8 @@ class DecisionEngine:
                 'risk': str,
                 'value_bets': [...],
                 'fair_odds': {...},
-                'strategy': str
+                'strategy': str,
+                'top_bets': [...]  # Selecionados por contexto se disponível
             }
         """
         logger.info(f"\n{'='*80}")
@@ -163,11 +171,27 @@ class DecisionEngine:
         logger.info(f"      Probabilidade: {recommendation['probability']*100:.1f}%")
         logger.info(f"      Odd: {recommendation['odd']}")
         
-        # 6. SELEÇÃO OBJETIVA das top 3 apostas (SEM IA)
-        logger.info(f"\n6️⃣ Selecionando top 3 apostas (decisão objetiva, estratégia={strategy})...")
-        logger.info(f"🔍 DEBUG ANTES DE CHAMAR select_top_bets - market_odds: {market_odds}")
-        logger.info(f"🔍 DEBUG ANTES DE CHAMAR select_top_bets - features['market']: {features.get('market')}")
-        top_bets = self.select_top_bets(model_predictions, market_odds, confidence, risk, strategy=strategy)
+        # 6. SELEÇÃO OBJETIVA das top 3 apostas
+        logger.info(f"\n6️⃣ Selecionando top 3 apostas...")
+        logger.info(f"   Estratégia: {strategy.upper()}")
+        logger.info(f"   Contexto disponível: {'SIM' if context_analysis else 'NÃO'}")
+        
+        # NOVO: Usar seleção contextual se disponível
+        if context_analysis and context_analysis.get('patterns'):
+            logger.info(f"   🎯 Usando seleção CONTEXTUAL (MarketSelector)")
+            top_bets = self._select_contextual_bets(
+                context_analysis,
+                model_predictions,
+                market_odds,
+                confidence,
+                risk,
+                strategy
+            )
+        else:
+            logger.info(f"   📊 Usando seleção PADRÃO (sem contexto)")
+            logger.info(f"🔍 DEBUG ANTES DE CHAMAR select_top_bets - market_odds: {market_odds}")
+            logger.info(f"🔍 DEBUG ANTES DE CHAMAR select_top_bets - features['market']: {features.get('market')}")
+            top_bets = self.select_top_bets(model_predictions, market_odds, confidence, risk, strategy=strategy)
         
         for bet in top_bets:
             logger.info(f"   #{bet['rank']}: {bet['pick']} ({bet['market_display']})")
@@ -899,9 +923,7 @@ class DecisionEngine:
             if candidate['category'] not in used_categories or len([c for c in others if c['category'] not in used_categories]) == 0:
                 stake_units = self._calculate_stake_units(
                     candidate['ev_pct'],
-                    candidate['probability'],
-                    confidence,
-                    risk
+                    candidate['probability']
                 )
                 
                 selected.append({
@@ -1029,51 +1051,6 @@ class DecisionEngine:
         
         return round(score, 3)
     
-    def _calculate_stake_units(self, ev_pct, probability, confidence, risk):
-        """
-        Calcula stake OBJETIVO em unidades (0.5 a 2.0).
-        
-        Base: 1.0 unidade
-        Ajustes:
-        - EV alto: +0.5u
-        - Confiança alta: +0.3u
-        - Risco alto: -0.5u
-        
-        Limites rígidos:
-        - LOW risk: max 2.0u
-        - MEDIUM risk: max 1.5u
-        - HIGH risk: max 0.5u
-        """
-        base_stake = 1.0
-        
-        # Ajuste por EV
-        if ev_pct >= 10:
-            base_stake += 0.5
-        elif ev_pct >= 5:
-            base_stake += 0.3
-        elif ev_pct < -5:
-            base_stake -= 0.3
-        
-        # Ajuste por confiança
-        conf_score = confidence.get('score', 0.5)
-        if conf_score >= 0.8:
-            base_stake += 0.3
-        elif conf_score < 0.5:
-            base_stake -= 0.3
-        
-        # Limites por risco (CRÍTICO)
-        max_stakes = {
-            'low': 2.0,
-            'medium': 1.5,
-            'high': 0.5
-        }
-        
-        max_stake = max_stakes.get(risk, 1.0)
-        final_stake = min(base_stake, max_stake)
-        final_stake = max(0.5, final_stake)  # Mínimo 0.5u
-        
-        return round(final_stake, 1)
-    
     def _generate_bet_reason(self, candidate, confidence, risk):
         """Gera razão OBJETIVA para a aposta."""
         prob = candidate['probability'] * 100
@@ -1112,3 +1089,112 @@ class DecisionEngine:
             return "1-2% do bankroll"
         else:  # Value baixo (<5%)
             return "0.5-1% do bankroll"
+    
+    def _select_contextual_bets(self, context_analysis, model_predictions, market_odds, 
+                               confidence, risk, strategy):
+        """
+        Seleciona top 3 apostas usando análise contextual.
+        
+        NOVO: Usa MarketSelector para escolher mercados que o contexto favorece.
+        
+        Args:
+            context_analysis: Padrões contextuais detectados
+            model_predictions: Probabilidades dos modelos
+            market_odds: Odds do mercado
+            confidence: Confiança da análise
+            risk: Nível de risco
+            strategy: 'value' ou 'multiple'
+            
+        Returns:
+            list: Top 3 apostas contextuais
+        """
+        logger.info("\n🎯 Seleção Contextual de Mercados")
+        logger.info(f"   Padrões detectados: {len(context_analysis.get('patterns', []))}")
+        
+        # Usar MarketSelector para escolher mercados
+        selected_markets = self.market_selector.select_top_markets(
+            context_analysis,
+            model_predictions,
+            market_odds,
+            strategy
+        )
+        
+        # Formatar para output padrão do DecisionEngine
+        top_bets = []
+        for i, market_data in enumerate(selected_markets, 1):
+            # Calcular stake baseado em EV
+            if market_data['ev_pct'] > 0:
+                stake_suggestion = self._suggest_stake(market_data['ev_pct'], market_data['probability'])
+            else:
+                stake_suggestion = "Não recomendado (EV negativo)"
+            
+            # Determinar pick baseado no mercado
+            pick = self._format_pick_for_market(market_data['market'])
+            
+            bet = {
+                'rank': i,
+                'market': market_data['market'],
+                'market_display': market_data['market_display'],
+                'pick': pick,
+                'probability': market_data['probability'],
+                'market_odd': market_data['market_odd'],
+                'fair_odd': market_data['fair_odd'],
+                'ev_pct': market_data['ev_pct'],
+                'stake_units': self._calculate_stake_units(market_data['ev_pct'], market_data['probability']),
+                'score': market_data['final_score'],
+                'reason': market_data['reasoning'],  # Reasoning contextual do MarketSelector
+                'context_score': market_data.get('context_score', 0)
+            }
+            
+            top_bets.append(bet)
+        
+        logger.info(f"\n✅ {len(top_bets)} apostas contextuais selecionadas")
+        
+        return top_bets
+    
+    def _format_pick_for_market(self, market):
+        """Formata o pick baseado no tipo de mercado."""
+        if market == 'home_win':
+            return 'Casa'
+        elif market == 'away_win':
+            return 'Fora'
+        elif market == 'draw':
+            return 'Empate'
+        elif 'over' in market:
+            return 'Over'
+        elif 'under' in market:
+            return 'Under'
+        elif 'btts_yes' in market:
+            return 'Ambos Marcam'
+        elif 'btts_no' in market:
+            return 'Nenhum ou Apenas Um Marca'
+        elif 'dnb_home' in market:
+            return 'Casa (Empate Anula)'
+        elif 'dnb_away' in market:
+            return 'Fora (Empate Anula)'
+        elif 'draw_ht' in market:
+            return 'Empate HT'
+        else:
+            return market.replace('_', ' ').title()
+    
+    def _calculate_stake_units(self, ev_pct, probability):
+        """
+        Calcula stake em unidades baseado em EV e probabilidade.
+        
+        Usa Kelly Criterion fracionário (1/4 Kelly).
+        """
+        if ev_pct <= 0:
+            return 0.5  # Stake mínimo se EV negativo
+        
+        # Converter EV% em decimal
+        edge = ev_pct / 100
+        
+        # Kelly: (edge × probability - (1 - probability)) / edge
+        # Simplificado: edge × 4 (1/4 Kelly)
+        kelly_fraction = edge * 4
+        
+        # Limitar entre 0.5 e 3.0 unidades
+        stake = max(0.5, min(kelly_fraction, 3.0))
+        
+        return round(stake, 1)
+

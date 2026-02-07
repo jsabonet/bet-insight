@@ -121,8 +121,12 @@ class MLModel:
                 'model': f'{"cup" if is_cup else "league"}_1x2',
                 'model_type': 'cup' if is_cup else 'league'
             }
-        except Exception as e:
+        except ValueError as e:
+            # Erro de shape ou features
             logger.error(f"❌ Erro predict_1x2: {e}")
+            return {'home_win': 0.33, 'draw': 0.33, 'away_win': 0.33, 'model': 'error_fallback'}
+        except Exception as e:
+            logger.error(f"❌ Erro inesperado predict_1x2: {type(e).__name__}: {e}")
             return {'home_win': 0.33, 'draw': 0.33, 'away_win': 0.33, 'model': 'error_fallback'}
     
     def predict_btts(self, features, is_cup=False):
@@ -161,11 +165,27 @@ class MLModel:
     
     def _prepare_features(self, flat_features):
         """Prepara vetor de features para predição (preenche com zeros para features faltando)"""
-        # Por enquanto, usa todas as features disponíveis
-        # TODO: Alinhar com feature_names.json de cada modelo
+        # Converter valores para numéricos
         values = [v if not isinstance(v, (str, bool, type(None))) else (1 if v is True else 0) 
                  for v in flat_features.values()]
-        return np.array([values])
+        
+        # PROTEÇÃO: Se modelo espera menos features, truncar
+        # Isso permite funcionar enquanto modelo não é retreinado
+        X = np.array([values])
+        
+        expected_features = 98  # Modelo atual foi treinado com 98 features
+        actual_features = X.shape[1]
+        
+        if actual_features != expected_features:
+            logger.warning(f"⚠️ Feature mismatch: modelo espera {expected_features}, recebeu {actual_features}")
+            if actual_features > expected_features:
+                logger.info(f"   Truncando features extras ({actual_features - expected_features} removidas)")
+                X = X[:, :expected_features]
+            else:
+                logger.warning(f"   ❌ Features insuficientes! Modelo não funcionará corretamente")
+                logger.warning(f"   ⚠️ Recomendação: Retreine o modelo com as novas {actual_features} features")
+        
+        return X
     
     def _flatten_features(self, features):
         """
@@ -242,18 +262,21 @@ class ModelEnsembleML:
         logger.info(f"🎯 Ensemble: Poisson + {'ML' if self.has_ml else 'Logística'}{' + Market' if use_market_prior else ''}")
     
     def predict(self, features, home_strength, away_strength, weather_impact=0.0, league_id=None,
-                home_defense=None, away_defense=None, knockout_adjustment=1.0):
+                home_defense=None, away_defense=None, knockout_adjustment=1.0, context_analysis=None):
         """
         Combina Poisson + ML + Market Odds
         
-        Pesos otimizados para ML:
+        Pesos otimizados para ML + AJUSTE CONTEXTUAL:
         - Poisson: 20% (xG puro, sem contexto)
         - ML: 50% (TODAS as features, treinado em 5000+ jogos)
         - Market: 30% (benchmark profissional)
         
+        NOVO: Se context_analysis fornecido, ajusta pesos baseado em padrões detectados.
+        
         Args:
             knockout_adjustment: Fator de ajuste para competições de copa (0.75-1.0)
                                 Aplica redução no xG em jogos eliminatórios
+            context_analysis: Análise contextual do ContextAnalyzer (opcional)
         """
         logger.info(f"\n{'='*80}")
         logger.info("🎯 ENSEMBLE ML - Combinando modelos")
@@ -283,28 +306,36 @@ class ModelEnsembleML:
             'away_win': market.get('market_away_prob', 0.33)
         }
         
-        # 4. Pesos do ensemble (OTIMIZADOS PARA ML)
-        if self.has_ml:
-            # COM ML TREINADO: ML domina (50%), Market complementa (30%), Poisson base (20%)
-            if self.use_market_prior and sum(market_prior.values()) > 0.9:
-                weight_poisson = 0.20
-                weight_ml = 0.50
-                weight_market = 0.30
-            else:
-                # Sem market: ML 70%, Poisson 30%
-                weight_poisson = 0.30
-                weight_ml = 0.70
-                weight_market = 0.0
+        # 4. Pesos do ensemble (OTIMIZADOS PARA ML + AJUSTE CONTEXTUAL)
+        # NOVO: Ajustar pesos baseado em contexto se disponível
+        if context_analysis:
+            weights = self._adjust_weights_for_context(context_analysis)
+            weight_poisson = weights['poisson']
+            weight_ml = weights['ml']
+            weight_market = weights['market']
         else:
-            # SEM ML (fallback logística): pesos originais
-            if self.use_market_prior and sum(market_prior.values()) > 0.9:
-                weight_poisson = 0.25
-                weight_ml = 0.40
-                weight_market = 0.35
+            # Pesos padrão (sem contexto)
+            if self.has_ml:
+                # COM ML TREINADO: ML domina (50%), Market complementa (30%), Poisson base (20%)
+                if self.use_market_prior and sum(market_prior.values()) > 0.9:
+                    weight_poisson = 0.20
+                    weight_ml = 0.50
+                    weight_market = 0.30
+                else:
+                    # Sem market: ML 70%, Poisson 30%
+                    weight_poisson = 0.30
+                    weight_ml = 0.70
+                    weight_market = 0.0
             else:
-                weight_poisson = 0.45
-                weight_ml = 0.55
-                weight_market = 0.0
+                # SEM ML (fallback logística): pesos originais
+                if self.use_market_prior and sum(market_prior.values()) > 0.9:
+                    weight_poisson = 0.25
+                    weight_ml = 0.40
+                    weight_market = 0.35
+                else:
+                    weight_poisson = 0.45
+                    weight_ml = 0.55
+                    weight_market = 0.0
         
         logger.info(f"\n⚖️ Pesos do Ensemble {'(COM ML TREINADO)' if self.has_ml else '(Logística Baseline)'}:")
         logger.info(f"   Poisson: {weight_poisson*100:.0f}%")
@@ -353,3 +384,99 @@ class ModelEnsembleML:
             },
             'has_ml_model': self.has_ml
         }
+    
+    def _adjust_weights_for_context(self, context_analysis: dict) -> dict:
+        """
+        Ajusta pesos do ensemble baseado em padrões contextuais detectados.
+        
+        Lógica:
+        - Padrões motivacionais/contextuais (low_motivation, asymmetric_motivation, derby):
+          → Aumentar ML (vê motivação, lesões, contexto)
+          → Reduzir Poisson (só vê força histórica)
+        
+        - Padrões estatísticos puros (open_game com histórico forte):
+          → Balancear Poisson e ML
+        
+        Args:
+            context_analysis: Output do ContextAnalyzer
+            
+        Returns:
+            dict: {'poisson': 0.X, 'ml': 0.Y, 'market': 0.Z}
+        """
+        patterns = context_analysis.get('patterns', [])
+        
+        # Identificar tipo de padrões dominantes
+        motivational_patterns = ['low_motivation_both', 'asymmetric_motivation', 'derby_context']
+        contextual_patterns = ['critical_injuries', 'upset_potential']
+        statistical_patterns = ['open_game', 'defensive_fatigue_game']
+        
+        # Contar padrões por tipo
+        motivational_count = sum(1 for p in patterns if p['name'] in motivational_patterns)
+        contextual_count = sum(1 for p in patterns if p['name'] in contextual_patterns)
+        statistical_count = sum(1 for p in patterns if p['name'] in statistical_patterns)
+        
+        # Pegar maior confiança entre padrões motivacionais/contextuais
+        max_context_confidence = 0
+        for pattern in patterns:
+            if pattern['name'] in motivational_patterns + contextual_patterns:
+                if pattern['confidence'] > max_context_confidence:
+                    max_context_confidence = pattern['confidence']
+        
+        # DECISÃO: Ajustar pesos se contexto forte
+        if max_context_confidence >= 0.80:
+            # Contexto muito forte → ML domina (conhece contexto)
+            logger.info(f"\n⚖️ Ajustando pesos: Contexto forte ({max_context_confidence:.0%})")
+            logger.info(f"   Padrões: {', '.join([p['name'] for p in patterns])}")
+            
+            if self.has_ml:
+                weights = {
+                    'poisson': 0.10,  # Reduzir (ignora contexto)
+                    'ml': 0.70,       # Aumentar (usa features contextuais)
+                    'market': 0.20    # Manter
+                }
+            else:
+                # Sem ML, manter pesos padrão
+                weights = {
+                    'poisson': 0.25,
+                    'ml': 0.40,
+                    'market': 0.35
+                }
+            
+            logger.info(f"   Novo: Poisson {weights['poisson']:.0%}, ML {weights['ml']:.0%}, Market {weights['market']:.0%}")
+            
+        elif max_context_confidence >= 0.65:
+            # Contexto moderado → Ajuste leve
+            logger.info(f"\n⚖️ Ajustando pesos: Contexto moderado ({max_context_confidence:.0%})")
+            
+            if self.has_ml:
+                weights = {
+                    'poisson': 0.15,
+                    'ml': 0.60,
+                    'market': 0.25
+                }
+            else:
+                weights = {
+                    'poisson': 0.25,
+                    'ml': 0.40,
+                    'market': 0.35
+                }
+            
+            logger.info(f"   Novo: Poisson {weights['poisson']:.0%}, ML {weights['ml']:.0%}, Market {weights['market']:.0%}")
+            
+        else:
+            # Contexto fraco → Pesos padrão
+            logger.info(f"\n⚖️ Contexto fraco ({max_context_confidence:.0%}) - mantendo pesos padrão")
+            
+            if self.has_ml:
+                if self.use_market_prior:
+                    weights = {'poisson': 0.20, 'ml': 0.50, 'market': 0.30}
+                else:
+                    weights = {'poisson': 0.30, 'ml': 0.70, 'market': 0.0}
+            else:
+                if self.use_market_prior:
+                    weights = {'poisson': 0.25, 'ml': 0.40, 'market': 0.35}
+                else:
+                    weights = {'poisson': 0.45, 'ml': 0.55, 'market': 0.0}
+        
+        return weights
+

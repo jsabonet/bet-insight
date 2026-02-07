@@ -1993,7 +1993,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             try:
                 logger.info(f"📍 Tentativa 1: Buscar por self.get_object()...")
                 match = self.get_object()
-                logger.info(f"✅ Match encontrado no banco de dados por ID: {match.id}")
+                logger.info(f"✅ Match encontrado no banco de dados por ID: {match.id} (api_football_id: {match.api_football_id})")
             except Exception as e1:
                 logger.warning(f"⚠️ get_object() falhou: {type(e1).__name__}: {e1}")
                 # 2. Tentar buscar por api_football_id
@@ -2449,8 +2449,16 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             return Response(unified_response)
             
         except Exception as e:
-            logger.error(f"Erro no unified_analysis: {str(e)}", exc_info=True)
+            import traceback
+            error_traceback = traceback.format_exc()
+            logger.error(f"❌ ERRO NO UNIFIED_ANALYSIS: {str(e)}")
+            logger.error(f"📍 Traceback completo:\n{error_traceback}")
             return Response(
-                {'error': 'Erro ao gerar análise unificada', 'details': str(e)},
+                {
+                    'error': 'Erro ao gerar análise unificada',
+                    'details': str(e),
+                    'type': type(e).__name__,
+                    'match_id': self.kwargs.get('pk')
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

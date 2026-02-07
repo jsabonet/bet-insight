@@ -208,10 +208,11 @@ class AIAnalyzer:
         # Gerar análise adaptada à estratégia
         if strategy == 'multiple':
             # MODO BILHETE: Foco em probabilidade e combinação
+            market_odd = best_bet.get('market_odd') or 0
             analysis = f"""📋 MELHOR PARA BILHETE
 ---------------------------------------
 Aposta: {best_bet['market_display']}
-Odd: {best_bet['market_odd']:.2f} (ideal para bilhetes: 1.30-2.00)
+Odd: {market_odd:.2f} (ideal para bilhetes: 1.30-2.00)
 Probabilidade: {best_bet['probability']*100:.1f}% (mínimo 50%)
 Stake: {best_bet['stake_units']:.1f} unidades
 
@@ -244,10 +245,11 @@ Use em favoritos consistentes, não underdogs.
         
         else:
             # MODO VALUE: Foco em EV e lucro longo prazo
+            market_odd = best_bet.get('market_odd') or 0
             analysis = f"""🎯 RECOMENDAÇÃO PRINCIPAL
 ---------------------------------------
 Aposta: {best_bet['market_display']}
-Odd: {best_bet['market_odd']:.2f}
+Odd: {market_odd:.2f}
 EV: {best_bet['ev_pct']:+.1f}%
 Stake: {best_bet['stake_units']:.1f} unidades
 Risco: {risk.upper()}
@@ -258,7 +260,7 @@ PORQUE APOSTAR:
 • Confiança do modelo: {confidence.get('stars', 3)}/5
 
 ⚠️ NÃO APOSTE SE:
-• A odd cair abaixo de {best_bet['fair_odd']:.2f}
+• A odd cair abaixo de {best_bet.get('fair_odd') or 0:.2f}
 • Houver mudanças significativas nas condições do jogo
 """
 
@@ -339,9 +341,11 @@ PORQUE APOSTAR:
         # Formatar TOP BETS decididas
         bets_info = "\nAPOSTAS RECOMENDADAS (JA SELECIONADAS - APENAS EXPLIQUE):\n"
         for bet in top_bets:
+            market_odd = bet.get('market_odd') or 0
+            fair_odd = bet.get('fair_odd') or 0
             bets_info += f"\n{bet['rank']}. {bet['market_display']} - {bet['pick']}\n"
             bets_info += f"   Probabilidade: {bet['probability']*100:.1f}%\n"
-            bets_info += f"   Odd mercado: {bet['market_odd']:.2f} | Fair: {bet['fair_odd']:.2f}\n"
+            bets_info += f"   Odd mercado: {market_odd:.2f} | Fair: {fair_odd:.2f}\n"
             bets_info += f"   EV: {bet['ev_pct']:+.1f}%\n"
             bets_info += f"   Stake: {bet['stake_units']} unidade(s)\n"
             bets_info += f"   Razao: {bet['reason']}\n"

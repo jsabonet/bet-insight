@@ -191,10 +191,15 @@ export default function MyAnalysesPage() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-3">
+                    <div className="flex items-center gap-2 mb-3 flex-wrap">
                       <span className="text-xs text-gray-600 dark:text-gray-400 font-medium bg-gray-100 dark:bg-gray-800/50 px-2 py-1 rounded">
                         {analysis.match.league.name}
                       </span>
+                      {analysis.match.api_football_id && (
+                        <span className="text-xs text-gray-500 dark:text-gray-500 font-mono bg-gray-50 dark:bg-gray-900/50 px-2 py-1 rounded border border-gray-200 dark:border-gray-700/50">
+                          ID: {analysis.match.api_football_id}
+                        </span>
+                      )}
                       <span className={`text-xs px-3 py-1 rounded-full font-semibold border ${getConfidenceColor(analysis.confidence)}`}>
                         {analysis.confidence_display}
                       </span>
