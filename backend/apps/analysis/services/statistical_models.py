@@ -8,6 +8,7 @@ import numpy as np
 from scipy.stats import poisson
 from scipy.special import expit  # Função logística
 import math
+from apps.analysis.config.analysis_config import EnsembleWeights
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +146,13 @@ class PoissonBivariateModel:
             weather_adjusted = True
             logger.info(f"\n🌦️ Ajuste Climático: {weather_impact:+.2f} gols")
         
+        # 🔍 DEBUG CRÍTICO: Mostrar λ antes do ajuste de copa
+        logger.info(f"\n🔍 DEBUG POISSON - Lambda ANTES ajuste copa:")
+        logger.info(f"   λ_home: {lambda_home:.3f}")
+        logger.info(f"   λ_away: {lambda_away:.3f}")
+        logger.info(f"   λ_total: {lambda_home + lambda_away:.3f}")
+        logger.info(f"   knockout_adjustment: {knockout_adjustment:.2f}")
+        
         # 3. Ajuste para competições de copa (NOVO)
         knockout_adjusted = False
         if knockout_adjustment < 1.0:
@@ -239,6 +247,15 @@ class PoissonBivariateModel:
         logger.info(f"   Over/Under 2.5:")
         logger.info(f"      Over: {prob_over_25*100:.1f}%")
         logger.info(f"      Under: {prob_under_25*100:.1f}%")
+        
+        # 🔍 DEBUG CRÍTICO: Verificar se under_2.5 está absurdo
+        if prob_under_25 > 0.95:
+            logger.error(f"\n🚨 PROBABILIDADE ABSURDA DETECTADA!")
+            logger.error(f"   Under 2.5: {prob_under_25:.1%} (>95%)")
+            logger.error(f"   λ_total: {lambda_home + lambda_away:.3f}")
+            logger.error(f"   Isso só é normal se λ_total < 1.0")
+            logger.error(f"   VERIFICAR se home_defense/away_defense estão corretos!")
+        
         logger.info(f"   Over/Under 3.5:")
         logger.info(f"      Over: {prob_over_35*100:.1f}%")
         logger.info(f"      Under: {prob_under_35*100:.1f}%")
@@ -249,7 +266,17 @@ class PoissonBivariateModel:
             for a in range(1, 7):  # Fora marca 1+
                 prob_btts += score_matrix[h, a]
         
+        prob_btts_no = 1 - prob_btts
+        
         logger.info(f"   Ambas Marcam: {prob_btts*100:.1f}%")
+        logger.info(f"   Ambas NÃO Marcam: {prob_btts_no*100:.1f}%")
+        
+        # 🔍 DEBUG CRÍTICO: Verificar se BTTS No está absurdo
+        if prob_btts_no > 0.95:
+            logger.error(f"\n🚨 PROBABILIDADE ABSURDA DETECTADA!")
+            logger.error(f"   BTTS No: {prob_btts_no:.1%} (>95%)")
+            logger.error(f"   λ_total: {lambda_home + lambda_away:.3f}")
+            logger.error(f"   VERIFICAR se xG está correto!")
         
         # Clean Sheets (Casa/Fora não sofre gols)
         prob_home_clean_sheet = 0  # Fora não marca (away_goals = 0)
@@ -388,32 +415,32 @@ class PoissonBivariateModel:
                 'draw': float(prob_draw),
                 'away_win': float(prob_away_win),
                 
-                # Double Chance
-                '1X': float(prob_1X),
+                # Double Chance (nomenclatura canônica: lowercase)
+                '1x': float(prob_1X),
                 '12': float(prob_12),
-                'X2': float(prob_X2),
+                'x2': float(prob_X2),
                 
-                # Over/Under Total
-                'over_0_5': float(prob_over_05),
-                'under_0_5': float(prob_under_05),
-                'over_1_5': float(prob_over_15),
-                'under_1_5': float(prob_under_15),
-                'over_2_5': float(prob_over_25),
-                'under_2_5': float(prob_under_25),
-                'over_3_5': float(prob_over_35),
-                'under_3_5': float(prob_under_35),
-                'over_4_5': float(prob_over_45),
-                'under_4_5': float(prob_under_45),
+                # Over/Under Total (nomenclatura canônica: ponto decimal)
+                'over_0.5': float(prob_over_05),
+                'under_0.5': float(prob_under_05),
+                'over_1.5': float(prob_over_15),
+                'under_1.5': float(prob_under_15),
+                'over_2.5': float(prob_over_25),
+                'under_2.5': float(prob_under_25),
+                'over_3.5': float(prob_over_35),
+                'under_3.5': float(prob_under_35),
+                'over_4.5': float(prob_over_45),
+                'under_4.5': float(prob_under_45),
                 
                 # Asian Lines
-                'over_1_75': float(prob_over_1_75),
-                'under_1_75': float(prob_under_1_75),
-                'over_2_25': float(prob_over_2_25),
-                'under_2_25': float(prob_under_2_25),
-                'over_2_75': float(prob_over_2_75),
-                'under_2_75': float(prob_under_2_75),
-                'over_3_25': float(prob_over_3_25),
-                'under_3_25': float(prob_under_3_25),
+                'over_1.75': float(prob_over_1_75),
+                'under_1.75': float(prob_under_1_75),
+                'over_2.25': float(prob_over_2_25),
+                'under_2.25': float(prob_under_2_25),
+                'over_2.75': float(prob_over_2_75),
+                'under_2.75': float(prob_under_2_75),
+                'over_3.25': float(prob_over_3_25),
+                'under_3.25': float(prob_under_3_25),
                 
                 # BTTS
                 'btts': float(prob_btts),
@@ -718,6 +745,18 @@ class ModelEnsemble:
         logger.info("🎯 ENSEMBLE - Combinando modelos (MELHORADO)")
         logger.info(f"{'='*80}")
         
+        # 🏆 DETECTAR COPA/KNOCKOUT: Aplicar fator de redução de gols
+        competition_features = features.get('competition', {})
+        is_knockout = competition_features.get('is_knockout', False)
+        knockout_factor = competition_features.get('xg_adjustment_factor', 1.0)
+        
+        if is_knockout and knockout_factor < 1.0:
+            logger.info(f"🏆 COPA/KNOCKOUT DETECTADA: fator {knockout_factor:.2f}")
+            # Aplicar fator de redução (partidas de Copa tendem a ter menos gols)
+            home_strength *= knockout_factor
+            away_strength *= knockout_factor
+            logger.info(f"   Força ajustada: Casa {home_strength:.2f}, Fora {away_strength:.2f}")
+        
         # 1. Previsão Poisson (com HOME_ADVANTAGE por liga + DEFESA)
         poisson_pred = self.poisson.predict(home_strength, away_strength, weather_impact, league_id,
                                            home_defense, away_defense)
@@ -733,17 +772,30 @@ class ModelEnsemble:
             'away_win': market.get('market_away_prob', 0.33)
         }
         
-        # 4. Pesos do ensemble (AJUSTADOS: +10pp market para corrigir viés anti-empate da Logística)
+        # 🎯 DETECTAR FAVORITO CLARO: Usar pesos específicos
+        max_market_prob = max(market_prior['home_win'], market_prior['away_win'])
+        is_clear_favorite = max_market_prob > 0.55  # Mais de 55% de probabilidade
+        
+        # 4. 🔧 USAR PESOS CONFIGURADOS (analysis_config.py) em vez de hardcoded
         if self.use_market_prior and sum(market_prior.values()) > 0.9:  # Validar odds disponíveis
-            # Com market prior: Poisson 40%, Logística 40%, Market 20% (teste)
-            weight_poisson = 0.40
-            weight_logistic = 0.40
-            weight_market = 0.20
+            # Escolher pesos baseado no contexto
+            if is_clear_favorite:
+                logger.info("🎯 FAVORITO CLARO detectado: usando pesos CLEAR_FAVORITE")
+                weights = EnsembleWeights.CLEAR_FAVORITE
+            else:
+                logger.info("📊 Contexto padrão: usando pesos DEFAULT_WITH_MARKET")
+                weights = EnsembleWeights.DEFAULT_WITH_MARKET
+            
+            weight_poisson = weights['poisson']
+            weight_logistic = weights['ml']
+            weight_market = weights['market']
         else:
-            # Sem market prior: Logística dominante
-            weight_poisson = 0.45   # 45% Poisson (reduzido de 60%)
-            weight_logistic = 0.55  # 55% Logística (aumentado de 40%)
-            weight_market = 0.0
+            # Sem market prior: usar pesos sem market
+            logger.info("⚠️ Sem market odds: usando pesos DEFAULT_WITHOUT_MARKET")
+            weights = EnsembleWeights.DEFAULT_WITHOUT_MARKET
+            weight_poisson = weights['poisson']
+            weight_logistic = weights['ml']
+            weight_market = weights['market']
         
         logger.info(f"\n⚖️ Pesos do Ensemble:")
         logger.info(f"   Poisson: {weight_poisson*100:.0f}%")

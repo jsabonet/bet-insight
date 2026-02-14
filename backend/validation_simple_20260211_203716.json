@@ -1,0 +1,33 @@
+{
+  "timestamp": "2026-02-11T20:37:16.988817",
+  "accuracy": 45.6,
+  "total_predictions": 500,
+  "total_correct": 228,
+  "markets": {
+    "home_win": {
+      "accuracy": 36.0,
+      "total": 100,
+      "correct": 36
+    },
+    "draw": {
+      "accuracy": 32.0,
+      "total": 100,
+      "correct": 32
+    },
+    "over_2.5": {
+      "accuracy": 53.0,
+      "total": 100,
+      "correct": 53
+    },
+    "under_2.5": {
+      "accuracy": 47.0,
+      "total": 100,
+      "correct": 47
+    },
+    "btts": {
+      "accuracy": 60.0,
+      "total": 100,
+      "correct": 60
+    }
+  }
+}

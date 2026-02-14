@@ -1,0 +1,50 @@
+﻿python : C:\Users\DELL\AppData\Local\Programs\Python\Python311\Lib\site-packages\rest_fr
+amework_simplejwt\__init__.py:1: UserWarning: pkg_resources is deprecated as an API. 
+See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package 
+is slated for removal as early as 2025-11-30. Refrain from using this package or pin to 
+Setuptools<81.
+At line:1 char:1
++ python simular_analise_brentford_arsenal.py 2>&1 | Out-File -Encoding ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\DELL\A... Setuptools<81.:String)  
+   [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  from pkg_resources import DistributionNotFound, get_distribution
+WARNING 2026-02-12 22:20:26,206 apps 
+================================================================================
+WARNING 2026-02-12 22:20:26,206 apps \U0001f50d VERIFICA╟├O STARTUP DJANGO - Valores 
+Carregados:
+WARNING 2026-02-12 22:20:26,206 apps    DEFAULT_WITH_MARKET poisson: 0.6
+WARNING 2026-02-12 22:20:26,206 apps    CLEAR_FAVORITE poisson: 0.7
+WARNING 2026-02-12 22:20:26,206 apps    \u2705 DJANGO CARREGOU C╙DIGO NOVO!
+WARNING 2026-02-12 22:20:26,207 apps 
+================================================================================
+================================================================================
+Traceback (most recent call last):
+  File 
+"D:\Projectos\Football\bet-insight\backend\simular_analise_brentford_arsenal.py", line 
+280, in <module>
+    main()
+  File 
+"D:\Projectos\Football\bet-insight\backend\simular_analise_brentford_arsenal.py", line 
+203, in main
+    print("\U0001f3af SIMULA╟├O DE REQUISI╟├O DO FRONTEND")
+  File "C:\Users\DELL\AppData\Local\Programs\Python\Python311\Lib\site-packages\colorama
+\ansitowin32.py", line 47, in write
+    self.__convertor.write(text)
+  File "C:\Users\DELL\AppData\Local\Programs\Python\Python311\Lib\site-packages\colorama
+\ansitowin32.py", line 177, in write
+    self.write_and_convert(text)
+  File "C:\Users\DELL\AppData\Local\Programs\Python\Python311\Lib\site-packages\colorama
+\ansitowin32.py", line 205, in write_and_convert
+    self.write_plain_text(text, cursor, len(text))
+  File "C:\Users\DELL\AppData\Local\Programs\Python\Python311\Lib\site-packages\colorama
+\ansitowin32.py", line 210, in write_plain_text
+    self.wrapped.write(text[start:end])
+  File "C:\Users\DELL\AppData\Local\Programs\Python\Python311\Lib\encodings\cp1252.py", 
+line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f3af' in position 0: 
+character maps to <undefined>

@@ -1,0 +1,196 @@
+﻿python : C:\Users\DELL\AppData\Local\Programs\Python\Python311\Lib\site-package
+s\rest_framework_simplejwt\__init__.py:1: UserWarning: pkg_resources is 
+deprecated as an API. See 
+https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources 
+package is slated for removal as early as 2025-11-30. Refrain from using this 
+package or pin to Setuptools<81.
+At line:1 char:1
++ python list_markets.py 2>&1 | Out-File -FilePath markets_output.txt - ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\DELL\A... Setuptools<81. 
+   :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  from pkg_resources import DistributionNotFound, get_distribution
+INFO 2026-02-11 23:03:31,225 statistical_models \U0001f522 Inicializando 
+Modelo Poisson Bivariado
+INFO 2026-02-11 23:03:31,232 statistical_models 
+===============================================================================
+=
+INFO 2026-02-11 23:03:31,232 statistical_models \U0001f3b2 MODELO POISSON - 
+Calculando distribuiτπo de placares (COM DEFESA)
+INFO 2026-02-11 23:03:31,232 statistical_models ===============================
+=================================================
+INFO 2026-02-11 23:03:31,232 statistical_models \u2705 Usando defesa na 
+modelagem (\u03bb ajustado)
+INFO 2026-02-11 23:03:31,232 statistical_models \U0001f4ca Forτa base:
+INFO 2026-02-11 23:03:31,232 statistical_models    Casa: 1.40 gols/jogo 
+(ataque)
+INFO 2026-02-11 23:03:31,232 statistical_models         1.10 gols/jogo (defesa)
+INFO 2026-02-11 23:03:31,232 statistical_models    Fora: 1.20 gols/jogo 
+(ataque)
+INFO 2026-02-11 23:03:31,234 statistical_models         1.10 gols/jogo (defesa)
+INFO 2026-02-11 23:03:31,234 statistical_models    Home Advantage: 1.07x (Liga 
+default)
+INFO 2026-02-11 23:03:31,234 statistical_models 
+\u26a1 Expectativa de gols (\u03bb):
+INFO 2026-02-11 23:03:31,234 statistical_models    Casa: 1.27
+INFO 2026-02-11 23:03:31,234 statistical_models    Fora: 1.02
+INFO 2026-02-11 23:03:31,234 statistical_models 
+\U0001f522 Calculando distribuiτπo de placares (6x6)...
+INFO 2026-02-11 23:03:31,270 statistical_models    \u2705 Placar mais 
+provßvel: 1-1 (14.8%)
+INFO 2026-02-11 23:03:31,270 statistical_models 
+\U0001f4c8 Calculando probabilidades de mercados...
+INFO 2026-02-11 23:03:31,270 statistical_models    1X2:
+INFO 2026-02-11 23:03:31,270 statistical_models       Casa: 40.4%
+INFO 2026-02-11 23:03:31,270 statistical_models       Empate: 31.6%
+INFO 2026-02-11 23:03:31,270 statistical_models       Fora: 28.0%
+INFO 2026-02-11 23:03:31,270 statistical_models    Over/Under 1.5:
+INFO 2026-02-11 23:03:31,270 statistical_models       Over: 68.2%
+INFO 2026-02-11 23:03:31,270 statistical_models       Under: 31.8%
+INFO 2026-02-11 23:03:31,270 statistical_models    Over/Under 2.5:
+INFO 2026-02-11 23:03:31,270 statistical_models       Over: 39.9%
+INFO 2026-02-11 23:03:31,270 statistical_models       Under: 60.1%
+INFO 2026-02-11 23:03:31,270 statistical_models    Over/Under 3.5:
+INFO 2026-02-11 23:03:31,270 statistical_models       Over: 19.7%
+INFO 2026-02-11 23:03:31,270 statistical_models       Under: 80.3%
+INFO 2026-02-11 23:03:31,270 statistical_models    Ambas Marcam: 47.5%
+INFO 2026-02-11 23:03:31,270 statistical_models    Clean Sheets:
+INFO 2026-02-11 23:03:31,270 statistical_models       Casa nπo sofre: 36.2%
+INFO 2026-02-11 23:03:31,270 statistical_models       Fora nπo sofre: 28.2%
+INFO 2026-02-11 23:03:31,270 statistical_models    Team Total Goals:
+INFO 2026-02-11 23:03:31,270 statistical_models       Casa Over 0.5: 71.8%
+INFO 2026-02-11 23:03:31,270 statistical_models       Casa Over 1.5: 36.1%
+INFO 2026-02-11 23:03:31,270 statistical_models       Fora Over 0.5: 63.8%
+INFO 2026-02-11 23:03:31,270 statistical_models       Fora Over 1.5: 27.0%
+INFO 2026-02-11 23:03:31,270 statistical_models    Margens de Vit≤ria:
+INFO 2026-02-11 23:03:31,270 statistical_models       Casa por 1: 21.5%
+INFO 2026-02-11 23:03:31,270 statistical_models       Casa por 2+: 18.9%
+INFO 2026-02-11 23:03:31,270 statistical_models       Fora por 1: 16.9%
+INFO 2026-02-11 23:03:31,270 statistical_models       Fora por 2+: 11.1%
+INFO 2026-02-11 23:03:31,281 statistical_models    Gols Totais:
+INFO 2026-02-11 23:03:31,281 statistical_models       ═mpar: 46.1%
+INFO 2026-02-11 23:03:31,281 statistical_models       Par: 53.9%
+INFO 2026-02-11 23:03:31,281 statistical_models    Over/Under 0.5:
+INFO 2026-02-11 23:03:31,281 statistical_models       Over: 88.1%
+INFO 2026-02-11 23:03:31,281 statistical_models       Under (0-0): 11.9%
+INFO 2026-02-11 23:03:31,281 statistical_models    Over/Under 4.5:
+INFO 2026-02-11 23:03:31,281 statistical_models       Over: 8.1%
+INFO 2026-02-11 23:03:31,283 statistical_models       Under: 91.9%
+INFO 2026-02-11 23:03:31,283 statistical_models    Double Chance:
+INFO 2026-02-11 23:03:31,283 statistical_models       1X (Casa ou Empate): 
+72.0%
+INFO 2026-02-11 23:03:31,283 statistical_models       12 (Casa ou Fora): 68.4%
+INFO 2026-02-11 23:03:31,283 statistical_models       X2 (Empate ou Fora): 
+59.6%
+INFO 2026-02-11 23:03:31,283 statistical_models    Asian Lines:
+INFO 2026-02-11 23:03:31,283 statistical_models       Over 2.25: 39.9%
+INFO 2026-02-11 23:03:31,283 statistical_models       Over 2.75: 29.8%
+INFO 2026-02-11 23:03:31,285 statistical_models 
+\U0001f3c6 Top 5 placares:
+INFO 2026-02-11 23:03:31,285 statistical_models    1. 1-1 - 14.8%
+INFO 2026-02-11 23:03:31,285 statistical_models    2. 0-0 - 11.9%
+INFO 2026-02-11 23:03:31,285 statistical_models    3. 1-0 - 11.2%
+INFO 2026-02-11 23:03:31,285 statistical_models    4. 0-1 - 8.7%
+INFO 2026-02-11 23:03:31,285 statistical_models    5. 2-1 - 8.3%
+INFO 2026-02-11 23:03:31,287 statistical_models ===============================
+=================================================
+
+Traceback (most recent call last):
+  File "D:\Projectos\Football\bet-insight\backend\list_markets.py", line 105, 
+in <module>
+    print(f"  Placar mais provßvel: 
+{prediction['most_likely_score']['score']}")
+                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+TypeError: string indices must be integers, not 'str'
+================================================================================
+MERCADOS DISPON═VEIS NO SISTEMA
+================================================================================
+
+1X2 Principais:
+  home_win                 :  40.41%
+  draw                     :  31.63%
+  away_win                 :  27.97%
+  Subtotal: 3 mercados
+
+Double Chance:
+  1X                       :  72.03%
+  12                       :  68.37%
+  X2                       :  59.59%
+  Subtotal: 3 mercados
+
+Over/Under Padrπo:
+  over_0_5                 :  88.09%
+  under_0_5                :  11.91%
+  over_1_5                 :  68.21%
+  under_1_5                :  31.79%
+  over_2_5                 :  39.92%
+  under_2_5                :  60.08%
+  over_3_5                 :  19.68%
+  under_3_5                :  80.32%
+  over_4_5                 :   8.14%
+  under_4_5                :  91.86%
+  Subtotal: 10 mercados
+
+Asian Lines:
+  over_1_75                :  54.06%
+  under_1_75               :  45.94%
+  over_2_25                :  39.92%
+  under_2_25               :  60.08%
+  over_2_75                :  29.80%
+  under_2_75               :  70.20%
+  over_3_25                :  19.68%
+  under_3_25               :  80.32%
+  Subtotal: 8 mercados
+
+BTTS (Ambas Marcam):
+  btts                     :  47.52%
+  btts_yes                 :  47.52%
+  btts_no                  :  52.48%
+  Subtotal: 3 mercados
+
+Clean Sheets:
+  home_clean_sheet         :  36.23%
+  away_clean_sheet         :  28.16%
+  Subtotal: 2 mercados
+
+Team Total - Casa:
+  home_over_0.5            :  71.84%
+  home_under_0.5           :  28.16%
+  home_over_1.5            :  36.14%
+  home_under_1.5           :  63.86%
+  home_over_2.5            :  13.52%
+  home_under_2.5           :  86.48%
+  Subtotal: 6 mercados
+
+Team Total - Fora:
+  away_over_0.5            :  63.77%
+  away_under_0.5           :  36.23%
+  away_over_1.5            :  26.98%
+  away_under_1.5           :  73.02%
+  away_over_2.5            :   8.31%
+  away_under_2.5           :  91.69%
+  Subtotal: 6 mercados
+
+Margens de Vit≤ria:
+  home_by_1                :  21.54%
+  home_by_2plus            :  18.87%
+  away_by_1                :  16.91%
+  away_by_2plus            :  11.05%
+  any_by_1                 :  38.45%
+  any_by_2plus             :  29.92%
+  Subtotal: 6 mercados
+
+Odd/Even:
+  odd_goals                :  46.06%
+  even_goals               :  53.94%
+  Subtotal: 2 mercados
+
+================================================================================
+TOTAL DE MERCADOS: 49
+================================================================================
+
+INFORMA╟╒ES ADICIONAIS:
+  Expected Goals - Casa: 1.27
+  Expected Goals - Fora: 1.02

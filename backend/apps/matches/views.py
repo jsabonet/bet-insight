@@ -689,9 +689,19 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         
         try:
             # Usar HybridAnalysisOrchestrator (sistema validado com 55% de acurácia)
+            print("\n" + "="*100)
+            print(f"🎯 VIEWS.PY - Iniciando análise da partida {match.id}")
+            print(f"🎯 Match: {match.home_team.name} vs {match.away_team.name}")
+            print("="*100 + "\n")
+            
             logger.info(f"🎯 Analisando partida {match.id} com HybridAnalysisOrchestrator")
             orchestrator = HybridAnalysisOrchestrator()
             result = orchestrator.run(match)
+            
+            print("\n" + "="*100)
+            print(f"🎯 VIEWS.PY - Análise completa RETORNADA")
+            print(f"🎯 Probabilidades: Casa={result.get('home_probability', 0):.1%}, Empate={result.get('draw_probability', 0):.1%}, Fora={result.get('away_probability', 0):.1%}")
+            print("="*100 + "\n")
             
             if not result:
                 return Response(
@@ -741,7 +751,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 'away': f'{match.away_team.name} vence',
                 'draw': 'Empate',
                 'btts_yes': 'Ambas Marcam',
-                'btts_no': 'Menos de 2.5 gols'
+                'btts_no': 'Ambas NÃO marcam'
             }
             
             # Resposta completa compatível com o frontend
@@ -969,6 +979,16 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         from apps.analysis.services.feature_engineer import FeatureEngineer
         engineer = FeatureEngineer()
         features = engineer.engineer_all_features(match_data)
+
+        # 1.1 Context Analyzer (usar padrões contextuais para seleção de mercados)
+        try:
+            from apps.analysis.services.context_analyzer import ContextAnalyzer
+            context_analyzer = ContextAnalyzer()
+            context_analysis = context_analyzer.analyze(features)
+            logger.info(f"✅ ContextAnalyzer executado: {len(context_analysis.get('patterns', []))} padrões detectados")
+        except Exception as e:
+            logger.error(f"❌ Erro ao executar ContextAnalyzer: {e}")
+            context_analysis = None
         
         # 2. Calcular força ofensiva e defensiva (para Poisson)
         home_stats = match_data.get('home_stats', {})
@@ -1036,7 +1056,8 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             model_predictions,
             features,
             market_odds,
-            strategy=strategy  # ✅ Passar strategy
+            strategy=strategy,  # ✅ Passar strategy
+            context_analysis=context_analysis  # ✅ Passar análise contextual para seleção de mercados
         )
         
         # 🔥 Extrair dados enriquecidos para enviar ao frontend E PARA A IA
@@ -1068,18 +1089,14 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 analyzer = AIAnalyzer()
                 result = analyzer.explain_decision(decision_data, enriched_data, strategy=strategy)
                 
-                if not result['success']:
-                    logger.error(f"❌ IA falhou: {result.get('error')}")
-                    return Response(
-                        {'error': result.get('error'), 'details': result.get('details'), 'code': result.get('error_code')},
-                        status=result.get('http_status', status.HTTP_500_INTERNAL_SERVER_ERROR)
-                    )
+                if not result.get('success'):
+                    # Não quebrar a resposta: seguir sem IA
+                    logger.error(f"❌ IA falhou: {result.get('error')} | Prosseguindo sem IA")
+                    result = {'success': False, 'analysis': None, 'reasoning': None}
             except Exception as e:
+                # Não retornar 500 por falha de IA; manter preview estatístico
                 logger.error(f"❌ EXCEÇÃO na chamada da IA: {e}", exc_info=True)
-                return Response(
-                    {'error': 'Erro ao processar análise da IA', 'details': str(e)},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
+                result = {'success': False, 'analysis': None, 'reasoning': None}
         else:
             logger.info("⏭️ Pulando geração da IA - retornando apenas dados estatísticos")
         
@@ -1220,6 +1237,9 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             'away_probability': model_predictions['consensus']['away_win'] * 100,
             'key_factors': decision_data.get('key_factors', []),
             'value_bets': decision_data.get('value_bets', []),
+            'top_bets': decision_data.get('top_bets', []),  # ✅ Incluir top apostas multi-mercado
+            'strategy': decision_data.get('strategy', strategy),
+            'context_analysis': context_analysis if context_analysis else {},
             'metadata': metadata,
             'enriched_data': enriched_data,
             'model_predictions': model_predictions,  # Dados completos dos modelos
@@ -1235,6 +1255,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 'fair_odds': decision_data.get('fair_odds', {}),
                 'market_odds': market_odds,
                 'value_bets': decision_data.get('value_bets', []),
+                'top_bets': decision_data.get('top_bets', []),  # ✅ Repetir dentro de analysis_data para compatibilidade
                 'recommendation': decision_data.get('recommendation', {}),
                 'confidence': decision_data.get('confidence', {}),
                 'risk': decision_data.get('risk', 'medium'),
@@ -1527,24 +1548,32 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             # Inicializar market_odds (para o cálculo do market prior)
             market_odds = None
             if enriched_data and enriched_data.get('odds'):
+                from apps.analysis.services.odds_calculator import OddsCalculator
+                from apps.analysis.config.market_standards import normalize_market_name
+                
                 raw_odds = enriched_data['odds']
                 if raw_odds.get('home_win'):
-                    market_odds = {
-                        # 1X2
-                        'odds_home': raw_odds.get('home_win'),
-                        'odds_draw': raw_odds.get('draw'),
-                        'odds_away': raw_odds.get('away_win'),
-                        # Over/Under (API retorna sem underscores)
-                        'odds_over25': raw_odds.get('over_25'),
-                        'odds_under25': raw_odds.get('under_25'),
-                        'odds_over15': raw_odds.get('over_15'),
-                        'odds_under15': raw_odds.get('under_15'),
-                        'odds_over35': raw_odds.get('over_35'),
-                        'odds_under35': raw_odds.get('under_35'),
-                        # BTTS
-                        'odds_btts': raw_odds.get('btts_yes'),
+                    # Criar dict base com nomenclatura canônica
+                    base_odds = {
+                        'home_win': raw_odds.get('home_win'),
+                        'draw': raw_odds.get('draw'),
+                        'away_win': raw_odds.get('away_win'),
+                        'over_2.5': raw_odds.get('over_25'),
+                        'under_2.5': raw_odds.get('under_25'),
+                        'over_1.5': raw_odds.get('over_15'),
+                        'under_1.5': raw_odds.get('under_15'),
+                        'over_3.5': raw_odds.get('over_35'),
+                        'under_3.5': raw_odds.get('under_35'),
+                        'btts_yes': raw_odds.get('btts_yes'),
                     }
-                    logger.info(f"💰 Market odds da API: {len([v for v in market_odds.values() if v])} mercados disponíveis")
+                    
+                    # Enriquecer odds: adicionar metadados + calcular derivadas
+                    odds_calc = OddsCalculator()
+                    market_odds = odds_calc.enrich_odds_dict(base_odds)
+                    
+                    logger.info(f"💰 Market odds da API: {len([v for v in market_odds.values() if v])} mercados")
+                    logger.info(f"   - Odds base (API): {len(base_odds)}")
+                    logger.info(f"   - Odds calculadas (DC/DNB): {len(market_odds) - len(base_odds)}")
             
             # Ensemble com 3 modelos: 50% Poisson + 35% Logística + 15% Market Prior
             # Market Prior = probabilidades implícitas das odds do mercado
@@ -1587,34 +1616,34 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             
             # Se não há odds reais, simular com base nas probabilidades do consensus + margem bookmaker (5%)
             if not market_odds:
-                bookmaker_margin = 1.05
-                market_odds = {
-                    # 1X2
-                    'odds_home': round((1 / consensus.get('home_win', 0.33)) / bookmaker_margin, 2),
-                    'odds_draw': round((1 / consensus.get('draw', 0.33)) / bookmaker_margin, 2),
-                    'odds_away': round((1 / consensus.get('away_win', 0.33)) / bookmaker_margin, 2),
-                    # Over/Under 2.5
-                    'odds_over25': round((1 / poisson_pred['probabilities'].get('over_2_5', 0.5)) / bookmaker_margin, 2),
-                    'odds_under25': round((1 / poisson_pred['probabilities'].get('under_2_5', 0.5)) / bookmaker_margin, 2),
-                    # Over/Under 1.5
-                    'odds_over15': round((1 / poisson_pred['probabilities'].get('over_1_5', 0.7)) / bookmaker_margin, 2),
-                    'odds_under15': round((1 / poisson_pred['probabilities'].get('under_1_5', 0.3)) / bookmaker_margin, 2),
-                    # Over/Under 3.5
-                    'odds_over35': round((1 / poisson_pred['probabilities'].get('over_3_5', 0.3)) / bookmaker_margin, 2),
-                    'odds_under35': round((1 / poisson_pred['probabilities'].get('under_3_5', 0.7)) / bookmaker_margin, 2),
-                    # BTTS
-                    'odds_btts': round((1 / poisson_pred['probabilities'].get('btts', 0.5)) / bookmaker_margin, 2),
-                    # Team Totals - Casa
-                    'odds_home_over_0_5': round((1 / poisson_pred['probabilities'].get('team_home_over_0_5', 0.8)) / bookmaker_margin, 2),
-                    'odds_home_over_1_5': round((1 / poisson_pred['probabilities'].get('team_home_over_1_5', 0.4)) / bookmaker_margin, 2),
-                    # Team Totals - Fora
-                    'odds_away_over_0_5': round((1 / poisson_pred['probabilities'].get('team_away_over_0_5', 0.8)) / bookmaker_margin, 2),
-                    'odds_away_over_1_5': round((1 / poisson_pred['probabilities'].get('team_away_over_1_5', 0.4)) / bookmaker_margin, 2),
-                    # Clean Sheets
-                    'odds_home_clean_sheet': round((1 / poisson_pred['probabilities'].get('clean_sheet_home', 0.2)) / bookmaker_margin, 2),
-                    'odds_away_clean_sheet': round((1 / poisson_pred['probabilities'].get('clean_sheet_away', 0.2)) / bookmaker_margin, 2),
+                from apps.analysis.services.odds_calculator import OddsCalculator
+                
+                # Preparar probabilidades para simulação
+                probabilities_to_simulate = {
+                    'home_win': consensus.get('home_win', 0.33),
+                    'draw': consensus.get('draw', 0.33),
+                    'away_win': consensus.get('away_win', 0.33),
+                    'over_2.5': poisson_pred['probabilities'].get('over_2.5', 0.5),
+                    'under_2.5': poisson_pred['probabilities'].get('under_2.5', 0.5),
+                    'over_1.5': poisson_pred['probabilities'].get('over_1.5', 0.7),
+                    'under_1.5': poisson_pred['probabilities'].get('under_1.5', 0.3),
+                    'over_3.5': poisson_pred['probabilities'].get('over_3.5', 0.3),
+                    'under_3.5': poisson_pred['probabilities'].get('under_3.5', 0.7),
+                    'btts_yes': poisson_pred['probabilities'].get('btts', 0.5),
+                    'home_over_0.5': poisson_pred['probabilities'].get('home_over_0.5', 0.8),
+                    'home_over_1.5': poisson_pred['probabilities'].get('home_over_1.5', 0.4),
+                    'away_over_0.5': poisson_pred['probabilities'].get('away_over_0.5', 0.8),
+                    'away_over_1.5': poisson_pred['probabilities'].get('away_over_1.5', 0.4),
+                    'home_clean_sheet': poisson_pred['probabilities'].get('home_clean_sheet', 0.2),
+                    'away_clean_sheet': poisson_pred['probabilities'].get('away_clean_sheet', 0.2),
                 }
+                
+                # Simular odds com margin 5% e marcar como 'simulated'
+                odds_calc = OddsCalculator(bookmaker_margin=1.05)
+                market_odds = odds_calc.calculate_simulated_odds(probabilities_to_simulate)
+                
                 logger.info("💰 Market odds simuladas com base no consensus")
+                logger.info("   ⚠️ Odds simuladas não devem ser usadas para cálculo de EV")
             
             # Confiança baseada em diferença de probabilidades
             prob_diff = abs(consensus['home_win'] - consensus['away_win'])
@@ -1711,6 +1740,18 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             logger.info(f"   Momentum - Casa: {features_summary['form'].get('home_momentum', 'N/A')}")
             logger.info(f"   Momentum - Fora: {features_summary['form'].get('away_momentum', 'N/A')}")
             
+            # 🆕 ContextAnalyzer - Analisar padrões contextuais
+            context_analysis = None
+            if features:
+                try:
+                    from apps.analysis.services.context_analyzer import ContextAnalyzer
+                    context_analyzer = ContextAnalyzer()
+                    context_analysis = context_analyzer.analyze(features)
+                    logger.info(f"✅ ContextAnalyzer executado: {len(context_analysis.get('patterns', []))} padrões detectados")
+                except Exception as e:
+                    logger.error(f"❌ Erro ao executar ContextAnalyzer: {e}")
+                    context_analysis = None
+            
             # Chamar DecisionEngine para gerar top_bets com múltiplos mercados
             from apps.analysis.services.decision_engine import DecisionEngine
             decision_engine = DecisionEngine()
@@ -1726,7 +1767,8 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 model_predictions,
                 features if features else {},
                 market_odds,
-                strategy='value'  # Preview sempre usa VALUE (neutro)
+                strategy='value',  # Preview sempre usa VALUE (neutro)
+                context_analysis=context_analysis  # 🆕 Passar análise contextual
             )
             
             logger.info(f"✅ DecisionEngine gerou {len(decision_data.get('top_bets', []))} apostas")
@@ -2084,6 +2126,10 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             include_ai = request.data.get('include_ai', True)
             force_refresh = request.data.get('force_refresh', False)
             
+            # 🔍 DEBUG: Log completo do request
+            logger.info(f"🔍 DEBUG REQUEST DATA: {request.data}")
+            logger.info(f"🔍 force_refresh recebido: {force_refresh} (tipo: {type(force_refresh)})")
+            
             # Garantir que strategy é string
             if isinstance(strategy, dict):
                 strategy = strategy.get('strategy', 'value')
@@ -2164,6 +2210,17 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                     engineer = FeatureEngineer()
                     features = engineer.engineer_all_features(match_data)
                     
+                    # 🆕 ContextAnalyzer - Analisar padrões contextuais
+                    context_analysis = None
+                    try:
+                        from apps.analysis.services.context_analyzer import ContextAnalyzer
+                        context_analyzer = ContextAnalyzer()
+                        context_analysis = context_analyzer.analyze(features)
+                        logger.info(f"✅ ContextAnalyzer executado: {len(context_analysis.get('patterns', []))} padrões detectados")
+                    except Exception as e:
+                        logger.error(f"❌ Erro ao executar ContextAnalyzer: {e}")
+                        context_analysis = None
+                    
                     # Modelos estatísticos usando ModelEnsemble
                     home_strength = match_data.get('home_stats', {}).get('goals_per_game_avg', 1.5)
                     away_strength = match_data.get('away_stats', {}).get('goals_per_game_avg', 1.3)
@@ -2189,6 +2246,13 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                         away_defense=away_defense
                     )
                     
+                    # 🔍 DEBUG: Log model_predictions retornado pelo ensemble
+                    logger.info(f"🔍 DEBUG MODEL_PREDICTIONS RETORNADO PELO ENSEMBLE:")
+                    logger.info(f"   Keys disponíveis: {list(model_predictions.keys())}")
+                    logger.info(f"   consensus: {model_predictions.get('consensus', 'NOT FOUND')}")
+                    logger.info(f"   market_prior: {model_predictions.get('market_prior', 'NOT FOUND')}")
+                    logger.info(f"   poisson probs: {model_predictions.get('poisson', {}).get('probabilities', 'NOT FOUND')}")
+                    
                     # Decision Engine - Preparar odds do mercado
                     raw_odds = match_data.get('odds') or {}
                     logger.info(f"🔍 RAW_ODDS tipo: {type(raw_odds)}, valor: {raw_odds}")
@@ -2197,16 +2261,24 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                     has_odds = bool(raw_odds.get('home_win'))
                     
                     if has_odds:
-                        market_odds = {
-                            'home': raw_odds.get('home_win'),
+                        # Enriquecer odds com derivados (DC/DNB/Asian) para cálculo de EV real
+                        from apps.analysis.services.odds_calculator import OddsCalculator
+                        base_odds = {
+                            'home_win': raw_odds.get('home_win'),
                             'draw': raw_odds.get('draw'),
-                            'away': raw_odds.get('away_win'),
-                            'over_2_5': raw_odds.get('over_25'),
-                            'under_2_5': raw_odds.get('under_25'),
+                            'away_win': raw_odds.get('away_win'),
+                            'over_2.5': raw_odds.get('over_25'),
+                            'under_2.5': raw_odds.get('under_25'),
+                            'over_1.5': raw_odds.get('over_15'),
+                            'under_1.5': raw_odds.get('under_15'),
+                            'over_3.5': raw_odds.get('over_35'),
+                            'under_3.5': raw_odds.get('under_35'),
                             'btts_yes': raw_odds.get('btts_yes'),
                             'btts_no': raw_odds.get('btts_no'),
                         }
-                        logger.info(f"💰 Market odds da API: Home={market_odds['home']}, Draw={market_odds['draw']}, Away={market_odds['away']}")
+                        odds_calc = OddsCalculator()
+                        market_odds = odds_calc.enrich_odds_dict(base_odds)
+                        logger.info(f"💰 Market odds enriquecidas: {len([k for k,v in market_odds.items() if v])} mercados")
                     else:
                         market_odds = None
                         logger.warning(f"⚠️ Sem odds da API para fixture {api_id} - Liga pode não ter cobertura de bookmakers")
@@ -2216,7 +2288,8 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                         model_predictions=model_predictions,
                         features=features,
                         market_odds=market_odds,
-                        strategy=strategy
+                        strategy=strategy,
+                        context_analysis=context_analysis  # 🆕 Passar análise contextual
                     )
                     
                     # DEBUG: Verificar top_bets na decisão
@@ -2268,23 +2341,32 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             else:
                 # MATCH DO BANCO DE DADOS: usar cache e orchestrator normal
                 # Verificar cache (se não forçar refresh)
+                logger.info(f"🔍 Verificando cache: force_refresh={force_refresh}")
                 if not force_refresh:
+                    logger.info("🔍 Tentando buscar do CACHE...")
                     cached_result = cache_service.get(match.id, strategy, include_ai)
                     
                     if cached_result:
                         logger.info("✅ Retornando dados do CACHE")
+                        logger.info(f"🔍 Consensus do cache: {cached_result.get('statistical_data', {}).get('consensus', {})}")
                         return Response({
                             **cached_result,
                             'cached': True,
                             'cache_stats': cache_service.stats()
                         })
+                    else:
+                        logger.info("❌ Cache MISS - não encontrado no cache")
+                else:
+                    logger.info("🔥 FORCE REFRESH = TRUE - IGNORANDO CACHE!")
                 
                 # Cache miss ou force refresh: gerar análise
-                logger.info(f"🔄 Cache MISS: gerando nova análise com estratégia {strategy}...")
+                logger.info(f"🔄 Gerando NOVA análise com estratégia {strategy}...")
                 
                 # Usar AnalysisOrchestrator existente (método run)
                 orchestrator = HybridAnalysisOrchestrator()
                 analysis_result = orchestrator.run(match, strategy=strategy)
+                
+                logger.info(f"🔍 Consensus gerado pelo orchestrator: {analysis_result.get('consensus', {})}")
                 
                 # Se include_ai=False, remover a análise IA
                 if not include_ai:
@@ -2313,7 +2395,37 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                     'poisson': analysis_result.get('analysis_data', {}).get('model_predictions', {}).get('poisson', {}) if is_external_match else analysis_result.get('analysis_data', {}).get('poisson', {}),
                 },
                 
-                # Onda 2: Decision data (top_bets)
+                # 🔍 DEBUG: Log consensus retornado
+                # TEMPORÁRIO - remover após debug
+            }
+            
+            logger.info(f"🔍 DEBUG CONSENSUS RETORNADO AO FRONTEND:")
+            logger.info(f"   is_external_match: {is_external_match}")
+            logger.info(f"   statistical_data.consensus: {unified_response['statistical_data']['consensus']}")
+            logger.info(f"   Valores numéricos:")
+            consensus_debug = unified_response['statistical_data']['consensus']
+            if consensus_debug:
+                logger.info(f"      Casa: {consensus_debug.get('home_win', 'N/A')}")
+                logger.info(f"      Empate: {consensus_debug.get('draw', 'N/A')}")
+                logger.info(f"      Fora: {consensus_debug.get('away_win', 'N/A')}")
+            else:
+                logger.warning(f"   ⚠️ CONSENSUS ESTÁ VAZIO!")
+                
+            if is_external_match:
+                logger.info(f"   EXTERNAL - Path usado: analysis_result['analysis_data']['model_predictions']['consensus']")
+                logger.info(f"   model_predictions keys: {list(analysis_result.get('analysis_data', {}).get('model_predictions', {}).keys())}")
+                
+                # Verificar se market_prior existe e comparar
+                market_prior_check = analysis_result.get('analysis_data', {}).get('model_predictions', {}).get('market_prior')
+                if market_prior_check:
+                    logger.info(f"   MARKET_PRIOR também existe:")
+                    logger.info(f"      Casa: {market_prior_check.get('home_win', 'N/A')}")
+                    logger.info(f"      Empate: {market_prior_check.get('draw', 'N/A')}")
+                    logger.info(f"      Fora: {market_prior_check.get('away_win', 'N/A')}")
+            else:
+                logger.info(f"   INTERNAL - Path usado: analysis_result['analysis_data']['consensus']")
+            
+            unified_response2 = {
                 'decision_data': {
                     # Usar 'top_bets' - agora com estrutura completa do DecisionEngine
                     'top_bets': analysis_result.get('analysis_data', {}).get('decision', {}).get('top_bets', []) if is_external_match else analysis_result.get('analysis_data', {}).get('top_bets', []),
@@ -2336,6 +2448,9 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 # Stats (não há cache para externos)
                 'cache_stats': {} if is_external_match else cache_service.stats()
             }
+            
+            # Merge unified_response e unified_response2
+            unified_response.update(unified_response2)
             
             # Salvar no cache (apenas se for match do banco)
             if not is_external_match and cache_service:

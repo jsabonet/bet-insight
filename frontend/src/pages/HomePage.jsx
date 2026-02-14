@@ -486,7 +486,7 @@ export default function HomePage() {
                 selectedMatch.id,
                 strategy,
                 true, // include_ai
-                false // force_refresh
+                true  // 🔥 FORCE REFRESH = TRUE (força recálculo)
               );
               return response.data;
             } catch (error) {

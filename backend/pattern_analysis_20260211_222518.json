@@ -1,0 +1,28 @@
+{
+  "timestamp": "2026-02-11T22:25:18.055284",
+  "total_matches": 100,
+  "patterns_detected": {
+    "balanced_tight_game": 100
+  },
+  "avg_confidence": 0.7999999999999985,
+  "pattern_analysis": {
+    "balanced_tight_game": {
+      "count": 100,
+      "actual_characteristics": {
+        "low_scoring": 47,
+        "high_scoring": 53,
+        "btts": 60,
+        "balanced": 63
+      },
+      "correct_predictions": {
+        "low_scoring": 47,
+        "high_scoring": 0,
+        "btts_yes": 0,
+        "btts_no": 40,
+        "balanced": 32,
+        "home_win": 0,
+        "away_win": 0
+      }
+    }
+  }
+}

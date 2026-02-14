@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-02-11T20:56:10.144163",
+  "type": "context_system",
+  "components": [
+    "PoissonBivariateModel",
+    "ContextAnalyzer",
+    "MarketSelector"
+  ],
+  "strategy": "value",
+  "matches_total": 100,
+  "matches_analyzed": 0,
+  "accuracy": 0,
+  "total_predictions": 0,
+  "total_correct": 0,
+  "markets": {},
+  "errors": []
+}

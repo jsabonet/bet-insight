@@ -1,0 +1,1419 @@
+﻿python : C:\Users\DELL\AppData\Local\Programs\Python\Python311\Lib\site-packages\rest_f
+ramework_simplejwt\__init__.py:1: UserWarning: pkg_resources is deprecated as an API. 
+See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package 
+is slated for removal as early as 2025-11-30. Refrain from using this package or pin 
+to Setuptools<81.
+At line:1 char:1
++ python test_southampton_leicester.py 2>&1 | Out-File -FilePath test_f ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\DELL\A... Setuptools<81.:String) 
+    [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  from pkg_resources import DistributionNotFound, get_distribution
+WARNING 2026-02-14 17:21:40,784 apps 
+================================================================================
+WARNING 2026-02-14 17:21:40,786 apps \U0001f50d VERIFICA╟├O STARTUP DJANGO - Valores 
+Carregados:
+WARNING 2026-02-14 17:21:40,786 apps    DEFAULT_WITH_MARKET poisson: 0.7
+WARNING 2026-02-14 17:21:40,786 apps    CLEAR_FAVORITE poisson: 0.65
+ERROR 2026-02-14 17:21:40,786 apps    \u274c DJANGO CARREGOU C╙DIGO ERRADO: 0.7
+WARNING 2026-02-14 17:21:40,786 apps 
+================================================================================
+
+================================================================================
+INVESTIGACAO - Southampton vs Leicester (API ID: 1506263)
+================================================================================
+
+Partida encontrada: Southampton vs Leicester
+   Liga: FA Cup
+   ID Interno: 3174
+INFO 2026-02-14 17:22:01,660 statistical_models \U0001f522 Inicializando Modelo 
+Poisson Bivariado
+INFO 2026-02-14 17:22:01,660 ml_integration \U0001f527 Carregando modelos ML...
+INFO 2026-02-14 17:22:03,198 ml_integration \u2705 Liga  1X2: xgboost_1x2.pkl
+INFO 2026-02-14 17:22:03,216 ml_integration \u2705 Liga  BTTS: xgboost_btts.pkl
+INFO 2026-02-14 17:22:03,234 ml_integration \u2705 Liga  OU15: xgboost_ou15.pkl
+INFO 2026-02-14 17:22:03,254 ml_integration \u2705 Liga  OU25: xgboost_ou25.pkl
+INFO 2026-02-14 17:22:03,277 ml_integration \u2705 Liga  OU35: xgboost_ou35.pkl
+INFO 2026-02-14 17:22:03,323 ml_integration \u2705 Liga  DC: xgboost_dc.pkl
+INFO 2026-02-14 17:22:03,355 ml_integration \u2705 Liga  HOME_TOTALS: 
+xgboost_home_totals.pkl
+INFO 2026-02-14 17:22:03,384 ml_integration \u2705 Liga  AWAY_TOTALS: 
+xgboost_away_totals.pkl
+INFO 2026-02-14 17:22:03,391 ml_integration \u2705 Liga  ODD_EVEN: xgboost_odd_even.pkl
+INFO 2026-02-14 17:22:03,406 ml_integration \u2705 Copa  1X2: xgboost_1x2_cups.pkl
+INFO 2026-02-14 17:22:03,415 ml_integration \u2705 Copa  BTTS: xgboost_btts_cups.pkl
+INFO 2026-02-14 17:22:03,423 ml_integration \u2705 Copa  OU15: xgboost_ou15_cups.pkl
+INFO 2026-02-14 17:22:03,430 ml_integration \u2705 Copa  OU25: xgboost_ou25_cups.pkl
+INFO 2026-02-14 17:22:03,437 ml_integration \u2705 Copa  OU35: xgboost_ou35_cups.pkl
+INFO 2026-02-14 17:22:03,458 ml_integration \u2705 Copa  DC: xgboost_dc_cups.pkl
+INFO 2026-02-14 17:22:03,486 ml_integration \u2705 Copa  HOME_TOTALS: 
+xgboost_home_totals_cups.pkl
+INFO 2026-02-14 17:22:03,517 ml_integration \u2705 Copa  AWAY_TOTALS: 
+xgboost_away_totals_cups.pkl
+INFO 2026-02-14 17:22:03,524 ml_integration \u2705 Copa  ODD_EVEN: 
+xgboost_odd_even_cups.pkl
+INFO 2026-02-14 17:22:03,524 ml_integration 
+\U0001f4ca MODELOS CARREGADOS:
+INFO 2026-02-14 17:22:03,524 ml_integration    XGBoost Otimizado: N├O
+INFO 2026-02-14 17:22:03,526 ml_integration    Ligas: 9 mercados
+INFO 2026-02-14 17:22:03,526 ml_integration    Copas: 9 mercados
+INFO 2026-02-14 17:22:03,526 ml_integration \u2705 Ensemble com ML multi-market (9 
+copas, 9 ligas)
+INFO 2026-02-14 17:22:03,526 ml_integration \U0001f3af Ensemble: Poisson + ML + Market
+INFO 2026-02-14 17:22:03,528 ai_analyzer \u2705 AI Analyzer usando Gemini Flash Latest
+INFO 2026-02-14 17:22:03,528 ai_analyzer AI Analyzer inicializado com modelo: 
+gemini-1.5-flash-latest
+INFO 2026-02-14 17:22:03,528 analysis_orchestrator \U0001f3af [Orchestrator] 
+Executando anßlise com estratΘgia: MULTIPLE
+INFO 2026-02-14 17:22:03,528 match_enricher 
+================================================================================
+INFO 2026-02-14 17:22:03,528 match_enricher \U0001f504 INICIANDO ENRIQUECIMENTO DE 
+DADOS
+INFO 2026-02-14 17:22:03,528 match_enricher 
+================================================================================
+INFO 2026-02-14 17:22:03,528 api_football_service \U0001f3df\ufe0f Buscando detalhes - 
+Fixture: 1506263
+INFO 2026-02-14 17:22:03,530 api_football_service \U0001f310 Cache MISS: fixtures - 
+Buscando da API...
+INFO 2026-02-14 17:22:04,982 api_football_service \u2705 Armazenado no cache por 3600s
+INFO 2026-02-14 17:22:04,986 api_football_service \u2705 Detalhes obtidos para fixture 
+1506263
+INFO 2026-02-14 17:22:04,988 match_enricher \U0001f3c6 COPA DETECTADA (ID 45): usando 
+stats da liga principal (ID 39)
+INFO 2026-02-14 17:22:04,988 match_enricher 
+\U0001f4ca Buscando contexto da tabela...
+INFO 2026-02-14 17:22:05,489 api_football_service \U0001f4ca Buscando standings - 
+League: 45, Season: 2025
+INFO 2026-02-14 17:22:05,489 api_football_service \U0001f310 Cache MISS: standings - 
+Buscando da API...
+INFO 2026-02-14 17:22:07,020 api_football_service \u2705 Armazenado no cache por 7200s
+WARNING 2026-02-14 17:22:07,030 api_football_service \u26a0\ufe0f Standings nπo 
+encontrados para league 45
+INFO 2026-02-14 17:22:07,030 match_enricher 
+\U0001f326\ufe0f Buscando dados climßticos (Fase 3)...
+ERROR 2026-02-14 17:22:07,031 match_enricher    \u274c Erro ao buscar clima: 
+'NoneType' object has no attribute 'get'
+INFO 2026-02-14 17:22:07,031 match_enricher 
+\U0001f4ca BUSCANDO ESTAT═STICAS DOS TIMES...
+INFO 2026-02-14 17:22:07,031 match_enricher    Home Team ID: 41, League Stats: 39, 
+Season: 2025
+INFO 2026-02-14 17:22:07,031 match_enricher 
+\U0001f4c8 Buscando estatφsticas (Team 41)...
+INFO 2026-02-14 17:22:07,533 api_football_service \U0001f4c8 Buscando estatφsticas - 
+Team: 41, League: 39
+INFO 2026-02-14 17:22:07,533 api_football_service \U0001f310 Cache MISS: 
+teams/statistics - Buscando da API...
+INFO 2026-02-14 17:22:08,920 api_football_service \u2705 Armazenado no cache por 10800s
+INFO 2026-02-14 17:22:08,929 api_football_service \U0001f4ca DEBUG - Estrutura 
+completa de 'goals':
+INFO 2026-02-14 17:22:08,929 api_football_service    goals.for: {'total': {'home': 0, 
+'away': 0, 'total': 0}, 'average': {'home': '0.0', 'away': '0.0', 'total': '0.0'}, 
+'minute': {'0-15': {'total': None, 'percentage': None}, '16-30': {'total': None, 
+'percentage': None}, '31-45': {'total': None, 'percentage': None}, '46-60': {'total': 
+None, 'percentage': None}, '61-75': {'total': None, 'percentage': None}, '76-90': 
+{'total': None, 'percentage': None}, '91-105': {'total': None, 'percentage': None}, 
+'106-120': {'total': None, 'percentage': None}}, 'under_over': {'0.5': {'over': 0, 
+'under': 0}, '1.5': {'over': 0, 'under': 0}, '2.5': {'over': 0, 'under': 0}, '3.5': 
+{'over': 0, 'under': 0}, '4.5': {'over': 0, 'under': 0}}}
+INFO 2026-02-14 17:22:08,929 api_football_service    goals.against: {'total': {'home': 
+0, 'away': 0, 'total': 0}, 'average': {'home': '0.0', 'away': '0.0', 'total': '0.0'}, 
+'minute': {'0-15': {'total': None, 'percentage': None}, '16-30': {'total': None, 
+'percentage': None}, '31-45': {'total': None, 'percentage': None}, '46-60': {'total': 
+None, 'percentage': None}, '61-75': {'total': None, 'percentage': None}, '76-90': 
+{'total': None, 'percentage': None}, '91-105': {'total': None, 'percentage': None}, 
+'106-120': {'total': None, 'percentage': None}}, 'under_over': {'0.5': {'over': 0, 
+'under': 0}, '1.5': {'over': 0, 'under': 0}, '2.5': {'over': 0, 'under': 0}, '3.5': 
+{'over': 0, 'under': 0}, '4.5': {'over': 0, 'under': 0}}}
+INFO 2026-02-14 17:22:08,929 api_football_service    \u27a1\ufe0f MΘdia de gols 
+marcados calculada: 0.0
+INFO 2026-02-14 17:22:08,929 api_football_service    \u27a1\ufe0f MΘdia de gols 
+sofridos calculada: 0.0
+INFO 2026-02-14 17:22:08,929 api_football_service \u2705 Estatφsticas obtidas para 
+team 41
+INFO 2026-02-14 17:22:08,929 match_enricher    \u2705 0 jogos, mΘdia 0.00 gols/jogo
+INFO 2026-02-14 17:22:08,929 match_enricher    \u2705 Home Stats: True
+INFO 2026-02-14 17:22:08,934 match_enricher    Away Team ID: 46, League Stats: 39, 
+Season: 2025
+INFO 2026-02-14 17:22:08,934 match_enricher 
+\U0001f4c8 Buscando estatφsticas (Team 46)...
+INFO 2026-02-14 17:22:09,436 api_football_service \U0001f4c8 Buscando estatφsticas - 
+Team: 46, League: 39
+INFO 2026-02-14 17:22:09,436 api_football_service \U0001f310 Cache MISS: 
+teams/statistics - Buscando da API...
+INFO 2026-02-14 17:22:12,550 api_football_service \u2705 Armazenado no cache por 10800s
+INFO 2026-02-14 17:22:12,552 api_football_service \U0001f4ca DEBUG - Estrutura 
+completa de 'goals':
+INFO 2026-02-14 17:22:12,554 api_football_service    goals.for: {'total': {'home': 0, 
+'away': 0, 'total': 0}, 'average': {'home': '0.0', 'away': '0.0', 'total': '0.0'}, 
+'minute': {'0-15': {'total': None, 'percentage': None}, '16-30': {'total': None, 
+'percentage': None}, '31-45': {'total': None, 'percentage': None}, '46-60': {'total': 
+None, 'percentage': None}, '61-75': {'total': None, 'percentage': None}, '76-90': 
+{'total': None, 'percentage': None}, '91-105': {'total': None, 'percentage': None}, 
+'106-120': {'total': None, 'percentage': None}}, 'under_over': {'0.5': {'over': 0, 
+'under': 0}, '1.5': {'over': 0, 'under': 0}, '2.5': {'over': 0, 'under': 0}, '3.5': 
+{'over': 0, 'under': 0}, '4.5': {'over': 0, 'under': 0}}}
+INFO 2026-02-14 17:22:12,555 api_football_service    goals.against: {'total': {'home': 
+0, 'away': 0, 'total': 0}, 'average': {'home': '0.0', 'away': '0.0', 'total': '0.0'}, 
+'minute': {'0-15': {'total': None, 'percentage': None}, '16-30': {'total': None, 
+'percentage': None}, '31-45': {'total': None, 'percentage': None}, '46-60': {'total': 
+None, 'percentage': None}, '61-75': {'total': None, 'percentage': None}, '76-90': 
+{'total': None, 'percentage': None}, '91-105': {'total': None, 'percentage': None}, 
+'106-120': {'total': None, 'percentage': None}}, 'under_over': {'0.5': {'over': 0, 
+'under': 0}, '1.5': {'over': 0, 'under': 0}, '2.5': {'over': 0, 'under': 0}, '3.5': 
+{'over': 0, 'under': 0}, '4.5': {'over': 0, 'under': 0}}}
+INFO 2026-02-14 17:22:12,555 api_football_service    \u27a1\ufe0f MΘdia de gols 
+marcados calculada: 0.0
+INFO 2026-02-14 17:22:12,555 api_football_service    \u27a1\ufe0f MΘdia de gols 
+sofridos calculada: 0.0
+INFO 2026-02-14 17:22:12,555 api_football_service \u2705 Estatφsticas obtidas para 
+team 46
+INFO 2026-02-14 17:22:12,555 match_enricher    \u2705 0 jogos, mΘdia 0.00 gols/jogo
+INFO 2026-02-14 17:22:12,555 match_enricher    \u2705 Away Stats: True
+INFO 2026-02-14 17:22:12,555 match_enricher 
+\U0001f691 Buscando les⌡es e suspens⌡es...
+INFO 2026-02-14 17:22:13,057 api_football_service \U0001f691 Buscando les⌡es - 
+Fixture: 1506263
+INFO 2026-02-14 17:22:13,058 api_football_service \U0001f310 Cache MISS: injuries - 
+Buscando da API...
+INFO 2026-02-14 17:22:14,805 api_football_service \u2705 Armazenado no cache por 3600s
+WARNING 2026-02-14 17:22:14,807 api_football_service \u26a0\ufe0f Nenhuma lesπo 
+encontrada para fixture 1506263
+INFO 2026-02-14 17:22:14,807 match_enricher    \u2705 0 les⌡es/suspens⌡es (casa), 0 
+(fora)
+INFO 2026-02-14 17:22:14,807 match_enricher 
+\U0001f4b0 Buscando odds...
+INFO 2026-02-14 17:22:15,309 api_football_service \U0001f4b0 Buscando odds - Fixture: 
+1506263
+INFO 2026-02-14 17:22:15,309 api_football_service \U0001f310 Cache MISS: odds - 
+Buscando da API...
+INFO 2026-02-14 17:22:16,662 api_football_service \u2705 Armazenado no cache por 180s
+INFO 2026-02-14 17:22:16,671 api_football_service \u2705 Odds obtidas: 11 mercados
+INFO 2026-02-14 17:22:16,671 match_enricher    \U0001f4ca fetch_odds retornou: 
+{'home_win': 1.59, 'draw': 4.0, 'away_win': 5.25, 'over_15': 1.22, 'under_15': 4.2, 
+'over_25': 1.65, 'under_25': 2.2, 'over_35': 2.62, 'under_35': 1.48, 'btts_yes': 1.7, 
+'btts_no': 2.1}
+INFO 2026-02-14 17:22:16,671 match_enricher    \U0001f4ca Tipo: <class 'dict'>
+INFO 2026-02-14 17:22:16,671 match_enricher    \u2705 Odds recebidas:
+INFO 2026-02-14 17:22:16,671 match_enricher       ò Casa: 1.59
+INFO 2026-02-14 17:22:16,671 match_enricher       ò Empate: 4.0
+INFO 2026-02-14 17:22:16,671 match_enricher       ò Fora: 5.25
+INFO 2026-02-14 17:22:16,671 match_enricher       ò Over 2.5: 1.65
+INFO 2026-02-14 17:22:16,671 match_enricher       ò Under 2.5: 2.2
+INFO 2026-02-14 17:22:16,671 match_enricher       ò BTTS Yes: 1.7
+INFO 2026-02-14 17:22:16,671 match_enricher 
+\u23f1\ufe0f Calculando contexto de descanso...
+INFO 2026-02-14 17:22:17,181 api_football_service \U0001f4c5 Buscando ·ltimas 1 
+fixtures do time 41
+INFO 2026-02-14 17:22:17,183 api_football_service \U0001f310 Cache MISS: fixtures - 
+Buscando da API...
+INFO 2026-02-14 17:22:18,510 api_football_service \u2705 Armazenado no cache por 7200s
+INFO 2026-02-14 17:22:18,516 api_football_service \u2705 1 fixtures obtidas
+INFO 2026-02-14 17:22:19,017 api_football_service \U0001f4c5 Buscando ·ltimas 1 
+fixtures do time 46
+INFO 2026-02-14 17:22:19,018 api_football_service \U0001f310 Cache MISS: fixtures - 
+Buscando da API...
+INFO 2026-02-14 17:22:20,363 api_football_service \u2705 Armazenado no cache por 7200s
+INFO 2026-02-14 17:22:20,368 api_football_service \u2705 1 fixtures obtidas
+INFO 2026-02-14 17:22:20,368 match_enricher    \u2705 Descanso: Casa 35 dias, Fora 35 
+dias (Vantagem: equal)
+INFO 2026-02-14 17:22:20,368 match_enricher    \U0001f4ca CONSOLE LOG - REST_CONTEXT: 
+{'home_days_rest': 35, 'away_days_rest': 35, 'advantage': 'equal'}
+INFO 2026-02-14 17:22:20,368 match_enricher 
+\U0001f396\ufe0f Avaliando motivaτπo...
+INFO 2026-02-14 17:22:20,371 match_enricher    \u26a0\ufe0f Sem dados de tabela para 
+avaliar motivaτπo
+INFO 2026-02-14 17:22:20,371 match_enricher 
+\U0001f4c8 Calculando tendΩncias...
+INFO 2026-02-14 17:22:20,872 api_football_service \U0001f4c5 Buscando ·ltimas 10 
+fixtures do time 41
+INFO 2026-02-14 17:22:20,872 api_football_service \U0001f310 Cache MISS: fixtures - 
+Buscando da API...
+INFO 2026-02-14 17:22:22,994 api_football_service \u2705 Armazenado no cache por 7200s
+INFO 2026-02-14 17:22:22,996 api_football_service \u2705 1 fixtures obtidas
+INFO 2026-02-14 17:22:23,498 api_football_service \U0001f4c5 Buscando ·ltimas 10 
+fixtures do time 46
+INFO 2026-02-14 17:22:23,498 api_football_service \U0001f310 Cache MISS: fixtures - 
+Buscando da API...
+INFO 2026-02-14 17:22:24,963 api_football_service \u2705 Armazenado no cache por 7200s
+INFO 2026-02-14 17:22:24,968 api_football_service \u2705 1 fixtures obtidas
+INFO 2026-02-14 17:22:24,968 match_enricher    \u2705 Over 2.5: Casa 100%, Fora 0%
+INFO 2026-02-14 17:22:24,968 match_enricher    \u2705 BTTS: Casa 100%, Fora 0%
+INFO 2026-02-14 17:22:24,968 match_enricher    \U0001f4ca CONSOLE LOG - TRENDS: 
+{'home': {'over_25_pct': 100.0, 'btts_pct': 100.0, 'games_analyzed': 1}, 'away': 
+{'over_25_pct': 0.0, 'btts_pct': 0.0, 'games_analyzed': 1}, 'combined_over_25_pct': 
+50.0, 'combined_btts_pct': 50.0}
+INFO 2026-02-14 17:22:24,968 match_enricher 
+\u2694\ufe0f Buscando hist≤rico H2H...
+INFO 2026-02-14 17:22:25,470 api_football_service \U0001f504 Buscando H2H: 41 vs 46 
+(·ltimos 10)
+INFO 2026-02-14 17:22:25,470 api_football_service \U0001f310 Cache MISS: 
+fixtures/headtohead - Buscando da API...
+INFO 2026-02-14 17:22:26,837 api_football_service \u2705 Armazenado no cache por 86400s
+INFO 2026-02-14 17:22:26,842 api_football_service \u2705 10 confrontos H2H encontrados
+INFO 2026-02-14 17:22:26,842 match_enricher    \u2705 10 confrontos diretos encontrados
+INFO 2026-02-14 17:22:26,842 match_enricher 
+\U0001f4c5 Analisando fase da temporada...
+INFO 2026-02-14 17:22:26,842 match_enricher    \u2705 Rodada: Round of 32, Temporada: 
+2025
+INFO 2026-02-14 17:22:26,844 match_enricher 
+================================================================================
+INFO 2026-02-14 17:22:26,844 match_enricher \u2705 ENRIQUECIMENTO CONCLU═DO
+INFO 2026-02-14 17:22:26,844 match_enricher 
+================================================================================
+
+INFO 2026-02-14 17:22:26,844 feature_engineer 
+================================================================================
+INFO 2026-02-14 17:22:26,844 feature_engineer \U0001f527 FEATURE ENGINEERING - TIER 1 
+COMPLETO (40 VARI┴VEIS)
+INFO 2026-02-14 17:22:26,844 feature_engineer 
+================================================================================
+
+INFO 2026-02-14 17:22:26,844 feature_engineer \U0001f4e5 Dados disponφveis:
+INFO 2026-02-14 17:22:26,844 feature_engineer    Standings: False
+INFO 2026-02-14 17:22:26,846 feature_engineer    Home Stats: True
+INFO 2026-02-14 17:22:26,846 feature_engineer    Away Stats: True
+INFO 2026-02-14 17:22:26,846 feature_engineer    Odds: True
+INFO 2026-02-14 17:22:26,846 feature_engineer    Rest Context: True
+INFO 2026-02-14 17:22:26,846 feature_engineer    Weather: False
+INFO 2026-02-14 17:22:26,846 feature_engineer    Recent Form: False
+INFO 2026-02-14 17:22:26,846 feature_engineer    H2H: 10 jogos
+INFO 2026-02-14 17:22:26,847 feature_engineer    Statistics: False
+INFO 2026-02-14 17:22:26,847 feature_engineer 
+1\ufe0f\u20e3 Calculando features de FOR╟A...
+WARNING 2026-02-14 17:22:26,847 feature_engineer \u26a0\ufe0f home_goals_per_game = 
+0.00 muito baixo! Usando fallback 1.3
+WARNING 2026-02-14 17:22:26,847 feature_engineer \u26a0\ufe0f away_goals_per_game = 
+0.00 muito baixo! Usando fallback 1.3
+WARNING 2026-02-14 17:22:26,847 feature_engineer \u26a0\ufe0f home_conceded_per_game = 
+0.00 muito baixo! Usando fallback 1.3
+WARNING 2026-02-14 17:22:26,848 feature_engineer \u26a0\ufe0f away_conceded_per_game = 
+0.00 muito baixo! Usando fallback 1.3
+WARNING 2026-02-14 17:22:26,848 feature_engineer \u26a0\ufe0f API retornou 
+home_goals_per_game = 0.00! Usando fallback 1.3
+WARNING 2026-02-14 17:22:26,848 feature_engineer \u26a0\ufe0f API retornou 
+away_goals_per_game = 0.00! Usando fallback 1.3
+WARNING 2026-02-14 17:22:26,848 feature_engineer \u26a0\ufe0f API retornou 
+home_conceded_per_game = 0.00! Usando fallback 1.3
+WARNING 2026-02-14 17:22:26,848 feature_engineer \u26a0\ufe0f API retornou 
+away_conceded_per_game = 0.00! Usando fallback 1.3
+INFO 2026-02-14 17:22:26,848 feature_engineer    \u2705 10 features de forτa
+INFO 2026-02-14 17:22:26,849 feature_engineer 
+2\ufe0f\u20e3 Calculando features de FORMA...
+INFO 2026-02-14 17:22:26,849 feature_engineer    \u2705 13 features de forma
+INFO 2026-02-14 17:22:26,849 feature_engineer 
+3\ufe0f\u20e3 Calculando features de ESTAT═STICAS...
+INFO 2026-02-14 17:22:26,849 feature_engineer    \u2705 15 features de estatφsticas
+INFO 2026-02-14 17:22:26,849 feature_engineer 
+4\ufe0f\u20e3 Calculando features de CONTEXTO...
+INFO 2026-02-14 17:22:26,849 feature_engineer    \u2705 6 features de contexto
+INFO 2026-02-14 17:22:26,851 feature_engineer 
+5\ufe0f\u20e3 Calculando features de MERCADO...
+INFO 2026-02-14 17:22:26,851 feature_engineer    \u2705 11 features de mercado
+INFO 2026-02-14 17:22:26,851 feature_engineer 
+6\ufe0f\u20e3 Calculando features de CLIMA...
+INFO 2026-02-14 17:22:26,851 feature_engineer    \u2705 9 features de clima
+INFO 2026-02-14 17:22:26,851 feature_engineer 
+7\ufe0f\u20e3 Calculando features de H2H...
+INFO 2026-02-14 17:22:26,851 feature_engineer    \u2705 7 features de H2H
+INFO 2026-02-14 17:22:26,852 feature_engineer 
+8\ufe0f\u20e3 Calculando features de IMPORT┬NCIA DO JOGO...
+INFO 2026-02-14 17:22:26,852 feature_engineer    \u2705 12 features de importΓncia
+INFO 2026-02-14 17:22:26,852 feature_engineer 
+9\ufe0f\u20e3 Calculando features de LES╒ES/SUSPENS╒ES...
+INFO 2026-02-14 17:22:26,852 feature_engineer    \u2705 12 features de 
+les⌡es/suspens⌡es
+INFO 2026-02-14 17:22:26,852 feature_engineer 
+\U0001f51f Calculando features de MOTIVA╟├O...
+INFO 2026-02-14 17:22:26,852 feature_engineer    \u2705 10 features de motivaτπo
+INFO 2026-02-14 17:22:26,852 feature_engineer 
+ Calculando features de ELO...
+INFO 2026-02-14 17:22:26,852 feature_engineer    \u2705 4 features de ELO
+INFO 2026-02-14 17:22:26,852 feature_engineer 
+1\ufe0f\u20e32\ufe0f\u20e3 Calculando features de TIPO DE COMPETI╟├O...
+INFO 2026-02-14 17:22:26,854 feature_engineer    \u2705 5 features de competiτπo
+INFO 2026-02-14 17:22:26,854 feature_engineer       \U0001f3c6 COPA DETECTADA: FA Cup
+INFO 2026-02-14 17:22:26,854 feature_engineer       \U0001f4c9 Fator de ajuste xG: 0.9
+INFO 2026-02-14 17:22:26,854 feature_engineer 
+================================================================================
+INFO 2026-02-14 17:22:26,854 feature_engineer \u2705 TOTAL: 114 features engineered
+INFO 2026-02-14 17:22:26,854 feature_engineer 
+================================================================================
+
+INFO 2026-02-14 17:22:26,854 analysis_orchestrator 
+================================================================================
+INFO 2026-02-14 17:22:26,854 analysis_orchestrator \U0001f4ca [Orchestrator] FEATURES 
+GERADAS - Resumo por Categoria
+INFO 2026-02-14 17:22:26,854 analysis_orchestrator 
+================================================================================
+INFO 2026-02-14 17:22:26,854 analysis_orchestrator    STRENGTH: 10 features
+INFO 2026-02-14 17:22:26,854 analysis_orchestrator       - home_attack_strength: 0.87
+INFO 2026-02-14 17:22:26,854 analysis_orchestrator       - home_defense_strength: 1.15
+INFO 2026-02-14 17:22:26,854 analysis_orchestrator       - away_attack_strength: 0.87
+INFO 2026-02-14 17:22:26,856 analysis_orchestrator       ... (+7 features)
+INFO 2026-02-14 17:22:26,856 analysis_orchestrator    FORM: 13 features
+INFO 2026-02-14 17:22:26,856 analysis_orchestrator       - home_weighted_form: 1.5
+INFO 2026-02-14 17:22:26,856 analysis_orchestrator       - home_momentum: 0
+INFO 2026-02-14 17:22:26,856 analysis_orchestrator       - home_recent_points: 0
+INFO 2026-02-14 17:22:26,856 analysis_orchestrator       ... (+10 features)
+INFO 2026-02-14 17:22:26,856 analysis_orchestrator    STATISTICS: 15 features
+INFO 2026-02-14 17:22:26,858 analysis_orchestrator       - home_corners_per_game: 0
+INFO 2026-02-14 17:22:26,858 analysis_orchestrator       - away_corners_per_game: 0
+INFO 2026-02-14 17:22:26,858 analysis_orchestrator       - total_corners_expected: 0
+INFO 2026-02-14 17:22:26,858 analysis_orchestrator       ... (+12 features)
+INFO 2026-02-14 17:22:26,858 analysis_orchestrator    CONTEXT: 6 features
+INFO 2026-02-14 17:22:26,858 analysis_orchestrator       - home_rest_days: 7
+INFO 2026-02-14 17:22:26,858 analysis_orchestrator       - away_rest_days: 7
+INFO 2026-02-14 17:22:26,859 analysis_orchestrator       - home_is_fatigued: False
+INFO 2026-02-14 17:22:26,859 analysis_orchestrator       ... (+3 features)
+INFO 2026-02-14 17:22:26,859 analysis_orchestrator    MARKET: 11 features
+INFO 2026-02-14 17:22:26,859 analysis_orchestrator       - market_home_prob: 0.588
+INFO 2026-02-14 17:22:26,859 analysis_orchestrator       - market_draw_prob: 0.234
+INFO 2026-02-14 17:22:26,859 analysis_orchestrator       - market_away_prob: 0.178
+INFO 2026-02-14 17:22:26,860 analysis_orchestrator       ... (+8 features)
+INFO 2026-02-14 17:22:26,860 analysis_orchestrator    WEATHER: 9 features
+INFO 2026-02-14 17:22:26,860 analysis_orchestrator       - has_weather: False
+INFO 2026-02-14 17:22:26,860 analysis_orchestrator       - weather_impact: low
+INFO 2026-02-14 17:22:26,860 analysis_orchestrator       - weather_severity: 0.0
+INFO 2026-02-14 17:22:26,860 analysis_orchestrator       ... (+6 features)
+INFO 2026-02-14 17:22:26,860 analysis_orchestrator    H2H: 7 features
+INFO 2026-02-14 17:22:26,860 analysis_orchestrator       - h2h_games: 10
+INFO 2026-02-14 17:22:26,860 analysis_orchestrator       - h2h_home_wins: 5
+INFO 2026-02-14 17:22:26,860 analysis_orchestrator       - h2h_draws: 1
+INFO 2026-02-14 17:22:26,862 analysis_orchestrator       ... (+4 features)
+INFO 2026-02-14 17:22:26,862 analysis_orchestrator    MATCH_IMPORTANCE: 12 features
+INFO 2026-02-14 17:22:26,862 analysis_orchestrator       - home_position: 10
+INFO 2026-02-14 17:22:26,862 analysis_orchestrator       - away_position: 10
+INFO 2026-02-14 17:22:26,862 analysis_orchestrator       - position_differential: 0
+INFO 2026-02-14 17:22:26,862 analysis_orchestrator       ... (+9 features)
+INFO 2026-02-14 17:22:26,862 analysis_orchestrator    INJURIES_SUSPENSIONS: 12 features
+INFO 2026-02-14 17:22:26,862 analysis_orchestrator       - home_injured_count: 0
+INFO 2026-02-14 17:22:26,862 analysis_orchestrator       - away_injured_count: 0
+INFO 2026-02-14 17:22:26,862 analysis_orchestrator       - home_suspended_count: 0
+INFO 2026-02-14 17:22:26,862 analysis_orchestrator       ... (+9 features)
+INFO 2026-02-14 17:22:26,864 analysis_orchestrator    MOTIVATION: 10 features
+INFO 2026-02-14 17:22:26,864 analysis_orchestrator       - home_motivation: 5.0
+INFO 2026-02-14 17:22:26,864 analysis_orchestrator       - away_motivation: 5.0
+INFO 2026-02-14 17:22:26,864 analysis_orchestrator       - motivation_differential: 0
+INFO 2026-02-14 17:22:26,864 analysis_orchestrator       ... (+7 features)
+INFO 2026-02-14 17:22:26,864 analysis_orchestrator    ELO: 4 features
+INFO 2026-02-14 17:22:26,864 analysis_orchestrator       - home_elo: 1466.2
+INFO 2026-02-14 17:22:26,864 analysis_orchestrator       - away_elo: 1466.2
+INFO 2026-02-14 17:22:26,864 analysis_orchestrator       - elo_differential: 0.0
+INFO 2026-02-14 17:22:26,864 analysis_orchestrator       ... (+1 features)
+INFO 2026-02-14 17:22:26,864 analysis_orchestrator    COMPETITION: 5 features
+INFO 2026-02-14 17:22:26,864 analysis_orchestrator       - is_cup_competition: True
+INFO 2026-02-14 17:22:26,866 analysis_orchestrator       - competition_name: FA Cup
+INFO 2026-02-14 17:22:26,866 analysis_orchestrator       - knockout_adjustment_factor: 
+0.9
+INFO 2026-02-14 17:22:26,866 analysis_orchestrator       ... (+2 features)
+INFO 2026-02-14 17:22:26,866 analysis_orchestrator 
+   TOTAL: 114 features geradas
+INFO 2026-02-14 17:22:26,866 analysis_orchestrator 
+================================================================================
+
+INFO 2026-02-14 17:22:26,866 context_analyzer 
+================================================================================
+INFO 2026-02-14 17:22:26,866 context_analyzer \U0001f50d CONTEXT ANALYZER - Detectando 
+padr⌡es contextuais
+INFO 2026-02-14 17:22:26,866 context_analyzer 
+================================================================================
+INFO 2026-02-14 17:22:26,866 context_analyzer \U0001f50d DEBUG: Checking 
+motivated_favorite_vs_defensive_wall pattern
+INFO 2026-02-14 17:22:26,866 context_analyzer 
+\u2705 Padrπo detectado: balanced_tight_game
+INFO 2026-02-14 17:22:26,868 context_analyzer    Confianτa: 80%
+INFO 2026-02-14 17:22:26,868 context_analyzer    Mercados favorecidos: under_2.5, 
+draw, btts_no, draw_ht
+INFO 2026-02-14 17:22:26,868 context_analyzer    Raciocφnio: Jogo equilibrado (forτa: 
+0.00, motivaτπo: 0.00) | Expected goals: 1.3 | baixo scoring favorece under e btts_no
+INFO 2026-02-14 17:22:26,868 context_analyzer 
+--------------------------------------------------------------------------------
+INFO 2026-02-14 17:22:26,868 context_analyzer \U0001f4ca Top mercados por contexto:
+INFO 2026-02-14 17:22:26,868 context_analyzer    under_2.5: 100%
+INFO 2026-02-14 17:22:26,868 context_analyzer    draw: 93%
+INFO 2026-02-14 17:22:26,868 context_analyzer    btts_no: 93%
+INFO 2026-02-14 17:22:26,868 context_analyzer    draw_ht: 87%
+INFO 2026-02-14 17:22:26,868 context_analyzer    under_1.5: 80%
+INFO 2026-02-14 17:22:26,870 context_analyzer 
+================================================================================
+
+INFO 2026-02-14 17:22:26,872 analysis_orchestrator \U0001f50d [Orchestrator] Padr⌡es 
+contextuais detectados: 1
+INFO 2026-02-14 17:22:26,872 analysis_orchestrator    - balanced_tight_game: 80%
+INFO 2026-02-14 17:22:26,872 hybrid_strategy    \u26a0\ufe0f balanced_tight_game: 
+Confianca 80% < 90%
+INFO 2026-02-14 17:22:26,873 hybrid_strategy 
+\U0001f504 DECISAO: USAR MODELO BASE (Poisson)
+INFO 2026-02-14 17:22:26,873 hybrid_strategy    Razao: Nenhum padrao forte (max 
+confianca: 80% < 90%)
+INFO 2026-02-14 17:22:26,873 analysis_orchestrator \u26a0\ufe0f [Orchestrator] 
+Contexto REJEITADO - usando modelo base
+INFO 2026-02-14 17:22:26,873 analysis_orchestrator \u2705 [Orchestrator] AJUSTE DE 
+COPA ATIVO
+INFO 2026-02-14 17:22:26,873 analysis_orchestrator \U0001f527 [Orchestrator] FEATURES 
+CR═TICAS PARA ENSEMBLE:
+INFO 2026-02-14 17:22:26,873 analysis_orchestrator    Home Strength: 1.30 gols/jogo
+INFO 2026-02-14 17:22:26,873 analysis_orchestrator    Away Strength: 1.30 gols/jogo
+INFO 2026-02-14 17:22:26,875 analysis_orchestrator    Weather Impact: 0.00
+INFO 2026-02-14 17:22:26,875 analysis_orchestrator    League ID: 45
+INFO 2026-02-14 17:22:26,875 analysis_orchestrator    Tipo Competiτπo: COPA
+INFO 2026-02-14 17:22:26,875 analysis_orchestrator    Knockout Adjustment: 0.90 (ATIVO)
+INFO 2026-02-14 17:22:26,875 analysis_orchestrator       \U0001f3c6 Fase: early_rounds
+INFO 2026-02-14 17:22:26,875 analysis_orchestrator       \U0001f4c9 Reduτπo xG: 10%
+
+====================================================================================================
+>>> INICIANDO PREDICT() DO ENSEMBLE <<<
+>>> use_market_prior=True, has_ml=True
+====================================================================================================
+
+INFO 2026-02-14 17:22:26,875 ml_integration 
+================================================================================
+INFO 2026-02-14 17:22:26,875 ml_integration \U0001f3af ENSEMBLE ML - Combinando modelos
+INFO 2026-02-14 17:22:26,875 ml_integration 
+================================================================================
+INFO 2026-02-14 17:22:26,877 statistical_models 
+================================================================================
+INFO 2026-02-14 17:22:26,877 statistical_models \U0001f3b2 MODELO POISSON - Calculando 
+distribuiτπo de placares (COM DEFESA)
+INFO 2026-02-14 17:22:26,877 statistical_models 
+================================================================================
+INFO 2026-02-14 17:22:26,877 statistical_models \u26a0\ufe0f Defesa nπo disponφvel, 
+usando apenas ataque
+INFO 2026-02-14 17:22:26,877 statistical_models \U0001f4ca Forτa base:
+INFO 2026-02-14 17:22:26,877 statistical_models    Casa: 1.30 gols/jogo (ataque)
+INFO 2026-02-14 17:22:26,877 statistical_models    Fora: 1.30 gols/jogo (ataque)
+INFO 2026-02-14 17:22:26,877 statistical_models    Home Advantage: 1.07x (Liga 45)
+INFO 2026-02-14 17:22:26,877 statistical_models 
+\U0001f50d DEBUG POISSON - Lambda ANTES ajuste copa:
+INFO 2026-02-14 17:22:26,877 statistical_models    \u03bb_home: 1.391
+INFO 2026-02-14 17:22:26,877 statistical_models    \u03bb_away: 1.300
+INFO 2026-02-14 17:22:26,879 statistical_models    \u03bb_total: 2.691
+INFO 2026-02-14 17:22:26,879 statistical_models    knockout_adjustment: 0.90
+INFO 2026-02-14 17:22:26,879 statistical_models 
+\U0001f3c6 Ajuste Copa/Knockout: -10% xG
+INFO 2026-02-14 17:22:26,879 statistical_models    \u26bd Casa: 1.25 gols (ajustado)
+INFO 2026-02-14 17:22:26,879 statistical_models    \u26bd Fora: 1.17 gols (ajustado)
+INFO 2026-02-14 17:22:26,880 statistical_models 
+\u26a1 Expectativa de gols (\u03bb):
+INFO 2026-02-14 17:22:26,880 statistical_models    Casa: 1.25
+INFO 2026-02-14 17:22:26,880 statistical_models    Fora: 1.17
+INFO 2026-02-14 17:22:26,880 statistical_models 
+\U0001f522 Calculando distribuiτπo de placares (6x6)...
+INFO 2026-02-14 17:22:26,919 statistical_models    \u2705 Placar mais provßvel: 1-1 
+(14.7%)
+INFO 2026-02-14 17:22:26,919 statistical_models 
+\U0001f4c8 Calculando probabilidades de mercados...
+INFO 2026-02-14 17:22:26,921 statistical_models    1X2:
+INFO 2026-02-14 17:22:26,921 statistical_models       Casa: 36.5%
+INFO 2026-02-14 17:22:26,921 statistical_models       Empate: 30.9%
+INFO 2026-02-14 17:22:26,921 statistical_models       Fora: 32.6%
+INFO 2026-02-14 17:22:26,921 statistical_models    Over/Under 1.5:
+INFO 2026-02-14 17:22:26,921 statistical_models       Over: 71.3%
+INFO 2026-02-14 17:22:26,923 statistical_models       Under: 28.7%
+INFO 2026-02-14 17:22:26,923 statistical_models    Over/Under 2.5:
+INFO 2026-02-14 17:22:26,923 statistical_models       Over: 43.6%
+INFO 2026-02-14 17:22:26,924 statistical_models       Under: 56.4%
+INFO 2026-02-14 17:22:26,924 statistical_models    Over/Under 3.5:
+INFO 2026-02-14 17:22:26,924 statistical_models       Over: 22.5%
+INFO 2026-02-14 17:22:26,924 statistical_models       Under: 77.5%
+INFO 2026-02-14 17:22:26,924 statistical_models    Ambas Marcam: 50.9%
+INFO 2026-02-14 17:22:26,924 statistical_models    Ambas N├O Marcam: 49.1%
+INFO 2026-02-14 17:22:26,924 statistical_models    Clean Sheets:
+INFO 2026-02-14 17:22:26,924 statistical_models       Casa nπo sofre: 31.0%
+INFO 2026-02-14 17:22:26,924 statistical_models       Fora nπo sofre: 28.6%
+INFO 2026-02-14 17:22:26,926 statistical_models    Team Total Goals:
+INFO 2026-02-14 17:22:26,926 statistical_models       Casa Over 0.5: 71.4%
+INFO 2026-02-14 17:22:26,926 statistical_models       Casa Over 1.5: 35.6%
+INFO 2026-02-14 17:22:26,926 statistical_models       Fora Over 0.5: 69.0%
+INFO 2026-02-14 17:22:26,926 statistical_models       Fora Over 1.5: 32.6%
+INFO 2026-02-14 17:22:26,926 statistical_models    Margens de Vit≤ria:
+INFO 2026-02-14 17:22:26,926 statistical_models       Casa por 1: 19.8%
+INFO 2026-02-14 17:22:26,926 statistical_models       Casa por 2+: 16.7%
+INFO 2026-02-14 17:22:26,926 statistical_models       Fora por 1: 18.4%
+INFO 2026-02-14 17:22:26,928 statistical_models       Fora por 2+: 14.2%
+INFO 2026-02-14 17:22:26,928 statistical_models    Gols Totais:
+INFO 2026-02-14 17:22:26,928 statistical_models       ═mpar: 46.2%
+INFO 2026-02-14 17:22:26,928 statistical_models       Par: 53.8%
+INFO 2026-02-14 17:22:26,929 statistical_models    Over/Under 0.5:
+INFO 2026-02-14 17:22:26,929 statistical_models       Over: 89.4%
+INFO 2026-02-14 17:22:26,929 statistical_models       Under (0-0): 10.6%
+INFO 2026-02-14 17:22:26,929 statistical_models    Over/Under 4.5:
+INFO 2026-02-14 17:22:26,929 statistical_models       Over: 9.8%
+INFO 2026-02-14 17:22:26,929 statistical_models       Under: 90.2%
+INFO 2026-02-14 17:22:26,929 statistical_models    Double Chance:
+INFO 2026-02-14 17:22:26,929 statistical_models       1X (Casa ou Empate): 67.4%
+INFO 2026-02-14 17:22:26,931 statistical_models       12 (Casa ou Fora): 69.1%
+INFO 2026-02-14 17:22:26,931 statistical_models       X2 (Empate ou Fora): 63.5%
+INFO 2026-02-14 17:22:26,931 statistical_models    Asian Lines:
+INFO 2026-02-14 17:22:26,931 statistical_models       Over 2.25: 43.6%
+INFO 2026-02-14 17:22:26,931 statistical_models       Over 2.75: 33.1%
+INFO 2026-02-14 17:22:26,931 statistical_models 
+\U0001f3c6 Top 5 placares:
+INFO 2026-02-14 17:22:26,933 statistical_models    1. 1-1 - 14.7%
+INFO 2026-02-14 17:22:26,935 statistical_models    2. 0-0 - 10.6%
+INFO 2026-02-14 17:22:26,935 statistical_models    3. 1-0 - 9.4%
+INFO 2026-02-14 17:22:26,935 statistical_models    4. 0-1 - 8.7%
+INFO 2026-02-14 17:22:26,937 statistical_models    5. 2-1 - 8.1%
+INFO 2026-02-14 17:22:26,937 statistical_models 
+================================================================================
+
+WARNING 2026-02-14 17:22:26,937 ml_integration \u26a0\ufe0f Feature mismatch: modelo 
+espera 98, recebeu 108
+INFO 2026-02-14 17:22:26,937 ml_integration    Truncando features extras (10 removidas)
+
+================================================================================
+DEBUG ENSEMBLE - max_market_prob: 58.8%
+DEBUG ENSEMBLE - is_clear_favorite: True
+DEBUG ENSEMBLE - use_market_prior: True
+DEBUG ENSEMBLE - has_ml: True
+================================================================================
+
+INFO 2026-02-14 17:22:26,945 ml_integration \U0001f4ca Detecτπo favorito: 
+max_market_prob=58.8%, is_clear_favorite=True
+INFO 2026-02-14 17:22:26,945 ml_integration    Condiτ⌡es: use_market_prior=True, 
+has_ml=True
+WARNING 2026-02-14 17:22:26,945 ml_integration ML DESCALIBRADO DETECTADO - Favorito 
+muito claro mas ML discorda!
+WARNING 2026-02-14 17:22:26,945 ml_integration    Market diz: home_win (58.8%)
+WARNING 2026-02-14 17:22:26,945 ml_integration    ML diz: draw (34.0%)
+WARNING 2026-02-14 17:22:26,945 ml_integration    SOLUCAO: Market 80% (favorito muito 
+claro), Poisson 20%, ML 0%
+INFO 2026-02-14 17:22:26,945 ml_integration CLEAR_FAVORITE ATIVADO - Usando Poisson 20%
+INFO 2026-02-14 17:22:26,947 ml_integration Pesos: P=20%, ML=0%, M=80%
+INFO 2026-02-14 17:22:26,947 ml_integration Razao: Favorito claro (prob=58.8% > 55%)
+INFO 2026-02-14 17:22:26,947 ml_integration 
+\u2696\ufe0f Config: CLEAR_FAVORITE_NO_ML (Market 80%, Poisson 20%, ML descalibrado 
+ignorado) | Pesos: P=20% ML=0% M=80%
+
+====================================================================================================
+DEBUG CONSENSUS - Valores ANTES de combinar:
+  Poisson: Casa=36.5%, Empate=30.9%, Fora=32.6%
+  ML:      Casa=33.4%, Empate=34.0%, Fora=32.6%
+  Market:  Casa=58.8%, Empate=23.4%, Fora=17.8%
+  Pesos:   P=20%, ML=0%, M=80%
+====================================================================================================
+
+
+====================================================================================================
+DEBUG CONSENSUS - Resultado AP╙S combinar:
+  Casa=54.3%, Empate=24.9%, Fora=20.8%
+====================================================================================================
+
+INFO 2026-02-14 17:22:26,948 ml_integration 
+\U0001f3af CONSENSUS FINAL:
+INFO 2026-02-14 17:22:26,948 ml_integration    Casa: 54.3%
+INFO 2026-02-14 17:22:26,948 ml_integration    Empate: 24.9%
+INFO 2026-02-14 17:22:26,948 ml_integration    Fora: 20.8%
+INFO 2026-02-14 17:22:26,948 ml_integration 
+================================================================================
+
+INFO 2026-02-14 17:22:26,948 analysis_orchestrator 
+================================================================================
+INFO 2026-02-14 17:22:26,956 analysis_orchestrator \U0001f3b2 [Orchestrator] RESULTADO 
+DO ENSEMBLE
+INFO 2026-02-14 17:22:26,957 analysis_orchestrator 
+================================================================================
+INFO 2026-02-14 17:22:26,957 analysis_orchestrator    Consensus:
+INFO 2026-02-14 17:22:26,957 analysis_orchestrator       Home: 54.3%
+INFO 2026-02-14 17:22:26,957 analysis_orchestrator       Draw: 24.9%
+INFO 2026-02-14 17:22:26,957 analysis_orchestrator       Away: 20.8%
+INFO 2026-02-14 17:22:26,957 analysis_orchestrator    Poisson 1X2:
+INFO 2026-02-14 17:22:26,957 analysis_orchestrator       Home: 36.5%
+INFO 2026-02-14 17:22:26,957 analysis_orchestrator       Draw: 30.9%
+INFO 2026-02-14 17:22:26,957 analysis_orchestrator       Away: 32.6%
+INFO 2026-02-14 17:22:26,959 analysis_orchestrator 
+================================================================================
+
+INFO 2026-02-14 17:22:26,959 analysis_orchestrator \U0001f4b0 [Orchestrator] Market 
+odds preparados: Home=1.59, Draw=4.0, Away=5.25
+INFO 2026-02-14 17:22:26,959 decision_engine 
+================================================================================
+INFO 2026-02-14 17:22:26,959 decision_engine \U0001f3af DECISION ENGINE - Gerando 
+recomendaτπo (EstratΘgia: MULTIPLE)
+INFO 2026-02-14 17:22:26,959 decision_engine 
+================================================================================
+
+INFO 2026-02-14 17:22:26,959 decision_engine \U0001f4ca Model Predictions recebidos:
+INFO 2026-02-14 17:22:26,959 decision_engine    Consensus: {'home_win': 
+0.5434657675916118, 'draw': 0.2489639289758092, 'away_win': 0.20757030343257904}
+INFO 2026-02-14 17:22:26,959 decision_engine    Poisson xG: Home=1.2519000000000002, 
+Away=1.1700000000000002
+INFO 2026-02-14 17:22:26,959 decision_engine    Weather Adjusted: False
+INFO 2026-02-14 17:22:26,959 decision_engine 
+\U0001f4b0 Market Odds:
+INFO 2026-02-14 17:22:26,959 decision_engine    Home: 1.59, Draw: 4.0, Away: 5.25
+INFO 2026-02-14 17:22:26,959 decision_engine    Over 2.5: 1.65, Under 2.5: 2.2
+INFO 2026-02-14 17:22:26,961 decision_engine 
+1\ufe0f\u20e3 Calculando odds justas...
+INFO 2026-02-14 17:22:26,961 decision_engine    \u2705 Fair odds: {'home_win': 1.84, 
+'draw': 4.02, 'away_win': 4.82, 'over_1.5': 1.4, 'under_1.5': 3.48, 'over_2.5': 2.3, 
+'under_2.5': 1.77, 'over_3.5': 4.44, 'under_3.5': 1.29, 'btts': 1.96, 'home_over_0.5': 
+1.4, 'home_over_1.5': 2.81, 'home_over_2.5': 7.59, 'away_over_0.5': 1.45, 
+'away_over_1.5': 3.06, 'away_over_2.5': 8.78, 'home_win_by_1': 500.0, 
+'home_win_by_2plus': 500.0, 'away_win_by_1': 500.0, 'away_win_by_2plus': 500.0, 
+'odd_goals': 2.16, 'even_goals': 1.86}
+INFO 2026-02-14 17:22:26,961 decision_engine 
+2\ufe0f\u20e3 Identificando value bets...
+INFO 2026-02-14 17:22:26,961 decision_engine   \U0001f4b0 1 value bets encontrados
+INFO 2026-02-14 17:22:26,961 decision_engine     ò Vit≤ria Fora: 8.9% value
+INFO 2026-02-14 17:22:26,961 decision_engine    \u2705 1 value bets encontrados
+INFO 2026-02-14 17:22:26,961 decision_engine       - away_win: Fair 4.82 vs Market 
+5.25 = 8.9% edge
+INFO 2026-02-14 17:22:26,961 decision_engine 
+3\ufe0f\u20e3 Calculando confianτa...
+INFO 2026-02-14 17:22:26,963 decision_engine    \u2705 Confianτa: 4/5 (medium, 
+score=0.63)
+INFO 2026-02-14 17:22:26,963 decision_engine 
+4\ufe0f\u20e3 Avaliando risco...
+INFO 2026-02-14 17:22:26,963 decision_engine    \u2705 Risco: medium
+INFO 2026-02-14 17:22:26,963 decision_engine 
+5\ufe0f\u20e3 Gerando recomendaτπo final...
+INFO 2026-02-14 17:22:26,963 decision_engine    \u2705 Recomendaτπo: Casa (home_win)
+INFO 2026-02-14 17:22:26,963 decision_engine       Probabilidade: 54.3%
+INFO 2026-02-14 17:22:26,964 decision_engine       Odd: 1.59
+INFO 2026-02-14 17:22:26,964 decision_engine 
+6\ufe0f\u20e3 Selecionando top 3 apostas...
+INFO 2026-02-14 17:22:26,964 decision_engine    EstratΘgia: MULTIPLE
+INFO 2026-02-14 17:22:26,964 decision_engine    Contexto disponφvel: SIM
+INFO 2026-02-14 17:22:26,964 decision_engine    \U0001f3af Usando seleτπo CONTEXTUAL 
+via MarketSelector (SEMPRE)
+INFO 2026-02-14 17:22:26,964 decision_engine 
+\U0001f3af Seleτπo Contextual de Mercados
+INFO 2026-02-14 17:22:26,964 decision_engine    Padr⌡es detectados: 0
+INFO 2026-02-14 17:22:26,964 market_selector 
+================================================================================
+INFO 2026-02-14 17:22:26,964 market_selector \U0001f3af MARKET SELECTOR - Selecionando 
+mercados contextuais
+INFO 2026-02-14 17:22:26,964 market_selector    EstratΘgia: MULTIPLE
+INFO 2026-02-14 17:22:26,964 market_selector 
+================================================================================
+INFO 2026-02-14 17:22:26,964 market_selector 
+\U0001f4cb Thresholds:
+INFO 2026-02-14 17:22:26,972 market_selector    Min probability: 45%
+INFO 2026-02-14 17:22:26,972 market_selector    Min context score: 65% (contextos <75% 
+\u2192 1.0 = passa)
+INFO 2026-02-14 17:22:26,972 market_selector    Min selection score: 30%
+INFO 2026-02-14 17:22:26,972 market_selector    EV filter: DESATIVADO (irrelevante 
+para acumuladores)
+INFO 2026-02-14 17:22:26,972 market_selector 
+\U0001f50d Analisando TODOS os mercados disponφveis: 48
+INFO 2026-02-14 17:22:26,974 market_selector    \U0001f4ca Contexto ·til disponφvel 
+para 0 mercados
+INFO 2026-02-14 17:22:26,974 market_selector    \U0001f3af Contexto FORTE (\u226575%): 
+0 mercados
+INFO 2026-02-14 17:22:26,974 market_selector    \u26aa Contexto FRACO (<75%): 0 
+mercados \u2192 tratados como neutros (1.0)
+INFO 2026-02-14 17:22:26,974 market_selector    \U0001f4ca 0 padr⌡es gerais detectados
+INFO 2026-02-14 17:22:26,974 market_selector 
+   \u26a0\ufe0f DEBUG - Nenhum padrπo contextual detectado!
+INFO 2026-02-14 17:22:26,974 market_selector    \u2705 47 mercados candidatos criados
+
+INFO 2026-02-14 17:22:26,974 market_selector 
+   Candidato: home_win
+INFO 2026-02-14 17:22:26,974 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,974 market_selector       Probabilidade: 54%
+INFO 2026-02-14 17:22:26,974 market_selector       Odd: 1.59
+INFO 2026-02-14 17:22:26,974 market_selector       EV: -13.6%
+INFO 2026-02-14 17:22:26,974 market_selector       Selection Score: 0.543 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:26,976 market_selector       \u26a0\ufe0f Aviso: EV -13.6% 
+negativo (mas aprovado por probabilidade alta)
+INFO 2026-02-14 17:22:26,976 market_selector       \u2705 Aprovado!
+INFO 2026-02-14 17:22:26,976 market_selector 
+   Candidato: draw
+INFO 2026-02-14 17:22:26,976 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,976 market_selector       Probabilidade: 25%
+INFO 2026-02-14 17:22:26,976 market_selector       Odd: 4.0
+INFO 2026-02-14 17:22:26,976 market_selector       EV: -0.4%
+INFO 2026-02-14 17:22:26,976 market_selector       Selection Score: 0.249 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:26,976 market_selector       \u274c Rejeitado: probabilidade 25% 
+< 45% (m·ltiplo exige alta prob)
+INFO 2026-02-14 17:22:26,976 market_selector 
+   Candidato: away_win
+INFO 2026-02-14 17:22:26,976 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,978 market_selector       Probabilidade: 21%
+INFO 2026-02-14 17:22:26,978 market_selector       Odd: 5.25
+INFO 2026-02-14 17:22:26,978 market_selector       EV: +9.0%
+INFO 2026-02-14 17:22:26,978 market_selector       Selection Score: 0.208 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:26,978 market_selector       \u274c Rejeitado: probabilidade 21% 
+< 45% (m·ltiplo exige alta prob)
+INFO 2026-02-14 17:22:26,978 market_selector 
+   Candidato: 1x
+INFO 2026-02-14 17:22:26,978 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,978 market_selector       Probabilidade: 67%
+INFO 2026-02-14 17:22:26,978 market_selector       Odd: None
+INFO 2026-02-14 17:22:26,978 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:26,978 market_selector       Selection Score: 0.674 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:26,980 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:26,980 market_selector 
+   Candidato: 12
+INFO 2026-02-14 17:22:26,980 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,980 market_selector       Probabilidade: 69%
+INFO 2026-02-14 17:22:26,980 market_selector       Odd: None
+INFO 2026-02-14 17:22:26,980 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:26,980 market_selector       Selection Score: 0.691 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:26,980 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:26,980 market_selector 
+   Candidato: x2
+INFO 2026-02-14 17:22:26,980 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,980 market_selector       Probabilidade: 63%
+INFO 2026-02-14 17:22:26,980 market_selector       Odd: None
+INFO 2026-02-14 17:22:26,980 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:26,982 market_selector       Selection Score: 0.635 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:26,982 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:26,982 market_selector 
+   Candidato: over_0.5
+INFO 2026-02-14 17:22:26,982 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,982 market_selector       Probabilidade: 89%
+INFO 2026-02-14 17:22:26,982 market_selector       Odd: None
+INFO 2026-02-14 17:22:26,982 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:26,982 market_selector       Selection Score: 0.894 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:26,982 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:26,982 market_selector 
+   Candidato: under_0.5
+INFO 2026-02-14 17:22:26,986 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,986 market_selector       Probabilidade: 11%
+INFO 2026-02-14 17:22:26,986 market_selector       Odd: None
+INFO 2026-02-14 17:22:26,986 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:26,986 market_selector       Selection Score: 0.106 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:26,986 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:26,986 market_selector 
+   Candidato: over_1.5
+INFO 2026-02-14 17:22:26,986 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,986 market_selector       Probabilidade: 71%
+INFO 2026-02-14 17:22:26,986 market_selector       Odd: None
+INFO 2026-02-14 17:22:26,986 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:26,986 market_selector       Selection Score: 0.713 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:26,988 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:26,988 market_selector 
+   Candidato: under_1.5
+INFO 2026-02-14 17:22:26,988 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,988 market_selector       Probabilidade: 29%
+INFO 2026-02-14 17:22:26,988 market_selector       Odd: None
+INFO 2026-02-14 17:22:26,988 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:26,988 market_selector       Selection Score: 0.287 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:26,988 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:26,988 market_selector 
+   Candidato: over_2.5
+INFO 2026-02-14 17:22:26,988 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,988 market_selector       Probabilidade: 44%
+INFO 2026-02-14 17:22:26,988 market_selector       Odd: 1.65
+INFO 2026-02-14 17:22:26,990 market_selector       EV: -28.1%
+INFO 2026-02-14 17:22:26,990 market_selector       Selection Score: 0.436 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:26,990 market_selector       \u26a0\ufe0f Aviso: EV -28.1% 
+negativo (mas aprovado por probabilidade alta)
+INFO 2026-02-14 17:22:26,990 market_selector       \u2705 Aprovado!
+INFO 2026-02-14 17:22:26,990 market_selector 
+   Candidato: under_2.5
+INFO 2026-02-14 17:22:26,990 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,990 market_selector       Probabilidade: 56%
+INFO 2026-02-14 17:22:26,990 market_selector       Odd: 2.2
+INFO 2026-02-14 17:22:26,990 market_selector       EV: +24.1%
+INFO 2026-02-14 17:22:26,992 market_selector       Selection Score: 0.564 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:26,992 market_selector       \u2705 Aprovado!
+INFO 2026-02-14 17:22:26,992 market_selector 
+   Candidato: over_3.5
+INFO 2026-02-14 17:22:26,992 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,992 market_selector       Probabilidade: 23%
+INFO 2026-02-14 17:22:26,993 market_selector       Odd: None
+INFO 2026-02-14 17:22:26,993 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:26,993 market_selector       Selection Score: 0.225 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:26,993 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:26,993 market_selector 
+   Candidato: under_3.5
+INFO 2026-02-14 17:22:26,993 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,993 market_selector       Probabilidade: 77%
+INFO 2026-02-14 17:22:26,994 market_selector       Odd: None
+INFO 2026-02-14 17:22:26,994 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:26,994 market_selector       Selection Score: 0.775 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:26,994 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:26,994 market_selector 
+   Candidato: under_4.5
+INFO 2026-02-14 17:22:26,994 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,994 market_selector       Probabilidade: 90%
+INFO 2026-02-14 17:22:26,994 market_selector       Odd: None
+INFO 2026-02-14 17:22:26,994 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:26,994 market_selector       Selection Score: 0.902 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:26,994 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:26,996 market_selector 
+   Candidato: over_1.75
+INFO 2026-02-14 17:22:26,996 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,996 market_selector       Probabilidade: 57%
+INFO 2026-02-14 17:22:26,996 market_selector       Odd: None
+INFO 2026-02-14 17:22:26,996 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:26,996 market_selector       Selection Score: 0.574 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:26,996 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:26,996 market_selector 
+   Candidato: under_1.75
+INFO 2026-02-14 17:22:26,996 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,996 market_selector       Probabilidade: 43%
+INFO 2026-02-14 17:22:26,996 market_selector       Odd: None
+INFO 2026-02-14 17:22:26,998 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:26,998 market_selector       Selection Score: 0.426 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:26,998 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:26,998 market_selector 
+   Candidato: over_2.25
+INFO 2026-02-14 17:22:26,998 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:26,998 market_selector       Probabilidade: 44%
+INFO 2026-02-14 17:22:26,998 market_selector       Odd: None
+INFO 2026-02-14 17:22:26,998 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:26,998 market_selector       Selection Score: 0.436 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,002 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,002 market_selector 
+   Candidato: under_2.25
+INFO 2026-02-14 17:22:27,002 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,002 market_selector       Probabilidade: 56%
+INFO 2026-02-14 17:22:27,002 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,002 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,002 market_selector       Selection Score: 0.564 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,002 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,002 market_selector 
+   Candidato: over_2.75
+INFO 2026-02-14 17:22:27,002 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,004 market_selector       Probabilidade: 33%
+INFO 2026-02-14 17:22:27,004 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,004 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,004 market_selector       Selection Score: 0.331 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,004 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,004 market_selector 
+   Candidato: under_2.75
+INFO 2026-02-14 17:22:27,004 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,004 market_selector       Probabilidade: 67%
+INFO 2026-02-14 17:22:27,004 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,004 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,004 market_selector       Selection Score: 0.669 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,006 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,006 market_selector 
+   Candidato: over_3.25
+INFO 2026-02-14 17:22:27,006 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,006 market_selector       Probabilidade: 23%
+INFO 2026-02-14 17:22:27,006 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,006 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,006 market_selector       Selection Score: 0.225 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,006 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,006 market_selector 
+   Candidato: under_3.25
+INFO 2026-02-14 17:22:27,008 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,008 market_selector       Probabilidade: 77%
+INFO 2026-02-14 17:22:27,008 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,008 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,010 market_selector       Selection Score: 0.775 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,010 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,010 market_selector 
+   Candidato: btts_yes
+INFO 2026-02-14 17:22:27,010 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,010 market_selector       Probabilidade: 51%
+INFO 2026-02-14 17:22:27,010 market_selector       Odd: 1.7
+INFO 2026-02-14 17:22:27,010 market_selector       EV: -13.4%
+INFO 2026-02-14 17:22:27,010 market_selector       Selection Score: 0.509 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,010 market_selector       \u26a0\ufe0f Aviso: EV -13.4% 
+negativo (mas aprovado por probabilidade alta)
+INFO 2026-02-14 17:22:27,010 market_selector       \u2705 Aprovado!
+INFO 2026-02-14 17:22:27,010 market_selector 
+   Candidato: btts_no
+INFO 2026-02-14 17:22:27,010 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,012 market_selector       Probabilidade: 49%
+INFO 2026-02-14 17:22:27,012 market_selector       Odd: 2.1
+INFO 2026-02-14 17:22:27,012 market_selector       EV: +3.1%
+INFO 2026-02-14 17:22:27,012 market_selector       Selection Score: 0.491 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,012 market_selector       \u2705 Aprovado!
+INFO 2026-02-14 17:22:27,012 market_selector 
+   Candidato: home_clean_sheet
+INFO 2026-02-14 17:22:27,012 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,012 market_selector       Probabilidade: 31%
+INFO 2026-02-14 17:22:27,012 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,012 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,012 market_selector       Selection Score: 0.310 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,012 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,012 market_selector 
+   Candidato: away_clean_sheet
+INFO 2026-02-14 17:22:27,014 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,014 market_selector       Probabilidade: 29%
+INFO 2026-02-14 17:22:27,014 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,014 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,014 market_selector       Selection Score: 0.286 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,014 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,014 market_selector 
+   Candidato: home_over_0.5
+INFO 2026-02-14 17:22:27,014 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,014 market_selector       Probabilidade: 71%
+INFO 2026-02-14 17:22:27,014 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,014 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,014 market_selector       Selection Score: 0.714 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,014 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,016 market_selector 
+   Candidato: home_under_0.5
+INFO 2026-02-14 17:22:27,016 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,017 market_selector       Probabilidade: 29%
+INFO 2026-02-14 17:22:27,019 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,019 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,019 market_selector       Selection Score: 0.286 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,019 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,019 market_selector 
+   Candidato: home_over_1.5
+INFO 2026-02-14 17:22:27,019 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,019 market_selector       Probabilidade: 36%
+INFO 2026-02-14 17:22:27,019 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,019 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,021 market_selector       Selection Score: 0.356 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,021 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,021 market_selector 
+   Candidato: home_under_1.5
+INFO 2026-02-14 17:22:27,021 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,021 market_selector       Probabilidade: 64%
+INFO 2026-02-14 17:22:27,021 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,021 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,021 market_selector       Selection Score: 0.644 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,021 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,021 market_selector 
+   Candidato: home_over_2.5
+INFO 2026-02-14 17:22:27,021 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,021 market_selector       Probabilidade: 13%
+INFO 2026-02-14 17:22:27,023 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,023 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,023 market_selector       Selection Score: 0.132 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,023 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,023 market_selector 
+   Candidato: home_under_2.5
+INFO 2026-02-14 17:22:27,023 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,023 market_selector       Probabilidade: 87%
+INFO 2026-02-14 17:22:27,023 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,023 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,023 market_selector       Selection Score: 0.868 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,023 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,023 market_selector 
+   Candidato: away_over_0.5
+INFO 2026-02-14 17:22:27,023 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,025 market_selector       Probabilidade: 69%
+INFO 2026-02-14 17:22:27,025 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,025 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,025 market_selector       Selection Score: 0.690 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,025 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,025 market_selector 
+   Candidato: away_under_0.5
+INFO 2026-02-14 17:22:27,025 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,025 market_selector       Probabilidade: 31%
+INFO 2026-02-14 17:22:27,025 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,025 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,025 market_selector       Selection Score: 0.310 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,025 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,027 market_selector 
+   Candidato: away_over_1.5
+INFO 2026-02-14 17:22:27,027 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,027 market_selector       Probabilidade: 33%
+INFO 2026-02-14 17:22:27,027 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,027 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,027 market_selector       Selection Score: 0.326 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,027 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,027 market_selector 
+   Candidato: away_under_1.5
+INFO 2026-02-14 17:22:27,029 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,029 market_selector       Probabilidade: 67%
+INFO 2026-02-14 17:22:27,029 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,029 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,029 market_selector       Selection Score: 0.674 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,029 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,029 market_selector 
+   Candidato: away_over_2.5
+INFO 2026-02-14 17:22:27,029 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,029 market_selector       Probabilidade: 11%
+INFO 2026-02-14 17:22:27,029 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,029 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,029 market_selector       Selection Score: 0.114 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,029 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,031 market_selector 
+   Candidato: away_under_2.5
+INFO 2026-02-14 17:22:27,031 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,031 market_selector       Probabilidade: 89%
+INFO 2026-02-14 17:22:27,031 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,031 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,031 market_selector       Selection Score: 0.886 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,031 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,032 market_selector 
+   Candidato: home_by_1
+INFO 2026-02-14 17:22:27,032 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,032 market_selector       Probabilidade: 20%
+INFO 2026-02-14 17:22:27,032 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,032 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,032 market_selector       Selection Score: 0.198 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,033 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,035 market_selector 
+   Candidato: home_by_2plus
+INFO 2026-02-14 17:22:27,035 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,035 market_selector       Probabilidade: 17%
+INFO 2026-02-14 17:22:27,035 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,035 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,035 market_selector       Selection Score: 0.167 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,035 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,035 market_selector 
+   Candidato: away_by_1
+INFO 2026-02-14 17:22:27,035 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,035 market_selector       Probabilidade: 18%
+INFO 2026-02-14 17:22:27,035 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,037 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,037 market_selector       Selection Score: 0.184 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,037 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,037 market_selector 
+   Candidato: away_by_2plus
+INFO 2026-02-14 17:22:27,037 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,037 market_selector       Probabilidade: 14%
+INFO 2026-02-14 17:22:27,037 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,037 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,037 market_selector       Selection Score: 0.142 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,037 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,046 market_selector 
+   Candidato: any_by_1
+INFO 2026-02-14 17:22:27,047 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,047 market_selector       Probabilidade: 38%
+INFO 2026-02-14 17:22:27,047 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,047 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,047 market_selector       Selection Score: 0.382 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,047 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,047 market_selector 
+   Candidato: any_by_2plus
+INFO 2026-02-14 17:22:27,047 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,047 market_selector       Probabilidade: 31%
+INFO 2026-02-14 17:22:27,047 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,047 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,049 market_selector       Selection Score: 0.309 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,049 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,049 market_selector 
+   Candidato: odd_goals
+INFO 2026-02-14 17:22:27,049 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,049 market_selector       Probabilidade: 46%
+INFO 2026-02-14 17:22:27,049 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,049 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,049 market_selector       Selection Score: 0.462 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,051 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,051 market_selector 
+   Candidato: even_goals
+INFO 2026-02-14 17:22:27,051 market_selector       Contexto: 100%
+INFO 2026-02-14 17:22:27,051 market_selector       Probabilidade: 54%
+INFO 2026-02-14 17:22:27,051 market_selector       Odd: None
+INFO 2026-02-14 17:22:27,051 market_selector       EV: +0.0%
+INFO 2026-02-14 17:22:27,051 market_selector       Selection Score: 0.538 (contexto ╫ 
+prob)
+INFO 2026-02-14 17:22:27,051 market_selector       \u274c Rejeitado: sem odd 
+disponφvel no mercado
+INFO 2026-02-14 17:22:27,051 market_selector 
+\U0001f4ca Total de mercados aprovados ap≤s filtros: 5
+INFO 2026-02-14 17:22:27,051 market_selector    Ordenaτπo: Selection score descendente 
+(m·ltiplo)
+INFO 2026-02-14 17:22:27,051 market_selector 
+\U0001f50d Validaτπo de qualidade adicional (multiple):
+INFO 2026-02-14 17:22:27,051 market_selector    \u2705 Under 2.5: \u2705 Aposta 
+aprovada
+INFO 2026-02-14 17:22:27,051 market_selector    \u2705 Vit≤ria Casa: \u2705 Aposta 
+aprovada
+INFO 2026-02-14 17:22:27,053 market_selector    \u2705 Ambos Marcam: \u2705 Aposta 
+aprovada
+INFO 2026-02-14 17:22:27,053 market_selector    \u2705 Ambos Nπo Marcam: \u2705 Aposta 
+aprovada
+INFO 2026-02-14 17:22:27,053 market_selector    \u2705 Over 2.5: \u2705 Aposta aprovada
+INFO 2026-02-14 17:22:27,053 market_selector 
+\U0001f50d Verificando conflitos entre 5 candidatos...
+INFO 2026-02-14 17:22:27,053 market_selector    \u26a0\ufe0f CONFLITO: Ambos Nπo 
+Marcam (49%) vs Ambos Marcam (51%)
+INFO 2026-02-14 17:22:27,053 market_selector       \u2192 Mantendo Ambos Marcam (maior 
+probabilidade)
+INFO 2026-02-14 17:22:27,054 market_selector    \u26a0\ufe0f CONFLITO: Over 2.5 (44%) 
+vs Under 2.5 (56%)
+INFO 2026-02-14 17:22:27,054 market_selector       \u2192 Mantendo Under 2.5 (maior 
+probabilidade)
+INFO 2026-02-14 17:22:27,054 market_selector 
+\U0001f4c9 2 apostas removidas por conflito:
+INFO 2026-02-14 17:22:27,054 market_selector    - Ambos Nπo Marcam (49%) conflita com 
+Ambos Marcam
+INFO 2026-02-14 17:22:27,054 market_selector    - Over 2.5 (44%) conflita com Under 2.5
+INFO 2026-02-14 17:22:27,054 market_selector 
+--------------------------------------------------------------------------------
+INFO 2026-02-14 17:22:27,054 market_selector \U0001f3c6 Top 3 mercados selecionados:
+INFO 2026-02-14 17:22:27,054 market_selector 
+   #1 Under 2.5
+INFO 2026-02-14 17:22:27,054 market_selector       Prob: 56% | Contexto: 100% | Score: 
+0.564
+INFO 2026-02-14 17:22:27,054 market_selector       Odd: 2.2 | EV: +24.1%
+INFO 2026-02-14 17:22:27,060 market_selector       Razπo: Probabilidade moderada (56%) 
+baseada em modelos preditivos
+INFO 2026-02-14 17:22:27,060 market_selector 
+   #2 Vit≤ria Casa
+INFO 2026-02-14 17:22:27,062 market_selector       Prob: 54% | Contexto: 100% | Score: 
+0.543
+INFO 2026-02-14 17:22:27,062 market_selector       Odd: 1.59 | EV: -13.6%
+INFO 2026-02-14 17:22:27,062 market_selector       Razπo: Probabilidade moderada (54%) 
+baseada em modelos preditivos
+INFO 2026-02-14 17:22:27,062 market_selector 
+   #3 Ambos Marcam
+INFO 2026-02-14 17:22:27,062 market_selector       Prob: 51% | Contexto: 100% | Score: 
+0.509
+INFO 2026-02-14 17:22:27,062 market_selector       Odd: 1.7 | EV: -13.4%
+INFO 2026-02-14 17:22:27,062 market_selector       Razπo: Probabilidade moderada (51%) 
+baseada em modelos preditivos
+INFO 2026-02-14 17:22:27,062 market_selector 
+================================================================================
+
+INFO 2026-02-14 17:22:27,062 decision_engine 
+\u2705 3 apostas contextuais selecionadas
+INFO 2026-02-14 17:22:27,062 decision_engine    #1: Under (Under 2.5)
+INFO 2026-02-14 17:22:27,062 decision_engine       Prob: 56.4% | Odd: 2.2 | EV: 24.1% 
+| Stake: 1.0u
+INFO 2026-02-14 17:22:27,062 decision_engine       Score: 0.356 | Razπo: Probabilidade 
+moderada (56%) baseada em modelos preditivos
+INFO 2026-02-14 17:22:27,062 decision_engine    #2: Casa (Vit≤ria Casa)
+INFO 2026-02-14 17:22:27,062 decision_engine       Prob: 54.3% | Odd: 1.59 | EV: 
+-13.6% | Stake: 0.5u
+INFO 2026-02-14 17:22:27,062 decision_engine       Score: 0.342 | Razπo: Probabilidade 
+moderada (54%) baseada em modelos preditivos
+INFO 2026-02-14 17:22:27,062 decision_engine    #3: Ambos Marcam (Ambos Marcam)
+INFO 2026-02-14 17:22:27,062 decision_engine       Prob: 50.9% | Odd: 1.7 | EV: -13.4% 
+| Stake: 0.5u
+INFO 2026-02-14 17:22:27,062 decision_engine       Score: 0.321 | Razπo: Probabilidade 
+moderada (51%) baseada em modelos preditivos
+INFO 2026-02-14 17:22:27,062 decision_engine 
+================================================================================
+
+INFO 2026-02-14 17:22:27,062 decision_engine 
+\U0001f4e2 FILTRO DE PUBLICA╟├O:
+INFO 2026-02-14 17:22:27,062 decision_engine    Max Probabilidade: 54.3% (limite: 52%) 
+\u2705
+INFO 2026-02-14 17:22:27,062 decision_engine    Confidence Score: 0.63 (limite: 0.75) 
+\u274c
+INFO 2026-02-14 17:22:27,062 decision_engine    Decisπo: \u2705 PUBLICAR (Alta 
+probabilidade (54.3%))
+INFO 2026-02-14 17:22:27,066 decision_engine 
+\U0001f50d CONTEXT OVERRIDE CHECK:
+INFO 2026-02-14 17:22:27,066 decision_engine    Best context bet: Under 2.5
+INFO 2026-02-14 17:22:27,066 decision_engine    score: 0.356 (threshold: 0.15)
+INFO 2026-02-14 17:22:27,066 decision_engine    final_score: 0.000 (threshold: 0.15)
+INFO 2026-02-14 17:22:27,066 decision_engine    ev_pct: +24.1% (threshold: 0.0%)
+INFO 2026-02-14 17:22:27,066 decision_engine    strategy: multiple
+INFO 2026-02-14 17:22:27,066 decision_engine    meets_score: True, meets_ev: True
+INFO 2026-02-14 17:22:27,068 decision_engine    \u2705 OVERRIDE ATIVADO - Contexto 
+sobrep⌡e recomendaτπo principal!
+INFO 2026-02-14 17:22:27,068 analysis_orchestrator 
+================================================================================
+INFO 2026-02-14 17:22:27,068 analysis_orchestrator \U0001f3af [Orchestrator] DECISION 
+ENGINE - Top Bets Geradas
+INFO 2026-02-14 17:22:27,068 analysis_orchestrator 
+================================================================================
+INFO 2026-02-14 17:22:27,068 analysis_orchestrator    Total de apostas: 3
+INFO 2026-02-14 17:22:27,068 analysis_orchestrator    #1: Under 2.5
+INFO 2026-02-14 17:22:27,068 analysis_orchestrator       Probability: 56.4%
+INFO 2026-02-14 17:22:27,068 analysis_orchestrator       Market Odd: 2.20
+INFO 2026-02-14 17:22:27,068 analysis_orchestrator       Fair Odd: 1.77
+INFO 2026-02-14 17:22:27,068 analysis_orchestrator       EV: +24.1%
+INFO 2026-02-14 17:22:27,068 analysis_orchestrator       Stake: 0.0u
+INFO 2026-02-14 17:22:27,080 analysis_orchestrator    #2: Vit≤ria Casa
+INFO 2026-02-14 17:22:27,080 analysis_orchestrator       Probability: 54.3%
+INFO 2026-02-14 17:22:27,080 analysis_orchestrator       Market Odd: 1.59
+INFO 2026-02-14 17:22:27,080 analysis_orchestrator       Fair Odd: 1.84
+INFO 2026-02-14 17:22:27,080 analysis_orchestrator       EV: -13.6%
+INFO 2026-02-14 17:22:27,080 analysis_orchestrator       Stake: 0.0u
+INFO 2026-02-14 17:22:27,080 analysis_orchestrator    #3: Ambos Marcam
+INFO 2026-02-14 17:22:27,080 analysis_orchestrator       Probability: 50.9%
+INFO 2026-02-14 17:22:27,080 analysis_orchestrator       Market Odd: 1.70
+INFO 2026-02-14 17:22:27,080 analysis_orchestrator       Fair Odd: 1.96
+INFO 2026-02-14 17:22:27,080 analysis_orchestrator       EV: -13.4%
+INFO 2026-02-14 17:22:27,080 analysis_orchestrator       Stake: 0.0u
+INFO 2026-02-14 17:22:27,081 analysis_orchestrator 
+   Recomendaτπo Principal: Under 2.5
+INFO 2026-02-14 17:22:27,081 analysis_orchestrator       Probability: 56.4%
+INFO 2026-02-14 17:22:27,081 analysis_orchestrator       Fair Odd: 1.77
+INFO 2026-02-14 17:22:27,081 analysis_orchestrator 
+   Filtro de Publicaτπo:
+INFO 2026-02-14 17:22:27,081 analysis_orchestrator       Should Publish: True
+INFO 2026-02-14 17:22:27,081 analysis_orchestrator       Reason: Alta probabilidade 
+(54.3%)
+INFO 2026-02-14 17:22:27,081 analysis_orchestrator 
+================================================================================
+
+INFO 2026-02-14 17:22:27,081 analysis_orchestrator \u2705 [Orchestrator] 
+DecisionEngine retornou 3 top_bets com estratΘgia multiple
+INFO 2026-02-14 17:22:27,081 analysis_orchestrator    #1: Under 2.5 - Prob: 56.4%, EV: 
++24.1%
+INFO 2026-02-14 17:22:27,081 analysis_orchestrator    #2: Vit≤ria Casa - Prob: 54.3%, 
+EV: -13.6%
+INFO 2026-02-14 17:22:27,081 analysis_orchestrator    #3: Ambos Marcam - Prob: 50.9%, 
+EV: -13.4%
+INFO 2026-02-14 17:22:27,081 ai_analyzer \U0001f916 IA Explicando: Casa vs Fora
+WARNING 2026-02-14 17:22:29,136 ai_analyzer \u26a0\ufe0f Erro na IA: 404 
+models/gemini-1.5-flash-latest is not found for API version v1beta, or is not 
+supported for generateContent. Call ListModels to see the list of available models and 
+their supported methods.
+WARNING 2026-02-14 17:22:29,136 ai_analyzer \u26a0\ufe0f IA nπo disponφvel - usando 
+fallback baseado em regras (estratΘgia=multiple)
+INFO 2026-02-14 17:22:29,139 analysis_orchestrator 
+================================================================================
+INFO 2026-02-14 17:22:29,139 analysis_orchestrator \U0001f916 [Orchestrator] AI 
+ANALYSIS
+INFO 2026-02-14 17:22:29,139 analysis_orchestrator 
+================================================================================
+INFO 2026-02-14 17:22:29,139 analysis_orchestrator    Status: \u2705 Sucesso
+INFO 2026-02-14 17:22:29,139 analysis_orchestrator    Anßlise gerada: 851 caracteres
+INFO 2026-02-14 17:22:29,139 analysis_orchestrator 
+================================================================================
+
+INFO 2026-02-14 17:22:29,139 analysis_orchestrator \U0001f3af [DEBUG] Consensus max: 
+home_win = 54.3%
+INFO 2026-02-14 17:22:29,143 analysis_orchestrator \U0001f3af [DEBUG] Prediction 
+choice: home
+
+--------------------------------------------------------------------------------
+CONSENSUS (Ensemble normalizado)
+--------------------------------------------------------------------------------
+   home_win            : 54.3%
+   draw                : 24.9%
+   away_win            : 20.8%
+
+--------------------------------------------------------------------------------
+POISSON (Probabilidades base)
+--------------------------------------------------------------------------------
+   under_4.5           : 90.2%
+   over_0.5            : 89.4%
+   away_under_2.5      : 88.6%
+   home_under_2.5      : 86.8%
+   under_3.5           : 77.5%
+   under_3.25          : 77.5%
+   home_over_0.5       : 71.4%
+   over_1.5            : 71.3%
+   12                  : 69.1%
+   away_over_0.5       : 69.0%
+
+--------------------------------------------------------------------------------
+MERCADOS SUSPEITOS (>95%)
+--------------------------------------------------------------------------------
+
+   OK - Nenhum mercado no consensus com >95%
+
+   OK - Nenhum mercado no Poisson com >95%
+
+--------------------------------------------------------------------------------
+DIAGNOSTICO
+--------------------------------------------------------------------------------
+
+   xG Esperado:
+      Southampton: 1.25
+      Leicester: 1.17
+      Total: 2.42
+
+   Probabilidade TE╙RICA Under 2.5 (Poisson puro):
+      Com xG total 2.42: 56.4%
+
+   1X2 (deve somar ~100%):
+      Home: 54.3%
+      Draw: 24.9%
+      Away: 20.8%
+      TOTAL: 100.0%
+
+--------------------------------------------------------------------------------
+TOP BETS SELECIONADAS
+--------------------------------------------------------------------------------
+
+   #1 Under 2.5
+      Probabilidade: 56.4%
+      Contexto: 100.0%
+      Odd: 2.2
+      Reasoning: N/A
+
+   #2 Vit≤ria Casa
+      Probabilidade: 54.3%
+      Contexto: 100.0%
+      Odd: 1.59
+      Reasoning: N/A
+
+   #3 Ambos Marcam
+      Probabilidade: 50.9%
+      Contexto: 100.0%
+      Odd: 1.7
+      Reasoning: N/A
+
+================================================================================
+Investigacao completa
+================================================================================
+

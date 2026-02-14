@@ -1,0 +1,35 @@
+{
+  "match": {
+    "id": 3168,
+    "home_team": "Sevilla",
+    "away_team": "Alaves",
+    "date": "2026-02-14 17:30:00+00:00"
+  },
+  "strategy": "multiple",
+  "probabilities": {
+    "home_win": "29.8%",
+    "draw": "36.9%",
+    "away_win": "33.3%"
+  },
+  "top_bets": [
+    {
+      "rank": 1,
+      "market_display": "Under 2.5",
+      "probability": "44.6%",
+      "market_odd": null,
+      "ev_pct": "+0.0%",
+      "stake_units": 0.5,
+      "reason": "Jogo equilibrado (força: 0.00, motivação: 0.00) | Expected goals: 0.0 | baixo scoring favorece under e btts_no (contexto muito forte, probabilidade moderada)"
+    },
+    {
+      "rank": 2,
+      "market_display": "Ambos Não Marcam",
+      "probability": "40.4%",
+      "market_odd": null,
+      "ev_pct": "+0.0%",
+      "stake_units": 0.5,
+      "reason": "Jogo equilibrado (força: 0.00, motivação: 0.00) | Expected goals: 0.0 | baixo scoring favorece under e btts_no (contexto muito forte, probabilidade moderada)"
+    }
+  ],
+  "ai_analysis": "📋 MELHOR PARA BILHETE\n---------------------------------------\nAposta: Under 2.5\nOdd: 0.00 (ideal para bilhetes: 1.30-2.00)\nProbabilidade: 44.6% (mínimo 50%)\nStake: 0.5 unidades\n\nPORQUE INCLUIR NO BILHETE:\n• Jogo equilibrado (força: 0.00, motivação: 0.00) | Expected goals: 0.0 | baixo scoring favorece under e btts_no (contexto muito forte, probabilidade moderada)\n• Alta probabilidade (44.6% de chance)\n• Odd moderada (boa para combinar com outras apostas)\n\n💡 DICA DE BILHETE:\nCombine com 2-3 apostas similares de outros jogos.\nOdd total esperada: 3.00-8.00\nProbabilidade combinada: 15-30%\n\n---------------------------------------\nOUTRAS OPÇÕES PARA BILHETE:\n---------------------------------------\n\n⚠️ ATENÇÃO:\nBilhetes são mais arriscados. Mesmo com alta probabilidade individual,\napenas ~20% dos bilhetes 3x acertam todas as apostas.\nUse em favoritos consistentes, não underdogs.\n\n---------------------------------------"
+}

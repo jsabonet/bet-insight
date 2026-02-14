@@ -21,6 +21,7 @@ import AboutPage from './pages/AboutPage';
 import FAQPage from './pages/FAQPage';
 import DailyBetsPage from './pages/DailyBetsPage';
 import CookieConsent from './components/CookieConsent';
+import TestQuickAnalyze from './pages/TestQuickAnalyze.jsx';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
@@ -125,6 +126,8 @@ function App() {
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/faq" element={<FAQPage />} />
+          {/* Public test route for quick analyze */}
+          <Route path="/test/quick-analyze" element={<TestQuickAnalyze />} />
           
           {/* Protected Routes */}
           <Route

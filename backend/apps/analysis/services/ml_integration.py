@@ -14,6 +14,7 @@ import logging
 import joblib
 import numpy as np
 from pathlib import Path
+from apps.analysis.config import EnsembleWeights, ContextConfidence, Fallbacks
 
 logger = logging.getLogger(__name__)
 
@@ -38,21 +39,43 @@ class MLModel:
     
     def __init__(self):
         """
-        Carrega TODOS os modelos disponíveis (ligas + copas)
+        Carrega TODOS os modelos disponíveis (ligas + copas + NOVO XGBoost otimizado)
+        
+        PRIORIDADE DE MODELOS (1X2):
+        1. XGBoost Balanced (NOVO) - 84.79% acurácia em 3,400 partidas
+        2. Modelos específicos (ligas/copas)
+        3. Fallback uniforme
         """
         base_path = Path(__file__).resolve().parent.parent.parent.parent
         
         # DIRETÓRIOS
         league_dir = base_path / 'ml_training' / 'trained_models'
         cup_dir = base_path / 'ml_models'
+        ml_training_dir = base_path / 'ml_training'
         
         # MERCADOS DISPONÍVEIS
         markets = ['1x2', 'btts', 'ou15', 'ou25', 'ou35', 'dc', 'home_totals', 'away_totals', 'odd_even']
         
         self.league_models = {}
         self.cup_models = {}
+        self.xgboost_optimized = None  # DESABILITADO: Exagera empates (48% vs 25% real)
         
         logger.info(f"🔧 Carregando modelos ML...")
+        
+        # DESABILITADO: XGBoost Balanced exagera empates - usando modelos por liga
+        # xgb_pattern = list(ml_training_dir.glob('xgboost_balanced_*.json'))
+        # if xgb_pattern:
+        #     # Ordenar por data de modificação e pegar o mais recente
+        #     xgb_path = sorted(xgb_pattern, key=lambda p: p.stat().st_mtime, reverse=True)[0]
+        #     try:
+        #         import xgboost as xgb
+        #         self.xgboost_optimized = xgb.Booster()
+        #         self.xgboost_optimized.load_model(str(xgb_path))
+        #         logger.info(f"✅ ⭐ XGBoost OTIMIZADO: {xgb_path.name} (84.79% acurácia)")
+        #         logger.info(f"       Validado em 3,400 partidas (DB + Copa)")
+        #         logger.info(f"       Features: 107 real stats (não genéricas)")
+        #     except Exception as e:
+        #         logger.warning(f"⚠️ Erro ao carregar XGBoost otimizado: {e}")
         
         # CARREGAR MODELOS DE LIGAS (opcional - só 1X2 existe)
         for market in markets:
@@ -75,10 +98,11 @@ class MLModel:
                     logger.warning(f"⚠️ Erro ao carregar copa {market}: {e}")
         
         logger.info(f"\n📊 MODELOS CARREGADOS:")
+        logger.info(f"   XGBoost Otimizado: {'SIM ⭐' if self.xgboost_optimized else 'NÃO'}")
         logger.info(f"   Ligas: {len(self.league_models)} mercados")
         logger.info(f"   Copas: {len(self.cup_models)} mercados")
         
-        if not self.league_models and not self.cup_models:
+        if not self.xgboost_optimized and not self.league_models and not self.cup_models:
             raise FileNotFoundError("Nenhum modelo ML encontrado!")
     
     def _select_model(self, market, is_cup=False):
@@ -99,14 +123,49 @@ class MLModel:
         """
         Prevê probabilidades 1X2 usando modelo treinado
         
+        PRIORIDADE:
+        1. XGBoost Balanced (NOVO) - 84.79% acurácia, funciona para ligas E copas
+        2. Modelos específicos (liga/copa) - fallback
+        3. Uniforme - último recurso
+        
         Returns:
             dict: {'home_win': float, 'draw': float, 'away_win': float}
         """
+        # PRIORIDADE 1: XGBoost Otimizado (NOVO - funciona para tudo)
+        if self.xgboost_optimized:
+            try:
+                import xgboost as xgb
+                
+                # Preparar features para XGBoost otimizado (107 features)
+                flat_features = self._flatten_features(features)
+                X = self._prepare_features_for_xgboost(flat_features)
+                
+                # Criar DMatrix e fazer predição
+                dmatrix = xgb.DMatrix(X)
+                probs = self.xgboost_optimized.predict(dmatrix)[0]
+                
+                # XGBoost retorna [Casa, Empate, Fora] - ordem das classes durante treino
+                # Verificar metadata do modelo para confirmar ordem
+                return {
+                    'home_win': float(probs[1]),   # Casa
+                    'draw': float(probs[0]),       # Empate  
+                    'away_win': float(probs[2]),   # Fora
+                    'model': 'xgboost_optimized',
+                    'model_type': 'optimized',
+                    'accuracy': 0.8479  # 84.79% validado
+                }
+            except Exception as e:
+                logger.warning(f"⚠️ XGBoost otimizado falhou: {e} - usando fallback")
+                # Continuar para fallback
+        
+        # PRIORIDADE 2: Modelos específicos (antigos)
         model = self._select_model('1x2', is_cup)
         
         if model is None:
             logger.warning("⚠️ Modelo 1X2 não disponível - fallback uniforme")
-            return {'home_win': 0.33, 'draw': 0.33, 'away_win': 0.33, 'model': 'fallback'}
+            fallback = Fallbacks.UNIFORM_DISTRIBUTION.copy()
+            fallback['model'] = 'fallback'
+            return fallback
         
         try:
             flat_features = self._flatten_features(features)
@@ -232,6 +291,38 @@ class MLModel:
                 flat[category] = values
         
         return flat
+    
+    def _prepare_features_for_xgboost(self, flat_features):
+        """
+        Prepara vetor de features para XGBoost otimizado (107 features reais)
+        
+        O novo modelo espera 107 features calculadas de estatísticas reais,
+        não as 98 features genéricas dos modelos antigos.
+        
+        Returns:
+            np.array: Vetor de features preparado
+        """
+        # Converter valores para numéricos
+        values = [v if not isinstance(v, (str, bool, type(None))) else (1 if v is True else 0) 
+                 for v in flat_features.values()]
+        
+        X = np.array([values])
+        
+        expected_features = 107  # Novo modelo treinado com 107 features reais
+        actual_features = X.shape[1]
+        
+        if actual_features != expected_features:
+            logger.warning(f"⚠️ Feature mismatch XGBoost: modelo espera {expected_features}, recebeu {actual_features}")
+            if actual_features > expected_features:
+                logger.info(f"   Truncando features extras ({actual_features - expected_features} removidas)")
+                X = X[:, :expected_features]
+            else:
+                # Preencher com zeros para features faltando
+                logger.warning(f"   Preenchendo {expected_features - actual_features} features faltando com zeros")
+                missing = np.zeros((1, expected_features - actual_features))
+                X = np.hstack([X, missing])
+        
+        return X
 
 
 # ATUALIZAÇÃO DO ModelEnsemble PARA USAR ML
@@ -277,7 +368,15 @@ class ModelEnsembleML:
             knockout_adjustment: Fator de ajuste para competições de copa (0.75-1.0)
                                 Aplica redução no xG em jogos eliminatórios
             context_analysis: Análise contextual do ContextAnalyzer (opcional)
+        
+        Returns:
+            Dictionary com probabilidades, xG, e detalhes de consenso
         """
+        print("\n" + "="*100)
+        print(">>> INICIANDO PREDICT() DO ENSEMBLE <<<")
+        print(f">>> use_market_prior={self.use_market_prior}, has_ml={self.has_ml}")
+        print("="*100 + "\n")
+        
         logger.info(f"\n{'='*80}")
         logger.info("🎯 ENSEMBLE ML - Combinando modelos")
         logger.info(f"{'='*80}")
@@ -306,42 +405,113 @@ class ModelEnsembleML:
             'away_win': market.get('market_away_prob', 0.33)
         }
         
-        # 4. Pesos do ensemble (OTIMIZADOS PARA ML + AJUSTE CONTEXTUAL)
-        # NOVO: Ajustar pesos baseado em contexto se disponível
-        if context_analysis:
-            weights = self._adjust_weights_for_context(context_analysis)
+        # 4. Pesos do ensemble (CONFIGURAÇÃO CENTRALIZADA)
+        # CORREÇÃO DEFINITIVA: Detectar favorito claro TEM PRIORIDADE MÁXIMA
+        max_market_prob = max(market_prior.values())
+        is_clear_favorite = max_market_prob > 0.55  # Odd < 1.80
+        
+        print(f"\n{'='*80}")
+        print(f"DEBUG ENSEMBLE - max_market_prob: {max_market_prob:.1%}")
+        print(f"DEBUG ENSEMBLE - is_clear_favorite: {is_clear_favorite}")
+        print(f"DEBUG ENSEMBLE - use_market_prior: {self.use_market_prior}")
+        print(f"DEBUG ENSEMBLE - has_ml: {self.has_ml}")
+        print(f"{'='*80}\n")
+        
+        logger.info(f"📊 Detecção favorito: max_market_prob={max_market_prob:.1%}, is_clear_favorite={is_clear_favorite}")
+        logger.info(f"   Condições: use_market_prior={self.use_market_prior}, has_ml={self.has_ml}")
+        
+        config_source = "padrão"
+        
+        # PRIORIDADE ABSOLUTA: Favorito claro (IGNORA contexto)
+        # Poisson é MUITO melhor em jogos desbalanceados
+        if is_clear_favorite and self.use_market_prior and self.has_ml:
+            # ✅ CORREÇÃO: Para favoritos MUITO claros (>56%), ML pode estar descalibrado
+            # Verificar se ML discorda fortemente do mercado
+            
+            # Filtrar apenas chaves de resultado (ignorar 'model', 'accuracy', etc)
+            ml_outcomes = {k: v for k, v in ml_pred.items() if k in ['home_win', 'draw', 'away_win']}
+            market_outcomes = {k: v for k, v in market_prior.items() if k in ['home_win', 'draw', 'away_win']}
+            
+            # Identificar resultado mais provável segundo cada modelo
+            ml_max_outcome = max(ml_outcomes.items(), key=lambda x: x[1])[0]
+            market_max_outcome = max(market_outcomes.items(), key=lambda x: x[1])[0]
+            
+            # Calcular divergência entre ML e Market
+            ml_agrees_with_market = (ml_max_outcome == market_max_outcome)
+            
+            if not ml_agrees_with_market and max_market_prob > 0.56:
+                # ML DISCORDA do mercado em favorito MUITO claro → Ignorar ML completamente
+                logger.warning(f"ML DESCALIBRADO DETECTADO - Favorito muito claro mas ML discorda!")
+                logger.warning(f"   Market diz: {market_max_outcome} ({market_outcomes[market_max_outcome]*100:.1f}%)")
+                logger.warning(f"   ML diz: {ml_max_outcome} ({ml_outcomes[ml_max_outcome]*100:.1f}%)")
+                logger.warning(f"   SOLUCAO: Market 80% (favorito muito claro), Poisson 20%, ML 0%")
+                
+                # Para favorito MUITO claro, confiar MUITO MAIS no mercado (80%)
+                weights = {'poisson': 0.20, 'ml': 0.0, 'market': 0.80}
+                config_source = "CLEAR_FAVORITE_NO_ML (Market 80%, Poisson 20%, ML descalibrado ignorado)"
+            else:
+                # ML concorda ou favorito não tão extremo → Usar CLEAR_FAVORITE normal
+                weights = EnsembleWeights.CLEAR_FAVORITE
+                config_source = "CLEAR_FAVORITE (Poisson 70%)"
+            
             weight_poisson = weights['poisson']
             weight_ml = weights['ml']
             weight_market = weights['market']
-        else:
-            # Pesos padrão (sem contexto)
-            if self.has_ml:
-                # COM ML TREINADO: ML domina (50%), Market complementa (30%), Poisson base (20%)
-                if self.use_market_prior and sum(market_prior.values()) > 0.9:
-                    weight_poisson = 0.20
-                    weight_ml = 0.50
-                    weight_market = 0.30
-                else:
-                    # Sem market: ML 70%, Poisson 30%
-                    weight_poisson = 0.30
-                    weight_ml = 0.70
-                    weight_market = 0.0
-            else:
-                # SEM ML (fallback logística): pesos originais
-                if self.use_market_prior and sum(market_prior.values()) > 0.9:
-                    weight_poisson = 0.25
-                    weight_ml = 0.40
-                    weight_market = 0.35
-                else:
-                    weight_poisson = 0.45
-                    weight_ml = 0.55
-                    weight_market = 0.0
+            logger.info(f"CLEAR_FAVORITE ATIVADO - Usando Poisson {weight_poisson*100:.0f}%")
+            logger.info(f"Pesos: P={weight_poisson*100:.0f}%, ML={weight_ml*100:.0f}%, M={weight_market*100:.0f}%")
+            logger.info(f"Razao: Favorito claro (prob={max_market_prob:.1%} > 55%)")
         
-        logger.info(f"\n⚖️ Pesos do Ensemble {'(COM ML TREINADO)' if self.has_ml else '(Logística Baseline)'}:")
-        logger.info(f"   Poisson: {weight_poisson*100:.0f}%")
-        logger.info(f"   {'ML' if self.has_ml else 'Logística'}: {weight_ml*100:.0f}%")
-        if weight_market > 0:
-            logger.info(f"   Market Prior: {weight_market*100:.0f}%")
+        # SE NÃO FOR FAVORITO CLARO: verificar contexto ou usar padrão
+        else:
+            # Verificar se há contexto forte
+            has_strong_context = (
+                context_analysis and 
+                isinstance(context_analysis, dict) and 
+                context_analysis.get('patterns') and 
+                len(context_analysis.get('patterns', [])) > 0
+            )
+            
+            if has_strong_context:
+                weights = self._adjust_weights_for_context(context_analysis)
+                config_source = "contexto"
+                weight_poisson = weights['poisson']
+                weight_ml = weights['ml']
+                weight_market = weights['market']
+                logger.info(f"📊 Usando pesos de CONTEXTO (jogo equilibrado)")
+            else:
+                # Pesos padrão (sem favorito claro e sem contexto)
+                if self.has_ml:
+                    if self.use_market_prior and sum(market_prior.values()) > 0.9:
+                        weights = EnsembleWeights.DEFAULT_WITH_MARKET
+                        config_source = "DEFAULT_WITH_MARKET"
+                    else:
+                        weights = EnsembleWeights.DEFAULT_WITHOUT_MARKET
+                        config_source = "DEFAULT_WITHOUT_MARKET"
+                    weight_poisson = weights['poisson']
+                    weight_ml = weights['ml']
+                    weight_market = weights['market']
+                else:
+                    # SEM ML (fallback logística)
+                    if self.use_market_prior and sum(market_prior.values()) > 0.9:
+                        weights = EnsembleWeights.LOGISTIC_WITH_MARKET
+                        config_source = "LOGISTIC_WITH_MARKET"
+                    else:
+                        weights = EnsembleWeights.LOGISTIC_WITHOUT_MARKET
+                        config_source = "LOGISTIC_WITHOUT_MARKET"
+                    weight_poisson = weights['poisson']
+                    weight_ml = weights['ml']
+                    weight_market = weights['market']
+        
+        logger.info(f"\n⚖️ Config: {config_source} | Pesos: P={weight_poisson*100:.0f}% ML={weight_ml*100:.0f}% M={weight_market*100:.0f}%")
+        
+        # DEBUG: Mostrar valores ANTES do consensus
+        print(f"\n{'='*100}")
+        print(f"DEBUG CONSENSUS - Valores ANTES de combinar:")
+        print(f"  Poisson: Casa={poisson_pred['probabilities']['home_win']*100:.1f}%, Empate={poisson_pred['probabilities']['draw']*100:.1f}%, Fora={poisson_pred['probabilities']['away_win']*100:.1f}%")
+        print(f"  ML:      Casa={ml_pred['home_win']*100:.1f}%, Empate={ml_pred['draw']*100:.1f}%, Fora={ml_pred['away_win']*100:.1f}%")
+        print(f"  Market:  Casa={market_prior['home_win']*100:.1f}%, Empate={market_prior['draw']*100:.1f}%, Fora={market_prior['away_win']*100:.1f}%")
+        print(f"  Pesos:   P={weight_poisson*100:.0f}%, ML={weight_ml*100:.0f}%, M={weight_market*100:.0f}%")
+        print(f"{'='*100}\n")
         
         # 5. Consensus (média ponderada)
         consensus = {
@@ -361,6 +531,12 @@ class ModelEnsembleML:
                 market_prior['away_win'] * weight_market
             )
         }
+        
+        # DEBUG: Mostrar resultado do consensus
+        print(f"\n{'='*100}")
+        print(f"DEBUG CONSENSUS - Resultado APÓS combinar:")
+        print(f"  Casa={consensus['home_win']*100:.1f}%, Empate={consensus['draw']*100:.1f}%, Fora={consensus['away_win']*100:.1f}%")
+        print(f"{'='*100}\n")
         
         # 6. Normalizar (garantir soma = 1.0)
         total = sum(consensus.values())
@@ -391,17 +567,17 @@ class ModelEnsembleML:
         
         Lógica:
         - Padrões motivacionais/contextuais (low_motivation, asymmetric_motivation, derby):
-          → Aumentar ML (vê motivação, lesões, contexto)
-          → Reduzir Poisson (só vê força histórica)
+          -> Aumentar ML (vê motivação, lesões, contexto)
+          -> Reduzir Poisson (só vê força histórica)
         
         - Padrões estatísticos puros (open_game com histórico forte):
-          → Balancear Poisson e ML
+          -> Balancear Poisson e ML
         
         Args:
             context_analysis: Output do ContextAnalyzer
             
         Returns:
-            dict: {'poisson': 0.X, 'ml': 0.Y, 'market': 0.Z}
+            dict: pesos do ensemble {'poisson': float, 'ml': float, 'market': float}
         """
         patterns = context_analysis.get('patterns', [])
         
@@ -422,18 +598,14 @@ class ModelEnsembleML:
                 if pattern['confidence'] > max_context_confidence:
                     max_context_confidence = pattern['confidence']
         
-        # DECISÃO: Ajustar pesos se contexto forte
-        if max_context_confidence >= 0.80:
-            # Contexto muito forte → ML domina (conhece contexto)
+        # DECISÃO: Ajustar pesos se contexto forte (USANDO CONFIG)
+        if max_context_confidence >= ContextConfidence.STRONG_CONTEXT_THRESHOLD:
+            # Contexto muito forte → ML tem mais peso, mas ainda controlado
             logger.info(f"\n⚖️ Ajustando pesos: Contexto forte ({max_context_confidence:.0%})")
             logger.info(f"   Padrões: {', '.join([p['name'] for p in patterns])}")
             
             if self.has_ml:
-                weights = {
-                    'poisson': 0.10,  # Reduzir (ignora contexto)
-                    'ml': 0.70,       # Aumentar (usa features contextuais)
-                    'market': 0.20    # Manter
-                }
+                weights = EnsembleWeights.STRONG_CONTEXT
             else:
                 # Sem ML, manter pesos padrão
                 weights = {
@@ -444,32 +616,23 @@ class ModelEnsembleML:
             
             logger.info(f"   Novo: Poisson {weights['poisson']:.0%}, ML {weights['ml']:.0%}, Market {weights['market']:.0%}")
             
-        elif max_context_confidence >= 0.65:
+        elif max_context_confidence >= ContextConfidence.MODERATE_CONTEXT_THRESHOLD:
             # Contexto moderado → Ajuste leve
             logger.info(f"\n⚖️ Ajustando pesos: Contexto moderado ({max_context_confidence:.0%})")
             
             if self.has_ml:
-                weights = {
-                    'poisson': 0.15,
-                    'ml': 0.60,
-                    'market': 0.25
-                }
+                weights = EnsembleWeights.MODERATE_CONTEXT
             else:
-                weights = {
-                    'poisson': 0.25,
-                    'ml': 0.40,
-                    'market': 0.35
-                }
-            
+                    weights = EnsembleWeights.LOGISTIC_WITH_MARKET
             logger.info(f"   Novo: Poisson {weights['poisson']:.0%}, ML {weights['ml']:.0%}, Market {weights['market']:.0%}")
             
         else:
-            # Contexto fraco → Pesos padrão
+            # Contexto fraco → Pesos padrão (USANDO CONFIG)
             logger.info(f"\n⚖️ Contexto fraco ({max_context_confidence:.0%}) - mantendo pesos padrão")
             
             if self.has_ml:
                 if self.use_market_prior:
-                    weights = {'poisson': 0.20, 'ml': 0.50, 'market': 0.30}
+                    weights = EnsembleWeights.DEFAULT_WITH_MARKET
                 else:
                     weights = {'poisson': 0.30, 'ml': 0.70, 'market': 0.0}
             else:

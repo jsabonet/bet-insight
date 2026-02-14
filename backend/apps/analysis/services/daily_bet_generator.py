@@ -162,17 +162,42 @@ class DailyBetGenerator:
         for analysis in analyses:
             match = analysis['match']
             result = analysis['multiple_result']
-            top_bets = result.get('analysis_data', {}).get('top_bets', [])
-            
-            # Pegar apenas a #1 aposta de cada partida (mais provável)
-            if top_bets and len(top_bets) > 0:
-                best_bet = top_bets[0]
+            analysis_data = result.get('analysis_data', {})
+            top_bets = analysis_data.get('top_bets', [])
+            consensus = analysis_data.get('consensus', {})
+
+            # CORREÇÃO (14/02/2026): Usar ranking_score diretamente do DecisionEngine
+            # top_bets já vem ordenado por ranking_score = selection_score × ev × conf × risk
+            # Não precisamos recalcular (evita multiplicação prob^2.5)
+            if top_bets:
+                # Filtrar por critérios de bilhete:
+                # 1. Probabilidade >= 50%
+                # 2. Odd na faixa ideal (1.30 - 2.10)
+                # 3. EV não muito negativo (>= -10%)
+                best_bet = None
+                for bet in top_bets:
+                    prob = bet.get('probability', 0)
+                    odd = bet.get('market_odd', 0)
+                    ev_pct = bet.get('ev_pct', 0)
+                    
+                    # Filtros conservadores para bilhetes múltiplos
+                    if prob >= self.MIN_MULTIPLE_PROBABILITY and 1.30 <= odd <= 2.10 and ev_pct >= -10:
+                        best_bet = bet
+                        break
                 
-                # Filtro: probabilidade mínima
+                if not best_bet:
+                    logger.debug(f"   ⏩ Pulando {match}: nenhuma aposta atende critérios de bilhete")
+                    continue
+
+                # Já passou pelo filtro acima, mas manter check de probabilidade
                 if best_bet['probability'] < self.MIN_MULTIPLE_PROBABILITY:
                     logger.debug(f"   ⏩ Pulando {match}: prob {best_bet['probability']*100:.1f}% < {self.MIN_MULTIPLE_PROBABILITY*100:.0f}%")
                     continue
-                
+
+                logger.info(f"   🎯 Seleção Bilhete: {best_bet['market']} ({best_bet['pick']}) - {best_bet['probability']*100:.0f}% @ {best_bet['market_odd']:.2f}")
+                if 'post_reason' in best_bet:
+                    logger.info(f"      Razão: {best_bet['post_reason']}")
+
                 all_bets.append({
                     'match_id': match.id,
                     'match': f"{match.home_team.name} vs {match.away_team.name}",
@@ -184,7 +209,7 @@ class DailyBetGenerator:
                     'odd': best_bet['market_odd'],
                     'fair_odd': best_bet.get('fair_odd'),
                     'ev_pct': best_bet.get('ev_pct', 0),
-                    'score': best_bet['score'],
+                    'score': best_bet.get('post_score', best_bet['score']),
                     'result': None  # Será preenchido após validação
                 })
         

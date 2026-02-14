@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-02-11T20:46:57.691246",
+  "type": "context_system",
+  "components": [
+    "PoissonBivariateModel",
+    "ContextAnalyzer",
+    "MarketSelector"
+  ],
+  "strategy": "value",
+  "matches_total": 100,
+  "matches_analyzed": 0,
+  "accuracy": 0,
+  "total_predictions": 0,
+  "total_correct": 0,
+  "markets": {},
+  "errors": [
+    "Match 3108: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 129: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 128: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 127: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 126: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 125: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 74: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 1131: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 331: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 1130: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 330: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 1129: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 329: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 328: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 1127: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 1128: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 1126: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 327: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 1125: 'MarketSelector' object has no attribute 'select_markets'",
+    "Match 1124: 'MarketSelector' object has no attribute 'select_markets'"
+  ]
+}

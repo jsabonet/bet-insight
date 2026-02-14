@@ -664,7 +664,10 @@ export default function MatchDetailPage() {
         // Usar request_analysis para partidas do DB
         console.log('\n⏳ Enviando requisição para backend (DB)...');
         const requestStartTime = performance.now();
-        const response = await analysisAPI.requestAnalysis(id);
+        
+        // 🔥 FORÇAR RECÁLCULO (temporário para testar CLEAR_FAVORITE)
+        const response = await analysisAPI.requestAnalysis(id, true); // force_recalculate=true
+        
         const requestEndTime = performance.now();
         const requestTime = requestEndTime - requestStartTime;
         
@@ -1339,7 +1342,7 @@ export default function MatchDetailPage() {
                   match.id,
                   strategyToUse,
                   true, // include_ai
-                  false // force_refresh - IMPORTANTE: não forçar para testar cache
+                  true  // 🔥 FORCE REFRESH = TRUE (força recálculo)
                 );
                 
                 console.log('✅ MatchDetailPage: Resposta recebida', {

@@ -13,9 +13,46 @@ logger = logging.getLogger(__name__)
 class MatchDataEnricher:
     """Enriquece dados básicos da partida com contexto adicional"""
     
+    # Mapa de Copas → Liga Principal (para usar estatísticas corretas)
+    CUP_TO_LEAGUE_MAP = {
+        # Espanha
+        143: 140,  # Copa del Rey → La Liga
+        
+        # Inglaterra  
+        45: 39,    # FA Cup → Premier League
+        48: 39,    # League Cup (EFL Cup) → Premier League
+        
+        # Alemanha
+        81: 78,    # DFB Pokal → Bundesliga
+        
+        # Itália
+        137: 135,  # Coppa Italia → Serie A
+        
+        # França
+        66: 61,    # Coupe de France → Ligue 1
+        
+        # Portugal
+        96: 94,    # Taça de Portugal → Liga Portugal
+        
+        # Brasil
+        73: 71,    # Copa do Brasil → Brasileirão Série A
+    }
+    
     def __init__(self):
         self.api_service = APIFootballService()
         self.weather_service = WeatherService()
+    
+    def _get_main_league_id(self, league_id):
+        """
+        Retorna ID da liga principal se for uma Copa, caso contrário retorna o mesmo ID
+        
+        Args:
+            league_id (int): ID da liga/copa
+        
+        Returns:
+            int: ID da liga principal para buscar estatísticas
+        """
+        return self.CUP_TO_LEAGUE_MAP.get(league_id, league_id)
     
     def enrich(self, match_data):
         """
@@ -51,20 +88,25 @@ class MatchDataEnricher:
         season = fixture_details['league']['season']
         match_date = fixture_details.get('date', '')
         
+        # 🏆 CORREÇÃO COPA: Usar estatísticas da liga principal, não da Copa
+        stats_league_id = self._get_main_league_id(league_id)
+        if stats_league_id != league_id:
+            logger.info(f"🏆 COPA DETECTADA (ID {league_id}): usando stats da liga principal (ID {stats_league_id})")
+        
         # Buscar contexto da tabela primeiro (usado por motivação)
         table_context = self._get_table_context(league_id, season, home_team_id, away_team_id)
         
         # Buscar clima (Fase 3)
         weather_data = self._get_weather_data(fixture_details)
         
-        # Buscar estatísticas dos times
+        # Buscar estatísticas dos times (usando liga principal para Copas)
         logger.info(f"\n📊 BUSCANDO ESTATÍSTICAS DOS TIMES...")
-        logger.info(f"   Home Team ID: {home_team_id}, League: {league_id}, Season: {season}")
-        home_stats = self._get_team_statistics(home_team_id, league_id, season)
+        logger.info(f"   Home Team ID: {home_team_id}, League Stats: {stats_league_id}, Season: {season}")
+        home_stats = self._get_team_statistics(home_team_id, stats_league_id, season)
         logger.info(f"   ✅ Home Stats: {home_stats is not None}")
         
-        logger.info(f"   Away Team ID: {away_team_id}, League: {league_id}, Season: {season}")
-        away_stats = self._get_team_statistics(away_team_id, league_id, season)
+        logger.info(f"   Away Team ID: {away_team_id}, League Stats: {stats_league_id}, Season: {season}")
+        away_stats = self._get_team_statistics(away_team_id, stats_league_id, season)
         logger.info(f"   ✅ Away Stats: {away_stats is not None}")
         
         enriched = {

@@ -257,6 +257,22 @@ class FeatureEngineer:
         # Assumir média da liga ~ 1.5 gols/jogo (pode ser calculada dinamicamente depois)
         league_avg_goals = 1.5
         
+        # 🆕 FALLBACK CRÍTICO: Se xG calculado for 0 (sem histórico), usar média da liga
+        # Times sem dados não podem ter 0.0 gols/jogo - isso gera probabilidades absurdas
+        MINIMUM_XG = 1.3  # Fallback conservador (um pouco abaixo da média)
+        if home_goals_per_game < 0.1:  # Praticamente zero
+            logger.warning(f"⚠️ home_goals_per_game = {home_goals_per_game:.2f} muito baixo! Usando fallback {MINIMUM_XG}")
+            home_goals_per_game = MINIMUM_XG
+        if away_goals_per_game < 0.1:
+            logger.warning(f"⚠️ away_goals_per_game = {away_goals_per_game:.2f} muito baixo! Usando fallback {MINIMUM_XG}")
+            away_goals_per_game = MINIMUM_XG
+        if home_conceded_per_game < 0.1:
+            logger.warning(f"⚠️ home_conceded_per_game = {home_conceded_per_game:.2f} muito baixo! Usando fallback {MINIMUM_XG}")
+            home_conceded_per_game = MINIMUM_XG
+        if away_conceded_per_game < 0.1:
+            logger.warning(f"⚠️ away_conceded_per_game = {away_conceded_per_game:.2f} muito baixo! Usando fallback {MINIMUM_XG}")
+            away_conceded_per_game = MINIMUM_XG
+        
         # VARIÁVEL #12: Força ofensiva relativa
         home_attack_strength = home_goals_per_game / league_avg_goals if league_avg_goals > 0 else 1.0
         away_attack_strength = away_goals_per_game / league_avg_goals if league_avg_goals > 0 else 1.0
@@ -276,6 +292,21 @@ class FeatureEngineer:
             home_conceded_per_game = float(home_stats.get('goals_conceded_avg', home_conceded_per_game))
             away_goals_per_game = float(away_stats.get('goals_per_game_avg', away_goals_per_game))
             away_conceded_per_game = float(away_stats.get('goals_conceded_avg', away_conceded_per_game))
+            
+            # 🆕 VALIDAÇÃO ADICIONAL: API pode retornar 0.0 para times sem histórico
+            MINIMUM_XG = 1.3  # Fallback conservador
+            if home_goals_per_game < 0.1:
+                logger.warning(f"⚠️ API retornou home_goals_per_game = {home_goals_per_game:.2f}! Usando fallback {MINIMUM_XG}")
+                home_goals_per_game = MINIMUM_XG
+            if away_goals_per_game < 0.1:
+                logger.warning(f"⚠️ API retornou away_goals_per_game = {away_goals_per_game:.2f}! Usando fallback {MINIMUM_XG}")
+                away_goals_per_game = MINIMUM_XG
+            if home_conceded_per_game < 0.1:
+                logger.warning(f"⚠️ API retornou home_conceded_per_game = {home_conceded_per_game:.2f}! Usando fallback {MINIMUM_XG}")
+                home_conceded_per_game = MINIMUM_XG
+            if away_conceded_per_game < 0.1:
+                logger.warning(f"⚠️ API retornou away_conceded_per_game = {away_conceded_per_game:.2f}! Usando fallback {MINIMUM_XG}")
+                away_conceded_per_game = MINIMUM_XG
             
             # Recalcular strength com dados reais
             home_attack_strength = home_goals_per_game / league_avg_goals if league_avg_goals > 0 else 1.0
@@ -914,7 +945,9 @@ class FeatureEngineer:
         # Palavras-chave que identificam competições de copa
         cup_keywords = [
             'cup', 'copa', 'coupe', 'coppa', 'pokal', 'beker', 
-            'taca', 'taça', 'trophy', 'knockout', 'eliminatoria'
+            'taca', 'taça', 'trophy', 'knockout', 'eliminatoria',
+            'champions', 'league cup', 'super cup', 'supercopa',
+            'confederation', 'libertadores', 'sudamericana'
         ]
         
         # Detectar se é copa

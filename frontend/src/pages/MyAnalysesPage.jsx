@@ -4,7 +4,7 @@ import { analysisAPI } from '../services/api';
 import api from '../services/api';
 import { useStats } from '../context/StatsContext';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, TrendingUp, Target, Star, Loader2 } from 'lucide-react';
+import { Calendar, TrendingUp, Target, Star, Loader2, Search, X } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
 import EmptyState from '../components/EmptyState';
@@ -32,6 +32,27 @@ export default function MyAnalysesPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // Estado de pesquisa
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Debounce da pesquisa (500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Recarregar quando a pesquisa mudar
+  useEffect(() => {
+    if (debouncedSearch !== undefined) {
+      setCurrentPage(1); // Resetar para página 1
+      loadAnalyses(1);
+    }
+  }, [debouncedSearch]);
+
   useEffect(() => {
     window.scrollTo(0, 0);
     loadAnalyses();
@@ -51,7 +72,7 @@ export default function MyAnalysesPage() {
         setLoadingMore(true);
       }
       
-      const response = await analysisAPI.getUserAnalyses(page);
+      const response = await analysisAPI.getUserAnalyses(page, debouncedSearch);
       console.log('📊 Análises carregadas:', response.data);
       console.log('📊 Primeira análise (se existir):', response.data.results?.[0]);
       
@@ -166,8 +187,45 @@ export default function MyAnalysesPage() {
           </div>
         </div>
 
+        {/* Barra de Pesquisa */}
+        <div className="mb-6">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Pesquisar por time, liga ou data..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-12 py-3.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                aria-label="Limpar pesquisa"
+              >
+                <X className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200" />
+              </button>
+            )}
+          </div>
+          {searchTerm && (
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              {loading ? (
+                <span className="inline-flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Pesquisando...
+                </span>
+              ) : totalCount === 0 ? (
+                'Nenhuma análise encontrada'
+              ) : (
+                `${totalCount} ${totalCount === 1 ? 'análise encontrada' : 'análises encontradas'}`
+              )}
+            </p>
+          )}
+        </div>
+
         {/* Analyses List */}
-        {analyses.length === 0 ? (
+        {!loading && analyses.length === 0 && !searchTerm ? (
           <EmptyState
             variant="no-analyses"
             title="Nenhuma análise ainda"
@@ -178,6 +236,20 @@ export default function MyAnalysesPage() {
                 className="btn-primary"
               >
                 Ver Partidas Disponíveis
+              </button>
+            }
+          />
+        ) : !loading && analyses.length === 0 && searchTerm ? (
+          <EmptyState
+            variant="no-results"
+            title="Nenhuma análise encontrada"
+            description={`Não foram encontradas análises que correspondam a "${searchTerm}". Tente pesquisar por outro time, liga ou data.`}
+            action={
+              <button
+                onClick={() => setSearchTerm('')}
+                className="btn-secondary"
+              >
+                Limpar Pesquisa
               </button>
             }
           />

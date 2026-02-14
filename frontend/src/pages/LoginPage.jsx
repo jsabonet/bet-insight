@@ -46,7 +46,7 @@ export default function LoginPage() {
             </div>
           </div>
           <h1 className="text-4xl font-bold text-white mb-2 drop-shadow-lg">PlacarCerto</h1>
-          <p className="text-primary-100 dark:text-primary-300 text-lg">Análises de futebol com inteligência artificial</p>
+          <p className="text-primary-100 dark:text-primary-300 text-lg">Análises estatísticas de futebol</p>
         </div>
 
         <div className="card shadow-2xl animate-slide-up" style={{ animationDelay: '100ms' }}>

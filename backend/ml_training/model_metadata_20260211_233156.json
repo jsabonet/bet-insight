@@ -1,0 +1,207 @@
+{
+  "timestamp": "20260211_233156",
+  "total_matches": 3400,
+  "cup_matches": 450,
+  "db_matches": 2950,
+  "features_count": 107,
+  "feature_names": [
+    "competition.competition_name",
+    "competition.is_cup_competition",
+    "competition.is_knockout_stage",
+    "competition.knockout_adjustment_factor",
+    "competition.round_stage",
+    "context.away_is_fatigued",
+    "context.away_rest_days",
+    "context.fatigue_impact",
+    "context.home_is_fatigued",
+    "context.home_rest_days",
+    "context.rest_advantage",
+    "elo.away_elo",
+    "elo.elo_diff",
+    "elo.elo_differential",
+    "elo.home_elo",
+    "form.adjusted_form_diff",
+    "form.away_adjusted_form",
+    "form.away_momentum",
+    "form.away_recent_points",
+    "form.away_sos",
+    "form.away_weighted_form",
+    "form.form_differential",
+    "form.home_adjusted_form",
+    "form.home_momentum",
+    "form.home_recent_points",
+    "form.home_sos",
+    "form.home_weighted_form",
+    "form.sos_differential",
+    "h2h.h2h_avg_goals",
+    "h2h.h2h_away_wins",
+    "h2h.h2h_btts_rate",
+    "h2h.h2h_draws",
+    "h2h.h2h_games",
+    "h2h.h2h_home_win_rate",
+    "h2h.h2h_home_wins",
+    "injuries_suspensions.away_injured_count",
+    "injuries_suspensions.away_injury_impact",
+    "injuries_suspensions.away_key_players_out",
+    "injuries_suspensions.away_strength_adjustment",
+    "injuries_suspensions.away_suspended_count",
+    "injuries_suspensions.home_injured_count",
+    "injuries_suspensions.home_injury_impact",
+    "injuries_suspensions.home_key_players_out",
+    "injuries_suspensions.home_strength_adjustment",
+    "injuries_suspensions.home_suspended_count",
+    "injuries_suspensions.injury_impact_differential",
+    "injuries_suspensions.total_absences",
+    "market.bookmaker_margin",
+    "market.market_away_prob",
+    "market.market_draw_prob",
+    "market.market_home_prob",
+    "match_importance.away_distance_to_relegation",
+    "match_importance.away_distance_to_top4",
+    "match_importance.away_importance",
+    "match_importance.away_position",
+    "match_importance.home_distance_to_relegation",
+    "match_importance.home_distance_to_top4",
+    "match_importance.home_importance",
+    "match_importance.home_position",
+    "match_importance.is_derby",
+    "match_importance.match_importance",
+    "match_importance.position_differential",
+    "match_importance.season_progress",
+    "motivation.away_motivation",
+    "motivation.away_objective",
+    "motivation.away_relegation_pressure",
+    "motivation.away_title_pressure",
+    "motivation.combined_pressure",
+    "motivation.home_motivation",
+    "motivation.home_objective",
+    "motivation.home_relegation_pressure",
+    "motivation.home_title_pressure",
+    "motivation.motivation_differential",
+    "statistics.away_1st_half_pct",
+    "statistics.away_cards_per_game",
+    "statistics.away_clean_sheet_rate",
+    "statistics.away_corners_per_game",
+    "statistics.away_discipline_score",
+    "statistics.away_variance",
+    "statistics.first_half_differential",
+    "statistics.home_1st_half_pct",
+    "statistics.home_cards_per_game",
+    "statistics.home_clean_sheet_rate",
+    "statistics.home_corners_per_game",
+    "statistics.home_discipline_score",
+    "statistics.home_variance",
+    "statistics.total_corners_expected",
+    "statistics.variance_differential",
+    "strength.away_attack_strength",
+    "strength.away_conceded_per_game",
+    "strength.away_defense_strength",
+    "strength.away_goals_per_game",
+    "strength.home_advantage_factor",
+    "strength.home_attack_strength",
+    "strength.home_conceded_per_game",
+    "strength.home_defense_strength",
+    "strength.home_goals_per_game",
+    "strength.strength_differential",
+    "weather.condition",
+    "weather.goal_impact",
+    "weather.has_rain",
+    "weather.has_snow",
+    "weather.has_weather",
+    "weather.has_wind",
+    "weather.temperature",
+    "weather.weather_impact",
+    "weather.weather_severity"
+  ],
+  "train_size": 2720,
+  "test_size": 680,
+  "train_accuracy": 0.5202205882352942,
+  "test_accuracy": 0.49411764705882355,
+  "label_distribution": {
+    "Fora (2)": 1016,
+    "Empate (X)": 995,
+    "Casa (1)": 1389
+  },
+  "top_20_features": [
+    {
+      "feature": "h2h.h2h_home_win_rate",
+      "importance": 0.171595498919487
+    },
+    {
+      "feature": "competition.competition_name",
+      "importance": 0.16509556770324707
+    },
+    {
+      "feature": "h2h.h2h_home_wins",
+      "importance": 0.12306807935237885
+    },
+    {
+      "feature": "competition.is_cup_competition",
+      "importance": 0.061169013381004333
+    },
+    {
+      "feature": "h2h.h2h_draws",
+      "importance": 0.05616035684943199
+    },
+    {
+      "feature": "h2h.h2h_away_wins",
+      "importance": 0.05203360691666603
+    },
+    {
+      "feature": "h2h.h2h_games",
+      "importance": 0.04713072627782822
+    },
+    {
+      "feature": "statistics.away_clean_sheet_rate",
+      "importance": 0.032503191381692886
+    },
+    {
+      "feature": "strength.away_attack_strength",
+      "importance": 0.03232474625110626
+    },
+    {
+      "feature": "strength.home_goals_per_game",
+      "importance": 0.029602324590086937
+    },
+    {
+      "feature": "strength.away_goals_per_game",
+      "importance": 0.028667183592915535
+    },
+    {
+      "feature": "statistics.home_clean_sheet_rate",
+      "importance": 0.027180811390280724
+    },
+    {
+      "feature": "strength.home_attack_strength",
+      "importance": 0.02626936510205269
+    },
+    {
+      "feature": "strength.home_defense_strength",
+      "importance": 0.022731848061084747
+    },
+    {
+      "feature": "strength.home_conceded_per_game",
+      "importance": 0.0208173505961895
+    },
+    {
+      "feature": "strength.away_conceded_per_game",
+      "importance": 0.020650628954172134
+    },
+    {
+      "feature": "h2h.h2h_avg_goals",
+      "importance": 0.018806742504239082
+    },
+    {
+      "feature": "strength.strength_differential",
+      "importance": 0.017355522140860558
+    },
+    {
+      "feature": "h2h.h2h_btts_rate",
+      "importance": 0.017197592183947563
+    },
+    {
+      "feature": "competition.knockout_adjustment_factor",
+      "importance": 0.015586383640766144
+    }
+  ]
+}

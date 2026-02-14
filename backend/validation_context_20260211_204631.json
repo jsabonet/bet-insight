@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-02-11T20:46:31.926071",
+  "type": "context_system",
+  "components": [
+    "PoissonBivariateModel",
+    "ContextAnalyzer",
+    "MarketSelector"
+  ],
+  "strategy": "value",
+  "matches_total": 100,
+  "matches_analyzed": 0,
+  "accuracy": 0,
+  "total_predictions": 0,
+  "total_correct": 0,
+  "markets": {},
+  "errors": [
+    "Match 3108: 'League' object has no attribute 'external_id'",
+    "Match 129: 'League' object has no attribute 'external_id'",
+    "Match 128: 'League' object has no attribute 'external_id'",
+    "Match 127: 'League' object has no attribute 'external_id'",
+    "Match 126: 'League' object has no attribute 'external_id'",
+    "Match 125: 'League' object has no attribute 'external_id'",
+    "Match 74: 'League' object has no attribute 'external_id'",
+    "Match 1131: 'League' object has no attribute 'external_id'",
+    "Match 331: 'League' object has no attribute 'external_id'",
+    "Match 1130: 'League' object has no attribute 'external_id'",
+    "Match 330: 'League' object has no attribute 'external_id'",
+    "Match 1129: 'League' object has no attribute 'external_id'",
+    "Match 329: 'League' object has no attribute 'external_id'",
+    "Match 328: 'League' object has no attribute 'external_id'",
+    "Match 1127: 'League' object has no attribute 'external_id'",
+    "Match 1128: 'League' object has no attribute 'external_id'",
+    "Match 1126: 'League' object has no attribute 'external_id'",
+    "Match 327: 'League' object has no attribute 'external_id'",
+    "Match 1125: 'League' object has no attribute 'external_id'",
+    "Match 1124: 'League' object has no attribute 'external_id'"
+  ]
+}

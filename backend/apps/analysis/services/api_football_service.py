@@ -309,7 +309,9 @@ class APIFootballService:
                 'season': fixture['league']['season'],
                 'round': fixture['league']['round']
             },
-            'status': fixture['fixture']['status']['short']
+            'status': fixture['fixture']['status']['short'],
+            'goals': fixture.get('goals', {}),
+            'score': fixture.get('score', {})
         }
         
         logger.info(f"✅ Detalhes obtidos para fixture {fixture_id}")

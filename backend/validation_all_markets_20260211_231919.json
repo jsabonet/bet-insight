@@ -1,0 +1,446 @@
+{
+  "timestamp": "20260211_231919",
+  "total_partidas": 2950,
+  "acuracia_geral": 46.008993427879616,
+  "total_mercados": 49,
+  "resultados_por_mercado": {
+    "home_win": {
+      "acuracia": 44.54237288135594,
+      "corretos": 1314,
+      "testados": 2950,
+      "prob_media": 0.40405078111022535
+    },
+    "draw": {
+      "acuracia": 26.47457627118644,
+      "corretos": 781,
+      "testados": 2950,
+      "prob_media": 0.3162969435817628
+    },
+    "away_win": {
+      "acuracia": 28.983050847457626,
+      "corretos": 855,
+      "testados": 2950,
+      "prob_media": 0.27965227530797376
+    },
+    "1X": {
+      "acuracia": 71.01694915254238,
+      "corretos": 2095,
+      "testados": 2950,
+      "prob_media": 0.7203477246919796
+    },
+    "12": {
+      "acuracia": 73.52542372881355,
+      "corretos": 2169,
+      "testados": 2950,
+      "prob_media": 0.6837030564181972
+    },
+    "X2": {
+      "acuracia": 55.45762711864407,
+      "corretos": 1636,
+      "testados": 2950,
+      "prob_media": 0.5959492188897507
+    },
+    "over_0_5": {
+      "acuracia": 92.61016949152543,
+      "corretos": 2732,
+      "testados": 2950,
+      "prob_media": 0.8808983136693264
+    },
+    "under_0_5": {
+      "acuracia": 7.389830508474576,
+      "corretos": 218,
+      "testados": 2950,
+      "prob_media": 0.11910168633063987
+    },
+    "over_1_5": {
+      "acuracia": 76.10169491525424,
+      "corretos": 2245,
+      "testados": 2950,
+      "prob_media": 0.6821131037531696
+    },
+    "under_1_5": {
+      "acuracia": 23.898305084745765,
+      "corretos": 705,
+      "testados": 2950,
+      "prob_media": 0.31788689624684385
+    },
+    "over_2_5": {
+      "acuracia": 52.54237288135594,
+      "corretos": 1550,
+      "testados": 2950,
+      "prob_media": 0.3991638870366862
+    },
+    "under_2_5": {
+      "acuracia": 47.45762711864407,
+      "corretos": 1400,
+      "testados": 2950,
+      "prob_media": 0.600836112963345
+    },
+    "over_3_5": {
+      "acuracia": 30.949152542372882,
+      "corretos": 913,
+      "testados": 2950,
+      "prob_media": 0.19683755890882285
+    },
+    "under_3_5": {
+      "acuracia": 69.05084745762711,
+      "corretos": 2037,
+      "testados": 2950,
+      "prob_media": 0.8031624410911765
+    },
+    "over_4_5": {
+      "acuracia": 14.881355932203391,
+      "corretos": 439,
+      "testados": 2950,
+      "prob_media": 0.08136369802076654
+    },
+    "under_4_5": {
+      "acuracia": 85.11864406779661,
+      "corretos": 2511,
+      "testados": 2950,
+      "prob_media": 0.9186363019792433
+    },
+    "over_1_75": {
+      "acuracia": 76.10169491525424,
+      "corretos": 2245,
+      "testados": 2950,
+      "prob_media": 0.5406384953948917
+    },
+    "under_1_75": {
+      "acuracia": 23.898305084745765,
+      "corretos": 705,
+      "testados": 2950,
+      "prob_media": 0.45936150460510755
+    },
+    "over_2_25": {
+      "acuracia": 52.54237288135594,
+      "corretos": 1550,
+      "testados": 2950,
+      "prob_media": 0.3991638870366862
+    },
+    "under_2_25": {
+      "acuracia": 47.45762711864407,
+      "corretos": 1400,
+      "testados": 2950,
+      "prob_media": 0.600836112963345
+    },
+    "over_2_75": {
+      "acuracia": 52.54237288135594,
+      "corretos": 1550,
+      "testados": 2950,
+      "prob_media": 0.2980007229727691
+    },
+    "under_2_75": {
+      "acuracia": 47.45762711864407,
+      "corretos": 1400,
+      "testados": 2950,
+      "prob_media": 0.7019992770272147
+    },
+    "over_3_25": {
+      "acuracia": 30.949152542372882,
+      "corretos": 913,
+      "testados": 2950,
+      "prob_media": 0.19683755890882285
+    },
+    "under_3_25": {
+      "acuracia": 69.05084745762711,
+      "corretos": 2037,
+      "testados": 2950,
+      "prob_media": 0.8031624410911765
+    },
+    "btts": {
+      "acuracia": 53.355932203389834,
+      "corretos": 1574,
+      "testados": 2950,
+      "prob_media": 0.4751838400482227
+    },
+    "btts_yes": {
+      "acuracia": 53.355932203389834,
+      "corretos": 1574,
+      "testados": 2950,
+      "prob_media": 0.4751838400482227
+    },
+    "btts_no": {
+      "acuracia": 46.644067796610166,
+      "corretos": 1376,
+      "testados": 2950,
+      "prob_media": 0.5248161599517792
+    },
+    "home_clean_sheet": {
+      "acuracia": 31.83050847457627,
+      "corretos": 939,
+      "testados": 2950,
+      "prob_media": 0.36229618861577495
+    },
+    "away_clean_sheet": {
+      "acuracia": 22.203389830508474,
+      "corretos": 655,
+      "testados": 2950,
+      "prob_media": 0.2816216576666264
+    },
+    "home_over_0.5": {
+      "acuracia": 77.79661016949152,
+      "corretos": 2295,
+      "testados": 2950,
+      "prob_media": 0.7183783423333779
+    },
+    "home_under_0.5": {
+      "acuracia": 22.203389830508474,
+      "corretos": 655,
+      "testados": 2950,
+      "prob_media": 0.2816216576666264
+    },
+    "home_over_1.5": {
+      "acuracia": 44.71186440677966,
+      "corretos": 1319,
+      "testados": 2950,
+      "prob_media": 0.36141205963869816
+    },
+    "home_under_1.5": {
+      "acuracia": 55.288135593220346,
+      "corretos": 1631,
+      "testados": 2950,
+      "prob_media": 0.6385879403612907
+    },
+    "home_over_2.5": {
+      "acuracia": 20.135593220338983,
+      "corretos": 594,
+      "testados": 2950,
+      "prob_media": 0.1351778132447124
+    },
+    "home_under_2.5": {
+      "acuracia": 79.86440677966101,
+      "corretos": 2356,
+      "testados": 2950,
+      "prob_media": 0.864822186755234
+    },
+    "away_over_0.5": {
+      "acuracia": 68.16949152542374,
+      "corretos": 2011,
+      "testados": 2950,
+      "prob_media": 0.6377038113842138
+    },
+    "away_under_0.5": {
+      "acuracia": 31.83050847457627,
+      "corretos": 939,
+      "testados": 2950,
+      "prob_media": 0.36229618861577495
+    },
+    "away_over_1.5": {
+      "acuracia": 35.28813559322034,
+      "corretos": 1041,
+      "testados": 2950,
+      "prob_media": 0.26983383525134014
+    },
+    "away_under_1.5": {
+      "acuracia": 64.71186440677967,
+      "corretos": 1909,
+      "testados": 2950,
+      "prob_media": 0.7301661647486665
+    },
+    "away_over_2.5": {
+      "acuracia": 12.711864406779661,
+      "corretos": 375,
+      "testados": 2950,
+      "prob_media": 0.0830690781376968
+    },
+    "away_under_2.5": {
+      "acuracia": 87.28813559322035,
+      "corretos": 2575,
+      "testados": 2950,
+      "prob_media": 0.9169309218623284
+    },
+    "home_by_1": {
+      "acuracia": 22.033898305084744,
+      "corretos": 650,
+      "testados": 2950,
+      "prob_media": 0.21537655028741742
+    },
+    "home_by_2plus": {
+      "acuracia": 22.508474576271187,
+      "corretos": 664,
+      "testados": 2950,
+      "prob_media": 0.18867423082281237
+    },
+    "away_by_1": {
+      "acuracia": 15.322033898305085,
+      "corretos": 452,
+      "testados": 2950,
+      "prob_media": 0.1691352689407497
+    },
+    "away_by_2plus": {
+      "acuracia": 13.661016949152543,
+      "corretos": 403,
+      "testados": 2950,
+      "prob_media": 0.11051700636722311
+    },
+    "any_by_1": {
+      "acuracia": 37.35593220338983,
+      "corretos": 1102,
+      "testados": 2950,
+      "prob_media": 0.3845118192281597
+    },
+    "any_by_2plus": {
+      "acuracia": 36.16949152542373,
+      "corretos": 1067,
+      "testados": 2950,
+      "prob_media": 0.29919123719003604
+    },
+    "odd_goals": {
+      "acuracia": 48.54237288135593,
+      "corretos": 1432,
+      "testados": 2950,
+      "prob_media": 0.46063529023436534
+    },
+    "even_goals": {
+      "acuracia": 51.45762711864407,
+      "corretos": 1518,
+      "testados": 2950,
+      "prob_media": 0.5393647097656223
+    }
+  },
+  "top_10_melhores": [
+    {
+      "mercado": "over_0_5",
+      "acuracia": 92.61016949152543,
+      "corretos": 2732,
+      "testados": 2950,
+      "prob_media": 0.8808983136693264
+    },
+    {
+      "mercado": "away_under_2.5",
+      "acuracia": 87.28813559322035,
+      "corretos": 2575,
+      "testados": 2950,
+      "prob_media": 0.9169309218623284
+    },
+    {
+      "mercado": "under_4_5",
+      "acuracia": 85.11864406779661,
+      "corretos": 2511,
+      "testados": 2950,
+      "prob_media": 0.9186363019792433
+    },
+    {
+      "mercado": "home_under_2.5",
+      "acuracia": 79.86440677966101,
+      "corretos": 2356,
+      "testados": 2950,
+      "prob_media": 0.864822186755234
+    },
+    {
+      "mercado": "home_over_0.5",
+      "acuracia": 77.79661016949152,
+      "corretos": 2295,
+      "testados": 2950,
+      "prob_media": 0.7183783423333779
+    },
+    {
+      "mercado": "over_1_5",
+      "acuracia": 76.10169491525424,
+      "corretos": 2245,
+      "testados": 2950,
+      "prob_media": 0.6821131037531696
+    },
+    {
+      "mercado": "over_1_75",
+      "acuracia": 76.10169491525424,
+      "corretos": 2245,
+      "testados": 2950,
+      "prob_media": 0.5406384953948917
+    },
+    {
+      "mercado": "12",
+      "acuracia": 73.52542372881355,
+      "corretos": 2169,
+      "testados": 2950,
+      "prob_media": 0.6837030564181972
+    },
+    {
+      "mercado": "1X",
+      "acuracia": 71.01694915254238,
+      "corretos": 2095,
+      "testados": 2950,
+      "prob_media": 0.7203477246919796
+    },
+    {
+      "mercado": "under_3_5",
+      "acuracia": 69.05084745762711,
+      "corretos": 2037,
+      "testados": 2950,
+      "prob_media": 0.8031624410911765
+    }
+  ],
+  "top_10_piores": [
+    {
+      "mercado": "under_0_5",
+      "acuracia": 7.389830508474576,
+      "corretos": 218,
+      "testados": 2950,
+      "prob_media": 0.11910168633063987
+    },
+    {
+      "mercado": "away_over_2.5",
+      "acuracia": 12.711864406779661,
+      "corretos": 375,
+      "testados": 2950,
+      "prob_media": 0.0830690781376968
+    },
+    {
+      "mercado": "away_by_2plus",
+      "acuracia": 13.661016949152543,
+      "corretos": 403,
+      "testados": 2950,
+      "prob_media": 0.11051700636722311
+    },
+    {
+      "mercado": "over_4_5",
+      "acuracia": 14.881355932203391,
+      "corretos": 439,
+      "testados": 2950,
+      "prob_media": 0.08136369802076654
+    },
+    {
+      "mercado": "away_by_1",
+      "acuracia": 15.322033898305085,
+      "corretos": 452,
+      "testados": 2950,
+      "prob_media": 0.1691352689407497
+    },
+    {
+      "mercado": "home_over_2.5",
+      "acuracia": 20.135593220338983,
+      "corretos": 594,
+      "testados": 2950,
+      "prob_media": 0.1351778132447124
+    },
+    {
+      "mercado": "home_by_1",
+      "acuracia": 22.033898305084744,
+      "corretos": 650,
+      "testados": 2950,
+      "prob_media": 0.21537655028741742
+    },
+    {
+      "mercado": "away_clean_sheet",
+      "acuracia": 22.203389830508474,
+      "corretos": 655,
+      "testados": 2950,
+      "prob_media": 0.2816216576666264
+    },
+    {
+      "mercado": "home_under_0.5",
+      "acuracia": 22.203389830508474,
+      "corretos": 655,
+      "testados": 2950,
+      "prob_media": 0.2816216576666264
+    },
+    {
+      "mercado": "home_by_2plus",
+      "acuracia": 22.508474576271187,
+      "corretos": 664,
+      "testados": 2950,
+      "prob_media": 0.18867423082281237
+    }
+  ]
+}

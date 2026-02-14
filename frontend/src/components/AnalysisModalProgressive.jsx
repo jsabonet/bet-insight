@@ -52,9 +52,9 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) 
       setIsReloading(true);
       setError(null);
       
-      // ONDA 1: Dados do preview (já disponíveis, instantâneo)
+      // 🔥 NÃO USAR CACHE ANTIGO - Forçar recálculo sempre
       setPhase(1);
-      setStatisticalData(match.preview || match.analysis_data || null);
+      setStatisticalData(null); // Começar vazio, esperar backend
 
       // ONDA 2 + 3: Chamar análise completa com estratégia local
       setPhase(2);
@@ -104,13 +104,15 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) 
         // O enriched_data pode vir em result.enriched_data OU result.statistical_data.enriched_data
         const enrichedData = result.enriched_data || result.statistical_data?.enriched_data || {};
         
+        // 🔥 NÃO USAR CACHE ANTIGO - Apenas dados do backend
         const statsWithEnriched = {
-          ...(result.statistical_data || match.analysis_data || {}),
+          ...(result.statistical_data || {}),
           enriched_data: enrichedData
         };
         
         console.log('🔍 MODAL - statisticalData sendo setado:', {
           hasConsensus: !!statsWithEnriched.consensus,
+          consensusValues: statsWithEnriched.consensus,
           hasEnrichedData: !!statsWithEnriched.enriched_data,
           enrichedDataKeys: statsWithEnriched.enriched_data ? Object.keys(statsWithEnriched.enriched_data) : [],
           hasOdds: !!statsWithEnriched.enriched_data?.odds,

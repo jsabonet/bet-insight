@@ -109,7 +109,7 @@ export const matchesAPI = {
   getLiveProbabilities: (matchId) => api.get(`/matches/${matchId}/live_probabilities/`), // ✅ Probabilidades ao vivo
   
   // 🚀 Endpoint unificado com cache inteligente
-  unifiedAnalysis: (matchId, strategy, includeAI = true, forceRefresh = false) =>
+  unifiedAnalysis: (matchId, strategy, includeAI = true, forceRefresh = true) =>
     api.post(`/matches/${matchId}/unified-analysis/`, {
       strategy,
       include_ai: includeAI,
@@ -125,8 +125,15 @@ export const leaguesAPI = {
 // Analysis endpoints
 export const analysisAPI = {
   getAll: (params) => api.get('/analyses/', { params }),
-  getUserAnalyses: (page = 1) => api.get(`/analyses/?page=${page}`),
-  requestAnalysis: (matchId) => api.post('/analyses/request_analysis/', { match_id: matchId }),
+  getUserAnalyses: (page = 1, search = '') => {
+    const params = new URLSearchParams({ page });
+    if (search) params.append('search', search);
+    return api.get(`/analyses/?${params.toString()}`);
+  },
+  requestAnalysis: (matchId, forceRecalculate = false) => api.post('/analyses/request_analysis/', { 
+    match_id: matchId,
+    force_recalculate: forceRecalculate 
+  }),
   getMyStats: () => api.get('/analyses/my_stats/'),
 };
 

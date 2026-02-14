@@ -1,0 +1,30 @@
+{
+  "timestamp": "2026-02-11T20:56:54.289784",
+  "type": "context_system",
+  "components": [
+    "PoissonBivariateModel",
+    "ContextAnalyzer",
+    "MarketSelector"
+  ],
+  "strategy": "value",
+  "matches_total": 100,
+  "matches_analyzed": 100,
+  "accuracy": 43.5,
+  "total_predictions": 200,
+  "total_correct": 87,
+  "markets": {
+    "under_2.5": {
+      "accuracy": 47.0,
+      "total": 100,
+      "correct": 47,
+      "avg_probability": 0.6008361129633162
+    },
+    "btts_no": {
+      "accuracy": 40.0,
+      "total": 100,
+      "correct": 40,
+      "avg_probability": 0.5248161599517478
+    }
+  },
+  "errors": []
+}

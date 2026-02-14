@@ -26,9 +26,20 @@ class AnalysisViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         """Retorna apenas análises do usuário"""
-        return Analysis.objects.filter(user=self.request.user).select_related(
+        queryset = Analysis.objects.filter(user=self.request.user).select_related(
             'match', 'match__league', 'match__home_team', 'match__away_team'
         ).order_by('-created_at')
+        
+        # Filtro de pesquisa
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                Q(match__home_team__name__icontains=search) |
+                Q(match__away_team__name__icontains=search) |
+                Q(match__league__name__icontains=search)
+            )
+        
+        return queryset
     
     @action(detail=False, methods=['post'])
     def request_analysis(self, request):
@@ -39,6 +50,9 @@ class AnalysisViewSet(viewsets.ReadOnlyModelViewSet):
         
         match_id = serializer.validated_data['match_id']
         user = request.user
+        
+        # Parâmetro para forçar recálculo (útil para testar correções)
+        force_recalculate = request.data.get('force_recalculate', False)
         
         # Verificar se usuário pode analisar
         if not user.can_analyze():
@@ -52,11 +66,15 @@ class AnalysisViewSet(viewsets.ReadOnlyModelViewSet):
         match = Match.objects.get(id=match_id)
         existing = Analysis.objects.filter(user=user, match=match).first()
         
-        if existing:
+        if existing and not force_recalculate:
             return Response({
                 'message': 'Você já analisou esta partida',
                 'analysis': AnalysisSerializer(existing).data
             }, status=status.HTTP_200_OK)
+        
+        # Se force_recalculate=True, deletar análise antiga
+        if existing and force_recalculate:
+            existing.delete()
         
         # Usar o orquestrador híbrido (modelos + decisão + IA explicativa)
         from apps.analysis.services.analysis_orchestrator import HybridAnalysisOrchestrator

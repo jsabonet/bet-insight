@@ -1,0 +1,73 @@
+{
+  "timestamp": "2026-02-12T03:29:37.070739",
+  "method": "monte_carlo_grid_search",
+  "current_weights": {
+    "poisson": 0.5,
+    "ml": 0.3,
+    "market": 0.2
+  },
+  "top_3_combinations": [
+    {
+      "weights": {
+        "poisson": 0.6,
+        "ml": 0.25,
+        "market": 0.15
+      },
+      "estimated_accuracy": 0.5523645648520821
+    },
+    {
+      "weights": {
+        "poisson": 0.65,
+        "ml": 0.2,
+        "market": 0.15
+      },
+      "estimated_accuracy": 0.548390512755137
+    },
+    {
+      "weights": {
+        "poisson": 0.5,
+        "ml": 0.2,
+        "market": 0.3
+      },
+      "estimated_accuracy": 0.5473970907011989
+    }
+  ],
+  "recommended_weights": {
+    "poisson": 0.6,
+    "ml": 0.25,
+    "market": 0.15
+  },
+  "estimated_improvement": 4.2364564852082065,
+  "context_specific": {
+    "WEAK_CONTEXT": {
+      "description": "Sem padrões fortes detectados",
+      "optimal": {
+        "poisson": 0.55,
+        "ml": 0.25,
+        "market": 0.2
+      }
+    },
+    "MODERATE_CONTEXT": {
+      "description": "Confiança 65-80%",
+      "optimal": {
+        "poisson": 0.4,
+        "ml": 0.4,
+        "market": 0.2
+      }
+    },
+    "STRONG_CONTEXT": {
+      "description": "Confiança ≥80%",
+      "optimal": {
+        "poisson": 0.3,
+        "ml": 0.5,
+        "market": 0.2
+      }
+    }
+  },
+  "next_steps": [
+    "Atualizar apps/analysis/config/analysis_config.py",
+    "Testar com: python test_ml_integration.py",
+    "Validar em 50-100 jogos reais",
+    "Monitorar acurácia por 1 semana"
+  ]
+}

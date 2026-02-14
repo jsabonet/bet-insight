@@ -10,6 +10,7 @@ from .decision_engine import DecisionEngine
 from .ai_analyzer import AIAnalyzer
 from .context_analyzer import ContextAnalyzer  # NOVO
 from .market_selector import MarketSelector    # NOVO
+from .hybrid_strategy import HybridStrategy    # ESTRATEGIA ADAPTATIVA
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ class HybridAnalysisOrchestrator:
         self.context_analyzer = ContextAnalyzer()  # NOVO
         self.ensemble = ModelEnsembleML()  # 🤖 USANDO ML TREINADO
         self.market_selector = MarketSelector()    # NOVO
+        self.hybrid_strategy = HybridStrategy()    # ESTRATEGIA HIBRIDA
         self.decision = DecisionEngine()
         self.ai = AIAnalyzer()
         self.enable_cup_adjustment = enable_cup_adjustment  # Flag global para ativar/desativar ajuste de copas
@@ -70,6 +72,16 @@ class HybridAnalysisOrchestrator:
         logger.info(f"🔍 [Orchestrator] Padrões contextuais detectados: {len(context_analysis.get('patterns', []))}")
         for pattern in context_analysis.get('patterns', []):
             logger.info(f"   - {pattern['name']}: {pattern['confidence']:.0%}")
+        
+        # 2.6) ESTRATÉGIA HÍBRIDA: Decidir se usa contexto ou não
+        context_decision = self.hybrid_strategy.should_use_context(context_analysis, features)
+        
+        if not context_decision['use_context']:
+            # Contexto rejeitado - limpar para não influenciar modelos
+            logger.info(f"⚠️ [Orchestrator] Contexto REJEITADO - usando modelo base")
+            context_analysis = {'patterns': [], 'top_markets': []}
+        else:
+            logger.info(f"✅ [Orchestrator] Contexto APROVADO - padrões: {', '.join(context_decision['approved_patterns'])}")
 
         # 3) Modelos estatísticos
         strength = features.get('strength', {})

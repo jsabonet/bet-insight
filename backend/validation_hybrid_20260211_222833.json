@@ -1,0 +1,36 @@
+{
+  "timestamp": "2026-02-11T22:28:33.815765",
+  "type": "hybrid_strategy",
+  "strategy_stats": {
+    "total_decisions": 0,
+    "used_context": 0,
+    "used_base": 0,
+    "context_percentage": 0
+  },
+  "matches_total": 100,
+  "matches_analyzed": 100,
+  "accuracy": 47.66666666666667,
+  "total_predictions": 300,
+  "total_correct": 143,
+  "markets": {
+    "under_2.5": {
+      "accuracy": 47.0,
+      "total": 100,
+      "correct": 47,
+      "avg_probability": 0.6008361129633162
+    },
+    "btts_yes": {
+      "accuracy": 60.0,
+      "total": 100,
+      "correct": 60,
+      "avg_probability": 0.47518384004825215
+    },
+    "home_win": {
+      "accuracy": 36.0,
+      "total": 100,
+      "correct": 36,
+      "avg_probability": 0.4040507811102353
+    }
+  },
+  "errors": []
+}

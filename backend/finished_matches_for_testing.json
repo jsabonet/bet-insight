@@ -1,0 +1,182 @@
+[
+  {
+    "fixture_id": 1493326,
+    "home_team": "Tigres UANL W",
+    "away_team": "Juárez W",
+    "home_score": 0,
+    "away_score": 1,
+    "league": "Liga MX Femenil",
+    "date": "2026-02-10T00:00:00+00:00"
+  },
+  {
+    "fixture_id": 1493327,
+    "home_team": "Pumas UNAM W",
+    "away_team": "Guadalajara W",
+    "home_score": 1,
+    "away_score": 0,
+    "league": "Liga MX Femenil",
+    "date": "2026-02-10T00:00:00+00:00"
+  },
+  {
+    "fixture_id": 1500796,
+    "home_team": "Manauara",
+    "away_team": "Parintins",
+    "home_score": 2,
+    "away_score": 1,
+    "league": "Amazonense",
+    "date": "2026-02-10T00:00:00+00:00"
+  },
+  {
+    "fixture_id": 1491868,
+    "home_team": "Estudiantes de Rio Cuarto",
+    "away_team": "Independ. Rivadavia",
+    "home_score": 0,
+    "away_score": 1,
+    "league": "Liga Profesional Argentina",
+    "date": "2026-02-10T00:30:00+00:00"
+  },
+  {
+    "fixture_id": 1476842,
+    "home_team": "Santa Ana",
+    "away_team": "Futbol Consultants Moravia",
+    "home_score": 1,
+    "away_score": 1,
+    "league": "Liga de Ascenso",
+    "date": "2026-02-10T01:00:00+00:00"
+  },
+  {
+    "fixture_id": 1514388,
+    "home_team": "Weymouth Wales",
+    "away_team": "Brittons Hill",
+    "home_score": 3,
+    "away_score": 0,
+    "league": "Premier League",
+    "date": "2026-02-09T00:00:00+00:00"
+  },
+  {
+    "fixture_id": 1519239,
+    "home_team": "Garden Stars",
+    "away_team": "Old Road",
+    "home_score": 1,
+    "away_score": 1,
+    "league": "Premier Division",
+    "date": "2026-02-09T00:00:00+00:00"
+  },
+  {
+    "fixture_id": 1489123,
+    "home_team": "Sporting San Jose",
+    "away_team": "Guadalupe FC",
+    "home_score": 1,
+    "away_score": 1,
+    "league": "Primera División",
+    "date": "2026-02-09T01:00:00+00:00"
+  },
+  {
+    "fixture_id": 1499144,
+    "home_team": "Antigua GFC",
+    "away_team": "Mixco",
+    "home_score": 1,
+    "away_score": 2,
+    "league": "Liga Nacional",
+    "date": "2026-02-09T01:00:00+00:00"
+  },
+  {
+    "fixture_id": 1491869,
+    "home_team": "Gimnasia M.",
+    "away_team": "Instituto Cordoba",
+    "home_score": 1,
+    "away_score": 0,
+    "league": "Liga Profesional Argentina",
+    "date": "2026-02-09T01:15:00+00:00"
+  },
+  {
+    "fixture_id": 1442510,
+    "home_team": "Deportivo Ayense",
+    "away_team": "Poza Rica",
+    "home_score": 4,
+    "away_score": 1,
+    "league": "Liga Premier Serie B",
+    "date": "2026-02-08T00:00:00+00:00"
+  },
+  {
+    "fixture_id": 1445539,
+    "home_team": "Tigres de Alica",
+    "away_team": "Acatlan",
+    "home_score": 5,
+    "away_score": 1,
+    "league": "Liga Premier Serie A",
+    "date": "2026-02-08T00:00:00+00:00"
+  },
+  {
+    "fixture_id": 1500882,
+    "home_team": "Bangu",
+    "away_team": "Boavista SC",
+    "home_score": 1,
+    "away_score": 1,
+    "league": "Carioca - 1",
+    "date": "2026-02-08T00:00:00+00:00"
+  },
+  {
+    "fixture_id": 1500883,
+    "home_team": "Flamengo",
+    "away_team": "Sampaio Corrêa RJ",
+    "home_score": 7,
+    "away_score": 1,
+    "league": "Carioca - 1",
+    "date": "2026-02-08T00:00:00+00:00"
+  },
+  {
+    "fixture_id": 1500885,
+    "home_team": "Portuguesa RJ",
+    "away_team": "Nova Iguaçu",
+    "home_score": 1,
+    "away_score": 0,
+    "league": "Carioca - 1",
+    "date": "2026-02-08T00:00:00+00:00"
+  },
+  {
+    "fixture_id": 1491866,
+    "home_team": "Central Cordoba de Santiago",
+    "away_team": "Union Santa Fe",
+    "home_score": 1,
+    "away_score": 0,
+    "league": "Liga Profesional Argentina",
+    "date": "2026-02-07T00:00:00+00:00"
+  },
+  {
+    "fixture_id": 1515128,
+    "home_team": "Wanderers",
+    "away_team": "Defensor Sporting",
+    "home_score": 1,
+    "away_score": 1,
+    "league": "Primera División - Apertura",
+    "date": "2026-02-07T00:30:00+00:00"
+  },
+  {
+    "fixture_id": 1457001,
+    "home_team": "Zitacuaro",
+    "away_team": "Correcaminos UAT II",
+    "home_score": 1,
+    "away_score": 0,
+    "league": "Liga Premier Serie A",
+    "date": "2026-02-07T01:00:00+00:00"
+  },
+  {
+    "fixture_id": 1477093,
+    "home_team": "Cañoneros Marina",
+    "away_team": "Montañeses",
+    "home_score": 0,
+    "away_score": 0,
+    "league": "Liga Premier Serie A",
+    "date": "2026-02-07T01:00:00+00:00"
+  },
+  {
+    "fixture_id": 1492499,
+    "home_team": "Necaxa",
+    "away_team": "Atletico San Luis",
+    "home_score": 4,
+    "away_score": 1,
+    "league": "Liga MX",
+    "date": "2026-02-07T01:00:00+00:00"
+  }
+]

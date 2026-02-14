@@ -1,0 +1,9 @@
+{
+  "timestamp": "2026-02-11T20:34:27.937186",
+  "type": "quick_validation_poisson_only",
+  "matches_analyzed": 100,
+  "total_predictions": 0,
+  "total_correct": 0,
+  "overall_accuracy": 0,
+  "market_stats": {}
+}

@@ -28,15 +28,15 @@ class AIAnalyzer:
             return
 
         genai.configure(api_key=api_key)
-        model_name = 'gemini-1.5-flash'
+        model_name = 'gemini-1.5-flash-latest'
         
         try:
             self.model = genai.GenerativeModel(model_name)
-            logger.info(f"✅ AI Analyzer usando Gemini Flash")
+            logger.info(f"✅ AI Analyzer usando Gemini Flash Latest")
         except Exception as e:
             logger.error(f"Falha ao inicializar Gemini Flash: {e}")
             try:
-                model_name = 'gemini-pro'
+                model_name = 'gemini-1.5-pro-latest'
                 self.model = genai.GenerativeModel(model_name)
                 logger.warning(f"⚠️ Usando fallback: {model_name}")
             except Exception as e2:
