@@ -301,3 +301,176 @@ class DailyBet(models.Model):
             return 0.0
         else:
             return None
+
+
+class TaskExecution(models.Model):
+    """Registro de execuções das tasks Celery (generate_daily_bets, validate_daily_bets)"""
+    
+    TASK_CHOICES = [
+        ('generate_daily_bets', 'Gerar Bilhetes Diários'),
+        ('validate_daily_bets', 'Validar Bilhetes'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('running', 'Em Execução'),
+        ('success', 'Sucesso'),
+        ('failed', 'Falhou'),
+        ('cancelled', 'Cancelado'),
+    ]
+    
+    # Identificação
+    task_name = models.CharField(max_length=50, choices=TASK_CHOICES, verbose_name="Task")
+    task_id = models.CharField(max_length=255, unique=True, verbose_name="Celery Task ID")
+    
+    # Status
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='running', verbose_name="Status")
+    
+    # Execução
+    started_at = models.DateTimeField(auto_now_add=True, verbose_name="Iniciado Em")
+    finished_at = models.DateTimeField(null=True, blank=True, verbose_name="Finalizado Em")
+    duration_seconds = models.IntegerField(null=True, blank=True, verbose_name="Duração (segundos)")
+    
+    # Resultados
+    result_data = models.JSONField(null=True, blank=True, verbose_name="Dados do Resultado")
+    error_message = models.TextField(blank=True, verbose_name="Mensagem de Erro")
+    
+    # Estatísticas
+    matches_analyzed = models.IntegerField(default=0, verbose_name="Partidas Analisadas")
+    bets_generated = models.IntegerField(default=0, verbose_name="Apostas Geradas")
+    bets_validated = models.IntegerField(default=0, verbose_name="Apostas Validadas")
+    api_calls = models.IntegerField(default=0, verbose_name="Chamadas API")
+    
+    # ✅ NOVO: Progresso em tempo real (17/02/2026)
+    current_stage = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        verbose_name="Etapa Atual",
+        help_text="Etapa de execução: searching, analyzing, creating, completed"
+    )
+    matches_found = models.IntegerField(
+        default=0,
+        verbose_name="Partidas Encontradas",
+        help_text="Total de partidas encontradas para análise"
+    )
+    matches_processed = models.IntegerField(
+        default=0,
+        verbose_name="Partidas Processadas",
+        help_text="Partidas já processadas/analisadas"
+    )
+    bets_created = models.IntegerField(
+        default=0,
+        verbose_name="Apostas Criadas",
+        help_text="Apostas criadas até agora"
+    )
+    last_updated = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Última Atualização",
+        help_text="Timestamp da última atualização de progresso"
+    )
+    progress_log = models.JSONField(
+        default=list,
+        blank=True,
+        verbose_name="Log de Progresso",
+        help_text="Log detalhado das etapas de execução"
+    )
+    
+    # Trigger
+    triggered_by = models.CharField(
+        max_length=20,
+        choices=[('celery', 'Automático (Celery)'), ('manual', 'Manual (Admin)')],
+        default='celery',
+        verbose_name="Iniciado Por"
+    )
+    triggered_by_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Usuário"
+    )
+    
+    class Meta:
+        verbose_name = "Execução de Task"
+        verbose_name_plural = "Execuções de Tasks"
+        ordering = ['-started_at']
+        indexes = [
+            models.Index(fields=['task_name', '-started_at']),
+            models.Index(fields=['status', '-started_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.get_task_name_display()} - {self.started_at.strftime('%d/%m/%Y %H:%M')}"
+    
+    def update_progress(self, stage=None, matches_found=None, matches_processed=None, bets_created=None, log_message=None):
+        """
+        Atualiza o progresso da execução em tempo real
+        
+        Args:
+            stage: Etapa atual ('searching', 'analyzing', 'creating', 'completed')
+            matches_found: Total de partidas encontradas
+            matches_processed: Partidas já processadas
+            bets_created: Apostas criadas até agora
+            log_message: Mensagem para adicionar ao log
+        """
+        from django.utils import timezone
+        
+        if stage is not None:
+            self.current_stage = stage
+        if matches_found is not None:
+            self.matches_found = matches_found
+        if matches_processed is not None:
+            self.matches_processed = matches_processed
+        if bets_created is not None:
+            self.bets_created = bets_created
+        
+        self.last_updated = timezone.now()
+        
+        if log_message:
+            if not isinstance(self.progress_log, list):
+                self.progress_log = []
+            self.progress_log.append({
+                'timestamp': self.last_updated.isoformat(),
+                'stage': self.current_stage,
+                'message': log_message
+            })
+        
+        self.save(update_fields=['current_stage', 'matches_found', 'matches_processed', 'bets_created', 'last_updated', 'progress_log'])
+    
+    def get_progress_percentage(self):
+        """Calcula a porcentagem de progresso baseada nas partidas processadas"""
+        if self.matches_found == 0:
+            return 0
+        return int((self.matches_processed / self.matches_found) * 100)
+    
+    def get_elapsed_time(self):
+        """Retorna o tempo decorrido em segundos"""
+        from django.utils import timezone
+        if self.finished_at:
+            return int((self.finished_at - self.started_at).total_seconds())
+        return int((timezone.now() - self.started_at).total_seconds())
+    
+    def mark_finished(self, status='success', result_data=None, error_message=''):
+        """Marca a task como finalizada"""
+        from django.utils import timezone
+        
+        self.status = status
+        self.current_stage = 'completed'
+        self.finished_at = timezone.now()
+        self.last_updated = self.finished_at
+        self.duration_seconds = int((self.finished_at - self.started_at).total_seconds())
+        
+        if result_data:
+            self.result_data = result_data
+            # Extrair estatísticas do result_data
+            if 'results' in result_data:
+                results = result_data['results']
+                self.matches_analyzed = results.get('matches_analyzed', 0)
+                self.bets_generated = results.get('multiple_count', 0) + results.get('value_count', 0)
+                self.api_calls = results.get('api_calls', 0)
+        
+        if error_message:
+            self.error_message = error_message
+        
+        self.save()

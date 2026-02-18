@@ -158,21 +158,15 @@ class HybridAnalysisOrchestrator:
         logger.info(f"{'='*80}\n")
 
         # 4) Decisão + value
-        # Preparar market_odds no formato correto para o DecisionEngine
-        # O enricher retorna odds em enriched['odds'], não em features['market']
+        # ✅ CORREÇÃO 15/02/2026: Passar TODAS as odds extraídas (44 mercados)
+        # Antes: Passava apenas 7 mercados básicos (home, draw, away, over/under 2.5, btts)
+        # Agora: Passa todos os 44 mercados da expansão de odds
         raw_odds = enriched.get('odds', {})
         if raw_odds and raw_odds.get('home_win'):
-            # Converter formato do enricher para formato do DecisionEngine
-            market_odds = {
-                'home': raw_odds.get('home_win'),
-                'draw': raw_odds.get('draw'),
-                'away': raw_odds.get('away_win'),
-                'over_2_5': raw_odds.get('over_25'),
-                'under_2_5': raw_odds.get('under_25'),
-                'btts_yes': raw_odds.get('btts_yes'),
-                'btts_no': raw_odds.get('btts_no'),
-            }
-            logger.info(f"💰 [Orchestrator] Market odds preparados: Home={market_odds.get('home')}, Draw={market_odds.get('draw')}, Away={market_odds.get('away')}")
+            # Passar TODAS as odds extraídas (não apenas subset)
+            market_odds = raw_odds.copy()  # Usar todas as odds do enricher
+            logger.info(f"💰 [Orchestrator] Market odds preparados: {len(market_odds)} mercados")
+            logger.info(f"   Principais: Home={market_odds.get('home_win')}, Draw={market_odds.get('draw')}, Away={market_odds.get('away_win')}")
         else:
             # Sem odds da API - DecisionEngine não gerará top_bets
             market_odds = None

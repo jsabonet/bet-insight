@@ -611,17 +611,19 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) 
             </div>
           )}
           
-          {/* ============ ONDA 2: Sem Odds Disponíveis ============ */}
+          {/* ============ ONDA 2: Sem Apostas Recomendadas ============ */}
           {phase >= 2 && topBets && topBets.length === 0 && (
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg p-4 animate-fade-in">
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold text-amber-900 dark:text-amber-200 mb-1">
-                    Odds não disponíveis
+                    Nenhuma aposta recomendada
                   </p>
                   <p className="text-sm text-amber-800 dark:text-amber-300">
-                    Bookmakers não oferecem mercado para esta liga. As análises estatísticas e predições estão disponíveis, mas não é possível calcular apostas recomendadas.
+                    {localStrategy === 'value' 
+                      ? 'Nenhuma value bet encontrada para esta partida. Tente a estratégia "Bilhetes" para ver apostas mais conservadoras.'
+                      : 'Nenhuma aposta atende aos critérios de qualidade para bilhetes múltiplos. Verifique as análises estatísticas abaixo.'}
                   </p>
                 </div>
               </div>

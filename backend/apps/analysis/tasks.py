@@ -9,13 +9,14 @@ Tasks:
 import logging
 from celery import shared_task
 from django.utils import timezone
+from django.db import models
 from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, name='analysis.generate_daily_bets')
-def generate_daily_bets(self):
+def generate_daily_bets(self, triggered_by='celery', user_id=None):
     """
     Task executada diariamente para gerar bilhetes e value bets automáticos
     
@@ -28,12 +29,23 @@ def generate_daily_bets(self):
     - Usa HybridAnalysisOrchestrator existente
     """
     from apps.analysis.services.daily_bet_generator import DailyBetGenerator
+    from apps.analysis.models import TaskExecution
+    from django.contrib.auth import get_user_model
     
     logger.info("=" * 100)
     logger.info("🎯 TASK: GENERATE DAILY BETS - INICIANDO")
     logger.info("=" * 100)
     logger.info(f"Task ID: {self.request.id}")
     logger.info(f"Timestamp: {timezone.now().strftime('%d/%m/%Y %H:%M:%S')}")
+    
+    # Criar registro de execução
+    User = get_user_model()
+    execution = TaskExecution.objects.create(
+        task_name='generate_daily_bets',
+        task_id=self.request.id,
+        triggered_by=triggered_by,
+        triggered_by_user=User.objects.get(id=user_id) if user_id else None
+    )
     
     try:
         generator = DailyBetGenerator()
@@ -50,12 +62,17 @@ def generate_daily_bets(self):
         logger.info(f"🔌 Requisições API (estimado): {results['api_calls']}")
         logger.info(f"{'=' * 100}\n")
         
-        return {
+        result = {
             'status': 'success',
             'task_id': self.request.id,
             'timestamp': timezone.now().isoformat(),
             'results': results
         }
+        
+        # Atualizar registro de execução
+        execution.mark_finished(status='success', result_data=result)
+        
+        return result
         
     except Exception as e:
         logger.error(f"\n{'=' * 100}")
@@ -64,12 +81,15 @@ def generate_daily_bets(self):
         logger.error(f"Erro: {str(e)}", exc_info=True)
         logger.error(f"{'=' * 100}\n")
         
+        # Atualizar registro de execução
+        execution.mark_finished(status='failed', error_message=str(e))
+        
         # Re-raise para Celery marcar como falha
         raise
 
 
 @shared_task(bind=True, name='analysis.validate_daily_bets')
-def validate_daily_bets(self):
+def validate_daily_bets(self, triggered_by='celery', user_id=None):
     """
     Task executada periodicamente para validar resultados de apostas após jogos finalizarem
     
@@ -81,13 +101,23 @@ def validate_daily_bets(self):
     - Valida resultados automaticamente
     - Atualiza status (won/lost/partial/cancelled)
     """
-    from apps.analysis.models import DailyBet
+    from apps.analysis.models import DailyBet, TaskExecution
+    from django.contrib.auth import get_user_model
     
     logger.info("=" * 100)
     logger.info("🔍 TASK: VALIDATE DAILY BETS - INICIANDO")
     logger.info("=" * 100)
     logger.info(f"Task ID: {self.request.id}")
     logger.info(f"Timestamp: {timezone.now().strftime('%d/%m/%Y %H:%M:%S')}")
+    
+    # Criar registro de execução
+    User = get_user_model()
+    execution = TaskExecution.objects.create(
+        task_name='validate_daily_bets',
+        task_id=self.request.id,
+        triggered_by=triggered_by,
+        triggered_by_user=User.objects.get(id=user_id) if user_id else None
+    )
     
     try:
         # Buscar apostas pendentes dos últimos 7 dias
@@ -139,7 +169,7 @@ def validate_daily_bets(self):
         logger.info(f"⏳ Ainda pendentes: {still_pending_count}")
         logger.info(f"{'=' * 100}\n")
         
-        return {
+        result = {
             'status': 'success',
             'task_id': self.request.id,
             'timestamp': timezone.now().isoformat(),
@@ -147,12 +177,21 @@ def validate_daily_bets(self):
             'pending_count': still_pending_count
         }
         
+        # Atualizar registro de execução
+        execution.bets_validated = validated_count
+        execution.mark_finished(status='success', result_data=result)
+        
+        return result
+        
     except Exception as e:
         logger.error(f"\n{'=' * 100}")
         logger.error("❌ ERRO NA VALIDAÇÃO")
         logger.error(f"{'=' * 100}")
         logger.error(f"Erro: {str(e)}", exc_info=True)
         logger.error(f"{'=' * 100}\n")
+        
+        # Atualizar registro de execução
+        execution.mark_finished(status='failed', error_message=str(e))
         
         # Re-raise para Celery marcar como falha
         raise

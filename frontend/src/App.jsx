@@ -25,6 +25,8 @@ import TestQuickAnalyze from './pages/TestQuickAnalyze.jsx';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
+import AdminDailyBets from './pages/admin/AdminDailyBets';
+import AdminExecutionDetail from './pages/admin/AdminExecutionDetail';
 
 // AdminRoute component - Staff e superusuários
 function AdminRoute({ children }) {
@@ -207,6 +209,24 @@ function App() {
             element={
               <AdminRoute>
                 <AdminUsers />
+              </AdminRoute>
+            }
+          />
+          
+          <Route
+            path="/admin/daily-bets"
+            element={
+              <AdminRoute>
+                <AdminDailyBets />
+              </AdminRoute>
+            }
+          />
+          
+          <Route
+            path="/admin/execution/:id"
+            element={
+              <AdminRoute>
+                <AdminExecutionDetail />
               </AdminRoute>
             }
           />

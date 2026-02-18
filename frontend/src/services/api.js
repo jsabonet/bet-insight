@@ -89,6 +89,14 @@ export const adminAPI = {
     }),
   removeSubscription: (userId) =>
     api.post('/subscriptions/admin/remove-subscription/', { user_id: userId }),
+  
+  // 🎯 Daily Bets Admin Actions
+  generateDailyBets: () => api.post('/daily-bets/admin/generate-now/'),
+  validateDailyBets: () => api.post('/daily-bets/admin/validate-now/'),
+  getExecutionStatus: (limit = 20) => api.get('/daily-bets/admin/execution-status/', { params: { limit } }),
+  getExecutionDetail: (id) => api.get(`/daily-bets/admin/execution-detail/${id}/`),
+  getGeneratorStats: () => api.get('/daily-bets/admin/generator-stats/'),
+  getGenerationProgress: () => api.get('/daily-bets/admin/generation-progress/'),
 };
 
 // Matches endpoints

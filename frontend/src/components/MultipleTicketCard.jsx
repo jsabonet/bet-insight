@@ -1,4 +1,5 @@
-import { Target } from 'lucide-react';
+import { Target, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 // Função para formatar nomes de mercados
 const formatMarket = (market) => {
@@ -9,28 +10,47 @@ const formatMarket = (market) => {
     'double_chance_12': 'Casa ou Fora (Sem Empate)',
     'double_chance_1x': 'Casa Vence ou Empata',
     'double_chance_x2': 'Empate ou Fora Vence',
+    '1x': 'Casa ou Empate',
+    'x2': 'X2',
+    '12': 'Casa ou Fora',
     'over_0_5': 'Pelo Menos 1 Gol no Jogo',
     'over_1_5': 'Pelo Menos 2 Gols no Jogo',
     'over_2_5': 'Pelo Menos 3 Gols no Jogo',
     'over_3_5': 'Pelo Menos 4 Gols no Jogo',
+    'over_4_5': 'Over 4.5',
     'under_0_5': 'Sem Gols (0-0)',
     'under_1_5': 'No Máximo 1 Gol',
     'under_2_5': 'No Máximo 2 Gols',
     'under_3_5': 'No Máximo 3 Gols',
+    'under_4_5': 'Under 4.5',
     'btts_yes': 'Ambos Times Marcam',
     'btts_no': 'Pelo Menos 1 Time Não Marca',
     'home_over_05': 'Casa Marca Pelo Menos 1 Gol',
+    'home_over_0.5': 'Home Over 0.5',
     'home_over_15': 'Casa Marca Pelo Menos 2 Gols',
+    'home_over_1.5': 'Home Over 1.5',
     'home_over_25': 'Casa Marca Pelo Menos 3 Gols',
+    'home_over_2.5': 'Home Over 2.5',
     'away_over_05': 'Fora Marca Pelo Menos 1 Gol',
+    'away_over_0.5': 'Away Over 0.5',
     'away_over_15': 'Fora Marca Pelo Menos 2 Gols',
+    'away_over_1.5': 'Away Over 1.5',
     'away_over_25': 'Fora Marca Pelo Menos 3 Gols',
+    'away_over_2.5': 'Away Over 2.5',
+    'away_under_0.5': 'Away Under 0.5',
+    'away_under_1.5': 'Away Under 1.5',
+    'away_under_2.5': 'Away Under 2.5',
+    'home_under_0.5': 'Home Under 0.5',
+    'home_under_1.5': 'Home Under 1.5',
+    'home_under_2.5': 'Home Under 2.5',
   };
   
   return marketLabels[market] || market.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 };
 
 export default function MultipleTicketCard({ ticket, onViewDetails }) {
+  const navigate = useNavigate();
+  
   const {
     selections = [],
     total_odd = 0,
@@ -95,39 +115,50 @@ export default function MultipleTicketCard({ ticket, onViewDetails }) {
 
       {/* Selections */}
       <div className="p-4 space-y-2">
-        {selections.map((selection, index) => (
-          <div 
-            key={index}
-            className="flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-900/50 rounded-lg"
-          >
-            <div className="flex-shrink-0 w-5 h-5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center text-[10px] font-bold">
-              {index + 1}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-xs text-gray-900 dark:text-gray-100 truncate">
-                {selection.match || `${selection.home_team?.name || selection.home_team || ''} vs ${selection.away_team?.name || selection.away_team || ''}`}
-              </p>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
-                {formatMarket(selection.market_label || selection.market || 'Mercado')}
-              </p>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="text-right">
-                <p className="font-bold text-xs text-gray-900 dark:text-gray-100">
-                  {parseFloat(selection.odd).toFixed(2)}
+        {selections.map((selection, index) => {
+          const hasMatchId = selection.match_id || selection.fixture_id;
+          const isClickable = hasMatchId;
+          
+          return (
+            <div 
+              key={index}
+              onClick={() => isClickable && navigate(`/match/${hasMatchId}`)}
+              className={`group flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-900/50 rounded-lg ${
+                isClickable ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800/70 transition-colors' : ''
+              }`}
+            >
+              <div className="flex-shrink-0 w-5 h-5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center text-[10px] font-bold">
+                {index + 1}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`font-medium text-xs text-gray-900 dark:text-gray-100 truncate ${isClickable ? 'group-hover:text-purple-600 dark:group-hover:text-purple-400' : ''}`}>
+                  {selection.match || `${selection.home_team?.name || selection.home_team || ''} vs ${selection.away_team?.name || selection.away_team || ''}`}
                 </p>
-                <p className="text-[10px] text-gray-500 dark:text-gray-400">
-                  {(parseFloat(selection.probability) * 100).toFixed(0)}%
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                  {formatMarket(selection.market_label || selection.market || 'Mercado')}
                 </p>
               </div>
-              {selection.result && (
-                <span className="text-sm">
-                  {selection.result === 'won' ? '✅' : '❌'}
-                </span>
-              )}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="text-right">
+                  <p className="font-bold text-xs text-gray-900 dark:text-gray-100">
+                    {parseFloat(selection.odd).toFixed(2)}
+                  </p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                    {(parseFloat(selection.probability) * 100).toFixed(0)}%
+                  </p>
+                </div>
+                {isClickable && (
+                  <ExternalLink className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                )}
+                {selection.result && (
+                  <span className="text-sm">
+                    {selection.result === 'won' ? '✅' : '❌'}
+                  </span>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

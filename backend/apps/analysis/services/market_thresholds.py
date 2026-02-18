@@ -36,9 +36,9 @@ MARKET_THRESHOLDS = {
     'away_win': 0.55,       # 78.9%
     
     # ===== Double Chance (79.10% categoria) =====
-    '1X': 0.52,             # 83.1%
+    '1x': 0.52,             # 83.1%
     '12': 0.55,             # 73.5%
-    'X2': 0.52,             # 80.7%
+    'x2': 0.52,             # 80.7%
     
     # ===== Over/Under Standard (75.09% categoria) =====
     'over_0.5': 0.50,       # 92.6% ⭐ EXCELENTE
@@ -86,9 +86,9 @@ MARKET_THRESHOLDS = {
     
     # ===== Margins (81.14% categoria) =====
     'home_by_1': 0.55,      # 78.0%
-    'home_by_2+': 0.55,     # 76.8%
+    'home_by_2plus': 0.55,  # 76.8%
     'away_by_1': 0.52,      # 84.7%
-    'away_by_2+': 0.50,     # 85.1% ⭐ EXCELENTE
+    'away_by_2plus': 0.50,  # 85.1% ⭐ EXCELENTE
     
     # ===== Odd/Even (51.46% categoria) =====
     'odd_goals': None,      # 51.5% ❌ DESABILITADO (aleatório)
@@ -103,10 +103,10 @@ MARKET_ACCURACY = {
     'away_under_2.5': 0.867,
     'over_4.5': 0.851,
     'under_4.5': 0.851,
-    'away_by_2+': 0.851,
+    'away_by_2plus': 0.851,
     'away_by_1': 0.847,
-    '1X': 0.831,
-    'X2': 0.807,
+    '1x': 0.831,
+    'x2': 0.807,
     'home_win': 0.766,
     'away_win': 0.789,
     'draw': 0.735,

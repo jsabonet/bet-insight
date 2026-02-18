@@ -119,32 +119,32 @@ class HybridBoostSystem:
             'draw': all_probs['draw'],
             'away_win': all_probs['away_win'],
             
-            # Double Chance
-            '1X': all_probs['1X'],
+            # Double Chance (corrigido: lowercase para corresponder ao Poisson)
+            '1x': all_probs['1x'],
             '12': all_probs['12'],
-            'X2': all_probs['X2'],
+            'x2': all_probs['x2'],
             
-            # Over/Under Standard
-            'over_0.5': all_probs['over_0_5'],
-            'under_0.5': all_probs['under_0_5'],
-            'over_1.5': all_probs['over_1_5'],
-            'under_1.5': all_probs['under_1_5'],
-            'over_2.5': all_probs['over_2_5'],
-            'under_2.5': all_probs['under_2_5'],
-            'over_3.5': all_probs['over_3_5'],
-            'under_3.5': all_probs['under_3_5'],
-            'over_4.5': all_probs['over_4_5'],
-            'under_4.5': all_probs['under_4_5'],
+            # Over/Under Standard (corrigido: usar pontos para corresponder ao Poisson)
+            'over_0.5': all_probs['over_0.5'],
+            'under_0.5': all_probs['under_0.5'],
+            'over_1.5': all_probs['over_1.5'],
+            'under_1.5': all_probs['under_1.5'],
+            'over_2.5': all_probs['over_2.5'],
+            'under_2.5': all_probs['under_2.5'],
+            'over_3.5': all_probs['over_3.5'],
+            'under_3.5': all_probs['under_3.5'],
+            'over_4.5': all_probs['over_4.5'],
+            'under_4.5': all_probs['under_4.5'],
             
-            # Asian Lines
-            'over_1.75': all_probs['over_1_75'],
-            'under_1.75': all_probs['under_1_75'],
-            'over_2.25': all_probs['over_2_25'],
-            'under_2.25': all_probs['under_2_25'],
-            'over_2.75': all_probs['over_2_75'],
-            'under_2.75': all_probs['under_2_75'],
-            'over_3.25': all_probs['over_3_25'],
-            'under_3.25': all_probs['under_3_25'],
+            # Asian Lines (corrigido: usar pontos)
+            'over_1.75': all_probs['over_1.75'],
+            'under_1.75': all_probs['under_1.75'],
+            'over_2.25': all_probs['over_2.25'],
+            'under_2.25': all_probs['under_2.25'],
+            'over_2.75': all_probs['over_2.75'],
+            'under_2.75': all_probs['under_2.75'],
+            'over_3.25': all_probs['over_3.25'],
+            'under_3.25': all_probs['under_3.25'],
             
             # BTTS
             'btts_yes': all_probs['btts_yes'],
@@ -168,13 +168,13 @@ class HybridBoostSystem:
             'away_over_2.5': all_probs['away_over_2.5'],
             'away_under_2.5': all_probs['away_under_2.5'],
             
-            # Margins
+            # Margins (corrigido: usar 'home_by_2plus' ao invés de 'home_by_2+')
             'home_by_1': all_probs['home_by_1'],
-            'home_by_2+': all_probs['home_by_2plus'],
+            'home_by_2plus': all_probs['home_by_2plus'],
             'away_by_1': all_probs['away_by_1'],
-            'away_by_2+': all_probs['away_by_2plus'],
+            'away_by_2plus': all_probs['away_by_2plus'],
             
-            # Odd/Even (desabilitados por baixa acurácia)
+            # Odd/Even
             'odd_goals': all_probs['odd_goals'],
             'even_goals': all_probs['even_goals'],
         }

@@ -117,6 +117,13 @@ export default function AdminDashboard() {
       path: '/admin/users',
       color: 'primary',
     },
+    {
+      title: 'Daily Bets Manager',
+      description: 'Gerar e validar apostas diárias manualmente',
+      icon: Calendar,
+      path: '/admin/daily-bets',
+      color: 'green',
+    },
   ];
 
   if (loading) {

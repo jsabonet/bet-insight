@@ -8,8 +8,14 @@ Este arquivo configura o Celery para execução de tasks assíncronas:
 """
 
 import os
+import logging
 from celery import Celery
 from celery.schedules import crontab
+
+# Suprimir logs de erro de conexão Redis (modo degradado)
+logging.getLogger('celery').setLevel(logging.CRITICAL)
+logging.getLogger('kombu').setLevel(logging.CRITICAL)
+logging.getLogger('redis').setLevel(logging.CRITICAL)
 
 # Set default Django settings module
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')

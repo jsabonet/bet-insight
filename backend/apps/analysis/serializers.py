@@ -8,6 +8,7 @@ class AnalysisSerializer(serializers.ModelSerializer):
     match = MatchDetailSerializer(read_only=True)
     confidence_display = serializers.SerializerMethodField()
     prediction_display = serializers.CharField(source='get_prediction_display', read_only=True)
+    analysis_data = serializers.SerializerMethodField()
     
     class Meta:
         model = Analysis
@@ -22,6 +23,23 @@ class AnalysisSerializer(serializers.ModelSerializer):
     
     def get_confidence_display(self, obj):
         return obj.get_confidence_stars()
+    
+    def get_analysis_data(self, obj):
+        """Retorna analysis_data com confidence garantido"""
+        data = obj.analysis_data or {}
+        
+        # Garantir que confidence existe
+        if 'confidence' not in data or not data['confidence']:
+            # Usar confidence do campo direto ou criar fallback
+            stars = obj.confidence if obj.confidence else 3
+            data['confidence'] = {
+                'stars': stars,
+                'level': 'Média' if stars == 3 else ('Alta' if stars >= 4 else 'Baixa'),
+                'level_pt': 'Média' if stars == 3 else ('Alta' if stars >= 4 else 'Baixa'),
+                'score': stars / 5.0
+            }
+        
+        return data
 
 
 class AnalysisRequestSerializer(serializers.Serializer):

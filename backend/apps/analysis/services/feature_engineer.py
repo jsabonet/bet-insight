@@ -478,6 +478,12 @@ class FeatureEngineer:
         
         Extrai métricas de estatísticas detalhadas
         """
+        # Verificar se os stats são válidos (podem ser None)
+        if home_stats is None:
+            home_stats = {}
+        if away_stats is None:
+            away_stats = {}
+        
         # Corners
         home_corners = home_stats.get('corners_per_game', 0)
         away_corners = away_stats.get('corners_per_game', 0)
@@ -707,6 +713,10 @@ class FeatureEngineer:
         Calcula desvio padrão de gols marcados nos últimos jogos
         Menor variância = time mais consistente
         """
+        # Verificar se team_stats é válido
+        if team_stats is None or not isinstance(team_stats, dict):
+            return 0.9  # Variância típica conservadora
+        
         # Tentar obter histórico de gols por jogo
         # Se disponível em team_stats como array
         goals_history = team_stats.get('goals_history', [])

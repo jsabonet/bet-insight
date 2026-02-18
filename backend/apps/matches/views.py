@@ -1161,22 +1161,30 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                             except Exception:
                                 match_date = timezone.now()
 
-                            league_obj, _ = League.objects.get_or_create(
-                                name=league_name,
-                                defaults={
-                                    'country': '',
-                                    'logo': '',
-                                    'is_active': True,
-                                }
-                            )
-                            home_team_obj, _ = Team.objects.get_or_create(
-                                name=home_name,
-                                defaults={'country': '', 'logo': ''}
-                            )
-                            away_team_obj, _ = Team.objects.get_or_create(
-                                name=away_name,
-                                defaults={'country': '', 'logo': ''}
-                            )
+                            league_obj = League.objects.filter(name=league_name).first()
+                            if not league_obj:
+                                league_obj = League.objects.create(
+                                    name=league_name,
+                                    country='',
+                                    logo='',
+                                    is_active=True
+                                )
+                            
+                            home_team_obj = Team.objects.filter(name=home_name).first()
+                            if not home_team_obj:
+                                home_team_obj = Team.objects.create(
+                                    name=home_name,
+                                    country='',
+                                    logo=''
+                                )
+                            
+                            away_team_obj = Team.objects.filter(name=away_name).first()
+                            if not away_team_obj:
+                                away_team_obj = Team.objects.create(
+                                    name=away_name,
+                                    country='',
+                                    logo=''
+                                )
 
                             db_match = Match.objects.create(
                                 league=league_obj,
@@ -2062,36 +2070,70 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                             
                             # Buscar ou criar times
                             logger.info(f"👥 Criando/buscando time casa (ID: {fixture['teams']['home']['id']})")
-                            home_team, created_home = Team.objects.get_or_create(
+                            home_team = Team.objects.filter(
                                 api_football_id=fixture['teams']['home']['id'],
-                                defaults={
-                                    'name': fixture['teams']['home']['name'],
-                                    'logo': fixture['teams']['home']['logo']
-                                }
-                            )
+                                name=fixture['teams']['home']['name']
+                            ).first()
+                            if not home_team:
+                                home_team = Team.objects.filter(
+                                    api_football_id=fixture['teams']['home']['id']
+                                ).first()
+                            created_home = False
+                            if not home_team:
+                                home_team = Team.objects.create(
+                                    api_football_id=fixture['teams']['home']['id'],
+                                    name=fixture['teams']['home']['name'],
+                                    logo=fixture['teams']['home']['logo']
+                                )
+                                created_home = True
                             logger.info(f"✅ Time casa: {home_team.name} ({'criado' if created_home else 'existente'})")
                             
                             logger.info(f"👥 Criando/buscando time fora (ID: {fixture['teams']['away']['id']})")
-                            away_team, created_away = Team.objects.get_or_create(
+                            away_team = Team.objects.filter(
                                 api_football_id=fixture['teams']['away']['id'],
-                                defaults={
-                                    'name': fixture['teams']['away']['name'],
-                                    'logo': fixture['teams']['away']['logo']
-                                }
-                            )
+                                name=fixture['teams']['away']['name']
+                            ).first()
+                            if not away_team:
+                                away_team = Team.objects.filter(
+                                    api_football_id=fixture['teams']['away']['id']
+                                ).first()
+                            created_away = False
+                            if not away_team:
+                                away_team = Team.objects.create(
+                                    api_football_id=fixture['teams']['away']['id'],
+                                    name=fixture['teams']['away']['name'],
+                                    logo=fixture['teams']['away']['logo']
+                                )
+                                created_away = True
                             logger.info(f"✅ Time fora: {away_team.name} ({'criado' if created_away else 'existente'})")
                             
                             # Buscar ou criar a League
                             logger.info(f"🏆 Criando/buscando liga (ID: {fixture['league']['id']})")
                             from apps.matches.models import League
-                            league, created_league = League.objects.get_or_create(
+                            
+                            # Procurar primeiro por api_football_id e name (para evitar duplicatas)
+                            league = League.objects.filter(
                                 api_football_id=fixture['league']['id'],
-                                defaults={
-                                    'name': fixture['league']['name'],
-                                    'country': fixture['league'].get('country', ''),
-                                    'logo': fixture['league'].get('logo', '')
-                                }
-                            )
+                                name=fixture['league']['name']
+                            ).first()
+                            
+                            # Se não encontrar, pegar qualquer uma com o mesmo api_football_id
+                            if not league:
+                                league = League.objects.filter(
+                                    api_football_id=fixture['league']['id']
+                                ).first()
+                            
+                            # Se ainda não existir, criar nova
+                            created_league = False
+                            if not league:
+                                league = League.objects.create(
+                                    api_football_id=fixture['league']['id'],
+                                    name=fixture['league']['name'],
+                                    country=fixture['league'].get('country', ''),
+                                    logo=fixture['league'].get('logo', '')
+                                )
+                                created_league = True
+                            
                             logger.info(f"✅ Liga: {league.name} ({'criada' if created_league else 'existente'})")
                             
                             # Criar o match no banco (ou buscar se já existe)
@@ -2391,7 +2433,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 # Onda 1: Dados estatísticos (preview)
                 'statistical_data': {
                     'consensus': analysis_result.get('analysis_data', {}).get('model_predictions', {}).get('consensus', {}) if is_external_match else analysis_result.get('analysis_data', {}).get('consensus', {}),
-                    'confidence': analysis_result.get('analysis_data', {}).get('decision', {}).get('confidence', {}) if is_external_match else analysis_result.get('analysis_data', {}).get('confidence', {}),
+                    'confidence': analysis_result.get('analysis_data', {}).get('confidence', {'stars': 3, 'level': 'Média', 'level_pt': 'Média', 'score': 0.6}),
                     'poisson': analysis_result.get('analysis_data', {}).get('model_predictions', {}).get('poisson', {}) if is_external_match else analysis_result.get('analysis_data', {}).get('poisson', {}),
                 },
                 
@@ -2428,9 +2470,9 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             unified_response2 = {
                 'decision_data': {
                     # Usar 'top_bets' - agora com estrutura completa do DecisionEngine
-                    'top_bets': analysis_result.get('analysis_data', {}).get('decision', {}).get('top_bets', []) if is_external_match else analysis_result.get('analysis_data', {}).get('top_bets', []),
-                    'recommendation': analysis_result.get('analysis_data', {}).get('decision', {}).get('recommendation', {}) if is_external_match else analysis_result.get('analysis_data', {}).get('recommendation', {}),
-                    'risk': analysis_result.get('analysis_data', {}).get('decision', {}).get('risk', 'medium') if is_external_match else analysis_result.get('analysis_data', {}).get('risk', 'medium'),
+                    'top_bets': analysis_result.get('analysis_data', {}).get('top_bets', []),
+                    'recommendation': analysis_result.get('analysis_data', {}).get('recommendation', {}),
+                    'risk': analysis_result.get('analysis_data', {}).get('risk', 'medium'),
                     'has_odds': bool(analysis_result.get('analysis_data', {}).get('market_odds')),  # Flag para frontend
                 },
                 
@@ -2440,7 +2482,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 # Metadata
                 'metadata': {
                     'enriched_data': analysis_result.get('enriched_data', {}),
-                    'fair_odds': analysis_result.get('analysis_data', {}).get('decision', {}).get('fair_odds', {}) if is_external_match else analysis_result.get('analysis_data', {}).get('fair_odds', {}),
+                    'fair_odds': analysis_result.get('analysis_data', {}).get('fair_odds', {}),
                     'market_odds': analysis_result.get('analysis_data', {}).get('market_odds', {}),
                     'generated_at': timezone.now().isoformat(),
                 },
