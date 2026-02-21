@@ -961,7 +961,8 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
                     'search_mode': results.get('search_mode', 'N/A'),
                     'total_fixtures_found': results.get('total_fixtures_found', 0),
                     'scheduled_fixtures': results.get('scheduled_fixtures', 0),
-                    'analyzed_matches': analyzed_matches
+                    'analyzed_matches': analyzed_matches,
+                    'quality_stats': results.get('quality_stats')  # ✅ FASE 2: Estatísticas de qualidade
                 }
             else:
                 data['result_summary'] = None

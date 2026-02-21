@@ -150,188 +150,214 @@ class APIFootballService:
             return None
         
         odds_result = {}
+        bookmakers = data[0]['bookmakers']
         
-        # Pegar odds da primeira bookmaker (geralmente mais completa)
-        bookmaker = data[0]['bookmakers'][0]
+        logger.info(f"   📚 {len(bookmakers)} bookmakers disponíveis")
         
-        for bet_type in bookmaker['bets']:
-            bet_name = bet_type['name']
+        # ✅ CORREÇÃO 21/02: Iterar por TODOS os bookmakers para maximizar cobertura
+        # Prioridade: primeiro bookmaker que oferece cada mercado
+        for bookmaker_idx, bookmaker in enumerate(bookmakers):
+            bookmaker_name = bookmaker.get('name', f'Bookmaker #{bookmaker_idx+1}')
             
-            # ========== 1X2 ==========
-            if bet_name == 'Match Winner':
-                for value in bet_type['values']:
-                    if value['value'] == 'Home':
-                        odds_result['home_win'] = float(value['odd'])
-                    elif value['value'] == 'Draw':
-                        odds_result['draw'] = float(value['odd'])
-                    elif value['value'] == 'Away':
-                        odds_result['away_win'] = float(value['odd'])
+            for bet_type in bookmaker['bets']:
+                bet_name = bet_type['name']
             
-            # ========== DOUBLE CHANCE ==========
-            elif bet_name == 'Double Chance':
-                for value in bet_type['values']:
-                    val = value['value']
-                    if 'Home' in val and 'Draw' in val:
-                        odds_result['1x'] = float(value['odd'])
-                    elif 'Home' in val and 'Away' in val:
-                        odds_result['12'] = float(value['odd'])
-                    elif 'Draw' in val and 'Away' in val:
-                        odds_result['x2'] = float(value['odd'])
+                # ========== 1X2 ==========
+                if bet_name == 'Match Winner':
+                    for value in bet_type['values']:
+                        if value['value'] == 'Home' and 'home_win' not in odds_result:
+                            odds_result['home_win'] = float(value['odd'])
+                        elif value['value'] == 'Draw' and 'draw' not in odds_result:
+                            odds_result['draw'] = float(value['odd'])
+                        elif value['value'] == 'Away' and 'away_win' not in odds_result:
+                            odds_result['away_win'] = float(value['odd'])
             
-            # ========== GOALS OVER/UNDER ==========
-            elif bet_name == 'Goals Over/Under':
-                for value in bet_type['values']:
-                    val_str = value['value']
-                    # Extrair todas as linhas disponíveis (manter compatibilidade com formato existente)
-                    if '0.5' in val_str:
-                        if 'Over' in val_str:
-                            odds_result['over_0.5'] = float(value['odd'])
-                        elif 'Under' in val_str:
-                            odds_result['under_0.5'] = float(value['odd'])
-                    elif '1.5' in val_str:
-                        if 'Over' in val_str:
-                            odds_result['over_1.5'] = float(value['odd'])
-                            odds_result['over_15'] = float(value['odd'])  # Compatibilidade backward
-                        elif 'Under' in val_str:
-                            odds_result['under_1.5'] = float(value['odd'])
-                            odds_result['under_15'] = float(value['odd'])  # Compatibilidade backward
-                    elif '1.75' in val_str or '1,75' in val_str:
-                        if 'Over' in val_str:
-                            odds_result['over_1.75'] = float(value['odd'])
-                        elif 'Under' in val_str:
-                            odds_result['under_1.75'] = float(value['odd'])
-                    elif '2.25' in val_str or '2,25' in val_str:
-                        if 'Over' in val_str:
-                            odds_result['over_2.25'] = float(value['odd'])
-                        elif 'Under' in val_str:
-                            odds_result['under_2.25'] = float(value['odd'])
-                    elif '2.5' in val_str:
-                        if 'Over' in val_str:
-                            odds_result['over_2.5'] = float(value['odd'])
-                            odds_result['over_25'] = float(value['odd'])  # Compatibilidade backward
-                        elif 'Under' in val_str:
-                            odds_result['under_2.5'] = float(value['odd'])
-                            odds_result['under_25'] = float(value['odd'])  # Compatibilidade backward
-                    elif '2.75' in val_str or '2,75' in val_str:
-                        if 'Over' in val_str:
-                            odds_result['over_2.75'] = float(value['odd'])
-                        elif 'Under' in val_str:
-                            odds_result['under_2.75'] = float(value['odd'])
-                    elif '3.25' in val_str or '3,25' in val_str:
-                        if 'Over' in val_str:
-                            odds_result['over_3.25'] = float(value['odd'])
-                        elif 'Under' in val_str:
-                            odds_result['under_3.25'] = float(value['odd'])
-                    elif '3.5' in val_str:
-                        if 'Over' in val_str:
-                            odds_result['over_3.5'] = float(value['odd'])
-                            odds_result['over_35'] = float(value['odd'])  # Compatibilidade backward
-                        elif 'Under' in val_str:
-                            odds_result['under_3.5'] = float(value['odd'])
-                            odds_result['under_35'] = float(value['odd'])  # Compatibilidade backward
-                    elif '4.5' in val_str:
-                        if 'Over' in val_str:
-                            odds_result['over_4.5'] = float(value['odd'])
-                        elif 'Under' in val_str:
-                            odds_result['under_4.5'] = float(value['odd'])
+                # ========== DOUBLE CHANCE ==========
+                elif bet_name == 'Double Chance':
+                    for value in bet_type['values']:
+                        val = value['value']
+                        if 'Home' in val and 'Draw' in val and '1x' not in odds_result:
+                            odds_result['1x'] = float(value['odd'])
+                        elif 'Home' in val and 'Away' in val and '12' not in odds_result:
+                            odds_result['12'] = float(value['odd'])
+                        elif 'Draw' in val and 'Away' in val and 'x2' not in odds_result:
+                            odds_result['x2'] = float(value['odd'])
             
-            # ========== BOTH TEAMS SCORE ==========
-            elif bet_name == 'Both Teams Score':
-                for value in bet_type['values']:
-                    if value['value'] == 'Yes':
-                        odds_result['btts_yes'] = float(value['odd'])
-                    elif value['value'] == 'No':
-                        odds_result['btts_no'] = float(value['odd'])
+                # ========== GOALS OVER/UNDER ==========
+                elif bet_name == 'Goals Over/Under':
+                    for value in bet_type['values']:
+                        val_str = value['value']
+                        # ✅ CORREÇÃO 21/02: Não sobrescrever odds já encontradas (prioriza primeiro bookmaker)
+                        if '0.5' in val_str:
+                            if 'Over' in val_str and 'over_0.5' not in odds_result:
+                                odds_result['over_0.5'] = float(value['odd'])
+                            elif 'Under' in val_str and 'under_0.5' not in odds_result:
+                                odds_result['under_0.5'] = float(value['odd'])
+                        elif '1.5' in val_str:
+                            if 'Over' in val_str and 'over_1.5' not in odds_result:
+                                odds_result['over_1.5'] = float(value['odd'])
+                                odds_result['over_15'] = float(value['odd'])  # Compatibilidade backward
+                            elif 'Under' in val_str and 'under_1.5' not in odds_result:
+                                odds_result['under_1.5'] = float(value['odd'])
+                                odds_result['under_15'] = float(value['odd'])  # Compatibilidade backward
+                        elif '1.75' in val_str or '1,75' in val_str:
+                            if 'Over' in val_str and 'over_1.75' not in odds_result:
+                                odds_result['over_1.75'] = float(value['odd'])
+                            elif 'Under' in val_str and 'under_1.75' not in odds_result:
+                                odds_result['under_1.75'] = float(value['odd'])
+                        elif '2.25' in val_str or '2,25' in val_str:
+                            if 'Over' in val_str and 'over_2.25' not in odds_result:
+                                odds_result['over_2.25'] = float(value['odd'])
+                            elif 'Under' in val_str and 'under_2.25' not in odds_result:
+                                odds_result['under_2.25'] = float(value['odd'])
+                        elif '2.5' in val_str:
+                            if 'Over' in val_str and 'over_2.5' not in odds_result:
+                                odds_result['over_2.5'] = float(value['odd'])
+                                odds_result['over_25'] = float(value['odd'])  # Compatibilidade backward
+                            elif 'Under' in val_str and 'under_2.5' not in odds_result:
+                                odds_result['under_2.5'] = float(value['odd'])
+                                odds_result['under_25'] = float(value['odd'])  # Compatibilidade backward
+                        elif '2.75' in val_str or '2,75' in val_str:
+                            if 'Over' in val_str and 'over_2.75' not in odds_result:
+                                odds_result['over_2.75'] = float(value['odd'])
+                            elif 'Under' in val_str and 'under_2.75' not in odds_result:
+                                odds_result['under_2.75'] = float(value['odd'])
+                        elif '3.25' in val_str or '3,25' in val_str:
+                            if 'Over' in val_str and 'over_3.25' not in odds_result:
+                                odds_result['over_3.25'] = float(value['odd'])
+                            elif 'Under' in val_str and 'under_3.25' not in odds_result:
+                                odds_result['under_3.25'] = float(value['odd'])
+                        elif '3.5' in val_str:
+                            if 'Over' in val_str and 'over_3.5' not in odds_result:
+                                odds_result['over_3.5'] = float(value['odd'])
+                                odds_result['over_35'] = float(value['odd'])  # Compatibilidade backward
+                            elif 'Under' in val_str and 'under_3.5' not in odds_result:
+                                odds_result['under_3.5'] = float(value['odd'])
+                                odds_result['under_35'] = float(value['odd'])  # Compatibilidade backward
+                        elif '4.5' in val_str:
+                            if 'Over' in val_str and 'over_4.5' not in odds_result:
+                                odds_result['over_4.5'] = float(value['odd'])
+                            elif 'Under' in val_str and 'under_4.5' not in odds_result:
+                                odds_result['under_4.5'] = float(value['odd'])
             
-            # ========== TEAM TOTALS - HOME ==========
-            elif bet_name == 'Total - Home':
-                for value in bet_type['values']:
-                    val_str = value['value']
-                    if '0.5' in val_str:
-                        if 'Over' in val_str:
-                            odds_result['home_over_0.5'] = float(value['odd'])
-                        elif 'Under' in val_str:
-                            odds_result['home_under_0.5'] = float(value['odd'])
-                    elif '1.5' in val_str:
-                        if 'Over' in val_str:
-                            odds_result['home_over_1.5'] = float(value['odd'])
-                        elif 'Under' in val_str:
-                            odds_result['home_under_1.5'] = float(value['odd'])
-                    elif '2.5' in val_str:
-                        if 'Over' in val_str:
-                            odds_result['home_over_2.5'] = float(value['odd'])
-                        elif 'Under' in val_str:
-                            odds_result['home_under_2.5'] = float(value['odd'])
+                # ========== BOTH TEAMS SCORE ==========
+                elif bet_name == 'Both Teams Score':
+                    for value in bet_type['values']:
+                        if value['value'] == 'Yes' and 'btts_yes' not in odds_result:
+                            odds_result['btts_yes'] = float(value['odd'])
+                        elif value['value'] == 'No' and 'btts_no' not in odds_result:
+                            odds_result['btts_no'] = float(value['odd'])
             
-            # ========== TEAM TOTALS - AWAY ==========
-            elif bet_name == 'Total - Away':
-                for value in bet_type['values']:
-                    val_str = value['value']
-                    if '0.5' in val_str:
-                        if 'Over' in val_str:
-                            odds_result['away_over_0.5'] = float(value['odd'])
-                        elif 'Under' in val_str:
-                            odds_result['away_under_0.5'] = float(value['odd'])
-                    elif '1.5' in val_str:
-                        if 'Over' in val_str:
-                            odds_result['away_over_1.5'] = float(value['odd'])
-                        elif 'Under' in val_str:
-                            odds_result['away_under_1.5'] = float(value['odd'])
-                    elif '2.5' in val_str:
-                        if 'Over' in val_str:
-                            odds_result['away_over_2.5'] = float(value['odd'])
-                        elif 'Under' in val_str:
-                            odds_result['away_under_2.5'] = float(value['odd'])
-            
-            # ========== CLEAN SHEET ==========
-            elif bet_name == 'Clean Sheet - Home':
-                for value in bet_type['values']:
-                    if value['value'] == 'Yes':
-                        odds_result['home_clean_sheet_yes'] = float(value['odd'])
-                    elif value['value'] == 'No':
-                        odds_result['home_clean_sheet_no'] = float(value['odd'])
-            
-            elif bet_name == 'Clean Sheet - Away':
-                for value in bet_type['values']:
-                    if value['value'] == 'Yes':
-                        odds_result['away_clean_sheet_yes'] = float(value['odd'])
-                    elif value['value'] == 'No':
-                        odds_result['away_clean_sheet_no'] = float(value['odd'])
-            
-            # ========== ODD/EVEN ==========
-            elif bet_name == 'Odd/Even':
-                for value in bet_type['values']:
-                    if value['value'] == 'Odd':
-                        odds_result['odd_goals'] = float(value['odd'])
-                    elif value['value'] == 'Even':
-                        odds_result['even_goals'] = float(value['odd'])
-            
-            elif bet_name == 'Home Odd/Even':
-                for value in bet_type['values']:
-                    if value['value'] == 'Odd':
-                        odds_result['home_odd_goals'] = float(value['odd'])
-                    elif value['value'] == 'Even':
-                        odds_result['home_even_goals'] = float(value['odd'])
-            
-            elif bet_name == 'Away Odd/Even':
-                for value in bet_type['values']:
-                    if value['value'] == 'Odd':
-                        odds_result['away_odd_goals'] = float(value['odd'])
-                    elif value['value'] == 'Even':
-                        odds_result['away_even_goals'] = float(value['odd'])
-            
-            # ========== WIN TO NIL ==========
-            elif bet_name == 'Win to Nil - Home':
-                for value in bet_type['values']:
-                    if value['value'] == 'Yes':
-                        odds_result['home_win_to_nil'] = float(value['odd'])
-            
-            elif bet_name == 'Win to Nil - Away':
-                for value in bet_type['values']:
-                    if value['value'] == 'Yes':
-                        odds_result['away_win_to_nil'] = float(value['odd'])
+                # ========== TEAM TOTALS - HOME ==========
+                elif bet_name == 'Total - Home':
+                    for value in bet_type['values']:
+                        val_str = value['value']
+                        if '0.5' in val_str:
+                            if 'Over' in val_str:
+                                odds_result['home_over_0.5'] = float(value['odd'])
+                            elif 'Under' in val_str:
+                                odds_result['home_under_0.5'] = float(value['odd'])
+                        elif '1.5' in val_str:
+                            if 'Over' in val_str:
+                                odds_result['home_over_1.5'] = float(value['odd'])
+                            elif 'Under' in val_str:
+                                odds_result['home_under_1.5'] = float(value['odd'])
+                        elif '2.5' in val_str:
+                            if 'Over' in val_str:
+                                odds_result['home_over_2.5'] = float(value['odd'])
+                            elif 'Under' in val_str:
+                                odds_result['home_under_2.5'] = float(value['odd'])
+                
+                # ========== TEAM TOTALS - AWAY ==========
+                elif bet_name == 'Total - Away':
+                    for value in bet_type['values']:
+                        val_str = value['value']
+                        if '0.5' in val_str:
+                            if 'Over' in val_str:
+                                odds_result['away_over_0.5'] = float(value['odd'])
+                            elif 'Under' in val_str:
+                                odds_result['away_under_0.5'] = float(value['odd'])
+                        elif '1.5' in val_str:
+                            if 'Over' in val_str:
+                                odds_result['away_over_1.5'] = float(value['odd'])
+                            elif 'Under' in val_str:
+                                odds_result['away_under_1.5'] = float(value['odd'])
+                        elif '2.5' in val_str:
+                            if 'Over' in val_str:
+                                odds_result['away_over_2.5'] = float(value['odd'])
+                            elif 'Under' in val_str:
+                                odds_result['away_under_2.5'] = float(value['odd'])
+                
+                # ========== CLEAN SHEET ==========
+                elif bet_name == 'Clean Sheet - Home':
+                    for value in bet_type['values']:
+                        if value['value'] == 'Yes':
+                            odds_result['home_clean_sheet_yes'] = float(value['odd'])
+                        elif value['value'] == 'No':
+                            odds_result['home_clean_sheet_no'] = float(value['odd'])
+                
+                elif bet_name == 'Clean Sheet - Away':
+                    for value in bet_type['values']:
+                        if value['value'] == 'Yes':
+                            odds_result['away_clean_sheet_yes'] = float(value['odd'])
+                        elif value['value'] == 'No':
+                            odds_result['away_clean_sheet_no'] = float(value['odd'])
+                
+                # ========== ODD/EVEN ==========
+                elif bet_name == 'Odd/Even':
+                    for value in bet_type['values']:
+                        if value['value'] == 'Odd':
+                            odds_result['odd_goals'] = float(value['odd'])
+                        elif value['value'] == 'Even':
+                            odds_result['even_goals'] = float(value['odd'])
+                
+                elif bet_name == 'Home Odd/Even':
+                    for value in bet_type['values']:
+                        if value['value'] == 'Odd':
+                            odds_result['home_odd_goals'] = float(value['odd'])
+                        elif value['value'] == 'Even':
+                            odds_result['home_even_goals'] = float(value['odd'])
+                
+                elif bet_name == 'Away Odd/Even':
+                    for value in bet_type['values']:
+                        if value['value'] == 'Odd':
+                            odds_result['away_odd_goals'] = float(value['odd'])
+                        elif value['value'] == 'Even':
+                            odds_result['away_even_goals'] = float(value['odd'])
+                
+                # ========== WIN TO NIL ==========
+                elif bet_name == 'Win to Nil - Home':
+                    for value in bet_type['values']:
+                        if value['value'] == 'Yes':
+                            odds_result['home_win_to_nil'] = float(value['odd'])
+                
+                elif bet_name == 'Win to Nil - Away':
+                    for value in bet_type['values']:
+                        if value['value'] == 'Yes':
+                            odds_result['away_win_to_nil'] = float(value['odd'])
         
-        logger.info(f"✅ Odds obtidas: {len(odds_result)} mercados")
+        # ========== ALIASES/MAPEAMENTO DE NOMENCLATURA ==========
+        # Adicionar aliases para nomes esperados pelo sistema (compatibilidade)
+        if 'btts_yes' in odds_result and 'btts' not in odds_result:
+            odds_result['btts'] = odds_result['btts_yes']  # Sistema usa 'btts' em alguns lugares
+        
+        if 'home_clean_sheet_yes' in odds_result and 'home_clean_sheet' not in odds_result:
+            odds_result['home_clean_sheet'] = odds_result['home_clean_sheet_yes']
+        
+        if 'away_clean_sheet_yes' in odds_result and 'away_clean_sheet' not in odds_result:
+            odds_result['away_clean_sheet'] = odds_result['away_clean_sheet_yes']
+        
+        # ✅ CORREÇÃO 21/02: Log detalhado de cobertura de mercados
+        logger.info(f"✅ Odds obtidas: {len(odds_result)} mercados de {len(bookmakers)} bookmakers")
+        
+        # Verificar mercados críticos (Over/Under)
+        critical_markets = ['over_2.5', 'under_2.5', 'over_1.5', 'under_1.5', 'btts_yes', 'btts_no']
+        missing_critical = [m for m in critical_markets if m not in odds_result]
+        if missing_critical:
+            logger.warning(f"   ⚠️ Mercados críticos ausentes: {', '.join(missing_critical)}")
+        else:
+            logger.info(f"   ✅ Todos os mercados críticos disponíveis (Over/Under, BTTS)")
+        
         return odds_result
     
     def fetch_team_statistics(self, team_id, league_id, season=2025):

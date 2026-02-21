@@ -291,10 +291,13 @@ class MarketSelector:
                     logger.info(f"      ❌ Rejeitado: selection score {selection_score:.3f} < {min_selection_score:.3f}")
                     continue
                 
-                # EV é informativo mas NÃO é critério de filtro para múltiplos
-                # Apenas logar warning se muito negativo
-                if ev_pct < -10.0:
-                    logger.info(f"      ⚠️ Aviso: EV {ev_pct:+.1f}% negativo (mas aprovado por probabilidade alta)")
+                # ✅ CORREÇÃO 21/02: Para múltiplas, aceitar até EV -5% (será filtrado no gerador por EV 0%)
+                # Market selector é mais permissivo; filtro final é no daily_bet_generator
+                if ev_pct < -15.0:
+                    logger.info(f"      ❌ Rejeitado: EV {ev_pct:+.1f}% muito negativo (threshold: -15%)")
+                    continue
+                elif ev_pct < 0:
+                    logger.info(f"      ⚠️ Aviso: EV {ev_pct:+.1f}% negativo (aprovado por probabilidade alta)")
             
             # Gerar reasoning
             reasoning = self._generate_reasoning(

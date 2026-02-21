@@ -1,25 +1,40 @@
-"""Check apostas no banco"""
-import os, sys, django
-sys.path.insert(0, '.')
+#!/usr/bin/env python
+"""Verificar apostas elegíveis já no banco"""
+import os
+import django
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-from apps.analysis.models import DailyBet
-from datetime import datetime, timedelta
+from apps.analysis.models import DailyBet, Analysis
+from django.utils import timezone
 
-date_30_days = datetime.now().date() - timedelta(days=30)
+today = timezone.now().date()
 
-total = DailyBet.objects.filter(date__gte=date_30_days).count()
-pending = DailyBet.objects.filter(date__gte=date_30_days, is_validated=False).count()
-validated = DailyBet.objects.filter(date__gte=date_30_days, is_validated=True).count()
+print("\n" + "="*60)
+print("VERIFICAÇÃO - Bilhetes Gerados Hoje")
+print("="*60)
 
-print(f'\n📊 APOSTAS DOS ÚLTIMOS 30 DIAS:')
-print(f'   Total: {total}')
-print(f'   Validadas: {validated}')
-print(f'   Pendentes: {pending}\n')
+# Verificar bilhetes gerados hoje
+bets = DailyBet.objects.filter(date=today).order_by('-total_odd')
 
-# Mostrar últimas 5 apostas
-if total > 0:
-    print('📋 ÚLTIMAS 5 APOSTAS:')
-    for bet in DailyBet.objects.all().order_by('-date')[:5]:
-        print(f'   {bet.date} - {bet.bet_type} - {bet.status} - {len(bet.selections)} seleções')
+print(f"\n💰 Bilhetes gerados hoje: {bets.count()}")
+
+if bets:
+    multiples = bets.filter(bet_type='multiple')
+    values = bets.filter(bet_type='value')
+    
+    print(f"   Múltiplas: {multiples.count()}")
+    print(f"   Value: {values.count()}")
+    
+    print(f"\n🎯 Top 5 Bilhetes (ordenados por odd):")
+    for i, bet in enumerate(bets[:5], 1):
+        prob_pct = bet.combined_probability * 100 if bet.combined_probability else 0
+        print(f"   {i}. {bet.bet_type.upper():8} | Odd: {bet.total_odd:6.2f} | EV: {bet.expected_value:+6.1f}% | Prob: {prob_pct:5.1f}% | Stake: {bet.suggested_stake}u")
+else:
+    print("   ⚠️ Nenhum bilhete criado ainda")
+
+print("\n" + "="*60)
+print("💡 Resumo: Se tem mercados elegíveis mas 0 bilhetes,")
+print("   significa que os filtros combinados estão muito restritivos.")
+print("="*60)
