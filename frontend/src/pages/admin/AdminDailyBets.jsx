@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Zap,
   AlertCircle,
+  StopCircle,
 } from 'lucide-react';
 import Header from '../../components/Header';
 import BottomNav from '../../components/BottomNav';
@@ -27,6 +28,7 @@ export default function AdminDailyBets() {
   const [summary, setSummary] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [validating, setValidating] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   
   // ✅ NOVO: Estados para tracking de progresso em tempo real
   const [generationProgress, setGenerationProgress] = useState(null);
@@ -174,6 +176,36 @@ export default function AdminDailyBets() {
     }
   };
 
+  const handleCancelGeneration = async () => {
+    if (!confirm('⚠️ Tem certeza que deseja interromper a geração de bilhetes?\n\nO progresso atual será perdido.')) return;
+
+    setCancelling(true);
+    try {
+      const response = await adminAPI.cancelDailyBetsGeneration();
+      alert(response.data.message || '✅ Geração cancelada com sucesso!');
+      
+      // Limpar estados de progresso
+      setShowProgress(false);
+      setGenerating(false);
+      setGenerationProgress(null);
+      
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+      
+      // Recarregar dados após 2 segundos
+      setTimeout(() => {
+        loadData();
+      }, 2000);
+    } catch (error) {
+      console.error('Erro ao cancelar geração:', error);
+      alert('❌ ' + (error.response?.data?.message || 'Erro ao cancelar geração'));
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   const getStatusBadge = (status) => {
     const badges = {
       success: { icon: CheckCircle, color: 'green', label: 'Sucesso' },
@@ -317,10 +349,30 @@ export default function AdminDailyBets() {
                   Geração em Andamento
                 </h3>
               </div>
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">
-                <Clock className="w-4 h-4" />
-                {Math.floor(generationProgress.timing.elapsed_seconds / 60)}m {generationProgress.timing.elapsed_seconds % 60}s
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300">
+                  <Clock className="w-4 h-4" />
+                  {Math.floor(generationProgress.timing.elapsed_seconds / 60)}m {generationProgress.timing.elapsed_seconds % 60}s
+                </span>
+                <button
+                  onClick={handleCancelGeneration}
+                  disabled={cancelling}
+                  className="btn-danger flex items-center gap-1 px-3 py-1 text-sm"
+                  title="Interromper geração"
+                >
+                  {cancelling ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Parando...
+                    </>
+                  ) : (
+                    <>
+                      <StopCircle className="w-4 h-4" />
+                      Interromper
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Barra de Progresso */}

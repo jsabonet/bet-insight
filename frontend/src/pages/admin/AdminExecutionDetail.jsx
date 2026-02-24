@@ -236,6 +236,99 @@ export default function AdminExecutionDetail() {
           </div>
         </div>
 
+        {/* Quality Statistics FASE 2 */}
+        {summary.quality_stats && (
+          <div className="card mb-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 border-2 border-blue-200 dark:border-blue-800">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-blue-500" />
+                Validação de Qualidade FASE 2
+              </h3>
+              <span className="px-3 py-1 bg-blue-500 text-white text-sm font-medium rounded-full">
+                Sistema de Qualidade Ativo
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Taxa de Aprovação */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-gray-600 dark:text-gray-400">Taxa de Aprovação</span>
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                </div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {summary.quality_stats.approval_rate?.toFixed(1) || 0}%
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  {summary.quality_stats.approved || 0}/{summary.quality_stats.total_checked || 0} partidas
+                </p>
+              </div>
+              
+              {/* Score Médio */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-gray-600 dark:text-gray-400">Score Médio</span>
+                  <TrendingUp className="w-4 h-4 text-blue-500" />
+                </div>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {summary.quality_stats.avg_quality_score?.toFixed(1) || 0}/100
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  Qualidade das aprovadas
+                </p>
+              </div>
+              
+              {/* Aprovadas */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-gray-600 dark:text-gray-400">Aprovadas</span>
+                  <Zap className="w-4 h-4 text-green-500" />
+                </div>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {summary.quality_stats.approved || 0}
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  Passaram na validação
+                </p>
+              </div>
+              
+              {/* Rejeitadas */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs text-gray-600 dark:text-gray-400">Rejeitadas</span>
+                  <XCircle className="w-4 h-4 text-red-500" />
+                </div>
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                  {summary.quality_stats.rejected || 0}
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                  Não atenderam critérios
+                </p>
+              </div>
+            </div>
+            
+            {/* Motivos de Rejeição */}
+            {summary.quality_stats.rejection_reasons && Object.keys(summary.quality_stats.rejection_reasons).length > 0 && (
+              <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-800">
+                <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  Motivos de Rejeição
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(summary.quality_stats.rejection_reasons).map(([reason, count]) => (
+                    <span
+                      key={reason}
+                      className="px-3 py-1 bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-xs rounded-full"
+                    >
+                      {reason}: {count}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Execution Info */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <div className="card">
@@ -418,7 +511,7 @@ export default function AdminExecutionDetail() {
           </div>
         )}
 
-        {/* Progress Log */}
+        {/* Progress Log with Quality Highlights */}
         {execution.progress_log && execution.progress_log.length > 0 && (
           <div className="card mt-6">
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
@@ -427,24 +520,58 @@ export default function AdminExecutionDetail() {
             </h3>
             
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {execution.progress_log.slice().reverse().map((log, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg text-sm"
-                >
-                  <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
-                    {log.timestamp ? new Date(log.timestamp).toLocaleTimeString('pt-BR') : ''}
-                  </span>
-                  <span className="flex-1 text-gray-700 dark:text-gray-300">
-                    {log.message}
-                  </span>
-                  {log.stage && (
-                    <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded">
-                      {log.stage}
+              {execution.progress_log.slice().reverse().map((log, idx) => {
+                // Detectar logs de qualidade FASE 2
+                const isQualityLog = log.message?.includes('FASE 2') || 
+                                     log.message?.includes('score médio') || 
+                                     log.message?.includes('Validação de qualidade concluída');
+                
+                const isQualityStart = log.message?.includes('🎯 Iniciando análise') && log.message?.includes('FASE 2');
+                const isProgress = log.message?.includes('✅') && log.message?.includes('aprovadas');
+                const isSummary = log.message?.includes('📊 Validação de qualidade concluída');
+                
+                return (
+                  <div
+                    key={idx}
+                    className={`flex items-start gap-3 p-3 rounded-lg text-sm transition-all ${
+                      isQualityLog 
+                        ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800' 
+                        : 'bg-gray-50 dark:bg-gray-800'
+                    }`}
+                  >
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-mono flex-shrink-0">
+                      {log.timestamp ? new Date(log.timestamp).toLocaleTimeString('pt-BR') : ''}
                     </span>
-                  )}
-                </div>
-              ))}
+                    
+                    {/* Ícone especial para logs de qualidade */}
+                    {isQualityLog && (
+                      <div className="flex-shrink-0">
+                        {isQualityStart && <Zap className="w-4 h-4 text-blue-500" />}
+                        {isProgress && <TrendingUp className="w-4 h-4 text-green-500" />}
+                        {isSummary && <CheckCircle className="w-4 h-4 text-green-500" />}
+                      </div>
+                    )}
+                    
+                    <span className={`flex-1 ${
+                      isQualityLog 
+                        ? 'text-gray-900 dark:text-gray-100 font-medium' 
+                        : 'text-gray-700 dark:text-gray-300'
+                    }`}>
+                      {log.message}
+                    </span>
+                    
+                    {log.stage && (
+                      <span className={`text-xs px-2 py-0.5 rounded flex-shrink-0 ${
+                        isQualityLog
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                      }`}>
+                        {log.stage}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

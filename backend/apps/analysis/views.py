@@ -435,7 +435,7 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
             "results": {...}
         }
         """
-        from apps.analysis.services.daily_bet_generator import DailyBetGenerator
+        from apps.analysis.services.daily_bet_generator import DailyBetGenerator, GenerationCancelledException
         from apps.analysis.models import TaskExecution
         import uuid
         
@@ -471,6 +471,20 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
                 'execution_id': execution.id,
                 'message': f'Daily Bets gerados! {results.get("multiple_count", 0)} multiplos, {results.get("value_count", 0)} value bets',
                 'results': result_data
+            }, status=http_status.HTTP_200_OK)
+        
+        except GenerationCancelledException as e:
+            # Geração foi cancelada pelo usuário - não é erro
+            if 'execution' in locals():
+                execution.mark_finished(status='cancelled', result_data={
+                    'message': str(e),
+                    'cancelled_by_user': request.user.username
+                })
+            
+            return Response({
+                'status': 'cancelled',
+                'message': '🛑 Geração cancelada pelo usuário',
+                'execution_id': execution.id if 'execution' in locals() else None
             }, status=http_status.HTTP_200_OK)
             
         except Exception as e:
@@ -805,6 +819,47 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
             },
             'progress_log': active_execution.progress_log if isinstance(active_execution.progress_log, list) else []
         })
+    
+    @action(detail=False, methods=['post'], url_path='admin/cancel-generation', permission_classes=[IsAdminUser])
+    def admin_cancel_generation(self, request):
+        """
+        🔐 ADMIN ONLY: Cancela geração de bilhetes em andamento
+        
+        Marca a execução ativa como 'cancelled' e o DailyBetGenerator detectará e parará.
+        
+        Response:
+        {
+            "status": "success",
+            "message": "Geração cancelada com sucesso",
+            "execution_id": 42
+        }
+        """
+        from apps.analysis.models import TaskExecution
+        
+        # Buscar geração ativa
+        active_execution = TaskExecution.objects.filter(
+            task_name='generate_daily_bets',
+            status='running'
+        ).order_by('-started_at').first()
+        
+        if not active_execution:
+            return Response({
+                'status': 'error',
+                'message': 'Nenhuma geração em andamento para cancelar'
+            }, status=http_status.HTTP_400_BAD_REQUEST)
+        
+        # Marcar como cancelada
+        active_execution.status = 'cancelled'
+        active_execution.error_message = f'Cancelado manualmente por {request.user.username}'
+        active_execution.save(update_fields=['status', 'error_message', 'last_updated'])
+        
+        logger.info(f"🛑 Geração #{active_execution.id} cancelada por {request.user.username}")
+        
+        return Response({
+            'status': 'success',
+            'message': '🛑 Geração cancelada com sucesso. O processo será interrompido.',
+            'execution_id': active_execution.id
+        }, status=http_status.HTTP_200_OK)
     
     @action(detail=False, methods=['get'], url_path='admin/execution-detail/(?P<execution_id>[^/.]+)', permission_classes=[IsAdminUser])
     def admin_execution_detail(self, request, execution_id=None):

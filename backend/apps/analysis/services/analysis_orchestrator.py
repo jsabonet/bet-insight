@@ -215,7 +215,13 @@ class HybridAnalysisOrchestrator:
             for i, bet in enumerate(top_bets, 1):
                 logger.info(f"   #{i}: {bet.get('market_display')} - Prob: {bet.get('probability', 0)*100:.1f}%, EV: {bet.get('ev_pct', 0):+.1f}%")
 
-        # 5) IA explica (opcional)
+        # 5) ENRIQUECER enriched com features e context para AI Analyzer
+        # O AI Analyzer precisa ter acesso a TODAS as features para seleção contextual precisa
+        enriched['features_summary'] = features  # Adicionar todas as features (form, injuries, motivation, etc)
+        enriched['context_analysis'] = context_analysis  # Adicionar padrões contextuais detectados
+        logger.info(f"📦 [Orchestrator] Enriched data preparado para AI com {len(features)} categorias de features")
+        
+        # 6) IA explica (opcional) - agora com features completas
         ai_result = self.ai.explain_decision(decision_result, enriched, strategy=strategy)
         
         # LOG: AI Analysis
@@ -230,7 +236,7 @@ class HybridAnalysisOrchestrator:
             logger.info(f"   Erro: {ai_result.get('error', 'N/A')}")
         logger.info(f"{'='*80}\n")
 
-        # 6) Formatar saída
+        # 7) Formatar saída
         consensus = ensemble_result.get('consensus', {})
         poisson = ensemble_result.get('poisson', {})
         fair_odds = decision_result.get('fair_odds', {})

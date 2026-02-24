@@ -299,13 +299,14 @@ class MarketSelector:
                 elif ev_pct < 0:
                     logger.info(f"      ⚠️ Aviso: EV {ev_pct:+.1f}% negativo (aprovado por probabilidade alta)")
             
-            # Gerar reasoning
+            # Gerar reasoning contextualizado
             reasoning = self._generate_reasoning(
                 normalized_market,
                 context_score,
                 probability,
                 supporting_patterns,
-                context_analysis.get('patterns', [])
+                context_analysis.get('patterns', []),
+                model_predictions  # 🆕 NOVO: passar model_predictions para razões contextualizadas
             )
             
             logger.info(f"      ✅ Aprovado!")
@@ -619,9 +620,12 @@ class MarketSelector:
                           context_score: float,
                           probability: float,
                           supporting_patterns: List[str],
-                          all_patterns: List[Dict]) -> str:
+                          all_patterns: List[Dict],
+                          model_predictions: Dict = None) -> str:
         """
-        Gera raciocínio humano para a recomendação.
+        Gera raciocínio humano CONTEXTUALIZADO para a recomendação.
+        
+        Usa dados reais do modelo (xG, consenso, poisson) para explicações específicas.
         
         Args:
             market: Nome do mercado
@@ -629,9 +633,10 @@ class MarketSelector:
             probability: Probabilidade do modelo
             supporting_patterns: Padrões que suportam este mercado
             all_patterns: Todos os padrões detectados
+            model_predictions: Predições dos modelos (consenso, xG, etc.)
             
         Returns:
-            str: Raciocínio humanizado
+            str: Raciocínio humanizado e contextualizado
         """
         # Pegar reasoning dos padrões
         pattern_reasonings = []
@@ -668,11 +673,57 @@ class MarketSelector:
             else:
                 return f"{combined} ({prob_str})"
         
-        # Fallback: depende se há contexto real ou neutro
-        # IMPORTANTE: context_score = 1.0 pode ser:
-        #   - Contexto real 100% (muito raro) 
-        #   - Contexto <75% convertido para neutral (comum)
-        # Assumimos que ≥0.99 é neutral, 0.75-0.98 é FORTE
+        # Fallback contextualizado usando dados do modelo
+        if model_predictions:
+            consensus = model_predictions.get('consensus', {})
+            poisson = model_predictions.get('poisson', {})
+            xg_data = poisson.get('expected_goals', {})
+            xg_home = xg_data.get('home', 0)
+            xg_away = xg_data.get('away', 0)
+            xg_total = xg_home + xg_away
+            
+            # Gerar razão contextualizada baseada no mercado E nos dados reais
+            if 'over' in market or 'under' in market:
+                if xg_total > 2.8:
+                    game_type = "ofensivo"
+                elif xg_total < 2.0:
+                    game_type = "defensivo"
+                else:
+                    game_type = "equilibrado"
+                return f"Jogo {game_type} (xG: {xg_total:.1f}) com {probability*100:.0f}% de probabilidade"
+            
+            elif any(x in market for x in ['home_win', 'away_win', 'draw']):
+                prob_home = consensus.get('home_win', 0)
+                prob_away = consensus.get('away_win', 0)
+                prob_draw = consensus.get('draw', 0)
+                
+                if max(prob_home, prob_away, prob_draw) > 0.45:
+                    if 'home' in market:
+                        return f"Casa favorita ({prob_home*100:.0f}%) com xG {xg_home:.1f} vs {xg_away:.1f}"
+                    elif 'away' in market:
+                        return f"Visitante favorito ({prob_away*100:.0f}%) com xG {xg_away:.1f} vs {xg_home:.1f}"
+                    else:
+                        return f"Jogo equilibrado ({prob_draw*100:.0f}%) favorece empate"
+                else:
+                    return f"Jogo equilibrado - nenhum favorito claro (xG: {xg_home:.1f} vs {xg_away:.1f})"
+            
+            elif 'btts' in market:
+                if 'yes' in market or market == 'btts':
+                    if xg_home >= 1.0 and xg_away >= 1.0:
+                        return f"Ambos times ofensivos (xG: {xg_home:.1f} e {xg_away:.1f}) com {probability*100:.0f}% de ambos marcarem"
+                    else:
+                        return f"{probability*100:.0f}% de ambos marcarem baseado em padrões estatísticos"
+                else:
+                    return f"Jogo defensivo (xG total: {xg_total:.1f}) com {probability*100:.0f}% de um não marcar"
+            
+            elif 'double_chance' in market:
+                return f"Cobertura para jogo equilibrado (xG: {xg_home:.1f} vs {xg_away:.1f}) com {probability*100:.0f}% de probabilidade"
+            
+            # Fallback genérico mas com xG
+            return f"Probabilidade {probability*100:.0f}% baseada em xG {xg_home:.1f} vs {xg_away:.1f} e análise estatística"
+        
+        # Fallback sem model_predictions (muito raro)
+        # IMPORTANTE: context_score = 1.0 pode ser contexto <75% convertido para neutral
         if 0.75 <= context_score < 0.99:
             # Contexto FORTE: mencionar no reasoning
             if context_score >= 0.90:
@@ -687,10 +738,10 @@ class MarketSelector:
             else:
                 return f"{strength} ({context_score:.0%}) com {probability:.0%} de probabilidade"
         else:
-            # Contexto NEUTRO (≥0.99 ou sem contexto): focar em probabilidade
+            # Último fallback
             if probability >= 0.75:
-                return f"Alta probabilidade modelo ({probability:.0%}) sem influência contextual"
+                return f"Alta probabilidade ({probability:.0%}) baseada em análise estatística"
             elif probability >= 0.60:
-                return f"Boa probabilidade modelo ({probability:.0%}) baseada em análise estatística"
+                return f"Boa probabilidade ({probability:.0%}) com suporte dos modelos"
             else:
                 return f"Probabilidade moderada ({probability:.0%}) baseada em modelos preditivos"

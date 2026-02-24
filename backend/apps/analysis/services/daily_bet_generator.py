@@ -24,44 +24,48 @@ from apps.matches.services.football_api import FootballAPIService
 logger = logging.getLogger(__name__)
 
 
+class GenerationCancelledException(Exception):
+    """Exceção lançada quando geração é cancelada manualmente"""
+    pass
+
+
 class DailyBetGenerator:
     """Gera bilhetes múltiplos e value bets diários automaticamente"""
     
     # Configurações de filtros
     MIN_VALUE_EV = 5.0  # EV mínimo para value bets (+5%)
     MIN_VALUE_PROBABILITY = 0.25  # Probabilidade mínima para value bets (25%)
-    MIN_MULTIPLE_EV = 0.0  # ✅ CORREÇÃO 21/02: EV mínimo para múltiplas (0% - sem desvantagem matemática)
+    MIN_MULTIPLE_EV = -100.0  # ✅ IGNORAR EV individual (pode ser negativo) - apenas odd total e prob importam
     
-    # ✅ CORRIGIDO 21/02: Thresholds individuais coerentes com MIN_ODD=1.80
-    # ✅ CORREÇÃO CRÍTICA 21/02: CONSERVADOR - Foco em taxa de acerto real
-    # Bilhetes para usuários reais devem ter chance viável de sucesso (>25%)
-    # Odd 1.10-1.50 → prob fair 67-91% | Foco em FAVORITOS FORTES
-    MIN_MULTIPLE_PROBABILITY_3X = 0.65  # 3x: cada aposta ≥65% @ 1.10-1.50
-    MIN_MULTIPLE_PROBABILITY_5X = 0.70  # 5x: cada aposta ≥70% @ 1.10-1.43
-    MIN_MULTIPLE_PROBABILITY_7X = 0.75  # 7x: cada aposta ≥75% @ 1.10-1.33
+    # ✅ CORRIGIDO 21/02: Configuração PRAGMÁTICA - Cobertura + Retorno
+    # ✅ CORREÇÃO CRÍTICA 21/02: Prob INDIVIDUAL 65-70% (mais cobertura)
+    # Bilhetes viáveis: prob individual 65%+, odd total >2.5, cobertura adequada
+    # Odd 1.30-1.54 → prob fair 65-77% | Pragmático
+    MIN_MULTIPLE_PROBABILITY_3X = 0.65  # 3x: cada aposta ≥65% @ 1.30-1.54 → odd total 2.20-3.65
+    MIN_MULTIPLE_PROBABILITY_5X = 0.68  # 5x: cada aposta ≥68% @ 1.30-1.47 → odd total 3.71-5.86
+    MIN_MULTIPLE_PROBABILITY_7X = 0.70  # 7x: cada aposta ≥70% @ 1.30-1.43 → odd total 6.28-13.00
     
     # Probabilidades combinadas mínimas (matemática real com penalidade)
-    # ✅ CORREÇÃO CRÍTICA 21/02: CONSERVADOR - Mínimo 1 acerto a cada 4-9 tentativas
-    # 3X: 65%³ × 0.95 = 26.1% → 1 acerto a cada 3.8 tentativas ✓
-    # 5X: 70%⁵ × 0.90 = 15.1% → 1 acerto a cada 6.6 tentativas ✓
-    # 7X: 75%⁷ × 0.85 = 11.4% → 1 acerto a cada 8.8 tentativas ✓
-    MIN_COMBINED_PROBABILITY_3X = 0.25  # 25% ajustado (chance real de sucesso)
-    MIN_COMBINED_PROBABILITY_5X = 0.15  # 15% ajustado (conservador)
-    MIN_COMBINED_PROBABILITY_7X = 0.11  # 11% ajustado (muito conservador)
+    # ✅ CORREÇÃO CRÍTICA 21/02: Prob INDIVIDUAL 65-70% → prob combinada 25-35% (PRAGMÁTICO)
+    # 3X: 65%³ × 0.95 = 26.0% → 1 acerto a cada 3.8 tentativas @ odd 2.20-3.65 ✓✓
+    # 5X: 68%⁵ × 0.90 = 14.0% → 1 acerto a cada 7.1 tentativas @ odd 3.71-5.86 ✓
+    # 7X: 70%⁷ × 0.85 = 8.2% → 1 acerto a cada 12.2 tentativas @ odd 6.28-13.00 ✓
+    MIN_COMBINED_PROBABILITY_3X = 0.25  # 25% ajustado (pragmático: cobertura + odd >2.5)
+    MIN_COMBINED_PROBABILITY_5X = 0.13  # 13% ajustado (conservador)
+    MIN_COMBINED_PROBABILITY_7X = 0.08  # 8% ajustado (muito conservador)
     
-    # ✅ CORREÇÃO CRÍTICA 21/02: Odds para favoritos fortes (conservador)
-    # Prob 65-75% → odd fair 1.33-1.54 | Mercado oferece ~1.10-1.50
-    # FOCO EM FAVORITOS: odds baixas mas com alta taxa de acerto
-    MIN_ODD_MULTIPLE = 1.10  # Odd mínima (aceita favoritos muito fortes)
-    MAX_ODD_MULTIPLE = 1.80  # Odd máxima (rejeita apostas arriscadas)
+    # ✅ CORREÇÃO CRÍTICA 21/02: Odds para prob 70% + odd total >2.5 (com cobertura)
+    # Objetivo: 3-5 apostas (odds 1.30-1.50) → odd combinada 2.20-7.59
+    # Probabilidade: 67-77% cada → prob combinada 27-45% (equilibrado)
+    MIN_ODD_MULTIPLE = 1.30  # Odd mínima individual (prob ~77%)
+    MAX_ODD_MULTIPLE = 1.50  # Odd máxima individual (prob ~67%) - garante prob alta
     
-    # ✅ CORREÇÃO CRÍTICA 21/02: Limites de odd total conservadores
-    # 3X @ 1.10-1.50: odd total 1.33-3.38
-    # 5X @ 1.10-1.50: odd total 1.61-7.59
-    # 7X @ 1.10-1.50: odd total 1.95-17.09
-    MIN_TICKET_ODD = 1.80   # Mínimo para compensar stake
-    MAX_TICKET_ODD = 20.0   # Máximo realista (evita odds absurdas)
-    MAX_TICKET_ODD = 100.0  # Odd máxima total (permite 7X com odds 2.5+ cada)
+    # ✅ CORREÇÃO CRÍTICA 21/02: Limites de odd total equilibrados
+    # 3X @ 1.30-1.50: odd total 2.20-3.38
+    # 5X @ 1.30-1.50: odd total 3.71-7.59
+    # 7X @ 1.30-1.50: odd total 6.28-17.09
+    MIN_TICKET_ODD = 2.50   # Mínimo para odd combinada atrativa
+    MAX_TICKET_ODD = 25.0   # Máximo realista (evita odds absurdas)
     
     # Filtros de qualidade e contexto
     MIN_CONFIDENCE_STARS = 4  # Confiança mínima (4-5 estrelas)
@@ -177,6 +181,15 @@ class DailyBetGenerator:
         self.api_calls = 0
         self.cache_hits = 0
         self.execution = None  # TaskExecution instance para tracking de progresso
+    
+    def _check_cancellation(self):
+        """Verifica se a geração foi cancelada e lança exceção se sim"""
+        if self.execution:
+            # Recarregar do banco de dados para pegar status atualizado
+            self.execution.refresh_from_db()
+            if self.execution.status == 'cancelled':
+                logger.warning(f"🛑 Geração cancelada pelo usuário")
+                raise GenerationCancelledException("Geração cancelada pelo usuário")
     
     def _calculate_data_quality_score(self, fixture):
         """
@@ -821,6 +834,10 @@ class DailyBetGenerator:
         
         for idx, fixture in enumerate(fixtures_to_analyze, 1):
             try:
+                # ✅ Verificar se foi cancelada a cada 5 partidas
+                if idx % 5 == 0:
+                    self._check_cancellation()
+                
                 fixture_data = fixture.get('fixture', {})
                 teams = fixture.get('teams', {})
                 league = fixture.get('league', {})
@@ -1107,11 +1124,11 @@ class DailyBetGenerator:
             away_team = analysis['away_team']
             league_name = analysis['league_name']
             match_date = analysis['match_date']
-            result = analysis['multiple_result']
+            result = analysis['value_result']
             
-            # ✅ CORREÇÃO 21/02: Pular se análise MULTIPLE falhou
+            # ✅ CORREÇÃO 21/02: Pular se análise VALUE falhou
             if result is None:
-                logger.debug(f"   ⏩ Pulando {home_team} vs {away_team}: análise MULTIPLE falhou")
+                logger.debug(f"   ⏩ Pulando {home_team} vs {away_team}: análise VALUE falhou")
                 continue
             
             analysis_data = result.get('analysis_data', {})
@@ -1135,8 +1152,8 @@ class DailyBetGenerator:
                 
                 # Filtrar por critérios de bilhete:
                 # 1. Probabilidade dinâmica baseada no tamanho (será verificada depois)
-                # 2. Odd na faixa conservadora (1.10 - 1.50)
-                # 3. EV não muito negativo (>= -15%)
+                # 2. Odd na faixa conservadora (1.30 - 1.50)
+                # 3. EV >= 5% (usando VALUE_RESULT com MIN_VALUE_EV)
                 # 4. Confidence ≥ 4 estrelas
                 # 5. Risco baixo/médio
                 # 6. Empate < 35%
@@ -1164,25 +1181,42 @@ class DailyBetGenerator:
                     logger.debug(f"   ⏩ Pulando {home_team} vs {away_team}: risco alto ({risk})")
                     continue
                 
+                # 🆕 CORREÇÃO CRÍTICA 21/02: Selecionar a MELHOR aposta contextual, não a primeira
+                # top_bets já vem ordenado por contextual_fit (DecisionEngine)
+                # Filtrar apostas elegíveis e escolher a com MAIOR contextual_fit
+                eligible_bets = []
                 for bet in top_bets:
                     prob = bet.get('probability', 0)
                     odd = bet.get('market_odd', 0)
                     ev_pct = bet.get('ev_pct', 0)
                     
-                    # ✅ CORREÇÃO CRÍTICA 21/02: EV individual deve ser coerente com MIN_MULTIPLE_EV
-                    # Se exigimos EV combinado ≥ 0%, é impossível com apostas individuais EV < 0%
-                    # EV combinado ≈ soma dos EVs individuais (aproximação)
-                    # Exemplo: 3x apostas com EV -5% cada → EV combinado ≈ -15% ❌
-                    # Portanto: EV individual deve ser ≥ MIN_MULTIPLE_EV (0%)
-                    if (prob >= 0.40 and  # Mínimo razoável (odd fair 2.50)
-                        odd >= self.MIN_ODD_MULTIPLE and  # Odd mínima 1.80
-                        ev_pct >= self.MIN_MULTIPLE_EV):  # EV individual ≥ 0% (coerente com combinado)
-                        best_bet = bet
-                        break
+                    # ✅ CORREÇÃO CRÍTICA 21/02: Usar VALUE_RESULT (EV >= 5%) com filtros de múltiplos
+                    # - VALUE_RESULT já filtra EV >= 5% (MIN_VALUE_EV)
+                    # - Prob ≥65% → alta confiança para bilhetes múltiplos
+                    # - Odd 1.30-1.50 → 3-5 apostas = odd total 2.20-7.59
+                    # RESULTADO: Melhor dos dois mundos (EV positivo + prob alta)
+                    if (prob >= 0.65 and  # Mínimo 65% (pragmático)
+                        odd >= self.MIN_ODD_MULTIPLE and  # Odd mínima 1.30
+                        odd <= self.MAX_ODD_MULTIPLE):  # Odd máxima 1.50
+                        eligible_bets.append(bet)
                 
-                if not best_bet:
+                if not eligible_bets:
                     logger.debug(f"   ⏩ Pulando {home_team} vs {away_team}: nenhuma aposta atende critérios de bilhete")
                     continue
+                
+                # 🆕 NOVO 21/02: Selecionar aposta com MELHOR adequação contextual
+                # Ordenar por: 1) contextual_fit (se disponível), 2) score, 3) probabilidade
+                best_bet = max(eligible_bets, key=lambda b: (
+                    b.get('contextual_fit', 1.0),  # 1º: adequação contextual
+                    b.get('score', 0),              # 2º: score geral
+                    b.get('probability', 0)         # 3º: probabilidade
+                ))
+                
+                contextual_fit = best_bet.get('contextual_fit', 1.0)
+                if contextual_fit > 1.1:
+                    logger.info(f"   🎯 Selecionado por CONTEXTO: {best_bet['market']} (fit={contextual_fit:.2f})")
+                elif len(eligible_bets) > 1:
+                    logger.info(f"   🎯 Melhor entre {len(eligible_bets)} elegíveis: {best_bet['market']}")
 
                 logger.info(f"   🎯 Seleção Bilhete: {best_bet['market']} ({best_bet['pick']}) - {best_bet['probability']*100:.0f}% @ {best_bet['market_odd']:.2f}")
                 if 'post_reason' in best_bet:
@@ -1221,7 +1255,7 @@ class DailyBetGenerator:
         coverage_pct = len(all_bets) / len(analyses) * 100 if analyses else 0
         if coverage_pct < 30:
             logger.warning(f"   ⚠️  COBERTURA BAIXA: {len(all_bets)}/{len(analyses)} jogos geraram pick elegível ({coverage_pct:.1f}%)")
-            logger.warning(f"       Filtros de retorno (prob ≥40%, odd ≥{self.MIN_ODD_MULTIPLE}, EV ≥{self.MIN_MULTIPLE_EV}%) descartam picks arriscados")
+            logger.warning(f"       Filtros de retorno (prob ≥65%, odd ≥{self.MIN_ODD_MULTIPLE}, EV ≥{self.MIN_MULTIPLE_EV}%) descartam picks arriscados")
             logger.warning(f"       Mercados sistematicamente rejeitados: Away Win, Over 2.5, BTTS Yes, Dupla Chance")
         
         # ✅ CORRIGIDO 17/02/2026: Ordenar por SCORE (contexto) ao invés de apenas probabilidade
@@ -1318,9 +1352,12 @@ class DailyBetGenerator:
             fair_odd = 1.0 / combined_prob_adjusted
             ev_pct = ((combined_prob_adjusted * total_odd) - 1.0) * 100
 
-            # ✅ CORREÇÃO 21/02: EV mínimo >= 0% para múltiplas (sem desvantagem matemática)
+            # ✅ CORREÇÃO 21/02: EV individual pode ser negativo - focamos em prob alta + odd total >2.5
+            # MIN_MULTIPLE_EV = -100 (efetivamente ignora EV individual)
+            # Lógica: Se cada aposta tem 70-75% prob, odd total >2.5 garante valor a longo prazo
+            # mesmo com EV individual negativo (margem das casas)
             if ev_pct < self.MIN_MULTIPLE_EV:
-                logger.info(f"   ⏩ Bilhete {size}x: EV {ev_pct:+.1f}% < {self.MIN_MULTIPLE_EV:+.0f}% (threshold de múltiplas)")
+                logger.info(f"   ⏩ Bilhete {size}x: EV {ev_pct:+.1f}% < {self.MIN_MULTIPLE_EV:+.0f}% (extremamente baixo)")
                 continue
             
             # Criar bilhete com tratamento de erro
@@ -1411,6 +1448,9 @@ class DailyBetGenerator:
                     # ✅ CORREÇÃO 21/02: Fallback se match_date for None
                     match_date_str = date.isoformat() if date else 'N/A'
                 
+                # 🆕 NOVO 21/02: Incluir contextual_fit para ordenação secundária
+                contextual_fit = bet.get('contextual_fit', 1.0)
+                
                 all_value_bets.append({
                     'match_id': match.id,
                     'match': f"{match.home_team.name} vs {match.away_team.name}",
@@ -1423,6 +1463,7 @@ class DailyBetGenerator:
                     'fair_odd': bet.get('fair_odd'),
                     'ev_pct': ev_pct,
                     'score': bet['score'],
+                    'contextual_fit': contextual_fit,  # 🆕 NOVO: adequação contextual
                     'result': None
                 })
         
@@ -1439,8 +1480,15 @@ class DailyBetGenerator:
             for group, count in sorted(value_market_dist.items(), key=lambda x: x[1], reverse=True):
                 logger.info(f"      {group}: {count} apostas ({count/len(all_value_bets)*100:.1f}%)")
         
-        # Ordenar por EV (maior value primeiro)
-        all_value_bets.sort(key=lambda x: x['ev_pct'], reverse=True)
+        # 🆕 CORREÇÃO CRÍTICA 21/02: Ordenar por EV (primário) + contextual_fit (secundário)
+        # Quando duas apostas têm EV similar, preferir a com melhor adequação contextual
+        all_value_bets.sort(key=lambda x: (
+            x['ev_pct'],              # 1º: Maior EV (objetivo do value betting)
+            x.get('contextual_fit', 1.0),  # 2º: Melhor fit contextual (desempate)
+            x['probability']          # 3º: Maior probabilidade (segurança)
+        ), reverse=True)
+        
+        logger.info(f"   🎯 Ordenação: EV (primário) → contextual_fit (secundário) → probabilidade")
         
         # Pegar top MAX_VALUE_BETS
         top_values = all_value_bets[:self.MAX_VALUE_BETS]

@@ -93,6 +93,7 @@ export const adminAPI = {
   // 🎯 Daily Bets Admin Actions
   generateDailyBets: () => api.post('/daily-bets/admin/generate-now/'),
   validateDailyBets: () => api.post('/daily-bets/admin/validate-now/'),
+  cancelDailyBetsGeneration: () => api.post('/daily-bets/admin/cancel-generation/'),
   getExecutionStatus: (limit = 20) => api.get('/daily-bets/admin/execution-status/', { params: { limit } }),
   getExecutionDetail: (id) => api.get(`/daily-bets/admin/execution-detail/${id}/`),
   getGeneratorStats: () => api.get('/daily-bets/admin/generator-stats/'),

@@ -10,6 +10,9 @@ from apps.analysis.config import DecisionThresholds, ContextPolicy
 
 logger = logging.getLogger(__name__)
 
+# 🎯 FILTRO: Odds mínimas aceitáveis para top_bets
+MIN_ODD_THRESHOLD = 1.10  # Odds abaixo disso não têm value real (ex: 1.01, 1.05)
+
 class DecisionEngine:
     """
     Motor de decisão que:
@@ -566,7 +569,7 @@ class DecisionEngine:
         btts_odd_raw = market_odds.get('btts_yes', 0)
         btts_odd = btts_odd_raw.get('value', 0) if isinstance(btts_odd_raw, dict) else (float(btts_odd_raw) if btts_odd_raw else 0)
         
-        if btts_prob >= 0.65 and btts_odd > 0:
+        if btts_prob >= 0.65 and btts_odd >= MIN_ODD_THRESHOLD:
             # BTTS mostrou 61.67% accuracy - priorizar quando confiança alta
             return {
                 'market': 'btts',
@@ -703,6 +706,7 @@ class DecisionEngine:
             ]
         """
         logger.info(f"\n📊 SELECT_TOP_BETS - Estratégia: {strategy.upper()}")
+        logger.info(f"   🎯 Filtro de Odds: Mínimo {MIN_ODD_THRESHOLD} (odds abaixo são descartadas)")
         if strategy == 'multiple':
             logger.info(f"   🎯 Modo: BILHETES - prob² domina, filtro progressivo (70%: -15%, 60%: -10%, 50%: -5%)")
         else:
@@ -757,8 +761,8 @@ class DecisionEngine:
             
             logger.info(f"🔍 Candidato {market}: prob={prob:.3f}, market_odd={market_odd}, fair_odd={fair_odd:.2f}")
             
-            # ✅ Verificar se market_odd não é None antes de comparar
-            if prob >= 0.15 and market_odd is not None and market_odd > 0 and fair_odd > 0:  # Reduzido de 30% para 15%
+            # ✅ Verificar odds mínimas (1.10) para evitar apostas sem value
+            if prob >= 0.15 and market_odd is not None and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:  # Reduzido de 30% para 15%
                 ev_pct = ((market_odd / fair_odd) - 1) * 100
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 
@@ -787,8 +791,8 @@ class DecisionEngine:
             
             logger.info(f"DEBUG Over/Under 2.5: market={market}, prob={prob:.2f}, market_odd={market_odd}, fair_odd={fair_odd}")
             
-            # ✅ Verificar se market_odd não é None antes de comparar
-            if prob >= 0.30 and market_odd is not None and market_odd > 0 and fair_odd > 0:
+            # ✅ Verificar odds mínimas (1.10) para evitar apostas sem value
+            if prob >= 0.30 and market_odd is not None and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:
                 ev_pct = ((market_odd / fair_odd) - 1) * 100
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 
@@ -811,7 +815,7 @@ class DecisionEngine:
             prob = poisson_probs.get(prob_key, 0)
             market_odd = _get_odd(market_odds, alt_keys)
             fair_odd = fair_odds.get(market, 0)
-            if prob >= 0.85 and market_odd is not None and market_odd > 0 and fair_odd > 0:  # Muito provável
+            if prob >= 0.85 and market_odd is not None and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:  # Muito provável
                 ev_pct = ((market_odd / fair_odd) - 1) * 100
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 candidates.append({
@@ -831,7 +835,7 @@ class DecisionEngine:
             prob = poisson_probs.get(prob_key, 0)
             market_odd = _get_odd(market_odds, alt_keys)
             fair_odd = fair_odds.get(market, 0)
-            if prob >= 0.15 and market_odd is not None and market_odd > 0 and fair_odd > 0:  # Threshold baixo
+            if prob >= 0.15 and market_odd is not None and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:  # Threshold baixo
                 ev_pct = ((market_odd / fair_odd) - 1) * 100
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 candidates.append({
@@ -856,7 +860,7 @@ class DecisionEngine:
             prob = poisson_probs.get(prob_key, 0)
             market_odd = _get_odd(market_odds, alt_keys)
             fair_odd = fair_odds.get(market, 0)
-            if prob >= 0.25 and market_odd is not None and market_odd > 0 and fair_odd > 0:
+            if prob >= 0.25 and market_odd is not None and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:
                 ev_pct = ((market_odd / fair_odd) - 1) * 100
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 candidates.append({
@@ -876,7 +880,7 @@ class DecisionEngine:
         btts_odd = _get_odd(market_odds, ['btts_yes', 'btts'])  # ✅ Usar helper com fallback
         btts_fair = fair_odds.get('btts', 0)
         
-        if btts_prob >= 0.30 and btts_odd > 0 and btts_fair > 0:
+        if btts_prob >= 0.30 and btts_odd >= MIN_ODD_THRESHOLD and btts_fair > 0:
             ev_pct = ((btts_odd / btts_fair) - 1) * 100
             score = self._calculate_bet_score(btts_prob, ev_pct, confidence, risk, strategy)
             
@@ -901,7 +905,7 @@ class DecisionEngine:
         if btts_no_odd == 0:  # Fallback
             btts_no_odd = btts_no_fair
         
-        if btts_no_prob >= 0.30 and btts_no_odd > 0 and btts_no_fair > 0:
+        if btts_no_prob >= 0.30 and btts_no_odd >= MIN_ODD_THRESHOLD and btts_no_fair > 0:
             ev_pct = ((btts_no_odd / btts_no_fair) - 1) * 100
             score = self._calculate_bet_score(btts_no_prob, ev_pct, confidence, risk, strategy)
             candidates.append({
@@ -927,7 +931,7 @@ class DecisionEngine:
             if market_odd == 0:
                 market_odd = fair_odd
             
-            if prob >= 0.25 and fair_odd > 0:  # Clean sheets com 25%+
+            if prob >= 0.25 and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:  # Clean sheets com 25%+
                 ev_pct = ((market_odd / fair_odd) - 1) * 100 if market_odd > 0 else 0
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 candidates.append({
@@ -955,7 +959,7 @@ class DecisionEngine:
             if market_odd == 0:
                 market_odd = fair_odd
             
-            if prob >= 0.15 and fair_odd > 0:  # Margens com 15%+
+            if prob >= 0.15 and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:  # Margens com 15%+
                 ev_pct = ((market_odd / fair_odd) - 1) * 100 if market_odd > 0 else 0
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 candidates.append({
@@ -981,7 +985,7 @@ class DecisionEngine:
             if market_odd == 0:
                 market_odd = fair_odd
             
-            if prob >= 0.40 and fair_odd > 0:  # Só incluir se razoavelmente provável
+            if prob >= 0.40 and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:  # Só incluir se razoavelmente provável
                 ev_pct = ((market_odd / fair_odd) - 1) * 100 if market_odd > 0 else 0
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 candidates.append({
@@ -1004,7 +1008,7 @@ class DecisionEngine:
             fair_odd = fair_odds.get(market, 0)
             
             # Threshold 25% para VALUE, 35% seria rejeitado por MULTIPLE de qualquer forma
-            if prob >= 0.25 and market_odd is not None and market_odd > 0 and fair_odd > 0:
+            if prob >= 0.25 and market_odd is not None and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:
                 ev_pct = ((market_odd / fair_odd) - 1) * 100
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 
@@ -1029,7 +1033,7 @@ class DecisionEngine:
             fair_odd = fair_odds.get(market, 0)
             
             # Threshold 20% para VALUE (jogos ofensivos), MULTIPLE vai filtrar naturalmente
-            if prob >= 0.20 and market_odd is not None and market_odd > 0 and fair_odd > 0:
+            if prob >= 0.20 and market_odd is not None and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:
                 ev_pct = ((market_odd / fair_odd) - 1) * 100
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 
@@ -1107,7 +1111,7 @@ class DecisionEngine:
             
             # Threshold ajustado: Over 0.5 >= 50%, Over 1.5/2.5 >= 30%
             min_prob = 0.50 if '0.5' in prob_key else 0.30
-            if prob >= min_prob and fair_odd > 0:
+            if prob >= min_prob and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:
                 ev_pct = ((market_odd / fair_odd) - 1) * 100 if market_odd > 0 else 0
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 
@@ -1438,12 +1442,15 @@ class DecisionEngine:
     def _select_contextual_bets(self, context_analysis, model_predictions, market_odds, 
                                confidence, risk, strategy):
         """
-        Seleciona top 3 apostas usando análise contextual.
+        Seleciona top 3 apostas usando análise contextual INTELIGENTE.
         
-        NOVO: Usa MarketSelector para escolher mercados que o contexto favorece.
+        NOVO 21/02/2026: Sistema de Contextual Fit
+        - Avalia quão bem cada aposta se adequa ao contexto ESPECÍFICO da partida
+        - Não apenas score matemático (prob × EV), mas ADEQUAÇÃO CONTEXTUAL
+        - Considera: forma, h2h, forças, motivação, clima, home advantage
         
         Args:
-            context_analysis: Padrões contextuais detectados
+            context_analysis: Padrões contextuais + features da partida
             model_predictions: Probabilidades dos modelos
             market_odds: Odds do mercado
             confidence: Confiança da análise
@@ -1451,18 +1458,48 @@ class DecisionEngine:
             strategy: 'value' ou 'multiple'
             
         Returns:
-            list: Top 3 apostas contextuais
+            list: Top 3 apostas com melhor adequação contextual
         """
-        logger.info("\n🎯 Seleção Contextual de Mercados")
+        logger.info("\n🎯 Seleção Contextual INTELIGENTE de Mercados")
         logger.info(f"   Padrões detectados: {len(context_analysis.get('patterns', []))}")
+        logger.info(f"   Estratégia: {strategy.upper()}")
         
-        # Usar MarketSelector para escolher mercados
+        # Usar MarketSelector para obter candidatos iniciais
         selected_markets = self.market_selector.select_top_markets(
             context_analysis,
             model_predictions,
             market_odds,
             strategy
         )
+        
+        # 🆕 NOVO: Calcular contextual_fit para cada mercado
+        # Isso avalia quão bem cada aposta se adequa ao contexto ESPECÍFICO
+        logger.info("\n🔍 Calculando Contextual Fit para cada aposta...")
+        for market_data in selected_markets:
+            contextual_fit = self._calculate_contextual_fit(
+                market_data['market'],
+                context_analysis,
+                model_predictions,
+                strategy
+            )
+            market_data['contextual_fit'] = contextual_fit
+            
+            # Aplicar boost contextual ao selection_score
+            original_score = market_data.get('selection_score', market_data.get('final_score', 0))
+            boosted_score = original_score * contextual_fit
+            market_data['selection_score'] = boosted_score
+            
+            logger.info(f"   {market_data['market_display']}:")
+            logger.info(f"      Score original: {original_score:.3f}")
+            logger.info(f"      Contextual fit: {contextual_fit:.3f}")
+            logger.info(f"      Score final: {boosted_score:.3f}")
+        
+        # Reordenar por score boosted (considerando contextual fit)
+        selected_markets.sort(key=lambda x: x.get('selection_score', 0), reverse=True)
+        
+        logger.info("\n✅ Top 3 após ajuste contextual:")
+        for i, m in enumerate(selected_markets[:3], 1):
+            logger.info(f"   #{i}: {m['market_display']} - Score: {m['selection_score']:.3f} (fit: {m['contextual_fit']:.3f})")
         
         # Formatar para output padrão do DecisionEngine
         top_bets = []
@@ -1505,7 +1542,13 @@ class DecisionEngine:
                 'score': ranking_score,  # Compatibilidade com código existente
                 'reason': market_data['reasoning'],  # Reasoning contextual do MarketSelector
                 'context_score': market_data.get('context_score', 0),
-                'context_type': market_data.get('context_type', 'NEUTRO')  # Para frontend exibir corretamente
+                'context_type': market_data.get('context_type', 'NEUTRO'),  # Para frontend exibir corretamente
+                'contextual_fit': market_data.get('contextual_fit', 1.0),  # 🆕 NOVO: adequação contextual
+                'contextual_reasoning': self._explain_contextual_fit(
+                    market_data['market'],
+                    market_data.get('contextual_fit', 1.0),
+                    context_analysis
+                )
             }
             
             top_bets.append(bet)
@@ -1513,6 +1556,209 @@ class DecisionEngine:
         logger.info(f"\n✅ {len(top_bets)} apostas contextuais selecionadas")
         
         return top_bets
+    
+    def _calculate_contextual_fit(self, market, context_analysis, model_predictions, strategy):
+        """
+        Calcula quão bem uma aposta se adequa ao contexto ESPECÍFICO da partida.
+        
+        NOVO 21/02/2026: Sistema de Contextual Fit Inteligente
+        
+        Não é apenas "tem contexto?", mas "QUÃO BEM esta aposta se adequa?"
+        
+        Considera múltiplos fatores contextuais:
+        - Forma recente (momentum)
+        - H2H (histórico direto)
+        - Forças ofensivas/defensivas
+        - Motivação (standings)
+        - Home advantage
+        - Padrões específicos detectados
+        
+        Args:
+            market: Nome do mercado (e.g., 'under_2.5', 'home_win')
+            context_analysis: Análise contextual completa
+            model_predictions: Predições dos modelos
+            strategy: 'value' ou 'multiple'
+            
+        Returns:
+            float: Contextual fit score (0.5 a 1.5)
+                   1.0 = neutro (sem boost/penalização)
+                   > 1.0 = contexto favorece esta aposta
+                   < 1.0 = contexto não favorece esta aposta
+        """
+        # Padrões detectados
+        patterns = context_analysis.get('patterns', [])
+        pattern_names = {p['name']: p.get('confidence', 0) for p in patterns}
+        
+        # Consensus do modelo
+        consensus = model_predictions.get('consensus', {})
+        poisson = model_predictions.get('poisson', {}).get('probabilities', {})
+        
+        # Score base = 1.0 (neutro)
+        fit_score = 1.0
+        fit_reasons = []
+        
+        # ============================================================================
+        # REGRA 1: PADRÕES CONTEXTUAIS ESPECÍFICOS
+        # ============================================================================
+        
+        # Jogo defensivo: favorece Under, BTTS No, Clean Sheets
+        if 'defensive_match' in pattern_names:
+            confidence = pattern_names['defensive_match']
+            if any(x in market for x in ['under', 'btts_no', 'clean_sheet']):
+                boost = 1.0 + (confidence * 0.3)  # até +30%
+                fit_score *= boost
+                fit_reasons.append(f"Jogo defensivo ({confidence:.0%}) favorece {market}")
+            elif any(x in market for x in ['over', 'btts_yes']):
+                penalty = 1.0 - (confidence * 0.2)  # até -20%
+                fit_score *= penalty
+                fit_reasons.append(f"Jogo defensivo penaliza {market}")
+        
+        # Jogo ofensivo: favorece Over, BTTS Yes
+        if 'high_scoring' in pattern_names:
+            confidence = pattern_names['high_scoring']
+            if any(x in market for x in ['over', 'btts_yes']):
+                boost = 1.0 + (confidence * 0.3)
+                fit_score *= boost
+                fit_reasons.append(f"Jogo ofensivo ({confidence:.0%}) favorece {market}")
+            elif any(x in market for x in ['under', 'btts_no']):
+                penalty = 1.0 - (confidence * 0.2)
+                fit_score *= penalty
+                fit_reasons.append(f"Jogo ofensivo penaliza {market}")
+        
+        # Vantagem de casa forte: favorece Home Win, 1X, DNB Home
+        if 'home_advantage' in pattern_names:
+            confidence = pattern_names['home_advantage']
+            if any(x in market for x in ['home_win', 'double_chance_1x', 'dnb_home']):
+                boost = 1.0 + (confidence * 0.25)
+                fit_score *= boost
+                fit_reasons.append(f"Vantagem casa ({confidence:.0%}) favorece {market}")
+            elif 'away_win' in market:
+                penalty = 1.0 - (confidence * 0.15)
+                fit_score *= penalty
+        
+        # Visitante forte: favorece Away Win, X2, DNB Away
+        if 'away_strength' in pattern_names:
+            confidence = pattern_names['away_strength']
+            if any(x in market for x in ['away_win', 'double_chance_x2', 'dnb_away']):
+                boost = 1.0 + (confidence * 0.25)
+                fit_score *= boost
+                fit_reasons.append(f"Visitante forte ({confidence:.0%}) favorece {market}")
+            elif 'home_win' in market:
+                penalty = 1.0 - (confidence * 0.15)
+                fit_score *= penalty
+        
+        # ============================================================================
+        # REGRA 2: ALINHAMENTO COM CONSENSUS DO MODELO
+        # ============================================================================
+        
+        # Se a probabilidade do modelo para este mercado é MUITO ALTA,
+        # isso indica forte alinhamento contextual
+        market_prob = poisson.get(market, consensus.get(market, 0))
+        
+        if market_prob >= 0.70:  # Probabilidade muito alta
+            fit_score *= 1.2  # +20% boost
+            fit_reasons.append(f"Modelo muito confiante ({market_prob:.0%})")
+        elif market_prob >= 0.60:  # Probabilidade alta
+            fit_score *= 1.1  # +10% boost
+            fit_reasons.append(f"Modelo confiante ({market_prob:.0%})")
+        elif market_prob < 0.35:  # Probabilidade baixa
+            fit_score *= 0.85  # -15% penalização
+            fit_reasons.append(f"Modelo pouco confiante ({market_prob:.0%})")
+        
+        # ============================================================================
+        # REGRA 3: COERÊNCIA ENTRE MERCADOS (evita apostas contraditórias)
+        # ============================================================================
+        
+        # Se Over 2.5 tem alta prob, Under 2.5 deve ser penalizado
+        if 'under_2.5' in market and poisson.get('over_2.5', 0) > 0.60:
+            fit_score *= 0.7
+            fit_reasons.append("Over 2.5 mais provável - Under incoerente")
+        
+        if 'over_2.5' in market and poisson.get('under_2.5', 0) > 0.60:
+            fit_score *= 0.7
+            fit_reasons.append("Under 2.5 mais provável - Over incoerente")
+        
+        # Se Home Win muito provável, Away Win deve ser fortemente penalizado
+        if 'away_win' in market and consensus.get('home_win', 0) > 0.60:
+            fit_score *= 0.6
+            fit_reasons.append("Casa forte - Away incoerente")
+        
+        if 'home_win' in market and consensus.get('away_win', 0) > 0.60:
+            fit_score *= 0.6
+            fit_reasons.append("Fora forte - Home incoerente")
+        
+        # ============================================================================
+        # REGRA 4: AJUSTE POR ESTRATÉGIA
+        # ============================================================================
+        
+        if strategy == 'multiple':
+            # Bilhetes: penalizar apostas muito arriscadas mesmo com fit alto
+            if market_prob < 0.55:  # Prob < 55% em bilhetes é arriscado
+                fit_score *= 0.8
+                fit_reasons.append("Estratégia múltipla prefere probabilidades altas")
+        else:  # 'value'
+            # Value bets: permitir apostas mais arriscadas se contexto favorece
+            if market_prob < 0.45 and fit_score > 1.15:  # Contexto MUITO favorável compensa prob baixa
+                fit_score *= 1.1
+                fit_reasons.append("Contexto excepcional compensa prob moderada")
+        
+        # ============================================================================
+        # LIMITAR RANGE (0.5 a 1.5)
+        # ============================================================================
+        
+        fit_score = max(0.5, min(1.5, fit_score))
+        
+        # Log detalhado
+        if fit_score > 1.15:
+            logger.info(f"   💪 FORTE ADEQUAÇÃO: {market} - fit={fit_score:.3f}")
+            for reason in fit_reasons[:3]:
+                logger.info(f"      • {reason}")
+        elif fit_score < 0.85:
+            logger.info(f"   ⚠️  BAIXA ADEQUAÇÃO: {market} - fit={fit_score:.3f}")
+            for reason in fit_reasons[:3]:
+                logger.info(f"      • {reason}")
+        
+        return fit_score
+    
+    def _explain_contextual_fit(self, market, fit_score, context_analysis):
+        """
+        Gera explicação em português para o contextual fit.
+        
+        Args:
+            market: Nome do mercado
+            fit_score: Score de adequação contextual
+            context_analysis: Análise contextual
+            
+        Returns:
+            str: Explicação do fit
+        """
+        patterns = context_analysis.get('patterns', [])
+        pattern_names = [p['name'] for p in patterns]
+        
+        if fit_score >= 1.2:
+            base = "Contexto muito favorável"
+        elif fit_score >= 1.05:
+            base = "Contexto favorável"
+        elif fit_score >= 0.95:
+            base = "Contexto neutro"
+        else:
+            base = "Contexto desfavorável"
+        
+        # Adicionar padrões específicos
+        relevant_patterns = []
+        if 'defensive_match' in pattern_names and any(x in market for x in ['under', 'btts_no']):
+            relevant_patterns.append("jogo defensivo")
+        if 'high_scoring' in pattern_names and any(x in market for x in ['over', 'btts_yes']):
+            relevant_patterns.append("jogo ofensivo")
+        if 'home_advantage' in pattern_names and 'home' in market:
+            relevant_patterns.append("vantagem casa")
+        if 'away_strength' in pattern_names and 'away' in market:
+            relevant_patterns.append("força visitante")
+        
+        if relevant_patterns:
+            return f"{base} ({', '.join(relevant_patterns)})"
+        else:
+            return base
     
     def _format_pick_for_market(self, market):
         """Formata o pick baseado no tipo de mercado."""
