@@ -219,6 +219,15 @@ class HybridAnalysisOrchestrator:
         # O AI Analyzer precisa ter acesso a TODAS as features para seleção contextual precisa
         enriched['features_summary'] = features  # Adicionar todas as features (form, injuries, motivation, etc)
         enriched['context_analysis'] = context_analysis  # Adicionar padrões contextuais detectados
+        
+        # ✅ CORREÇÃO 24/02: Adicionar model_probabilities com estrutura esperada pelo AI Analyzer
+        # AI Analyzer busca em: enriched_data['model_probabilities']['poisson']['expected_goals']
+        enriched['model_probabilities'] = {
+            'consensus': ensemble_result.get('consensus', {}),
+            'poisson': ensemble_result.get('poisson', {}),
+            'logistic': ensemble_result.get('logistic', {}),
+            'market': ensemble_result.get('market', {})
+        }
         logger.info(f"📦 [Orchestrator] Enriched data preparado para AI com {len(features)} categorias de features")
         
         # 6) IA explica (opcional) - agora com features completas

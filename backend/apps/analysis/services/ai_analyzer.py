@@ -600,17 +600,25 @@ class AIAnalyzer:
         detected_patterns = context_analysis.get('patterns', [])
         pattern_names = [p['name'] for p in detected_patterns if p.get('confidence', 0) > 0.5]
         
+        # Obter probabilidades do consensus para melhor classificação
+        consensus = model_probs.get('consensus', {})
+        home_prob = consensus.get('home_win', 0.33)
+        away_prob = consensus.get('away_win', 0.33)
+        prob_diff = abs(home_prob - away_prob)
+        
         # Construir descrição contextual rica
         context_parts = []
         
-        # 1. xG e resultado esperado (BÁSICO)
-        if xg_diff > 0.5:
-            if xg_home > xg_away:
-                context_parts.append(f"Favorito CLARO em casa (xG: {xg_home:.1f} vs {xg_away:.1f})")
+        # 1. xG e resultado esperado (considerar AMBOS xG e probabilidades)
+        # ✅ CORREÇÃO 24/02: Usar consensus para determinar favorito, não apenas xG
+        # xG pode ser enganoso (1.7 vs 1.9 parece equilibrado mas prob pode ser 60% vs 20%)
+        if prob_diff > 0.20:  # Diferença de probabilidade > 20% = favorito claro
+            if home_prob > away_prob:
+                context_parts.append(f"Favorito CLARO em casa (prob: {home_prob*100:.0f}% vs {away_prob*100:.0f}%, xG: {xg_home:.1f} vs {xg_away:.1f})")
             else:
-                context_parts.append(f"Favorito CLARO visitante (xG: {xg_away:.1f} vs {xg_home:.1f})")
-        elif xg_diff < 0.3:
-            context_parts.append(f"Jogo EQUILIBRADO (xG: {xg_home:.1f} vs {xg_away:.1f})")
+                context_parts.append(f"Favorito CLARO visitante (prob: {away_prob*100:.0f}% vs {home_prob*100:.0f}%, xG: {xg_away:.1f} vs {xg_home:.1f})")
+        elif xg_diff < 0.3 and prob_diff < 0.15:  # Ambos equilibrados
+            context_parts.append(f"Jogo EQUILIBRADO (xG: {xg_home:.1f} vs {xg_away:.1f}, prob similar)")
         
         # 2. Expectativa de gols
         if xg_total > 2.8:
@@ -669,11 +677,16 @@ class AIAnalyzer:
             context_parts.append(f"H2H com POUCOS gols ({h2h_avg_goals:.1f} média)")
         
         # 9. Tipo de competição
+        comp_name = competition.get('competition_name', '')
         if competition.get('is_cup_competition'):
             if competition.get('is_knockout_stage'):
-                context_parts.append(f"COPA - fase eliminatória (mais defensivo)")
+                context_parts.append(f"{comp_name} - eliminatória (táticas mais cautelosas)")
             else:
-                context_parts.append(f"COPA - fase de grupos")
+                # Fase de grupos pode ser de copa nacional ou liga internacional
+                if 'champions' in comp_name.lower() or 'europa' in comp_name.lower() or 'libertadores' in comp_name.lower():
+                    context_parts.append(f"{comp_name} - fase de grupos")
+                else:
+                    context_parts.append(f"Copa - fase de grupos")
         
         # 10. Clima
         weather_impact = weather.get('goal_impact', 0)
