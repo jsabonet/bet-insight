@@ -1152,17 +1152,38 @@ class DecisionEngine:
         logger.info(f"      Team Goals: {len(only_team)} candidatos" + (f" (avg prob: {sum(c['probability'] for c in only_team) / len(only_team) * 100:.1f}%)" if only_team else ""))
         logger.info(f"   Total de candidatos: {len(candidates)}")
         
-        # Ajustes para estratégia MULTIPLE: preferir odds entre 1.30 e 2.00 e X2 quando visitante favorito
+        # ✅ CORREÇÃO 24/02: Ajustes para estratégia MULTIPLE - filtrar odds 1.30-2.00 para TODAS as categorias
+        # Alinha análise individual (frontend) com gerador automático (backend: 1.30-1.50)
+        # Limite 2.00 é intermediário: mais permissivo que gerador (1.50) mas mantém qualidade
         if strategy == 'multiple':
+            logger.info(f"\n   🎯 APLICANDO FILTRO DE ODDS (estratégia: multiple)")
+            logger.info(f"      Faixa aceita: 1.30 - 2.00")
             away_favored = consensus.get('away_win', 0) > consensus.get('home_win', 0)
+            rejected_odds = []
+            accepted_count = 0
+            
             for c in candidates:
-                # Excluir odds fora da faixa ideal para bilhetes múltiplos
-                if c['category'] in ('totals', 'btts'):
-                    if c['market_odd'] is None or c['market_odd'] < 1.30 or c['market_odd'] > 2.10:
-                        c['score'] = 0
-                # Boost para X2 quando fora é favorito
-                if c['category'] == 'double_chance' and c['market'] == 'double_chance_x2' and away_favored:
-                    c['score'] *= 1.15
+                odd_value = c.get('market_odd', 0)
+                
+                # ✅ CORREÇÃO: Filtrar odds fora da faixa 1.30-2.00 para TODAS as categorias
+                # Anteriormente só filtrava 'totals' e 'btts', causando inconsistência
+                # Odds muito baixas (<1.30): retorno péssimo para bilhetes
+                # Odds muito altas (>2.00): prob baixa, risco alto para combinações
+                if odd_value is None or odd_value == 0 or odd_value < 1.30 or odd_value > 2.00:
+                    rejected_odds.append(f"{c['market_display']} @ {odd_value} (cat: {c['category']})")
+                    logger.debug(f"      ❌ Rejeitado: {c['market_display']} @ {odd_value}")
+                    c['score'] = 0
+                else:
+                    accepted_count += 1
+                    # Boost para X2 quando fora é favorito
+                    if c['category'] == 'double_chance' and c['market'] == 'double_chance_x2' and away_favored:
+                        c['score'] *= 1.15
+            
+            logger.info(f"   📊 Resultado filtro: {accepted_count} aceitos, {len(rejected_odds)} rejeitados")
+            if rejected_odds:
+                logger.info(f"   🚫 Primeiros rejeitados:")
+                for r in rejected_odds[:5]:
+                    logger.info(f"      ❌ {r}")
 
         # Filtrar candidatos com score > 0 (já aplica filtro do strategy)
         valid_candidates = [c for c in candidates if c['score'] > 0]

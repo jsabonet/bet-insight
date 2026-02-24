@@ -298,6 +298,17 @@ class MarketSelector:
                     continue
                 elif ev_pct < 0:
                     logger.info(f"      ⚠️ Aviso: EV {ev_pct:+.1f}% negativo (aprovado por probabilidade alta)")
+                
+                # ✅ CORREÇÃO 24/02: Filtrar odds fora da faixa 1.30-2.00 para bilhetes múltiplos
+                # Alinha com gerador automático (1.30-1.50) e AI Analyzer (1.30-2.00)
+                # Odds muito baixas (<1.30): retorno péssimo mesmo com prob alta
+                # Odds muito altas (>2.00): risco alto para combinações
+                if market_odd < 1.30:
+                    logger.info(f"      ❌ Rejeitado: odd {market_odd:.2f} < 1.30 (bilhetes requerem odds ≥ 1.30)")
+                    continue
+                elif market_odd > 2.00:
+                    logger.info(f"      ❌ Rejeitado: odd {market_odd:.2f} > 2.00 (bilhetes requerem odds ≤ 2.00)")
+                    continue
             
             # Gerar reasoning contextualizado
             reasoning = self._generate_reasoning(
