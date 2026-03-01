@@ -13,8 +13,10 @@ import { Skeleton } from './Skeleton';
  * Onda 1 (instantâneo): Badge + Probabilidades + Confiança (do card/preview)
  * Onda 2 (2-4s): Top 3 apostas (modelos estatísticos)
  * Onda 3 (5-8s): Análise IA completa
+ * 
+ * @param {boolean} isSavedAnalysis - Se true, mostra botão para detalhes da partida (apenas em Minhas Análises)
  */
-export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) {
+export default function AnalysisModalProgressive({ match, onClose, onAnalyze, isSavedAnalysis = false }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { strategy, setStrategy } = useStrategy();
@@ -417,7 +419,7 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) 
                   <Copy className="w-5 h-5" />
                 )}
               </button>
-              {match.id && (
+              {isSavedAnalysis && match.id && (
                 <button
                   onClick={() => {
                     onClose();

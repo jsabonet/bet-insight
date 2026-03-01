@@ -411,6 +411,7 @@ export default function MyAnalysesPage() {
             league: selectedAnalysis.match.league,
             match_date: selectedAnalysis.match.match_date,
           }}
+          isSavedAnalysis={true}
           onClose={() => setSelectedAnalysis(null)}
           onAnalyze={async (strategy) => {
             // Retornar dados da análise salva formatados para o modal progressivo
