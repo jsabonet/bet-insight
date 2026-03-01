@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { X, Star, Sparkles, TrendingUp, AlertCircle, Target, Trophy, Zap, ClipboardList, Loader2, CheckCircle2, Brain, Copy, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { X, Star, Sparkles, TrendingUp, AlertCircle, Target, Trophy, Zap, ClipboardList, Loader2, CheckCircle2, Brain, Copy, Check, ExternalLink } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useStrategy } from '../context/StrategyContext';
 import { useStats } from '../context/StatsContext';
@@ -14,6 +15,7 @@ import { Skeleton } from './Skeleton';
  * Onda 3 (5-8s): Análise IA completa
  */
 export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { strategy, setStrategy } = useStrategy();
   const { refreshStats } = useStats();
@@ -415,6 +417,18 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze }) 
                   <Copy className="w-5 h-5" />
                 )}
               </button>
+              {match.id && (
+                <button
+                  onClick={() => {
+                    onClose();
+                    navigate(`/match/${match.id}`);
+                  }}
+                  className="p-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors group"
+                  title="Ver detalhes da partida"
+                >
+                  <ExternalLink className="w-5 h-5 text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+                </button>
+              )}
               <button
                 onClick={onClose}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
