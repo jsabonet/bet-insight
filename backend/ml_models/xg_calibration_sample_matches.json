@@ -1,0 +1,1002 @@
+[
+  {
+    "id": 3406,
+    "date": "2026-02-27T19:00:00+00:00",
+    "home": "Al-Ittihad FC",
+    "away": "Al Khaleej Saihat",
+    "league": "Pro League",
+    "score": "1-0",
+    "xg_real": "1.00-0.44",
+    "xg_poisson": "1.39-0.30"
+  },
+  {
+    "id": 731,
+    "date": "2025-01-20T20:00:00+00:00",
+    "home": "Villarreal",
+    "away": "Mallorca",
+    "league": "La Liga",
+    "score": "4-0",
+    "xg_real": "2.44-0.52",
+    "xg_poisson": "3.96-0.30"
+  },
+  {
+    "id": 730,
+    "date": "2025-01-19T20:00:00+00:00",
+    "home": "Valencia",
+    "away": "Real Sociedad",
+    "league": "La Liga",
+    "score": "1-0",
+    "xg_real": "1.64-0.81",
+    "xg_poisson": "1.39-0.30"
+  },
+  {
+    "id": 729,
+    "date": "2025-01-19T17:30:00+00:00",
+    "home": "Osasuna",
+    "away": "Rayo Vallecano",
+    "league": "La Liga",
+    "score": "1-1",
+    "xg_real": "0.76-0.76",
+    "xg_poisson": "1.39-1.10"
+  },
+  {
+    "id": 728,
+    "date": "2025-01-19T15:15:00+00:00",
+    "home": "Real Madrid",
+    "away": "Las Palmas",
+    "league": "La Liga",
+    "score": "4-1",
+    "xg_real": "5.90-1.16",
+    "xg_poisson": "3.96-1.10"
+  },
+  {
+    "id": 727,
+    "date": "2025-01-19T13:00:00+00:00",
+    "home": "Celta Vigo",
+    "away": "Athletic Club",
+    "league": "La Liga",
+    "score": "1-2",
+    "xg_real": "0.59-1.83",
+    "xg_poisson": "1.39-1.90"
+  },
+  {
+    "id": 726,
+    "date": "2025-01-18T20:00:00+00:00",
+    "home": "Getafe",
+    "away": "Barcelona",
+    "league": "La Liga",
+    "score": "1-1",
+    "xg_real": "1.32-2.35",
+    "xg_poisson": "1.39-1.10"
+  },
+  {
+    "id": 725,
+    "date": "2025-01-18T17:30:00+00:00",
+    "home": "Real Betis",
+    "away": "Alaves",
+    "league": "La Liga",
+    "score": "1-3",
+    "xg_real": "0.53-1.49",
+    "xg_poisson": "1.39-2.70"
+  },
+  {
+    "id": 724,
+    "date": "2025-01-18T15:15:00+00:00",
+    "home": "Leganes",
+    "away": "Atletico Madrid",
+    "league": "La Liga",
+    "score": "1-0",
+    "xg_real": "0.41-2.42",
+    "xg_poisson": "1.39-0.30"
+  },
+  {
+    "id": 931,
+    "date": "2025-01-18T14:00:00+00:00",
+    "home": "Bologna",
+    "away": "Monza",
+    "league": "Serie A",
+    "score": "3-1",
+    "xg_real": "1.85-0.60",
+    "xg_poisson": "3.10-1.10"
+  },
+  {
+    "id": 723,
+    "date": "2025-01-18T13:00:00+00:00",
+    "home": "Girona",
+    "away": "Sevilla",
+    "league": "La Liga",
+    "score": "1-2",
+    "xg_real": "1.22-2.66",
+    "xg_poisson": "1.39-1.90"
+  },
+  {
+    "id": 722,
+    "date": "2025-01-17T20:00:00+00:00",
+    "home": "Espanyol",
+    "away": "Valladolid",
+    "league": "La Liga",
+    "score": "2-1",
+    "xg_real": "1.01-1.24",
+    "xg_poisson": "2.25-1.10"
+  },
+  {
+    "id": 930,
+    "date": "2025-01-17T19:45:00+00:00",
+    "home": "AS Roma",
+    "away": "Genoa",
+    "league": "Serie A",
+    "score": "3-1",
+    "xg_real": "1.57-0.50",
+    "xg_poisson": "3.10-1.10"
+  },
+  {
+    "id": 929,
+    "date": "2025-01-15T19:45:00+00:00",
+    "home": "Inter",
+    "away": "Bologna",
+    "league": "Serie A",
+    "score": "2-2",
+    "xg_real": "1.74-0.64",
+    "xg_poisson": "2.25-1.90"
+  },
+  {
+    "id": 928,
+    "date": "2025-01-14T19:45:00+00:00",
+    "home": "Atalanta",
+    "away": "Juventus",
+    "league": "Serie A",
+    "score": "1-1",
+    "xg_real": "1.43-1.54",
+    "xg_poisson": "1.39-1.10"
+  },
+  {
+    "id": 531,
+    "date": "2025-01-14T19:30:00+00:00",
+    "home": "West Ham",
+    "away": "Fulham",
+    "league": "Premier League",
+    "score": "3-2",
+    "xg_real": "0.95-1.90",
+    "xg_poisson": "3.10-1.90"
+  },
+  {
+    "id": 927,
+    "date": "2025-01-14T17:30:00+00:00",
+    "home": "Como",
+    "away": "AC Milan",
+    "league": "Serie A",
+    "score": "1-2",
+    "xg_real": "1.27-1.30",
+    "xg_poisson": "1.39-1.90"
+  },
+  {
+    "id": 721,
+    "date": "2025-01-13T20:00:00+00:00",
+    "home": "Real Sociedad",
+    "away": "Villarreal",
+    "league": "La Liga",
+    "score": "1-0",
+    "xg_real": "0.66-1.10",
+    "xg_poisson": "1.39-0.30"
+  },
+  {
+    "id": 926,
+    "date": "2025-01-13T19:45:00+00:00",
+    "home": "Monza",
+    "away": "Fiorentina",
+    "league": "Serie A",
+    "score": "2-1",
+    "xg_real": "0.67-1.37",
+    "xg_poisson": "2.25-1.10"
+  },
+  {
+    "id": 925,
+    "date": "2025-01-12T19:45:00+00:00",
+    "home": "Napoli",
+    "away": "Verona",
+    "league": "Serie A",
+    "score": "2-0",
+    "xg_real": "1.18-0.23",
+    "xg_poisson": "2.25-0.30"
+  },
+  {
+    "id": 924,
+    "date": "2025-01-12T17:00:00+00:00",
+    "home": "Bologna",
+    "away": "AS Roma",
+    "league": "Serie A",
+    "score": "2-2",
+    "xg_real": "2.06-1.45",
+    "xg_poisson": "2.25-1.90"
+  },
+  {
+    "id": 720,
+    "date": "2025-01-12T15:15:00+00:00",
+    "home": "Atletico Madrid",
+    "away": "Osasuna",
+    "league": "La Liga",
+    "score": "1-0",
+    "xg_real": "2.54-0.28",
+    "xg_poisson": "1.39-0.30"
+  },
+  {
+    "id": 1081,
+    "date": "2025-01-12T14:00:00+00:00",
+    "home": "Le Havre",
+    "away": "Lens",
+    "league": "Ligue 1",
+    "score": "1-2",
+    "xg_real": "1.99-2.79",
+    "xg_poisson": "1.39-1.90"
+  },
+  {
+    "id": 923,
+    "date": "2025-01-12T14:00:00+00:00",
+    "home": "Venezia",
+    "away": "Inter",
+    "league": "Serie A",
+    "score": "0-1",
+    "xg_real": "0.41-1.90",
+    "xg_poisson": "0.54-1.10"
+  },
+  {
+    "id": 719,
+    "date": "2025-01-12T13:00:00+00:00",
+    "home": "Las Palmas",
+    "away": "Getafe",
+    "league": "La Liga",
+    "score": "1-2",
+    "xg_real": "1.35-1.11",
+    "xg_poisson": "1.39-1.90"
+  },
+  {
+    "id": 922,
+    "date": "2025-01-12T11:30:00+00:00",
+    "home": "Genoa",
+    "away": "Parma",
+    "league": "Serie A",
+    "score": "1-0",
+    "xg_real": "1.19-0.46",
+    "xg_poisson": "1.39-0.30"
+  },
+  {
+    "id": 1080,
+    "date": "2025-01-11T20:05:00+00:00",
+    "home": "Rennes",
+    "away": "Marseille",
+    "league": "Ligue 1",
+    "score": "1-2",
+    "xg_real": "1.63-1.66",
+    "xg_poisson": "1.39-1.90"
+  },
+  {
+    "id": 718,
+    "date": "2025-01-11T20:00:00+00:00",
+    "home": "Sevilla",
+    "away": "Valencia",
+    "league": "La Liga",
+    "score": "1-1",
+    "xg_real": "0.44-0.58",
+    "xg_poisson": "1.39-1.10"
+  },
+  {
+    "id": 921,
+    "date": "2025-01-11T19:45:00+00:00",
+    "home": "AC Milan",
+    "away": "Cagliari",
+    "league": "Serie A",
+    "score": "1-1",
+    "xg_real": "2.75-0.37",
+    "xg_poisson": "1.39-1.10"
+  },
+  {
+    "id": 1079,
+    "date": "2025-01-11T18:00:00+00:00",
+    "home": "Reims",
+    "away": "Nice",
+    "league": "Ligue 1",
+    "score": "2-4",
+    "xg_real": "0.79-2.47",
+    "xg_poisson": "2.25-3.50"
+  },
+  {
+    "id": 717,
+    "date": "2025-01-11T17:30:00+00:00",
+    "home": "Espanyol",
+    "away": "Leganes",
+    "league": "La Liga",
+    "score": "1-1",
+    "xg_real": "0.69-1.99",
+    "xg_poisson": "1.39-1.10"
+  },
+  {
+    "id": 273,
+    "date": "2025-01-11T17:30:00+00:00",
+    "home": "Borussia Mönchengladbach",
+    "away": "Bayern München",
+    "league": "Bundesliga",
+    "score": "0-1",
+    "xg_real": "0.39-3.27",
+    "xg_poisson": "0.54-1.10"
+  },
+  {
+    "id": 920,
+    "date": "2025-01-11T17:00:00+00:00",
+    "home": "Torino",
+    "away": "Juventus",
+    "league": "Serie A",
+    "score": "1-1",
+    "xg_real": "0.59-0.90",
+    "xg_poisson": "1.39-1.10"
+  },
+  {
+    "id": 1078,
+    "date": "2025-01-11T16:00:00+00:00",
+    "home": "Stade Brestois 29",
+    "away": "Lyon",
+    "league": "Ligue 1",
+    "score": "2-1",
+    "xg_real": "1.07-1.43",
+    "xg_poisson": "2.25-1.10"
+  },
+  {
+    "id": 716,
+    "date": "2025-01-11T15:15:00+00:00",
+    "home": "Valladolid",
+    "away": "Real Betis",
+    "league": "La Liga",
+    "score": "1-0",
+    "xg_real": "1.14-0.74",
+    "xg_poisson": "1.39-0.30"
+  },
+  {
+    "id": 272,
+    "date": "2025-01-11T14:30:00+00:00",
+    "home": "FC St. Pauli",
+    "away": "Eintracht Frankfurt",
+    "league": "Bundesliga",
+    "score": "0-1",
+    "xg_real": "2.25-1.53",
+    "xg_poisson": "0.54-1.10"
+  },
+  {
+    "id": 269,
+    "date": "2025-01-11T14:30:00+00:00",
+    "home": "FSV Mainz 05",
+    "away": "VfL Bochum",
+    "league": "Bundesliga",
+    "score": "2-0",
+    "xg_real": "1.91-0.60",
+    "xg_poisson": "2.25-0.30"
+  },
+  {
+    "id": 268,
+    "date": "2025-01-11T14:30:00+00:00",
+    "home": "SC Freiburg",
+    "away": "Holstein Kiel",
+    "league": "Bundesliga",
+    "score": "3-2",
+    "xg_real": "0.69-1.82",
+    "xg_poisson": "3.10-1.90"
+  },
+  {
+    "id": 271,
+    "date": "2025-01-11T14:30:00+00:00",
+    "home": "1. FC Heidenheim",
+    "away": "Union Berlin",
+    "league": "Bundesliga",
+    "score": "2-0",
+    "xg_real": "1.52-1.12",
+    "xg_poisson": "2.25-0.30"
+  },
+  {
+    "id": 270,
+    "date": "2025-01-11T14:30:00+00:00",
+    "home": "1899 Hoffenheim",
+    "away": "VfL Wolfsburg",
+    "league": "Bundesliga",
+    "score": "0-1",
+    "xg_real": "0.98-0.75",
+    "xg_poisson": "0.54-1.10"
+  },
+  {
+    "id": 918,
+    "date": "2025-01-11T14:00:00+00:00",
+    "home": "Udinese",
+    "away": "Atalanta",
+    "league": "Serie A",
+    "score": "0-0",
+    "xg_real": "1.76-0.31",
+    "xg_poisson": "0.54-0.30"
+  },
+  {
+    "id": 919,
+    "date": "2025-01-11T14:00:00+00:00",
+    "home": "Empoli",
+    "away": "Lecce",
+    "league": "Serie A",
+    "score": "1-3",
+    "xg_real": "1.43-1.43",
+    "xg_poisson": "1.39-2.70"
+  },
+  {
+    "id": 715,
+    "date": "2025-01-11T13:00:00+00:00",
+    "home": "Alaves",
+    "away": "Girona",
+    "league": "La Liga",
+    "score": "0-1",
+    "xg_real": "1.30-0.49",
+    "xg_poisson": "0.54-1.10"
+  },
+  {
+    "id": 1077,
+    "date": "2025-01-10T20:05:00+00:00",
+    "home": "Auxerre",
+    "away": "Lille",
+    "league": "Ligue 1",
+    "score": "0-0",
+    "xg_real": "0.82-1.47",
+    "xg_poisson": "0.54-0.30"
+  },
+  {
+    "id": 714,
+    "date": "2025-01-10T20:00:00+00:00",
+    "home": "Rayo Vallecano",
+    "away": "Celta Vigo",
+    "league": "La Liga",
+    "score": "2-1",
+    "xg_real": "0.63-2.23",
+    "xg_poisson": "2.25-1.10"
+  },
+  {
+    "id": 267,
+    "date": "2025-01-10T19:45:00+00:00",
+    "home": "Borussia Dortmund",
+    "away": "Bayer Leverkusen",
+    "league": "Bundesliga",
+    "score": "2-3",
+    "xg_real": "1.35-1.50",
+    "xg_poisson": "2.25-2.70"
+  },
+  {
+    "id": 917,
+    "date": "2025-01-10T19:45:00+00:00",
+    "home": "Lazio",
+    "away": "Como",
+    "league": "Serie A",
+    "score": "1-1",
+    "xg_real": "0.53-1.91",
+    "xg_poisson": "1.39-1.10"
+  },
+  {
+    "id": 1076,
+    "date": "2025-01-10T18:00:00+00:00",
+    "home": "Nantes",
+    "away": "Monaco",
+    "league": "Ligue 1",
+    "score": "2-2",
+    "xg_real": "0.81-3.59",
+    "xg_poisson": "2.25-1.90"
+  },
+  {
+    "id": 530,
+    "date": "2025-01-06T20:00:00+00:00",
+    "home": "Wolves",
+    "away": "Nottingham Forest",
+    "league": "Premier League",
+    "score": "0-3",
+    "xg_real": "1.59-2.13",
+    "xg_poisson": "0.54-2.70"
+  },
+  {
+    "id": 1075,
+    "date": "2025-01-05T19:45:00+00:00",
+    "home": "Marseille",
+    "away": "Le Havre",
+    "league": "Ligue 1",
+    "score": "5-1",
+    "xg_real": "3.23-0.45",
+    "xg_poisson": "4.28-1.10"
+  },
+  {
+    "id": 916,
+    "date": "2025-01-05T19:45:00+00:00",
+    "home": "AS Roma",
+    "away": "Lazio",
+    "league": "Serie A",
+    "score": "2-0",
+    "xg_real": "1.13-0.94",
+    "xg_poisson": "2.25-0.30"
+  },
+  {
+    "id": 2481,
+    "date": "2025-01-05T18:00:00+00:00",
+    "home": "Casa Pia",
+    "away": "Famalicao",
+    "league": "Primeira Liga",
+    "score": "1-1",
+    "xg_real": "0.69-1.28",
+    "xg_poisson": "1.39-1.10"
+  },
+  {
+    "id": 915,
+    "date": "2025-01-05T17:00:00+00:00",
+    "home": "Torino",
+    "away": "Parma",
+    "league": "Serie A",
+    "score": "0-0",
+    "xg_real": "1.08-0.38",
+    "xg_poisson": "0.54-0.30"
+  },
+  {
+    "id": 529,
+    "date": "2025-01-05T16:30:00+00:00",
+    "home": "Liverpool",
+    "away": "Manchester United",
+    "league": "Premier League",
+    "score": "2-2",
+    "xg_real": "2.82-1.05",
+    "xg_poisson": "2.25-1.90"
+  },
+  {
+    "id": 2480,
+    "date": "2025-01-05T15:30:00+00:00",
+    "home": "Santa Clara",
+    "away": "Farense",
+    "league": "Primeira Liga",
+    "score": "0-0",
+    "xg_real": "0.63-0.09",
+    "xg_poisson": "0.54-0.30"
+  },
+  {
+    "id": 1072,
+    "date": "2025-01-05T14:00:00+00:00",
+    "home": "Angers",
+    "away": "Stade Brestois 29",
+    "league": "Ligue 1",
+    "score": "2-0",
+    "xg_real": "1.78-0.98",
+    "xg_poisson": "2.25-0.30"
+  },
+  {
+    "id": 1073,
+    "date": "2025-01-05T14:00:00+00:00",
+    "home": "Strasbourg",
+    "away": "Auxerre",
+    "league": "Ligue 1",
+    "score": "3-1",
+    "xg_real": "2.42-1.38",
+    "xg_poisson": "3.10-1.10"
+  },
+  {
+    "id": 1074,
+    "date": "2025-01-05T14:00:00+00:00",
+    "home": "Lens",
+    "away": "Toulouse",
+    "league": "Ligue 1",
+    "score": "0-1",
+    "xg_real": "1.41-2.03",
+    "xg_poisson": "0.54-1.10"
+  },
+  {
+    "id": 528,
+    "date": "2025-01-05T14:00:00+00:00",
+    "home": "Fulham",
+    "away": "Ipswich",
+    "league": "Premier League",
+    "score": "2-2",
+    "xg_real": "2.24-1.59",
+    "xg_poisson": "2.25-1.90"
+  },
+  {
+    "id": 914,
+    "date": "2025-01-05T14:00:00+00:00",
+    "home": "Lecce",
+    "away": "Genoa",
+    "league": "Serie A",
+    "score": "0-0",
+    "xg_real": "0.56-1.08",
+    "xg_poisson": "0.54-0.30"
+  },
+  {
+    "id": 913,
+    "date": "2025-01-05T11:30:00+00:00",
+    "home": "Monza",
+    "away": "Cagliari",
+    "league": "Serie A",
+    "score": "1-2",
+    "xg_real": "1.58-0.85",
+    "xg_poisson": "1.39-1.90"
+  },
+  {
+    "id": 2479,
+    "date": "2025-01-04T20:30:00+00:00",
+    "home": "Boavista",
+    "away": "Arouca",
+    "league": "Primeira Liga",
+    "score": "1-3",
+    "xg_real": "0.75-1.98",
+    "xg_poisson": "1.39-2.70"
+  },
+  {
+    "id": 1071,
+    "date": "2025-01-04T20:00:00+00:00",
+    "home": "Lyon",
+    "away": "Montpellier",
+    "league": "Ligue 1",
+    "score": "1-0",
+    "xg_real": "1.35-1.17",
+    "xg_poisson": "1.39-0.30"
+  },
+  {
+    "id": 912,
+    "date": "2025-01-04T19:45:00+00:00",
+    "home": "Verona",
+    "away": "Udinese",
+    "league": "Serie A",
+    "score": "0-0",
+    "xg_real": "1.02-0.80",
+    "xg_poisson": "0.54-0.30"
+  },
+  {
+    "id": 1070,
+    "date": "2025-01-04T18:00:00+00:00",
+    "home": "Lille",
+    "away": "Nantes",
+    "league": "Ligue 1",
+    "score": "1-1",
+    "xg_real": "1.19-1.33",
+    "xg_poisson": "1.39-1.10"
+  },
+  {
+    "id": 2478,
+    "date": "2025-01-04T18:00:00+00:00",
+    "home": "Benfica",
+    "away": "SC Braga",
+    "league": "Primeira Liga",
+    "score": "1-2",
+    "xg_real": "1.66-0.56",
+    "xg_poisson": "1.39-1.90"
+  },
+  {
+    "id": 527,
+    "date": "2025-01-04T17:30:00+00:00",
+    "home": "Brighton",
+    "away": "Arsenal",
+    "league": "Premier League",
+    "score": "1-1",
+    "xg_real": "1.52-0.88",
+    "xg_poisson": "1.39-1.10"
+  },
+  {
+    "id": 911,
+    "date": "2025-01-04T17:00:00+00:00",
+    "home": "Fiorentina",
+    "away": "Napoli",
+    "league": "Serie A",
+    "score": "0-3",
+    "xg_real": "1.13-1.64",
+    "xg_poisson": "0.54-2.70"
+  },
+  {
+    "id": 1069,
+    "date": "2025-01-04T16:00:00+00:00",
+    "home": "Saint Etienne",
+    "away": "Reims",
+    "league": "Ligue 1",
+    "score": "3-1",
+    "xg_real": "2.22-1.11",
+    "xg_poisson": "3.10-1.10"
+  },
+  {
+    "id": 2477,
+    "date": "2025-01-04T15:30:00+00:00",
+    "home": "Moreirense",
+    "away": "AVS",
+    "league": "Primeira Liga",
+    "score": "1-1",
+    "xg_real": "1.34-1.01",
+    "xg_poisson": "1.39-1.10"
+  },
+  {
+    "id": 524,
+    "date": "2025-01-04T15:00:00+00:00",
+    "home": "Manchester City",
+    "away": "West Ham",
+    "league": "Premier League",
+    "score": "4-1",
+    "xg_real": "1.91-1.37",
+    "xg_poisson": "3.96-1.10"
+  },
+  {
+    "id": 523,
+    "date": "2025-01-04T15:00:00+00:00",
+    "home": "Southampton",
+    "away": "Brentford",
+    "league": "Premier League",
+    "score": "0-5",
+    "xg_real": "0.29-4.46",
+    "xg_poisson": "0.54-4.00"
+  },
+  {
+    "id": 526,
+    "date": "2025-01-04T15:00:00+00:00",
+    "home": "Aston Villa",
+    "away": "Leicester",
+    "league": "Premier League",
+    "score": "2-1",
+    "xg_real": "1.56-0.41",
+    "xg_poisson": "2.25-1.10"
+  },
+  {
+    "id": 525,
+    "date": "2025-01-04T15:00:00+00:00",
+    "home": "Crystal Palace",
+    "away": "Chelsea",
+    "league": "Premier League",
+    "score": "1-1",
+    "xg_real": "1.08-1.24",
+    "xg_poisson": "1.39-1.10"
+  },
+  {
+    "id": 522,
+    "date": "2025-01-04T15:00:00+00:00",
+    "home": "Bournemouth",
+    "away": "Everton",
+    "league": "Premier League",
+    "score": "1-0",
+    "xg_real": "1.84-0.71",
+    "xg_poisson": "1.39-0.30"
+  },
+  {
+    "id": 910,
+    "date": "2025-01-04T14:00:00+00:00",
+    "home": "Venezia",
+    "away": "Empoli",
+    "league": "Serie A",
+    "score": "1-1",
+    "xg_real": "0.94-1.78",
+    "xg_poisson": "1.39-1.10"
+  },
+  {
+    "id": 521,
+    "date": "2025-01-04T12:30:00+00:00",
+    "home": "Tottenham",
+    "away": "Newcastle",
+    "league": "Premier League",
+    "score": "1-2",
+    "xg_real": "0.94-2.45",
+    "xg_poisson": "1.39-1.90"
+  },
+  {
+    "id": 2476,
+    "date": "2025-01-03T20:15:00+00:00",
+    "home": "Guimaraes",
+    "away": "Sporting CP",
+    "league": "Primeira Liga",
+    "score": "4-4",
+    "xg_real": "1.79-1.14",
+    "xg_poisson": "3.96-3.50"
+  },
+  {
+    "id": 1068,
+    "date": "2025-01-03T20:00:00+00:00",
+    "home": "Nice",
+    "away": "Rennes",
+    "league": "Ligue 1",
+    "score": "3-2",
+    "xg_real": "1.50-1.71",
+    "xg_poisson": "3.10-1.90"
+  },
+  {
+    "id": 713,
+    "date": "2025-01-03T20:00:00+00:00",
+    "home": "Valencia",
+    "away": "Real Madrid",
+    "league": "La Liga",
+    "score": "1-2",
+    "xg_real": "0.89-2.01",
+    "xg_poisson": "1.39-1.90"
+  },
+  {
+    "id": 520,
+    "date": "2025-01-01T17:30:00+00:00",
+    "home": "Brentford",
+    "away": "Arsenal",
+    "league": "Premier League",
+    "score": "1-3",
+    "xg_real": "0.32-1.91",
+    "xg_poisson": "1.39-2.70"
+  },
+  {
+    "id": 2475,
+    "date": "2024-12-30T20:15:00+00:00",
+    "home": "Famalicao",
+    "away": "Santa Clara",
+    "league": "Primeira Liga",
+    "score": "1-2",
+    "xg_real": "1.04-1.39",
+    "xg_poisson": "1.39-1.90"
+  },
+  {
+    "id": 519,
+    "date": "2024-12-30T20:00:00+00:00",
+    "home": "Manchester United",
+    "away": "Newcastle",
+    "league": "Premier League",
+    "score": "0-2",
+    "xg_real": "0.90-1.92",
+    "xg_poisson": "0.54-1.90"
+  },
+  {
+    "id": 518,
+    "date": "2024-12-30T19:45:00+00:00",
+    "home": "Aston Villa",
+    "away": "Brighton",
+    "league": "Premier League",
+    "score": "2-2",
+    "xg_real": "1.78-1.13",
+    "xg_poisson": "2.25-1.90"
+  },
+  {
+    "id": 517,
+    "date": "2024-12-30T19:45:00+00:00",
+    "home": "Ipswich",
+    "away": "Chelsea",
+    "league": "Premier League",
+    "score": "2-0",
+    "xg_real": "1.58-2.00",
+    "xg_poisson": "2.25-0.30"
+  },
+  {
+    "id": 909,
+    "date": "2024-12-30T19:45:00+00:00",
+    "home": "Bologna",
+    "away": "Verona",
+    "league": "Serie A",
+    "score": "2-3",
+    "xg_real": "2.29-0.80",
+    "xg_poisson": "2.25-2.70"
+  },
+  {
+    "id": 908,
+    "date": "2024-12-30T17:30:00+00:00",
+    "home": "Como",
+    "away": "Lecce",
+    "league": "Serie A",
+    "score": "2-0",
+    "xg_real": "2.01-0.44",
+    "xg_poisson": "2.25-0.30"
+  },
+  {
+    "id": 2474,
+    "date": "2024-12-29T20:30:00+00:00",
+    "home": "Sporting CP",
+    "away": "Benfica",
+    "league": "Primeira Liga",
+    "score": "1-0",
+    "xg_real": "1.14-0.72",
+    "xg_poisson": "1.39-0.30"
+  },
+  {
+    "id": 907,
+    "date": "2024-12-29T19:45:00+00:00",
+    "home": "AC Milan",
+    "away": "AS Roma",
+    "league": "Serie A",
+    "score": "1-1",
+    "xg_real": "1.88-1.38",
+    "xg_poisson": "1.39-1.10"
+  },
+  {
+    "id": 2473,
+    "date": "2024-12-29T18:00:00+00:00",
+    "home": "SC Braga",
+    "away": "Casa Pia",
+    "league": "Primeira Liga",
+    "score": "1-2",
+    "xg_real": "1.13-1.11",
+    "xg_poisson": "1.39-1.90"
+  },
+  {
+    "id": 516,
+    "date": "2024-12-29T17:15:00+00:00",
+    "home": "West Ham",
+    "away": "Liverpool",
+    "league": "Premier League",
+    "score": "0-5",
+    "xg_real": "0.36-3.15",
+    "xg_poisson": "0.54-4.00"
+  },
+  {
+    "id": 906,
+    "date": "2024-12-29T17:00:00+00:00",
+    "home": "Juventus",
+    "away": "Fiorentina",
+    "league": "Serie A",
+    "score": "2-2",
+    "xg_real": "1.49-1.00",
+    "xg_poisson": "2.25-1.90"
+  },
+  {
+    "id": 2471,
+    "date": "2024-12-29T15:30:00+00:00",
+    "home": "Rio Ave",
+    "away": "Nacional",
+    "league": "Primeira Liga",
+    "score": "2-1",
+    "xg_real": "1.90-0.52",
+    "xg_poisson": "2.25-1.10"
+  },
+  {
+    "id": 2472,
+    "date": "2024-12-29T15:30:00+00:00",
+    "home": "Farense",
+    "away": "Guimaraes",
+    "league": "Primeira Liga",
+    "score": "2-2",
+    "xg_real": "0.26-2.05",
+    "xg_poisson": "2.25-1.90"
+  },
+  {
+    "id": 512,
+    "date": "2024-12-29T15:00:00+00:00",
+    "home": "Fulham",
+    "away": "Bournemouth",
+    "league": "Premier League",
+    "score": "2-2",
+    "xg_real": "1.11-1.98",
+    "xg_poisson": "2.25-1.90"
+  },
+  {
+    "id": 513,
+    "date": "2024-12-29T15:00:00+00:00",
+    "home": "Everton",
+    "away": "Nottingham Forest",
+    "league": "Premier League",
+    "score": "0-2",
+    "xg_real": "0.89-1.48",
+    "xg_poisson": "0.54-1.90"
+  },
+  {
+    "id": 514,
+    "date": "2024-12-29T15:00:00+00:00",
+    "home": "Tottenham",
+    "away": "Wolves",
+    "league": "Premier League",
+    "score": "2-2",
+    "xg_real": "2.25-0.72",
+    "xg_poisson": "2.25-1.90"
+  },
+  {
+    "id": 515,
+    "date": "2024-12-29T15:00:00+00:00",
+    "home": "Crystal Palace",
+    "away": "Southampton",
+    "league": "Premier League",
+    "score": "2-1",
+    "xg_real": "2.03-0.94",
+    "xg_poisson": "2.25-1.10"
+  },
+  {
+    "id": 511,
+    "date": "2024-12-29T14:30:00+00:00",
+    "home": "Leicester",
+    "away": "Manchester City",
+    "league": "Premier League",
+    "score": "0-2",
+    "xg_real": "1.30-1.27",
+    "xg_poisson": "0.54-1.90"
+  },
+  {
+    "id": 905,
+    "date": "2024-12-29T14:00:00+00:00",
+    "home": "Napoli",
+    "away": "Venezia",
+    "league": "Serie A",
+    "score": "1-0",
+    "xg_real": "1.97-0.21",
+    "xg_poisson": "1.39-0.30"
+  }
+]

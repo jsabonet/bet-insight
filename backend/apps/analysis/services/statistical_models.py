@@ -9,6 +9,7 @@ from scipy.stats import poisson
 from scipy.special import expit  # Função logística
 import math
 from apps.analysis.config.analysis_config import EnsembleWeights
+from apps.analysis.services.xg_calibrator import get_xg_calibrator
 
 logger = logging.getLogger(__name__)
 
@@ -168,11 +169,31 @@ class PoissonBivariateModel:
         lambda_home = max(0.1, lambda_home)
         lambda_away = max(0.1, lambda_away)
         
-        logger.info(f"\n⚡ Expectativa de gols (λ):")
+        logger.info(f"\n⚡ Expectativa de gols (λ) - ANTES calibração:")
         logger.info(f"   Casa: {lambda_home:.2f}")
         logger.info(f"   Fora: {lambda_away:.2f}")
         
-        # 3. Calcular distribuição de placares (até 6x6 gols)
+        # 4. Calibração xG (Poisson → xG Real)
+        # Usar isotonic regression treinado com 1,343 partidas reais
+        calibrator = get_xg_calibrator()
+        if calibrator.is_available():
+            lambda_home_raw = lambda_home
+            lambda_away_raw = lambda_away
+            
+            lambda_home = calibrator.calibrate(lambda_home)
+            lambda_away = calibrator.calibrate(lambda_away)
+            
+            logger.info(f"\n🎯 Calibração xG aplicada:")
+            logger.info(f"   Casa: {lambda_home_raw:.2f} → {lambda_home:.2f} (Δ {lambda_home - lambda_home_raw:+.2f})")
+            logger.info(f"   Fora: {lambda_away_raw:.2f} → {lambda_away:.2f} (Δ {lambda_away - lambda_away_raw:+.2f})")
+        else:
+            logger.warning("⚠️  Calibrador xG não disponível, usando valores brutos")
+        
+        logger.info(f"\n⚡ Expectativa de gols (λ) - FINAL:")
+        logger.info(f"   Casa: {lambda_home:.2f}")
+        logger.info(f"   Fora: {lambda_away:.2f}")
+        
+        # 5. Calcular distribuição de placares (até 6x6 gols)
         logger.info(f"\n🔢 Calculando distribuição de placares (6x6)...")
         score_matrix = np.zeros((7, 7))  # 0-6 gols cada time
         
