@@ -33,7 +33,7 @@ prompt_toolkit==3.0.52
 proto-plus==1.27.0
 protobuf==4.25.8
 psycopg2-binary==2.9.9
-pyasn1==0.6.1
+pyasn1==0.6.3
 pyasn1_modules==0.4.2
 PyJWT==2.10.1
 python-dateutil==2.9.0.post0
