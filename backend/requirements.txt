@@ -41,7 +41,7 @@ python-decouple==3.8
 python-dotenv==1.2.1
 pytz==2025.2
 redis==5.0.1
-requests==2.31.0
+requests==2.33.0
 rsa==4.9.1
 six==1.17.0
 sqlparse==0.5.5
