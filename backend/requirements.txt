@@ -28,7 +28,7 @@ grpcio-status==1.62.3
 idna==3.11
 kombu==5.6.1
 packaging==25.0
-pillow==10.2.0
+pillow==12.2.0
 prompt_toolkit==3.0.52
 proto-plus==1.27.0
 protobuf==4.25.8
