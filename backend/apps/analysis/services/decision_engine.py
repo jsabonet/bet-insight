@@ -13,6 +13,13 @@ logger = logging.getLogger(__name__)
 # 🎯 FILTRO: Odds mínimas aceitáveis para top_bets
 MIN_ODD_THRESHOLD = 1.10  # Odds abaixo disso não têm value real (ex: 1.01, 1.05)
 
+# 🛡️ FILTROS TÁTICOS QUALITATIVOS: Dérbis/rivalidades emocionais extremas
+DERBY_KEYWORDS = [
+    "flamengo", "fluminense", "gremio", "internacional",
+    "palmeiras", "corinthians", "benfica", "porto", "sporting",
+    "liverpool", "manchester city"
+]
+
 class DecisionEngine:
     """
     Motor de decisão que:
@@ -113,7 +120,7 @@ class DecisionEngine:
             'filter_passed': filter_status
         }
     
-    def make_decision(self, model_predictions, features, market_odds, strategy='value', context_analysis=None):
+    def make_decision(self, model_predictions, features, market_odds, strategy='value', context_analysis=None, match=None):
         """
         Decisão final baseada em modelos + mercado + contexto
         
@@ -123,6 +130,7 @@ class DecisionEngine:
             market_odds (dict): Odds do mercado
             strategy (str): 'value' (EV máximo) ou 'multiple' (prob alta + EV positivo)
             context_analysis (dict): Análise contextual do ContextAnalyzer (NOVO)
+            match: Objeto Match (Django model ou stub) para filtros táticos qualitativos
         
         Returns:
             dict: {
@@ -132,7 +140,7 @@ class DecisionEngine:
                 'value_bets': [...],
                 'fair_odds': {...},
                 'strategy': str,
-                'top_bets': [...]  # Selecionados por contexto se disponível
+                'top_bets': [...]  # Selecionados por contexto + filtros táticos
             }
         """
         logger.info(f"\n{'='*80}")
@@ -282,8 +290,189 @@ class DecisionEngine:
             else:
                 logger.info(f"   ❌ Override NÃO ativado - mantendo recomendação do modelo")
 
+        # 8) 🛡️ FILTROS TÁTICOS QUALITATIVOS (Dérbi + Elasticidade de Linhas)
+        # Aplicados APÓS a fusão dos modelos e ANTES da entrega final dos bilhetes.
+        result['top_bets'] = self._apply_tactical_safety_filters(
+            result.get('top_bets', []), match, strategy
+        )
+        result['value_bets'] = self._apply_tactical_safety_filters(
+            result.get('value_bets', []), match, strategy
+        )
+
         return result
-    
+
+    def _apply_tactical_safety_filters(self, validated_selections, match, strategy):
+        """
+        🛡️ FILTROS TÁTICOS QUALITATIVOS (camada de analista humano)
+
+        Aplicados estritamente APÓS a fusão estatística dos modelos e ANTES da
+        entrega final dos bilhetes. Não altera as assinaturas de ML
+        (ModelEnsembleML / FeatureEngineer permanecem intactos).
+
+        Regras (apenas para strategy == 'multiple'):
+        1. Dérbi/Rivalidade emocional extrema -> remove mercados de golos
+           agressivos (Over/Under 2.5), mantendo apenas mercados de proteção.
+        2. Elasticidade pragmática -> rebaixa 'Over 2.5' para 'Total Over 1.5'
+           e ajusta a odd associada.
+
+        Args:
+            validated_selections (list): lista de apostas (top_bets ou value_bets)
+            match: objeto Match (Django model ou stub com home_team/away_team.name)
+            strategy (str): 'value' ou 'multiple'
+
+        Returns:
+            list: seleções filtradas/rebaixadas
+        """
+        if not validated_selections or strategy != 'multiple':
+            return validated_selections
+
+        original = validated_selections
+        try:
+            selections = list(validated_selections)
+
+            if self._is_derby_match(match):
+                logger.info(
+                    "🚫 [Filtros Táticos] Dérbi/rivalidade extrema detectada - "
+                    "removendo mercados de golos agressivos (Over/Under 2.5)"
+                )
+                selections = self._filter_derby_goals(selections)
+
+            selections = self._apply_elasticity(selections, match)
+
+            return selections
+        except Exception as e:
+            logger.warning(
+                f"⚠️ [Filtros Táticos] Erro ao aplicar filtros ({e}) - "
+                "mantendo seleções originais"
+            )
+            return original
+
+    def _is_derby_match(self, match):
+        """Detecta se a partida envolve rivalidade emocional extrema."""
+        try:
+            home = ''
+            away = ''
+            home_team = getattr(match, 'home_team', None)
+            away_team = getattr(match, 'away_team', None)
+            if home_team is not None:
+                home = getattr(home_team, 'name', '') or ''
+            if away_team is not None:
+                away = getattr(away_team, 'name', '') or ''
+
+            home_l = home.lower()
+            away_l = away.lower()
+            return any(
+                keyword in home_l or keyword in away_l
+                for keyword in DERBY_KEYWORDS
+            )
+        except Exception:
+            return False
+
+    @staticmethod
+    def _normalize_market(market_str):
+        """Normaliza um nome de mercado para comparação textual."""
+        if not market_str:
+            return ''
+        normalized = str(market_str).lower().replace('_', ' ').replace('.', ' ')
+        return ' '.join(normalized.split())
+
+    def _is_aggressive_goal_market(self, market_str):
+        """True se o mercado é de golos agressivo (Over/Under 2.5)."""
+        normalized = self._normalize_market(market_str)
+        return ('over 2 5' in normalized) or ('under 2 5' in normalized)
+
+    def _is_over_25(self, market_str):
+        """True se o mercado é textualmente 'Over 2.5'/'Total Over 2.5'."""
+        return 'over 2 5' in self._normalize_market(market_str)
+
+    def _filter_derby_goals(self, selections):
+        """Remove mercados de golos agressivos em dérbis (estratégia multiple)."""
+        kept = []
+        for selection in selections:
+            market = selection.get('market', selection.get('market_display', ''))
+            if self._is_aggressive_goal_market(market):
+                logger.info(
+                    f"   ❌ [Dérbi] Removido mercado agressivo: "
+                    f"{selection.get('market_display', market)}"
+                )
+                continue
+            kept.append(selection)
+        return kept
+
+    @staticmethod
+    def _extract_numeric_odd(value):
+        """Extrai valor numérico de uma odd (suporta dict {'value': x})."""
+        if value is None:
+            return None
+        if isinstance(value, dict):
+            value = value.get('value')
+        try:
+            numeric = float(value)
+            return numeric if numeric > 0 else None
+        except (TypeError, ValueError):
+            return None
+
+    def _extract_selection_odd(self, selection):
+        """Extrai a odd de uma seleção (market_odd ou odd)."""
+        return self._extract_numeric_odd(
+            selection.get('market_odd', selection.get('odd'))
+        )
+
+    def _resolve_over_15_odd(self, selection, old_odd):
+        """
+        Resolve a odd para 'Total Over 1.5':
+        1) chave explícita (odd_over_15 / odd_over_1_5)
+        2) desconto estatístico seguro (odd - 0.20)
+        3) fallback seguro (1.35)
+        """
+        for key in ('odd_over_15', 'odd_over_1_5', 'over_1_5_odd', 'over_15_odd'):
+            explicit = self._extract_numeric_odd(selection.get(key))
+            if explicit is not None:
+                return explicit
+
+        if old_odd is not None and old_odd > 0:
+            discounted = round(old_odd - 0.20, 2)
+            if discounted > 0:
+                return discounted
+
+        return 1.35
+
+    def _apply_elasticity(self, selections, match):
+        """Rebaixa 'Over 2.5' -> 'Total Over 1.5' (estratégia multiple)."""
+        match_id = getattr(match, 'id', 'N/A')
+        updated = []
+        for selection in selections:
+            try:
+                market = selection.get('market', selection.get('market_display', ''))
+                if not self._is_over_25(market):
+                    updated.append(selection)
+                    continue
+
+                old_odd = self._extract_selection_odd(selection)
+                new_odd = self._resolve_over_15_odd(selection, old_odd)
+
+                downgraded = dict(selection)
+                downgraded['market'] = 'Total Over 1.5'
+                downgraded['market_display'] = 'Total Over 1.5'
+                downgraded['market_odd'] = new_odd
+                if 'odd' in downgraded:
+                    downgraded['odd'] = new_odd
+                downgraded['elasticity_applied'] = True
+                downgraded['original_market'] = market
+
+                logger.info(
+                    f"📉 [Elasticidade] Linha rebaixada de Over 2.5 para "
+                    f"Total Over 1.5 na partida {match_id}"
+                )
+                updated.append(downgraded)
+            except Exception as e:
+                logger.warning(
+                    f"⚠️ [Elasticidade] Falha ao rebaixar linha ({e}) - "
+                    "mantendo seleção original"
+                )
+                updated.append(selection)
+        return updated
+
     def _calculate_fair_odds(self, model_predictions):
         """
         Calcula odds justas (sem margem da casa)

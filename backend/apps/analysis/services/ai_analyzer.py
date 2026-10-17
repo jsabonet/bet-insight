@@ -332,7 +332,9 @@ class AIAnalyzer:
         
         # Score base: combinação de probabilidade e EV
         if strategy == 'multiple':
-            base_score = probability * 70 + max(0, ev_pct) * 0.3
+            # ✅ RECALIBRAÇÃO: equilibrar probabilidade e EV (antes a prob crua esmagava o EV,
+            # favorecendo linhas altas como "Under 2.75" em detrimento da decisão tática).
+            base_score = probability * 45 + max(0, ev_pct) * 0.55
         else:
             base_score = probability * 40 + max(0, ev_pct) * 0.6
         
@@ -732,12 +734,11 @@ class AIAnalyzer:
                 'fallback': True
             }
         
-        # 🎯 SELEÇÃO CONTEXTUAL: escolher a melhor aposta baseada no contexto
-        best_bet = self._select_best_bet_by_context(top_bets, enriched_data, strategy)
-        
-        if not best_bet:
-            best_bet = top_bets[0]  # Fallback: primeira aposta
-        
+        # 🛡️ SINCRONIZAÇÃO COM O BILHETE (fix): o best_bet é definido dentro de cada
+        # estratégia replicando a MESMA regra de seleção do DailyBetGenerator, para que o
+        # texto espelhe exatamente o que o bilhete (ou a value bet) contém.
+        best_bet = top_bets[0] if top_bets else None
+
         if not best_bet:
             return {
                 'success': False,
@@ -754,39 +755,37 @@ class AIAnalyzer:
         
         if strategy == 'multiple':
             # MODO BILHETE: Foco em probabilidade e combinação
-            # ✅ CORREÇÃO 22/02: Filtrar apostas adequadas para bilhetes (odds 1.30-2.00, prob ≥65%)
+            # 🛡️ SINCRONIZAÇÃO COM O BILHETE (fix): replicar EXATAMENTE a seleção do
+            # DailyBetGenerator._generate_multiple_tickets:
+            #   elegível = prob >= 65% AND 1.30 <= odd <= 1.50 (MAX_ODD_MULTIPLE do gerador)
+            #   escolha  = max(contextual_fit, score, probability)
+            # Antes usava-se MAX_ODD_MULTIPLE=2.00 e best_bet=top_bets[0], o que divergia do
+            # bilhete e exibia linhas como "Under 2.75" @ 1.31 em vez da seleção real.
             MIN_ODD_MULTIPLE = 1.30
-            MAX_ODD_MULTIPLE = 2.00
+            MAX_ODD_MULTIPLE = 1.50
             MIN_PROB_MULTIPLE = 0.65
             
-            suitable_bets = [
+            eligible_bets = [
                 bet for bet in top_bets 
                 if (bet.get('market_odd') or 0) >= MIN_ODD_MULTIPLE 
                 and (bet.get('market_odd') or 0) <= MAX_ODD_MULTIPLE
                 and bet.get('probability', 0) >= MIN_PROB_MULTIPLE
             ]
             
-            if not suitable_bets:
-                # Fallback: relaxar critérios se não houver apostas adequadas
-                logger.warning("⚠️ Nenhuma aposta adequada para bilhete (odds 1.30-2.00, prob ≥65%). Relaxando para prob ≥50%")
-                suitable_bets = [
-                    bet for bet in top_bets 
-                    if (bet.get('market_odd') or 0) >= MIN_ODD_MULTIPLE 
-                    and (bet.get('market_odd') or 0) <= MAX_ODD_MULTIPLE
-                    and bet.get('probability', 0) >= 0.50
-                ]
-            
-            if not suitable_bets:
-                # Último fallback: usar a melhor disponível mas marcar como inadequada
-                logger.warning("⚠️ Nenhuma aposta com odds adequadas. Usando melhor disponível (pode não ser ideal para bilhete)")
-                suitable_bets = [best_bet]
-            
-            # 🎯 SELEÇÃO CONTEXTUAL: Re-selecionar dentro das suitable_bets
-            best_bet_contextual = self._select_best_bet_by_context(suitable_bets, enriched_data, strategy)
-            if best_bet_contextual:
-                best_bet = best_bet_contextual
+            if eligible_bets:
+                # Mesma chave de ordenação do gerador de bilhetes (contextual_fit → score → prob)
+                eligible_bets.sort(key=lambda b: (
+                    b.get('contextual_fit', 1.0),
+                    b.get('score', 0),
+                    b.get('probability', 0),
+                ), reverse=True)
+                best_bet = eligible_bets[0]
+                suitable_bets = eligible_bets
             else:
-                best_bet = suitable_bets[0]
+                # Nenhuma aposta atende os critérios de bilhete — o gerador PULARIA este jogo.
+                # Mantém a melhor disponível apenas para não deixar o relatório vazio.
+                logger.warning("⚠️ Nenhuma aposta atende os critérios de bilhete (odd 1.30-1.50, prob ≥65%). Relatório apontará a melhor disponível.")
+                suitable_bets = [best_bet]
             
             market_odd = best_bet.get('market_odd') or 0
             
@@ -795,7 +794,7 @@ class AIAnalyzer:
 🎯 CONTEXTO: {context_explanation}
 
 Aposta: {best_bet['market_display']}
-Odd: {market_odd:.2f} (ideal para bilhetes: 1.30-2.00)
+Odd: {market_odd:.2f} (ideal para bilhetes: 1.30-1.50)
 Probabilidade: {best_bet['probability']*100:.1f}% (mínimo 65%)
 Stake: {best_bet['stake_units']:.1f} unidades
 

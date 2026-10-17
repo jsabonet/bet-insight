@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.db.models import Count, Q, Avg, Sum
-from datetime import timedelta
+from datetime import datetime, timedelta
 import logging
 
 from .models import Analysis, DailyBet
@@ -180,7 +180,10 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['get'], url_path='today')
     def today(self, request):
         """
-        Retorna apostas geradas para hoje
+        Retorna apostas geradas para hoje (ou para uma data específica).
+        
+        Query params:
+        - date: Data no formato YYYY-MM-DD (opcional). Se omitida, usa a data local atual.
         
         Response:
         {
@@ -195,10 +198,17 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
             }
         }
         """
-        today = timezone.now().date()
+        # Resolver a data alvo (permite que admins consultem bilhetes passados)
+        date_param = request.query_params.get('date')
+        target_date = timezone.localdate()
+        if date_param:
+            try:
+                target_date = datetime.strptime(date_param, '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                target_date = timezone.localdate()
         
-        # Buscar apostas de hoje
-        today_bets = DailyBet.objects.filter(date=today)
+        # Buscar apostas da data alvo
+        today_bets = DailyBet.objects.filter(date=target_date)
         
         # Separar por tipo
         multiple_tickets = today_bets.filter(bet_type='multiple').order_by('-combined_probability')
@@ -232,7 +242,7 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
             )
         
         return Response({
-            'date': today.isoformat(),
+            'date': target_date.isoformat(),
             'multiple_tickets': DailyBetSerializer(multiple_tickets, many=True).data,
             'value_bets': DailyBetSerializer(value_bets, many=True).data,
             'stats': stats

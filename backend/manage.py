@@ -27,7 +27,7 @@ def main():
         print(f"   DEFAULT_WITH_MARKET poisson: {EnsembleWeights.DEFAULT_WITH_MARKET['poisson']}")
         print(f"   CLEAR_FAVORITE poisson: {EnsembleWeights.CLEAR_FAVORITE['poisson']}")
         
-        if EnsembleWeights.DEFAULT_WITH_MARKET['poisson'] == 0.60:
+        if EnsembleWeights.DEFAULT_WITH_MARKET['poisson'] == 0.70:
             print("   [OK] manage.py CARREGOU CODIGO NOVO!\n")
         else:
             print(f"   [ERRO] manage.py CARREGOU CODIGO ERRADO: {EnsembleWeights.DEFAULT_WITH_MARKET['poisson']}\n")

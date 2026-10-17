@@ -6,8 +6,19 @@ import requests
 import logging
 from django.conf import settings
 from django.core.cache import cache
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+
+
+def get_current_season(now=None):
+    """Retorna a época (season) atual da API-Football.
+
+    A época europeia começa em agosto: p.ex. em outubro de 2026 a época é 2026
+    (2026/2027); em março de 2026 a época é 2025 (2025/2026).
+    """
+    now = now or timezone.now()
+    return now.year if now.month >= 8 else now.year - 1
 
 class APIFootballService:
     """Serviço para buscar dados da API-Football com cache"""
@@ -55,7 +66,7 @@ class APIFootballService:
             logger.error(f"Erro ao buscar {endpoint}: {str(e)}")
             return None
     
-    def fetch_standings(self, league_id, season=2025):
+    def fetch_standings(self, league_id, season=None):
         """
         Busca classificação da liga
         
@@ -70,6 +81,8 @@ class APIFootballService:
                 }
             }
         """
+        if season is None:
+            season = get_current_season()
         logger.info(f"📊 Buscando standings - League: {league_id}, Season: {season}")
         
         data = self._make_request('standings', {'league': league_id, 'season': season}, cache_type='standings')
@@ -360,7 +373,7 @@ class APIFootballService:
         
         return odds_result
     
-    def fetch_team_statistics(self, team_id, league_id, season=2025):
+    def fetch_team_statistics(self, team_id, league_id, season=None):
         """
         Busca estatísticas detalhadas do time
         
@@ -375,6 +388,8 @@ class APIFootballService:
                 'avg_corners': float
             }
         """
+        if season is None:
+            season = get_current_season()
         logger.info(f"📈 Buscando estatísticas - Team: {team_id}, League: {league_id}")
         
         data = self._make_request('teams/statistics', {
@@ -597,18 +612,20 @@ class APIFootballService:
         logger.info(f"✅ {len(fixtures)} fixtures obtidas")
         return fixtures
     
-    def get_fixtures_by_date(self, date_str, league_id=None, season=2026):
+    def get_fixtures_by_date(self, date_str, league_id=None, season=None):
         """
         Busca fixtures por data (formato: YYYY-MM-DD)
         
         Args:
             date_str: Data no formato 'YYYY-MM-DD'
             league_id: ID da liga (opcional)
-            season: Temporada (padrão: 2026)
+            season: Temporada (opcional; por omissão usa a época atual)
         
         Returns:
             dict: Resposta completa da API com fixtures
         """
+        if season is None:
+            season = get_current_season()
         logger.info(f"📅 Buscando fixtures - Data: {date_str}, Liga: {league_id}")
         
         params = {'date': date_str}

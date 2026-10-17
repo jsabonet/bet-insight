@@ -18,7 +18,7 @@ class AnalysisConfig(AppConfig):
         logger.warning(f"   DEFAULT_WITH_MARKET poisson: {EnsembleWeights.DEFAULT_WITH_MARKET['poisson']}")
         logger.warning(f"   CLEAR_FAVORITE poisson: {EnsembleWeights.CLEAR_FAVORITE['poisson']}")
         
-        if EnsembleWeights.DEFAULT_WITH_MARKET['poisson'] == 0.60:
+        if EnsembleWeights.DEFAULT_WITH_MARKET['poisson'] == 0.70:
             logger.warning("   ✅ DJANGO CARREGOU CÓDIGO NOVO!")
         else:
             logger.error(f"   ❌ DJANGO CARREGOU CÓDIGO ERRADO: {EnsembleWeights.DEFAULT_WITH_MARKET['poisson']}")

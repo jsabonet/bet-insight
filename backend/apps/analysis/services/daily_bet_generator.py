@@ -476,8 +476,8 @@ class DailyBetGenerator:
         for idx, analysis in enumerate(analyses):
             match_id = analysis.get('fixture_id', idx)
             value_result = analysis.get('value_result') or {}
-            analysis_data = value_result.get('analysis_data', {})
-            market_odds = analysis_data.get('market_odds', {})
+            analysis_data = value_result.get('analysis_data') or {}
+            market_odds = analysis_data.get('market_odds') or {}
 
             # Mercado 1X2
             home_odd = market_odds.get('home_win', 0)
@@ -645,7 +645,12 @@ class DailyBetGenerator:
         
         # Usar modo especificado ou padrão da classe
         search_mode = mode or self.SEARCH_MODE
-        today = timezone.now().date()
+        # localdate() devolve a data no fuso de Maputo (TIME_ZONE), ao contrário de
+        # timezone.now().date(), que devolve a data UTC e fica "um dia atrás" entre
+        # as 00:00 e as 02:00 locais (quando a geração diária é agendada).
+        today = timezone.localdate()
+        # Determinar a época atual dinamicamente (época europeia começa em agosto)
+        season = today.year if today.month >= 8 else today.year - 1
         
         logger.info("=" * 100)
         period_text = "HOJE" if days_ahead == 1 else f"Próximos {days_ahead} dias"
@@ -676,7 +681,7 @@ class DailyBetGenerator:
                 for league_id in self.PRIORITY_LEAGUES:
                     try:
                         # Buscar por liga específica (mais eficiente)
-                        response = self.api.get_fixtures_by_date(date_str, league_id=league_id, season=2025)
+                        response = self.api.get_fixtures_by_date(date_str, league_id=league_id, season=season)
                         if response and response.get('response'):
                             fixtures = response['response']
                             if len(fixtures) > 0:

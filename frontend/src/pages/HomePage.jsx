@@ -32,12 +32,21 @@ export default function HomePage() {
   const [isMockData, setIsMockData] = useState(false);
   const [dataSource, setDataSource] = useState('');
   const [showLimitModal, setShowLimitModal] = useState(false);
+  const [selectedPastDate, setSelectedPastDate] = useState('');
+  
+  const isAdmin = user?.is_staff || user?.is_superuser;
   
   const MATCHES_PER_PAGE = 100;
 
+  // Strings de data (padrão local, consistente com o resto da página)
+  const nowRef = new Date();
+  const yesterdayDate = new Date(nowRef);
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
+
   useEffect(() => {
     loadMatches();
-  }, [filter]); // Recarregar quando mudar o filtro (para buscar live)
+  }, [filter, selectedPastDate]); // Recarregar quando mudar o filtro ou a data passada
 
   useEffect(() => {
     // Debounce para busca (500ms)
@@ -82,6 +91,18 @@ export default function HomePage() {
         const response = await matchesAPI.getLive();
         fetchedMatches = response.data.matches || [];
         console.log(`✅ ${fetchedMatches.length} partidas ao vivo encontradas`);
+      } else if (filter === 'yesterday') {
+        // Partidas de ontem (apenas admin)
+        console.log('🗓️ Buscando partidas de ONTEM...');
+        const response = await matchesAPI.getPastMatches(yesterdayStr);
+        fetchedMatches = response.data.matches || [];
+        console.log(`✅ ${fetchedMatches.length} partidas de ontem encontradas`);
+      } else if (filter === 'past_date' && selectedPastDate) {
+        // Partidas de uma data passada específica (apenas admin)
+        console.log(`🗓️ Buscando partidas da data passada ${selectedPastDate}...`);
+        const response = await matchesAPI.getPastMatches(selectedPastDate);
+        fetchedMatches = response.data.matches || [];
+        console.log(`✅ ${fetchedMatches.length} partidas encontradas para ${selectedPastDate}`);
       } else {
         // Buscar partidas reais da API externa
         const today = new Date().toISOString().split('T')[0];
@@ -168,6 +189,12 @@ export default function HomePage() {
         } else if (filter === 'tomorrow') {
           // Partidas de amanhã
           return matchDay === tomorrowStr;
+        } else if (filter === 'yesterday') {
+          // Partidas de ontem (apenas admin)
+          return matchDay === yesterdayStr;
+        } else if (filter === 'past_date') {
+          // Partidas de uma data passada específica (apenas admin)
+          return selectedPastDate ? matchDay === selectedPastDate : true;
         } else if (filter === 'upcoming') {
           // Partidas futuras: hoje e amanhã apenas
           // Priorizar jogos de hoje que ainda não começaram
@@ -310,6 +337,7 @@ export default function HomePage() {
     { id: 'today', label: 'Hoje', icon: CalendarDays },
     { id: 'tomorrow', label: 'Amanhã', icon: CalendarDays },
     { id: 'live', label: 'Ao Vivo', icon: Flame },
+    ...(isAdmin ? [{ id: 'yesterday', label: 'Ontem', icon: CalendarDays }] : []),
     { id: 'all', label: 'Todas', icon: Sparkles },
   ];
 
@@ -395,7 +423,12 @@ export default function HomePage() {
           {filters.map((f) => (
             <button
               key={f.id}
-              onClick={() => setFilter(f.id)}
+              onClick={() => {
+                setFilter(f.id);
+                if (f.id !== 'past_date' && f.id !== 'yesterday') {
+                  setSelectedPastDate('');
+                }
+              }}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl font-semibold whitespace-nowrap transition-all duration-200 ${
                 filter === f.id
                   ? 'bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-600/30 scale-105'
@@ -407,6 +440,36 @@ export default function HomePage() {
             </button>
           ))}
         </div>
+
+        {/* Admin: seletor de data passada */}
+        {isAdmin && (
+          <div className="mb-6 flex items-center gap-3 flex-wrap">
+            <label htmlFor="past-date" className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+              Selecionar data passada:
+            </label>
+            <input
+              id="past-date"
+              type="date"
+              max={yesterdayStr}
+              value={selectedPastDate}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectedPastDate(value);
+                setFilter(value ? 'past_date' : 'upcoming');
+              }}
+              className="px-4 py-2 rounded-xl text-sm font-medium bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-2 border-gray-200 dark:border-gray-700 focus:border-primary-500 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 transition-all outline-none"
+            />
+            {selectedPastDate && (
+              <button
+                onClick={() => { setSelectedPastDate(''); setFilter('upcoming'); }}
+                className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              >
+                <X className="w-4 h-4" />
+                Limpar
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Matches List */}
         {loading ? (

@@ -348,6 +348,62 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             'source': 'mock'
         })
 
+    @action(detail=False, methods=['get'])
+    def past_matches(self, request):
+        """Partidas de datas passadas - apenas para administradores"""
+        if not (request.user.is_staff or request.user.is_superuser):
+            return Response(
+                {'error': 'Apenas administradores podem consultar partidas de datas passadas.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        date = request.query_params.get('date', '').strip()
+        if not date:
+            return Response(
+                {'error': 'Parâmetro "date" é obrigatório (formato YYYY-MM-DD).'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            target_date = datetime.strptime(date, '%Y-%m-%d').date()
+        except ValueError:
+            return Response(
+                {'error': 'Data inválida. Use o formato YYYY-MM-DD.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Permitir apenas datas passadas (antes de hoje)
+        if target_date >= timezone.now().date():
+            return Response(
+                {'error': 'Este endpoint é apenas para datas passadas.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        logger.info(f"🗓️ Buscando partidas da data passada: {date} (admin)")
+        football_api = FootballAPIService()
+        result = football_api.get_fixtures_by_date(date)
+
+        if result['success'] and result['fixtures']:
+            matches = self._format_api_matches(result['fixtures'])
+            # Ordenar por data/hora
+            matches.sort(key=lambda x: x.get('match_date', ''))
+            return Response({
+                'date': date,
+                'count': len(matches),
+                'matches': matches,
+                'is_mock': False,
+                'source': 'api-football'
+            })
+
+        logger.warning(f"⚠️ Nenhuma partida encontrada para a data passada {date}")
+        return Response({
+            'date': date,
+            'count': 0,
+            'matches': [],
+            'is_mock': False,
+            'source': 'not-found'
+        })
+
     @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def search(self, request):
         """Busca inteligente de partidas - busca na API se não encontrar localmente"""

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dailyBetsAPI } from '../services/dailyBetsAPI';
-import { Target, Zap, TrendingUp, RefreshCw, ArrowLeft, ChevronRight } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Target, Zap, TrendingUp, RefreshCw, ArrowLeft, ChevronRight, CalendarDays, X } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
 import MultipleTicketCard from '../components/MultipleTicketCard';
@@ -13,6 +14,8 @@ import SEOHead from '../components/SEO/SEOHead';
 
 export default function DailyBetsPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.is_staff || user?.is_superuser;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [multipleTickets, setMultipleTickets] = useState([]);
@@ -20,21 +23,29 @@ export default function DailyBetsPage() {
   const [stats, setStats] = useState({});
   const [activeTab, setActiveTab] = useState('today'); // 'today', 'stats'
   const [error, setError] = useState(null);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [displayedDate, setDisplayedDate] = useState('');
+
+  // Data máxima permitida para o seletor (hoje, no fuso local)
+  const now = new Date();
+  const maxDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   useEffect(() => {
     loadDailyBets();
     loadStats();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]);
 
   const loadDailyBets = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await dailyBetsAPI.getToday();
+      const response = await dailyBetsAPI.getToday(selectedDate || undefined);
       const data = response.data;
       
       setMultipleTickets(data.multiple_tickets || []);
       setValueBets(data.value_bets || []);
+      setDisplayedDate(data.date || '');
     } catch (err) {
       console.error('Erro ao carregar bilhetes:', err);
       setError('Erro ao carregar bilhetes. Tente novamente.');
@@ -93,7 +104,9 @@ export default function DailyBetsPage() {
                 Bilhetes Automáticos
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
-                Análise completa de todas as partidas de hoje
+                {selectedDate
+                  ? `Bilhetes gerados em ${displayedDate || selectedDate}`
+                  : 'Análise completa de todas as partidas de hoje'}
               </p>
             </div>
             
@@ -125,6 +138,34 @@ export default function DailyBetsPage() {
             </div>
           )}
         </div>
+
+        {/* Admin: seletor de data para bilhetes passados */}
+        {isAdmin && (
+          <div className="mb-6 flex items-center gap-3 flex-wrap">
+            <label htmlFor="daily-bets-date" className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+              <CalendarDays className="w-4 h-4 inline mr-1 -mt-0.5" />
+              Ver bilhetes de outra data:
+            </label>
+            <input
+              id="daily-bets-date"
+              type="date"
+              max={maxDate}
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="px-4 py-2 rounded-xl text-sm font-medium bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-2 border-gray-200 dark:border-gray-700 focus:border-primary-500 dark:focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 transition-all outline-none"
+            />
+            {selectedDate && (
+              <button
+                onClick={() => setSelectedDate('')}
+                className="flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                title="Voltar para hoje"
+              >
+                <X className="w-4 h-4" />
+                Hoje
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 border-b border-gray-200 dark:border-gray-700">
@@ -168,7 +209,11 @@ export default function DailyBetsPage() {
               <EmptyState
                 variant="no-data"
                 title="Nenhum Bilhete Disponível"
-                description="Os bilhetes de hoje ainda não foram gerados. Volte mais tarde!"
+                description={
+                  selectedDate
+                    ? `Nenhum bilhete foi gerado em ${displayedDate || selectedDate}.`
+                    : 'Os bilhetes de hoje ainda não foram gerados. Volte mais tarde!'
+                }
                 action={
                   <button onClick={handleRefresh} className="btn-primary">
                     Atualizar

@@ -110,6 +110,7 @@ export const matchesAPI = {
   
   // Novos endpoints - Integração com APIs externas
   getFromAPI: (date) => api.get('/matches/from_api/', { params: { date } }),
+  getPastMatches: (date) => api.get('/matches/past_matches/', { params: { date } }),
   getApiDetail: (id) => api.get('/matches/api_detail/', { params: { id } }),
   searchMatches: (query) => api.get('/matches/search/', { params: { q: query } }),
   analyzeMatch: (matchId) => api.post(`/matches/${matchId}/analyze/`),

@@ -173,12 +173,17 @@ class HybridAnalysisOrchestrator:
             logger.warning(f"⚠️ [Orchestrator] Sem odds disponíveis - top_bets será vazio")
         
         # NOVO: Passar context_analysis para DecisionEngine
+        # 🛡️ FILTROS TÁTICOS QUALITATIVOS: ativados automaticamente pelo DecisionEngine
+        # quando strategy == 'multiple' (dérbi + elasticidade de linhas).
+        if strategy == 'multiple':
+            logger.info("🛡️ [Orchestrator] ESTRATÉGIA MULTIPLE - Filtros táticos qualitativos ATIVOS (Dérbi + Elasticidade)")
         decision_result = self.decision.make_decision(
             ensemble_result, 
             features, 
             market_odds, 
             strategy=strategy,
-            context_analysis=context_analysis  # NOVO
+            context_analysis=context_analysis,  # NOVO
+            match=match  # 🛡️ NOVO: Filtros táticos qualitativos (dérbi + elasticidade)
         )
         
         # LOG: Resultado do Decision Engine
