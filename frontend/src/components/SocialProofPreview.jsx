@@ -17,14 +17,12 @@ const COLORS = {
   border: '#EBEBEB',
   borderLight: '#F0F0F0',
   borderMid: '#DCDCDC',
-  borderSoft: '#F5F5F5',
   borderDark: '#DADADA',
   green: '#009100',
   greenDark: '#00A63F',
   greenBg: '#E6F6EC',
   detailsBg: '#F7F3F6',
   summaryBg: '#FAFAFA',
-  circleGray: '#B0B0B0',
 };
 
 const FONT =
@@ -410,8 +408,8 @@ const SocialProofPreview = forwardRef(function SocialProofPreview(
             alignItems: 'center',
             padding: s(8),
             backgroundColor: COLORS.white,
-            gap: s(8),
-            flexWrap: 'wrap',
+            gap: s(6),
+            flexWrap: 'nowrap',
           }}
         >
           <div
@@ -422,62 +420,64 @@ const SocialProofPreview = forwardRef(function SocialProofPreview(
               border: `${b}px solid ${COLORS.borderDark}`,
               borderRadius: s(4),
               overflow: 'hidden',
-              fontSize: s(15),
+              fontSize: s(13),
               fontWeight: 400,
+              whiteSpace: 'nowrap',
             }}
           >
-            <span style={{ padding: s(8), whiteSpace: 'nowrap' }}>
+            <span style={{ padding: s(7), whiteSpace: 'nowrap' }}>
               {title} (<strong style={{ color: COLORS.green }}>{legs.length}</strong>)
             </span>
             <span
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: s(4),
-                padding: s(8),
+                gap: s(3),
+                padding: s(7),
                 borderLeft: `${b}px solid ${COLORS.borderDark}`,
-                fontSize: s(15),
+                fontSize: s(12),
                 fontWeight: 500,
                 whiteSpace: 'nowrap',
                 color: COLORS.muted,
               }}
             >
-              <IconCircleOpen size={s(16)} />
+              <IconCircleOpen size={s(14)} />
               {lostCount}
             </span>
             <span
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: s(4),
-                padding: s(8),
+                gap: s(3),
+                padding: s(7),
                 borderLeft: `${b}px solid ${COLORS.borderDark}`,
-                fontSize: s(15),
+                fontSize: s(12),
                 fontWeight: 500,
                 whiteSpace: 'nowrap',
                 color: COLORS.green,
               }}
             >
-              <IconCheckCircle size={s(18)} />
+              <IconCheckCircle size={s(15)} />
               {wonCount}
             </span>
           </div>
 
           <span
             style={{
-              padding: s(8),
+              padding: s(7),
               borderRadius: s(4),
               backgroundColor: COLORS.detailsBg,
-              fontSize: s(15),
+              fontSize: s(12),
               fontWeight: 'bold',
               color: COLORS.ink,
               display: 'flex',
               alignItems: 'center',
               gap: s(4),
+              whiteSpace: 'nowrap',
             }}
           >
             Visualização de detalhes
-            <IconChevronDown size={s(14)} />
+            <IconChevronDown size={s(12)} />
           </span>
         </div>
 
@@ -492,137 +492,6 @@ const SocialProofPreview = forwardRef(function SocialProofPreview(
         >
           {visibleTeams.join(' | ')}
           {moreCount > 0 ? ` + ${moreCount} Mais` : ''}
-        </div>
-
-        {/* Lista de seleções (detalhes) */}
-        <div style={{ backgroundColor: COLORS.white }}>
-          {legs.map((leg, index) => {
-            const kickoff = parseKickoff(leg.kickoff);
-            const won = leg.result === 'won';
-            const pickText = String(leg.pick || leg.market_label || 'Seleção');
-            const marketText = String(leg.market_label || '');
-            const showMarket =
-              marketText && marketText.toLowerCase() !== pickText.toLowerCase();
-
-            return (
-              <div
-                key={`${leg.fixture_id}-${leg.market}-${index}`}
-                style={{
-                  padding: `${s(14)}px ${s(16)}px`,
-                  borderBottom: `${b}px solid ${COLORS.borderSoft}`,
-                  display: 'flex',
-                  gap: s(12),
-                  position: 'relative',
-                }}
-              >
-                <div style={{ marginTop: s(2) }}>
-                  <div
-                    style={{
-                      width: s(18),
-                      height: s(18),
-                      borderRadius: '50%',
-                      border: `${Math.max(2, s(2))}px solid ${
-                        won ? COLORS.green : COLORS.circleGray
-                      }`,
-                      backgroundColor: won ? COLORS.green : 'transparent',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: COLORS.white,
-                      fontSize: s(11),
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    {won ? '✓' : ''}
-                  </div>
-                </div>
-
-                <div style={{ flex: 1, minWidth: 0, paddingRight: s(40) }}>
-                  <div
-                    style={{
-                      fontSize: s(13),
-                      color: COLORS.lightGray,
-                      marginBottom: s(2),
-                    }}
-                  >
-                    <strong style={{ color: COLORS.darkGray }}>{pickText}</strong>
-                    {showMarket ? ` | ${marketText}` : ''}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: s(13),
-                      fontWeight: 500,
-                      color: COLORS.darkGray,
-                      marginBottom: s(2),
-                    }}
-                  >
-                    {leg.match || 'Partida'}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: s(12),
-                      color: COLORS.lightGray,
-                      marginBottom: s(6),
-                    }}
-                  >
-                    {[
-                      leg.league,
-                      kickoff ? `${dayLabel(kickoff)} ${formatTime(kickoff)}` : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: s(8),
-                      fontSize: s(12),
-                      color: '#555555',
-                    }}
-                  >
-                    <span
-                      style={{
-                        backgroundColor: COLORS.green,
-                        color: COLORS.white,
-                        padding: `${s(2)}px ${s(6)}px`,
-                        borderRadius: s(12),
-                        fontSize: s(11),
-                        fontWeight: 'bold',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: s(4),
-                      }}
-                    >
-                      <span
-                        style={{
-                          width: s(6),
-                          height: s(6),
-                          borderRadius: '50%',
-                          backgroundColor: COLORS.white,
-                        }}
-                      />
-                      Finalizado
-                    </span>
-                    {leg.final_score ? <span>{String(leg.final_score)}</span> : null}
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: s(14),
-                    right: s(16),
-                    fontSize: s(14),
-                    fontWeight: 'bold',
-                    color: COLORS.ink,
-                  }}
-                >
-                  {formatOdd(leg.odd)}
-                </div>
-              </div>
-            );
-          })}
         </div>
 
         {/* Valores e finanças */}
