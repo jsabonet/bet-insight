@@ -538,7 +538,7 @@ nano backend/.env.production
 # Django Settings
 DEBUG=False
 SECRET_KEY=COLE-AQUI-A-CHAVE-SECRETA-GERADA-ABAIXO
-ALLOWED_HOSTS=178.128.198.19,seu-dominio.com,www.seu-dominio.com
+ALLOWED_HOSTS=seu-dominio.com,www.seu-dominio.com,localhost,127.0.0.1
 
 # Database (mantenha estes valores)
 DB_NAME=betinsight_db
@@ -756,40 +756,54 @@ docker compose exec backend python manage.py createsuperuser
 
 ## 🌐 PARTE 6: Testar Aplicação
 
+> **Política de acesso:** o nginx nega por omissão. Em HTTP só respondem
+> `/.well-known/acme-challenge/` (para o Let's Encrypt) e `/health`. A
+> aplicação **nunca** é servida por HTTP nem por IP — só depois do
+> `setup-ssl.sh` (Passo 7.5), em `https://SEU_DOMINIO`. Ver
+> [Problema 11](#problema-11-acesso-directo-pelo-ip-444--falha-de-tls).
+
 ### Passo 6.1: Testes locais no servidor
 
 ```bash
-# Teste 1: Health check
+# Teste 1: Health check (único caminho público em HTTP)
 curl http://localhost/health
 # Deve retornar: healthy
 
-# Teste 2: API Backend
-curl http://localhost/api/subscriptions/plans/
-# Deve retornar JSON com planos
+# Teste 2: o site está fechado em HTTP (é o esperado)
+curl -o /dev/null -s -w "%{http_code}\n" http://localhost/
+curl -o /dev/null -s -w "%{http_code}\n" http://SEU_IP/
+# curl: (52) Empty reply from server  → return 444, é o comportamento correcto
+```
 
-# Teste 3: Admin Django
-curl -I http://localhost/admin/
-# Deve retornar: HTTP/1.1 200 OK
+Para validar o conteúdo da aplicação antes do SSL, fale com os containers
+directamente pela rede interna do Compose (não passa pelo nginx):
 
-# Teste 4: Frontend
-curl -I http://localhost/
-# Deve retornar: HTTP/1.1 200 OK
+```bash
+# Frontend (SPA)
+docker compose exec nginx wget -qO- http://frontend/ | head -20
+
+# API Django
+docker compose exec nginx wget -qO- http://backend:8000/api/subscriptions/plans/ | head -20
+
+# Admin Django (200 = OK)
+docker compose exec nginx wget -qO /dev/null http://backend:8000/admin/login/
 ```
 
 ### Passo 6.2: Testar do seu computador
 
-```bash
-# No navegador, acesse:
+**Antes do SSL:** não há nada para abrir no navegador — o IP está bloqueado de
+propósito. Depois do Passo 7.5:
 
+```bash
 # 1. Frontend
-http://SEU_IP
+https://SEU_DOMINIO
 
 # 2. Admin Django
-http://SEU_IP/admin/
+https://SEU_DOMINIO/admin/
 # Login com usuário criado no passo 5.4
 
 # 3. API
-http://SEU_IP/api/subscriptions/plans/
+https://SEU_DOMINIO/api/subscriptions/plans/
 ```
 
 **Você deve ver:**
@@ -797,8 +811,13 @@ http://SEU_IP/api/subscriptions/plans/
 - ✅ Página de login funcionando
 - ✅ Admin Django acessível
 - ✅ API retornando dados JSON
+- ✅ `http://SEU_IP` sem resposta e `https://SEU_IP` com falha de handshake
 
-## 🔐 PARTE 7: Configurar Domínio e SSL (Opcional mas Recomendado)
+## 🔐 PARTE 7: Configurar Domínio e SSL (OBRIGATÓRIO)
+
+> A partir da política de acesso actual, a aplicação **só** é servida em
+> `https://DOMINIO`. Sem esta parte, o site não responde a mais nada além de
+> `/health` e do desafio ACME (ver [Problema 11](#problema-11-acesso-directo-pelo-ip--444--falha-de-tls)).
 
 ### Passo 7.1: Apontar domínio para servidor
 
@@ -845,8 +864,9 @@ nslookup seu-dominio.com
 # No servidor, editar .env
 nano backend/.env.production
 
-# Atualizar linha ALLOWED_HOSTS:
-ALLOWED_HOSTS=SEU_IP,seu-dominio.com,www.seu-dominio.com
+# Atualizar linha ALLOWED_HOSTS (sem o IP do droplet: o site só existe no
+# domínio e o nginx fecha o acesso por IP -- ver Problema 11):
+ALLOWED_HOSTS=seu-dominio.com,www.seu-dominio.com,localhost,127.0.0.1
 
 # Atualizar PAYSUITE_WEBHOOK_URL:
 PAYSUITE_WEBHOOK_URL=https://seu-dominio.com/api/subscriptions/payments/webhook/
@@ -884,10 +904,11 @@ docker compose up -d frontend    # recria só o container do frontend
 
 > **Importante:** o repositório **não** traz `docker/nginx/conf.d/ssl.conf`. É
 > gerado por este script a partir de `docker/nginx/ssl.conf.template`. Antes do
-> SSL o site já funciona em HTTP (é o que permite ao Let's Encrypt validar o
-> domínio). Se o nginx arrancasse com um `ssl.conf` a apontar para um
-> certificado inexistente, morria com
-> `cannot load certificate ... No such file or directory` e nada subia.
+> SSL o nginx está em modo fechado: só responde ao desafio ACME e a `/health`
+> (é exactamente o que o Let's Encrypt precisa para validar o domínio). Se o
+> nginx arrancasse com um `ssl.conf` a apontar para um certificado inexistente,
+> morria com `cannot load certificate ... No such file or directory` e nada
+> subia.
 
 ```bash
 # Executar script de SSL
@@ -1278,7 +1299,7 @@ git pull
 ls docker/nginx/conf.d/          # deve conter apenas default.conf
 docker compose up -d nginx
 docker compose exec nginx nginx -t
-curl -I http://SEU_IP/health     # 200 "healthy"
+curl http://localhost/health     # 200 "healthy"
 ```
 
 Depois, com o DNS do domínio já a apontar para o droplet:
@@ -1289,11 +1310,86 @@ Depois, com o DNS do domínio já a apontar para o droplet:
 
 **Ordem correcta do deploy:**
 
-1. `docker compose up -d` → site em **HTTP** (o `default.conf` já serve tudo)
+1. `docker compose up -d` → nginx em modo fechado (só ACME + `/health`)
 2. DNS do domínio → IP do droplet (propagação pode levar minutos)
-3. `./scripts/setup-ssl.sh dominio.com email` → gera o `ssl.conf` e activa HTTPS
-4. `default.conf` continua a ser o catch-all (IP + health check + desafio ACME);
-   o bloco de redirect HTTP→HTTPS do `ssl.conf` só se aplica ao domínio real
+3. `./scripts/setup-ssl.sh dominio.com email` → gera o `ssl.conf`, obtém o
+   certificado e activa HTTPS **nesse domínio**
+4. `default.conf` continua a ser o `default_server` da porta 80: nega o acesso
+   directo pelo IP e serve o desafio ACME. O bloco HTTP→HTTPS do `ssl.conf`
+   só se aplica ao domínio real.
+
+> Se o `ssl.conf` foi gerado antes de uma alteração ao template, regenere-o:
+> `./scripts/setup-ssl.sh DOMINIO EMAIL` novamente (com
+> `--keep-until-expiring` o certificado não é reemitido em vão).
+
+### Problema 11: acesso directo pelo IP — 444 / falha de TLS
+
+**Sintoma:**
+
+```
+$ curl -I http://161.35.78.250/
+curl: (52) Empty reply from server
+
+$ curl -I https://161.35.78.250/ -k
+curl: (35) error:0A00010B:SSL routines::wrong version number
+# ou: sslv3 alert handshake failure
+```
+
+E `https://161.35.78.250/` no navegador mostra `ERR_SSL_PROTOCOL_ERROR` ou
+`ERR_CONNECTION_CLOSED`, enquanto `https://placarcerto.digital` funciona.
+
+**Isto não é um bug — é a política de acesso.** O site só existe para o
+domínio configurado:
+
+| Pedido | Onde é atendido | Resultado |
+|--------|-----------------|-----------|
+| `http://IP/qualquer` | `default.conf` (`default_server` :80) | `return 444` (ligação fechada) |
+| `http://IP/health` | `default.conf` | `200 healthy` |
+| `http://IP/.well-known/acme-challenge/...` | `default.conf` | validação certbot |
+| `https://IP/` | `ssl.conf` (`:443 ssl default_server`) | `ssl_reject_handshake on` |
+| `http://DOMINIO/` | `ssl.conf` (server_name do domínio) | `301` → HTTPS |
+| `https://DOMINIO/` | `ssl.conf` (server_name do domínio) | aplicação |
+
+**Diagnosticar:**
+
+```bash
+# Deve falhar SEMPRE (é o objectivo)
+curl -I http://SEU_IP/
+curl -kI https://SEU_IP/
+
+# Deve funcionar
+curl http://localhost/health
+curl -I https://SEU_DOMINIO/
+
+# Confirmar a política configurada
+docker compose exec nginx nginx -T | grep -E "listen|server_name|ssl_reject_handshake|return 444"
+```
+
+**Como testar a aplicação antes do SSL existir:** pela rede interna do Compose
+(Passo 6.1) ou descomentando o bloco `preview.local` no fim de
+`docker/nginx/conf.d/default.conf`, adicionando `IP_DO_DROPLET preview.local` ao
+ficheiro `hosts` do seu computador e abrindo `http://preview.local` (o acesso
+por IP continua fechado). Reverta depois do HTTPS estar a funcionar.
+
+**Requisitos:** `ssl_reject_handshake` precisa de nginx ≥ 1.19.4; a imagem
+`nginx:alpine` cumpre. `server_tokens off` esconde a versão do nginx.
+
+**Aplicar num servidor que já está a funcionar:**
+
+```bash
+cd ~/placarcerto
+./scripts/deploy.sh      # faz git pull, regenera o ssl.conf a partir do
+                         # template, valida com nginx -t e recarrega o nginx
+```
+
+Se preferir fazer à mão:
+
+```bash
+git pull
+./scripts/setup-ssl.sh placarcerto.digital seu-email@exemplo.com
+docker compose restart nginx
+docker compose exec nginx nginx -t
+```
 
 ## 📱 PARTE 10: Comandos Úteis Extras
 
@@ -1389,6 +1485,8 @@ Antes de considerar deploy completo, verifique:
 - [ ] ALLOWED_HOSTS configurado corretamente
 - [ ] Firewall ativo (UFW)
 - [ ] SSL/HTTPS funcionando
+- [ ] Acesso directo pelo IP bloqueado (`curl -I http://SEU_IP/` sem resposta e
+      `curl -kI https://SEU_IP/` com falha de handshake — ver Problema 11)
 - [ ] Senha forte do PostgreSQL
 - [ ] Superusuário Django criado
 

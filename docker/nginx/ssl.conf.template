@@ -8,6 +8,25 @@
 # scripts/setup-ssl.sh substitui ${DOMAIN} e copia o resultado para
 # docker/nginx/conf.d/ssl.conf, que passa a ser o único ficheiro incluído.
 
+upstream backend {
+    server backend:8000;
+}
+
+upstream frontend {
+    server frontend:80;
+}
+
+# Qualquer acesso HTTPS que nao use o dominio configurado -- tipicamente
+# https://IP_DO_DROPLET -- cai neste bloco e o handshake TLS e rejeitado.
+# Sem `ssl_reject_handshake` o nginx usaria o certificado do dominio para
+# servir o IP, expondo a aplicacao num endereco que nao queremos tornar
+# publico. Requer nginx >= 1.19.4 (nginx:alpine actual cumpre).
+server {
+    listen 443 ssl default_server;
+    server_name _;
+    ssl_reject_handshake on;
+}
+
 server {
     listen 443 ssl;
     http2 on;
@@ -75,20 +94,17 @@ server {
 }
 
 # HTTP -> HTTPS: apenas para o domínio real. O default.conf continua a ser o
-# servidor catch-all (IP, health check, desafio do certbot) e por isso não há
-# conflito: o nginx escolhe o server_name mais específico.
+# catch-all `default_server` (que nega o resto e serve o desafio ACME), e como
+# o nginx escolhe o server_name mais específico, este bloco só se aplica ao
+# domínio. Assim http://IP continua fechado com 444.
 server {
     listen 80;
     server_name ${DOMAIN} www.${DOMAIN};
 
-    location /.well-known/acme-challenge/ {
+    location ^~ /.well-known/acme-challenge/ {
         root /var/www/certbot;
-    }
-
-    location /health {
+        default_type "text/plain";
         access_log off;
-        return 200 "healthy\n";
-        add_header Content-Type text/plain;
     }
 
     location / {

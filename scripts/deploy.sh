@@ -129,6 +129,44 @@ docker compose up -d --no-build
 echo -e "${YELLOW}Aguardando containers iniciarem...${NC}"
 sleep 10
 
+# ---------------------------------------------------------------------------
+# Sincronizar o ssl.conf gerado com o template e recarregar o nginx.
+#
+# `docker/nginx/conf.d/ssl.conf` e gerado pelo setup-ssl.sh e nao e versionado.
+# Quando o template muda (por exemplo, os blocos `upstream` e o servidor 443
+# que rejeita o handshake no IP), um ssl.conf antigo fica desactualizado e o
+# nginx -t falha com "host not found in upstream". Regeneramos a partir do
+# dominio que ja consta no ficheiro, preservando a opcao www.
+# ---------------------------------------------------------------------------
+SSL_TEMPLATE="docker/nginx/ssl.conf.template"
+SSL_GENERATED="docker/nginx/conf.d/ssl.conf"
+
+if [ -f "$SSL_GENERATED" ] && [ -f "$SSL_TEMPLATE" ]; then
+    SSL_DOMAIN=$(grep -oE '/etc/letsencrypt/live/[^/]+/fullchain\.pem' "$SSL_GENERATED" \
+        | head -n 1 | cut -d/ -f5)
+    if [ -n "$SSL_DOMAIN" ]; then
+        SSL_WITH_WWW=false
+        if grep -q "www\.${SSL_DOMAIN}" "$SSL_GENERATED"; then
+            SSL_WITH_WWW=true
+        fi
+        echo -e "${YELLOW}Sincronizando $SSL_GENERATED com o template ($SSL_DOMAIN)...${NC}"
+        sed "s/\${DOMAIN}/${SSL_DOMAIN}/g" "$SSL_TEMPLATE" > "$SSL_GENERATED.tmp"
+        if [ "$SSL_WITH_WWW" = false ]; then
+            sed -i "s/ www\.${SSL_DOMAIN}//g" "$SSL_GENERATED.tmp"
+        fi
+        mv "$SSL_GENERATED.tmp" "$SSL_GENERATED"
+    fi
+fi
+
+echo -e "${YELLOW}Validando e recarregando o nginx...${NC}"
+if docker compose exec -T nginx nginx -t; then
+    docker compose exec -T nginx nginx -s reload
+else
+    echo -e "${RED}nginx -t falhou. O nginx anterior continua a servir o trafego;${NC}"
+    echo -e "${RED}corrija os ficheiros em docker/nginx/conf.d/ antes de repetir.${NC}"
+    exit 1
+fi
+
 echo -e "${GREEN}Verificando status dos containers...${NC}"
 docker compose ps
 

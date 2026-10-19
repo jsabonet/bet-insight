@@ -3,3 +3,6 @@
 Dockerfile text eol=lf
 *.dockerignore text eol=lf
 .dockerignore text eol=lf
+# Configuracoes do nginx sao montadas num container Linux: manter LF.
+*.conf text eol=lf
+*.template text eol=lf
