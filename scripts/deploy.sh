@@ -14,11 +14,14 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+ENV_FILE="backend/.env.production"
+ROOT_ENV=".env"
+
 # Verificar se o backend/.env.production existe
-if [ ! -f "backend/.env.production" ]; then
-    echo -e "${RED}Erro: backend/.env.production nao encontrado!${NC}"
+if [ ! -f "$ENV_FILE" ]; then
+    echo -e "${RED}Erro: $ENV_FILE nao encontrado!${NC}"
     echo "Copie o arquivo .env.production.example e configure:"
-    echo "  cp backend/.env.production.example backend/.env.production"
+    echo "  cp backend/.env.production.example $ENV_FILE"
     exit 1
 fi
 
@@ -39,6 +42,69 @@ if [ "$(swapon --show --noheadings | wc -l)" -eq 0 ]; then
     fi
 fi
 
+# ---------------------------------------------------------------------------
+# Sincronizar as credenciais de banco para o .env da raiz.
+#
+# O Docker Compose le a interpolacao ${VAR} do .env da raiz, NAO do
+# backend/.env.production (esse e apenas `env_file` dos containers). Sem esta
+# sincronizacao o postgres recebia a senha por omissao e o Django a senha real,
+# resultando em "password authentication failed for user postgres".
+# ---------------------------------------------------------------------------
+read_env_value() {
+    grep -E "^[[:space:]]*$1[[:space:]]*=" "$2" 2>/dev/null | tail -n 1 \
+        | sed -e 's/^[^=]*=//' -e 's/[[:space:]]*$//' \
+        | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"
+}
+
+quote_env_value() {
+    # Valores com $, # ou espacos sao envolvidos em aspas simples para o
+    # Compose nao tentar interpreta-los.
+    case "$1" in
+        *\$*|*\#*|*" "*|*"'"*) printf "'%s'" "$1" ;;
+        *) printf '%s' "$1" ;;
+    esac
+}
+
+DB_NAME_VAL=$(read_env_value DB_NAME "$ENV_FILE")
+DB_USER_VAL=$(read_env_value DB_USER "$ENV_FILE")
+DB_PASSWORD_VAL=$(read_env_value DB_PASSWORD "$ENV_FILE")
+
+DB_NAME_VAL=${DB_NAME_VAL:-betinsight_db}
+DB_USER_VAL=${DB_USER_VAL:-postgres}
+
+if [ -z "$DB_PASSWORD_VAL" ]; then
+    echo -e "${RED}Erro: DB_PASSWORD nao definido em $ENV_FILE${NC}"
+    exit 1
+fi
+
+# URL da API do frontend (runtime). Precedencia:
+#   1. VITE_API_URL em frontend/.env.production
+#   2. VITE_API_URL ja existente no .env da raiz
+#   3. /api (relativo: o nginx faz proxy de /api/ para o backend)
+FRONTEND_ENV="frontend/.env.production"
+API_URL_VAL=""
+if [ -f "$FRONTEND_ENV" ]; then
+    API_URL_VAL=$(read_env_value VITE_API_URL "$FRONTEND_ENV")
+fi
+if [ -z "$API_URL_VAL" ] && [ -f "$ROOT_ENV" ]; then
+    API_URL_VAL=$(read_env_value VITE_API_URL "$ROOT_ENV")
+fi
+API_URL_VAL=${API_URL_VAL:-/api}
+
+echo -e "${YELLOW}Sincronizando credenciais de banco para $ROOT_ENV...${NC}"
+umask 077
+cat > "$ROOT_ENV" <<EOF
+# Gerado automaticamente por scripts/deploy.sh - NAO EDITAR A MAO.
+# Fonte de verdade: $ENV_FILE (campos DB_NAME, DB_USER, DB_PASSWORD).
+# O Compose usa estes valores tanto no servico db como no backend/celery.
+DB_NAME=$(quote_env_value "$DB_NAME_VAL")
+DB_USER=$(quote_env_value "$DB_USER_VAL")
+DB_PASSWORD=$(quote_env_value "$DB_PASSWORD_VAL")
+# URL da API lida pelo frontend em runtime (/config.js). /api e relativo.
+VITE_API_URL=$(quote_env_value "$API_URL_VAL")
+EOF
+chmod 600 "$ROOT_ENV"
+
 # Build sequencial + BuildKit: com 1 vCPU o build paralelo e mais lento
 # (troca de contexto constante) e consome o dobro da memoria.
 export DOCKER_BUILDKIT=1
@@ -49,7 +115,7 @@ export BUILDKIT_PROGRESS=plain
 # Pull das ultimas mudancas (se for um update)
 if [ -d ".git" ]; then
     echo -e "${YELLOW}Atualizando codigo do repositorio...${NC}"
-    git pull origin main || git pull origin master
+    git pull --ff-only origin main
 fi
 
 # Construir as imagens primeiro: se algo falhar, os containers antigos
@@ -82,4 +148,5 @@ echo "  Restart:            docker compose restart"
 echo "  Shell no backend:   docker compose exec backend bash"
 echo "  Migrations:         docker compose exec backend python manage.py migrate"
 echo "  Criar superuser:    docker compose exec backend python manage.py createsuperuser"
+echo "  Activar HTTPS:      ./scripts/setup-ssl.sh seu-dominio.com"
 echo ""

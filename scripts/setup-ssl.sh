@@ -1,121 +1,103 @@
 #!/bin/bash
 
-# Script para configurar SSL com Let's Encrypt
+# Configura SSL (Let's Encrypt) e activa o bloco HTTPS do nginx.
+#
+# Ordem importante: o nginx sobe em HTTP puro (docker/nginx/conf.d/default.conf),
+# o certbot valida o dominio via webroot nesse mesmo HTTP e so depois o bloco
+# HTTPS e gerado. Assim o nginx nunca arranca a apontar para um certificado
+# que ainda nao existe (era o erro "cannot load certificate ... No such file").
 
 set -e
 
+TEMPLATE="docker/nginx/ssl.conf.template"
+TARGET="docker/nginx/conf.d/ssl.conf"
+
 echo "==================================="
-echo "Configuração SSL com Let's Encrypt"
+echo "Configuracao SSL com Let's Encrypt"
 echo "==================================="
 
-# Verificar se o domínio foi fornecido
 if [ -z "$1" ]; then
-    echo "Uso: ./setup-ssl.sh seu-dominio.com"
+    echo "Uso: ./scripts/setup-ssl.sh seu-dominio.com [email] [--www]"
+    echo ""
+    echo "  --www   inclui tambem www.seu-dominio.com (requer registo DNS A/CNAME"
+    echo "          para o www; sem ele o Let's Encrypt recusa o pedido)"
     exit 1
 fi
 
 DOMAIN=$1
 EMAIL=${2:-admin@$DOMAIN}
+WITH_WWW=false
+for arg in "$@"; do
+    [ "$arg" = "--www" ] && WITH_WWW=true
+done
 
-echo "Domínio: $DOMAIN"
-echo "Email: $EMAIL"
+if [ ! -f "$TEMPLATE" ]; then
+    echo "Erro: $TEMPLATE nao encontrado."
+    exit 1
+fi
+
+# O nginx tem de estar no ar em HTTP para responder ao desafio ACME.
+echo "A garantir que o nginx esta a correr (HTTP)..."
+docker compose up -d nginx >/dev/null
+
+echo "Aguardando o nginx responder ao health check..."
+for i in $(seq 1 30); do
+    if docker compose exec -T nginx wget --quiet --tries=1 --spider http://localhost/health 2>/dev/null; then
+        break
+    fi
+    sleep 2
+done
+
+echo "Dominio: $DOMAIN"
+echo "Email:   $EMAIL"
 echo ""
 
-# Obter certificado (método webroot, nginx continua rodando)
+CERT_DOMAINS=(-d "$DOMAIN")
+if [ "$WITH_WWW" = true ]; then
+    CERT_DOMAINS+=(-d "www.$DOMAIN")
+fi
+
 echo "Obtendo certificado SSL via webroot..."
 docker compose run --rm --entrypoint certbot certbot certonly \
     --webroot \
     --webroot-path=/var/www/certbot \
-    -d $DOMAIN \
-    -d www.$DOMAIN \
-    --email $EMAIL \
+    "${CERT_DOMAINS[@]}" \
+    --email "$EMAIL" \
     --agree-tos \
     --non-interactive \
+    --keep-until-expiring \
     --verbose
 
-# Criar configuração HTTPS dedicada (ssl.conf)
-echo "Gerando configuração HTTPS (ssl.conf)..."
-cat > docker/nginx/conf.d/ssl.conf <<EOF
-server {
-    listen 443 ssl http2;
-    server_name ${DOMAIN} www.${DOMAIN};
+echo ""
+echo "Gerando configuracao HTTPS a partir de $TEMPLATE..."
+sed "s/\${DOMAIN}/${DOMAIN}/g" "$TEMPLATE" > "$TARGET"
 
-    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+# Se o www nao foi emitido, remove-o do server_name para o nginx nao aceitar
+# SNI de um host sem certificado valido.
+if [ "$WITH_WWW" = false ]; then
+    sed -i "s/ www\.${DOMAIN}//g" "$TARGET"
+fi
 
-    ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers HIGH:!aNULL:!MD5;
-    ssl_prefer_server_ciphers on;
+echo "Validando configuracao do nginx..."
+docker compose exec -T nginx nginx -t
 
-    # Certbot challenge
-    location /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-    }
+echo "Recarregando nginx..."
+docker compose exec -T nginx nginx -s reload
 
-    # Health check
-    location /health {
-        access_log off;
-        return 200 "healthy\n";
-        add_header Content-Type text/plain;
-    }
-
-    location /api/ {
-        limit_req zone=api_limit burst=20 nodelay;
-        proxy_pass http://backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
-    }
-
-    location /admin/ {
-        limit_req zone=auth_limit burst=10 nodelay;
-        proxy_pass http://backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /static/ {
-        alias /static/;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-
-    location /media/ {
-        alias /media/;
-        expires 30d;
-        add_header Cache-Control "public";
-    }
-
-    location / {
-        proxy_pass http://frontend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-EOF
-
-# Testar configuração e reiniciar nginx
-echo "Validando configuração do nginx..."
-docker compose exec nginx nginx -t || { echo "Configuração NGINX inválida"; exit 1; }
-echo "Reiniciando nginx..."
-docker compose up -d nginx
+echo "A garantir que o certbot renova automaticamente..."
+docker compose up -d certbot >/dev/null
 
 echo ""
 echo "==================================="
 echo "SSL configurado com sucesso!"
 echo "==================================="
 echo ""
-echo "Seu site agora está disponível em:"
+echo "Seu site agora esta disponivel em:"
 echo "  https://$DOMAIN"
-echo "  https://www.$DOMAIN"
+if [ "$WITH_WWW" = true ]; then
+    echo "  https://www.$DOMAIN"
+fi
 echo ""
-echo "Os certificados serão renovados automaticamente."
-echo ""
+echo "Os certificados serao renovados automaticamente pelo servico certbot."
+echo "Depois de renovar, recarregue o nginx para usar o novo certificado:"
+echo "  docker compose exec nginx nginx -s reload"

@@ -23,6 +23,14 @@ staticfiles/
 # Environment
 .env
 .env.local
+# Segredos de deploy (backend/.env.production tem senhas reais).
+# Os *.example continuam versionados.
+backend/.env.production
+backend/.env
+.env.production.local
+
+# Gerado por scripts/setup-ssl.sh (contÃ©m o domÃ­nio real)
+docker/nginx/conf.d/ssl.conf
 
 # Node
 node_modules/
@@ -47,3 +55,9 @@ build/
 # OS
 Thumbs.db
 .DS_Store
+
+# Ficheiros de ambiente locais do frontend (valores por maquina).
+# O build usa os *.example como referencia e o runtime usa VITE_API_URL do .env
+# da raiz (gerado pelo deploy.sh).
+frontend/.env.production
+frontend/.env.development

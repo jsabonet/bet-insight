@@ -1,10 +1,20 @@
+# Template do servidor HTTPS.
+#
+# NÃO é incluído directamente pelo nginx: vive fora de conf.d/ porque, se
+# estivesse em conf.d/ sem o certificado presente, o nginx abortava com
+# "cannot load certificate ... No such file or directory" e nada subia
+# (nem o HTTP que o Let's Encrypt precisa para validar o domínio).
+#
+# scripts/setup-ssl.sh substitui ${DOMAIN} e copia o resultado para
+# docker/nginx/conf.d/ssl.conf, que passa a ser o único ficheiro incluído.
+
 server {
     listen 443 ssl;
     http2 on;
-    server_name placarcerto.digital www.placarcerto.digital;
+    server_name ${DOMAIN} www.${DOMAIN};
 
-    ssl_certificate /etc/letsencrypt/live/placarcerto.digital/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/placarcerto.digital/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
 
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
@@ -61,5 +71,27 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# HTTP -> HTTPS: apenas para o domínio real. O default.conf continua a ser o
+# servidor catch-all (IP, health check, desafio do certbot) e por isso não há
+# conflito: o nginx escolhe o server_name mais específico.
+server {
+    listen 80;
+    server_name ${DOMAIN} www.${DOMAIN};
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location /health {
+        access_log off;
+        return 200 "healthy\n";
+        add_header Content-Type text/plain;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
     }
 }

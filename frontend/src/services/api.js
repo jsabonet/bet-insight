@@ -1,6 +1,20 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+// Normaliza para terminar sempre em /api (o VITE_API_URL de produção pode vir
+// com ou sem sufixo).
+function normalizeApiUrl(url) {
+  const base = String(url || '').replace(/\/+$/, '');
+  if (!base) return 'http://localhost:8000/api';
+  return base.endsWith('/api') ? base : `${base}/api`;
+}
+
+// Permite configurar o backend em runtime (docker/frontend/entrypoint.sh gera
+// /config.js com window.ENV.API_URL), sem ter de reconstruir a imagem. Em dev
+// o /config.js não existe e usa-se o valor do build (import.meta.env).
+const API_URL = normalizeApiUrl(
+  (typeof window !== 'undefined' && window.ENV && window.ENV.API_URL) ||
+    import.meta.env.VITE_API_URL
+);
 
 // Criar instância do axios
 const api = axios.create({

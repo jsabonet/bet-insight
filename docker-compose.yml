@@ -4,6 +4,11 @@ services:
     image: postgres:15-alpine
     container_name: placarcerto_db
     restart: unless-stopped
+    # ATENÇÃO: estas credenciais vêm do .env da raiz do projecto, que o
+    # scripts/deploy.sh gera a partir de backend/.env.production. O postgres
+    # só aplica POSTGRES_PASSWORD na primeira inicialização do volume: se
+    # mudar a senha depois, o volume antigo mantém a antiga (ver DEPLOY.md,
+    # Problema 9).
     environment:
       POSTGRES_DB: ${DB_NAME:-betinsight_db}
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -46,9 +51,16 @@ services:
     restart: unless-stopped
     env_file:
       - ./backend/.env.production
+    # As variáveis de DB_* são sobrepostas com os MESMOS valores interpolados
+    # usados pelo serviço `db`. Como `environment` tem precedência sobre
+    # `env_file`, o Django e o Postgres nunca ficam com senhas diferentes
+    # (era a causa dos "password authentication failed for user postgres").
     environment:
-      - DB_HOST=db
-      - REDIS_URL=redis://redis:6379/0
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-betinsight_db}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      REDIS_URL: redis://redis:6379/0
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
@@ -73,7 +85,10 @@ services:
     container_name: placarcerto_frontend
     restart: unless-stopped
     environment:
-      - VITE_API_URL=${VITE_API_URL:-http://localhost:8000}
+      # Lido em runtime por /config.js (docker/frontend/entrypoint.sh).
+      # O default /api é relativo: o nginx já faz proxy de /api/ para o
+      # backend, por isso funciona em qualquer domínio e sem CORS.
+      - VITE_API_URL=${VITE_API_URL:-/api}
     networks:
       - app_network
     depends_on:
@@ -117,8 +132,11 @@ services:
     env_file:
       - ./backend/.env.production
     environment:
-      - DB_HOST=db
-      - REDIS_URL=redis://redis:6379/0
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-betinsight_db}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      REDIS_URL: redis://redis:6379/0
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
@@ -144,8 +162,11 @@ services:
     env_file:
       - ./backend/.env.production
     environment:
-      - DB_HOST=db
-      - REDIS_URL=redis://redis:6379/0
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-betinsight_db}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      REDIS_URL: redis://redis:6379/0
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media

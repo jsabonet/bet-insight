@@ -598,6 +598,24 @@ python3 -c 'import secrets; print(secrets.token_urlsafe(50))'
 # Cole no campo SECRET_KEY do arquivo .env.production
 ```
 
+**IMPORTANTE: as credenciais de banco ficam num só lugar**
+
+`DB_NAME`, `DB_USER` e `DB_PASSWORD` deste ficheiro são a **fonte de verdade**.
+O `scripts/deploy.sh` copia-os para o `.env` da raiz do projecto (que é o
+ficheiro de onde o Docker Compose lê a configuração do serviço `db`) e injecta
+os mesmos valores no backend e nos workers via `environment:`.
+
+Sem esta sincronização acontece o erro clássico:
+
+```
+placarcerto_db | FATAL:  password authentication failed for user "postgres"
+placarcerto_backend | Postgres indisponível - aguardando...
+```
+
+Porque o Postgres usava o valor por omissão (`postgres`) enquanto o Django usava
+a senha configurada. Nunca crie um `.env` na raiz à mão: ele é regenerado a
+cada deploy e tem de estar no `.gitignore`.
+
 **Salvar arquivo:**
 - Pressione `Ctrl + X`
 - Digite `Y`
@@ -841,31 +859,49 @@ docker compose restart backend
 
 ### Passo 7.4: Atualizar configuração frontend
 
+O frontend lê o URL da API **em runtime** através de `/config.js`, gerado por
+`docker/frontend/entrypoint.sh` a partir da variável `VITE_API_URL`. Por
+omissão é `/api` (relativo): o nginx já faz proxy de `/api/` para o backend,
+por isso funciona em qualquer domínio/IP, sem CORS e **sem reconstruir a
+imagem**.
+
 ```bash
-# Editar .env do frontend
-nano frontend/.env.production
+# Normalmente NÃO é preciso fazer nada. Para mudar o URL da API:
+nano .env              # ficheiro da raiz (gerado pelo deploy.sh)
+# acrescente:
+VITE_API_URL=/api
+# ou, se a API estiver noutro host:
+# VITE_API_URL=https://api.seu-dominio.com
 
-# Atualizar para usar domínio:
-VITE_API_URL=https://seu-dominio.com
-
-# Salvar: Ctrl+X, Y, Enter
-
-# Rebuild frontend
-docker compose up -d --build frontend
+docker compose up -d frontend    # recria só o container do frontend
 ```
 
+> `frontend/.env.production` (opcional) só serve para *assar* o valor no build.
+> Como o runtime tem precedência, para alterações rápidas use o `VITE_API_URL`
+> acima. Se reconstruir a imagem, `docker compose up -d --build frontend`.
+
 ### Passo 7.5: Configurar SSL com Let's Encrypt
+
+> **Importante:** o repositório **não** traz `docker/nginx/conf.d/ssl.conf`. É
+> gerado por este script a partir de `docker/nginx/ssl.conf.template`. Antes do
+> SSL o site já funciona em HTTP (é o que permite ao Let's Encrypt validar o
+> domínio). Se o nginx arrancasse com um `ssl.conf` a apontar para um
+> certificado inexistente, morria com
+> `cannot load certificate ... No such file or directory` e nada subia.
 
 ```bash
 # Executar script de SSL
 ./scripts/setup-ssl.sh placarcerto.digital jsabonete09@gmail.com
 
+# Se o registo DNS do www apontar para o droplet, inclua-o no certificado:
+./scripts/setup-ssl.sh placarcerto.digital jsabonete09@gmail.com --www
+
 # O script irá:
-# 1. Parar nginx temporariamente
-# 2. Obter certificado SSL gratuito
-# 3. Configurar renovação automática
-# 4. Atualizar configuração do nginx
-# 5. Reiniciar nginx com HTTPS
+# 1. Garantir que o nginx está no ar em HTTP (health check)
+# 2. Obter o certificado via webroot (o nginx nunca é parado)
+# 3. Gerar docker/nginx/conf.d/ssl.conf a partir do template
+# 4. Validar com `nginx -t` e recarregar (nginx -s reload)
+# 5. Subir o serviço certbot para renovação automática
 ```
 
 **Saída esperada:**
@@ -876,17 +912,24 @@ Configuração SSL com Let's Encrypt
 Domínio: seu-dominio.com
 Email: seu-email@exemplo.com
 
-Parando nginx...
-Obtendo certificado SSL...
+Obtendo certificado SSL via webroot...
 Successfully received certificate.
 Certificate is saved at: /etc/letsencrypt/live/seu-dominio.com/fullchain.pem
 Key is saved at: /etc/letsencrypt/live/seu-dominio.com/privkey.pem
 
-Atualizando configuração do nginx...
-Reiniciando nginx...
+Gerando configuracao HTTPS a partir de docker/nginx/ssl.conf.template...
+Validando configuracao do nginx...
+Recarregando nginx...
 ===================================
 SSL configurado com sucesso!
 ===================================
+```
+
+Depois de renovar (o serviço `certbot` renova a cada 12 h), recarregue o nginx
+para ele passar a usar o certificado novo:
+
+```bash
+docker compose exec nginx nginx -s reload
 ```
 
 ### Passo 7.6: Testar HTTPS
@@ -1162,6 +1205,95 @@ docker buildx build --platform linux/amd64 -f backend/Dockerfile \
 docker buildx build --platform linux/amd64 -f frontend/Dockerfile \
   -t SEU_USUARIO/placarcerto-frontend:latest --push .
 ```
+
+### Problema 9: `password authentication failed for user "postgres"`
+
+**Sintoma:** o Postgres está de pé e saudável, mas o backend (e os workers
+Celery) ficam em loop:
+
+```
+placarcerto_db             | FATAL:  password authentication failed for user "postgres"
+placarcerto_db             | DETAIL:  Connection matched pg_hba.conf line 100: "host all all all scram-sha-256"
+placarcerto_backend        | Postgres indisponível - aguardando...
+placarcerto_celery_worker  | Postgres indisponível - aguardando...
+```
+
+**Causa:** o Docker Compose **não** lê `backend/.env.production` para
+interpolar `${DB_PASSWORD}` — só serviços com `env_file:` recebem esse
+ficheiro. O serviço `db` caía no valor por omissão (`postgres`) enquanto o
+Django usava a senha real. A partir desta versão o `environment:` de `db`,
+`backend`, `celery_worker` e `celery_beat` usa a **mesma** variável
+interpolada, e o `scripts/deploy.sh` gera o `.env` da raiz a partir de
+`backend/.env.production`.
+
+**Corrigir num servidor que já tem o volume criado:**
+
+```bash
+# 1. Confirmar a senha que está configurada
+grep -E '^DB_(NAME|USER|PASSWORD)=' backend/.env.production
+
+# 2. Regenerar o .env da raiz e recriar os containers
+./scripts/deploy.sh
+
+# 3a. Se o volume ainda não tem dados (primeira instalação), recriar do zero:
+docker compose down -v        # ⚠️ apaga TODOS os volumes (banco incluído)
+docker compose up -d
+
+# 3b. Se já tem dados que quer manter, alterar a senha DENTRO do Postgres:
+docker compose exec db psql -U postgres -d postgres \
+  -c "ALTER USER postgres WITH PASSWORD 'A_MESMA_SENHA_DO_backend/.env.production';"
+docker compose restart backend celery_worker celery_beat
+```
+
+> O `POSTGRES_PASSWORD` **só é aplicado na primeira inicialização** do volume
+> `postgres_data`. Mudar a senha no `.env` depois disso não muda nada no banco
+> existente — é por isso que o caminho 3b existe.
+
+Verificar:
+
+```bash
+docker compose exec backend python manage.py check --database default
+docker compose logs --tail=30 backend
+```
+
+### Problema 10: nginx não sobe — `cannot load certificate`
+
+**Sintoma:**
+
+```
+nginx  | nginx: [emerg] cannot load certificate "/etc/letsencrypt/live/placarcerto.digital/fullchain.pem":
+         BIO_new_file() failed (SSL: ... No such file or directory)
+```
+
+E como o nginx não sobe, também não há HTTP para o Let's Encrypt validar o
+domínio — deadlock total.
+
+**Causa:** existia um `docker/nginx/conf.d/ssl.conf` versionado a apontar para
+um certificado que só é criado pelo `setup-ssl.sh`.
+
+**Corrigir:**
+
+```bash
+git pull
+ls docker/nginx/conf.d/          # deve conter apenas default.conf
+docker compose up -d nginx
+docker compose exec nginx nginx -t
+curl -I http://SEU_IP/health     # 200 "healthy"
+```
+
+Depois, com o DNS do domínio já a apontar para o droplet:
+
+```bash
+./scripts/setup-ssl.sh placarcerto.digital seu-email@exemplo.com
+```
+
+**Ordem correcta do deploy:**
+
+1. `docker compose up -d` → site em **HTTP** (o `default.conf` já serve tudo)
+2. DNS do domínio → IP do droplet (propagação pode levar minutos)
+3. `./scripts/setup-ssl.sh dominio.com email` → gera o `ssl.conf` e activa HTTPS
+4. `default.conf` continua a ser o catch-all (IP + health check + desafio ACME);
+   o bloco de redirect HTTP→HTTPS do `ssl.conf` só se aplica ao domínio real
 
 ## 📱 PARTE 10: Comandos Úteis Extras
 

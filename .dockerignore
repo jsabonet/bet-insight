@@ -27,12 +27,17 @@
 **/coverage
 **/.turbo
 
-# Segredos e ficheiros de ambiente locais (usados via env_file, não por COPY)
+# Segredos e ficheiros de ambiente locais (usados via env_file, não por COPY).
+# IMPORTANTE: backend/.env.production NÃO pode entrar no contexto, senão fica
+# assado dentro da imagem. frontend/.env.production, ao contrário, é público
+# (só o URL da API) e é necessário ao build do Vite — por isso não é excluído.
 **/.env
 **/.env.local
-**/.env.production
 **/.env.development
-.env
+**/.env.development.local
+backend/.env.production
+backend/.env.production.*
+!backend/.env.production.example
 
 # Bases de dados e logs locais
 **/*.sqlite3

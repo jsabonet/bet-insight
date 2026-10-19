@@ -54,6 +54,11 @@
     <!-- DNS Prefetch -->
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Configuração de runtime (gerada por docker/frontend/entrypoint.sh).
+         Em desenvolvimento não existe: o 404 é ignorado e o build usa
+         import.meta.env.VITE_API_URL. -->
+    <script src="/config.js" onerror="this.remove()"></script>
   </head>
   <body>
     <div id="root"></div>
