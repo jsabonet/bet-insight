@@ -4,7 +4,7 @@ from django.urls import path
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.utils import timezone
-from .models import Analysis, DailyBet, TaskExecution
+from .models import Analysis, DailyBet, SocialProofTicket, TaskExecution
 from config.admin import admin_site
 
 
@@ -412,4 +412,63 @@ class TaskExecutionAdmin(admin.ModelAdmin):
                 messages.error(request, f'❌ Erro ao iniciar task: {str(e)}')
         
         return redirect('admin:daily_bets_dashboard')
+
+
+@admin.register(SocialProofTicket, site=admin_site)
+class SocialProofTicketAdmin(admin.ModelAdmin):
+    """Snapshots de prova social usados nas redes sociais (somente leitura + ações)"""
+
+    list_display = [
+        'id', 'date', 'kind', 'status_badge', 'ticket_code',
+        'legs_count', 'total_odd', 'export_count', 'created_at',
+    ]
+    list_filter = ['kind', 'status', 'date']
+    search_fields = ['ticket_code', 'reserve_code', 'snapshot_hash']
+    date_hierarchy = 'date'
+    ordering = ['-date', '-created_at']
+    list_per_page = 30
+
+    fields = [
+        'date', 'kind', 'status', 'ticket_code', 'reserve_code',
+        'legs_count', 'total_odd', 'combined_probability', 'stake_units',
+        'disclosure', 'watermark_required', 'snapshot_hash', 'meta',
+        'source_bet_ids', 'created_by', 'approved_by', 'approved_at',
+        'last_exported_by', 'last_exported_at', 'export_count',
+        'created_at',
+    ]
+    readonly_fields = fields
+
+    actions = ['mark_approved', 'mark_discarded']
+
+    def has_add_permission(self, request):
+        return False
+
+    def status_badge(self, obj):
+        colors = {
+            'candidate': '#FFA500',
+            'approved': '#28a745',
+            'exported': '#007bff',
+            'discarded': '#6c757d',
+        }
+        color = colors.get(obj.status, '#6c757d')
+        return format_html(
+            '<span style="background:{};color:#fff;padding:2px 8px;'
+            'border-radius:10px;font-size:11px;">{}</span>',
+            color,
+            obj.get_status_display(),
+        )
+    status_badge.short_description = 'Estado'
+
+    @admin.action(description='Aprovar bilhetes selecionados')
+    def mark_approved(self, request, queryset):
+        count = 0
+        for ticket in queryset.exclude(status='discarded'):
+            ticket.approve(request.user)
+            count += 1
+        self.message_user(request, f'{count} bilhete(s) aprovado(s).', messages.SUCCESS)
+
+    @admin.action(description='Descartar bilhetes selecionados')
+    def mark_discarded(self, request, queryset):
+        updated = queryset.update(status='discarded')
+        self.message_user(request, f'{updated} bilhete(s) descartado(s).', messages.SUCCESS)
 

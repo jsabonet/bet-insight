@@ -57,6 +57,38 @@ app.conf.beat_schedule = {
             'expires': 7200,  # Expirar após 2h
         }
     },
+
+    # Sincronizar resultados oficiais ao fim do dia (horário de Maputo)
+    'sync-match-results-evening': {
+        'task': 'analysis.sync_match_results',
+        'schedule': crontab(hour=20, minute=0),
+        'options': {
+            'expires': 1800,
+        }
+    },
+    'sync-match-results-late': {
+        'task': 'analysis.sync_match_results',
+        'schedule': crontab(hour=22, minute=0),
+        'options': {
+            'expires': 1800,
+        }
+    },
+    'sync-match-results-final': {
+        'task': 'analysis.sync_match_results',
+        'schedule': crontab(hour=23, minute=30),
+        'options': {
+            'expires': 1800,
+        }
+    },
+
+    # Preparar snapshots de prova social após o último jogo do dia
+    'build-social-proof-candidates': {
+        'task': 'analysis.build_social_proof_candidates',
+        'schedule': crontab(hour=23, minute=45),
+        'options': {
+            'expires': 3600,
+        }
+    },
 }
 
 # Configurações adicionais

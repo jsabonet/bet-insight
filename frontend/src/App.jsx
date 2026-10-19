@@ -27,6 +27,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminDailyBets from './pages/admin/AdminDailyBets';
 import AdminExecutionDetail from './pages/admin/AdminExecutionDetail';
+import AdminSocialProof from './pages/admin/AdminSocialProof';
 
 // AdminRoute component - Staff e superusuários
 function AdminRoute({ children }) {
@@ -227,6 +228,15 @@ function App() {
             element={
               <AdminRoute>
                 <AdminExecutionDetail />
+              </AdminRoute>
+            }
+          />
+          
+          <Route
+            path="/admin/social-proof"
+            element={
+              <AdminRoute>
+                <AdminSocialProof />
               </AdminRoute>
             }
           />

@@ -3,18 +3,24 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from django_filters.rest_framework import DjangoFilterBackend
+from django.http import Http404
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.db.models import Count, Q, Avg, Sum
 from datetime import datetime, timedelta
 import logging
 
-from .models import Analysis, DailyBet
+from .models import Analysis, DailyBet, SocialProofTicket
 from .serializers import (
     AnalysisSerializer, 
     AnalysisRequestSerializer,
     DailyBetSerializer,
-    DailyBetListSerializer
+    DailyBetListSerializer,
+    SocialProofTicketSerializer,
+    SocialProofTicketListSerializer,
 )
+from .services.match_result_sync import sync_results_for_date
+from .services.social_proof_builder import SocialProofBuilder, VALID_KINDS
 from apps.matches.models import Match
 
 logger = logging.getLogger(__name__)
@@ -1123,4 +1129,242 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
             'today': today_stats,
             'last_7_days': last_7_stats,
             'performance': performance
+        })
+
+    # =========================================================================
+    # PROVA SOCIAL (ADMIN ONLY)
+    # =========================================================================
+
+    @staticmethod
+    def _parse_date_param(value, default=None):
+        if not value:
+            return default or timezone.localdate()
+        try:
+            return datetime.strptime(str(value)[:10], '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            return default or timezone.localdate()
+
+    def _social_proof_default_date(self):
+        # Resultados completos só existem a partir do dia seguinte.
+        return timezone.localdate() - timedelta(days=1)
+
+    @staticmethod
+    def _social_proof_ticket(ticket_id):
+        try:
+            return get_object_or_404(SocialProofTicket, pk=int(ticket_id))
+        except (TypeError, ValueError):
+            raise Http404('Snapshot de prova social não encontrado.')
+
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='admin/social-proof/candidates',
+        permission_classes=[IsAdminUser],
+    )
+    def admin_social_proof_candidates(self, request):
+        """
+        Lista candidatos de prova social para uma data e um modo.
+
+        Query params:
+        - date: YYYY-MM-DD (padrão: ontem)
+        - kind: verified_ticket | daily_hits | simulation
+        """
+        target_date = self._parse_date_param(
+            request.query_params.get('date'), self._social_proof_default_date()
+        )
+        kind = request.query_params.get('kind', 'verified_ticket')
+
+        if kind not in VALID_KINDS:
+            return Response({'error': 'Tipo de prova social inválido.'}, status=400)
+
+        try:
+            candidates = SocialProofBuilder.candidates(target_date, kind)
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=400)
+        except Exception as exc:
+            logger.exception("Erro ao gerar candidatos de prova social")
+            return Response(
+                {'error': f'Falha ao gerar candidatos: {exc}'},
+                status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        return Response({
+            'date': target_date.isoformat(),
+            'kind': kind,
+            'count': len(candidates),
+            'candidates': candidates,
+        })
+
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='admin/social-proof/tickets',
+        permission_classes=[IsAdminUser],
+    )
+    def admin_social_proof_tickets(self, request):
+        """Histórico de snapshots de prova social."""
+        queryset = SocialProofTicket.objects.select_related(
+            'created_by', 'approved_by'
+        )
+
+        date_param = request.query_params.get('date')
+        if date_param:
+            queryset = queryset.filter(
+                date=self._parse_date_param(date_param, self._social_proof_default_date())
+            )
+
+        kind = request.query_params.get('kind')
+        if kind:
+            if kind not in VALID_KINDS:
+                return Response({'error': 'Tipo inválido.'}, status=400)
+            queryset = queryset.filter(kind=kind)
+
+        ticket_status = request.query_params.get('status')
+        if ticket_status:
+            queryset = queryset.filter(status=ticket_status)
+
+        limit = min(int(request.query_params.get('limit', 50)), 200)
+        tickets = queryset[:limit]
+
+        return Response({
+            'count': queryset.count(),
+            'tickets': SocialProofTicketListSerializer(tickets, many=True).data,
+        })
+
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='admin/social-proof/tickets/(?P<ticket_id>[^/.]+)',
+        permission_classes=[IsAdminUser],
+    )
+    def admin_social_proof_ticket_detail(self, request, ticket_id=None):
+        ticket = self._social_proof_ticket(ticket_id)
+        return Response(SocialProofTicketSerializer(ticket).data)
+
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path='admin/social-proof/generate',
+        permission_classes=[IsAdminUser],
+    )
+    def admin_social_proof_generate(self, request):
+        """
+        Cria (ou devolve, se já existir) o snapshot escolhido.
+
+        Body:
+        - date: YYYY-MM-DD
+        - kind: verified_ticket | daily_hits | simulation
+        - snapshot_hash: opcional (candidato específico)
+        - source_bet_ids: opcional
+        - confirm_simulation: obrigatório para kind=simulation
+        """
+        target_date = self._parse_date_param(
+            request.data.get('date'), self._social_proof_default_date()
+        )
+        kind = request.data.get('kind', 'verified_ticket')
+
+        if kind not in VALID_KINDS:
+            return Response({'error': 'Tipo de prova social inválido.'}, status=400)
+
+        if kind == 'simulation' and request.data.get('confirm_simulation') is not True:
+            return Response(
+                {
+                    'error': (
+                        'Confirme que compreende que este bilhete é uma simulação '
+                        'pós-jogo e não uma previsão.'
+                    )
+                },
+                status=400,
+            )
+
+        try:
+            ticket, created = SocialProofBuilder.create_ticket(
+                target_date=target_date,
+                kind=kind,
+                user=request.user,
+                snapshot_hash=request.data.get('snapshot_hash'),
+                source_bet_ids=request.data.get('source_bet_ids'),
+            )
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=400)
+        except Exception as exc:
+            logger.exception("Erro ao criar snapshot de prova social")
+            return Response(
+                {'error': f'Falha ao criar snapshot: {exc}'},
+                status=http_status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+        payload = SocialProofTicketSerializer(ticket).data
+        payload['created'] = created
+        return Response(payload, status=201 if created else 200)
+
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path='admin/social-proof/tickets/(?P<ticket_id>[^/.]+)/approve',
+        permission_classes=[IsAdminUser],
+    )
+    def admin_social_proof_approve(self, request, ticket_id=None):
+        ticket = self._social_proof_ticket(ticket_id)
+
+        if ticket.status == 'discarded':
+            return Response({'error': 'Snapshot descartado não pode ser aprovado.'}, status=400)
+
+        if not ticket.legs:
+            return Response({'error': 'Snapshot sem seleções.'}, status=400)
+
+        ticket.approve(request.user)
+        return Response(SocialProofTicketSerializer(ticket).data)
+
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path='admin/social-proof/tickets/(?P<ticket_id>[^/.]+)/export',
+        permission_classes=[IsAdminUser],
+    )
+    def admin_social_proof_export(self, request, ticket_id=None):
+        ticket = self._social_proof_ticket(ticket_id)
+
+        if ticket.status not in ('approved', 'exported'):
+            return Response(
+                {'error': 'Aprove o snapshot antes de exportar.'},
+                status=400,
+            )
+
+        ticket.register_export(request.user)
+        return Response(SocialProofTicketSerializer(ticket).data)
+
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path='admin/social-proof/tickets/(?P<ticket_id>[^/.]+)/discard',
+        permission_classes=[IsAdminUser],
+    )
+    def admin_social_proof_discard(self, request, ticket_id=None):
+        ticket = self._social_proof_ticket(ticket_id)
+        ticket.status = 'discarded'
+        ticket.save(update_fields=['status'])
+        return Response(SocialProofTicketSerializer(ticket).data)
+
+    @action(
+        detail=False,
+        methods=['post'],
+        url_path='admin/social-proof/sync-results',
+        permission_classes=[IsAdminUser],
+    )
+    def admin_social_proof_sync_results(self, request):
+        """Sincroniza resultados oficiais de uma data (API-Football)."""
+        target_date = self._parse_date_param(
+            request.data.get('date'), self._social_proof_default_date()
+        )
+
+        results = sync_results_for_date(target_date)
+        finished = sum(1 for info in results.values() if info.get('status') == 'finished')
+        settled = SocialProofBuilder.settle_bets(target_date, results_map=results)
+
+        return Response({
+            'date': target_date.isoformat(),
+            'fixtures': len(results),
+            'finished': finished,
+            'settled_bets': settled,
         })

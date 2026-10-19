@@ -1,3 +1,6 @@
+import hashlib
+import json
+
 from django.db import models
 from django.conf import settings
 from apps.matches.models import Match
@@ -158,105 +161,97 @@ class DailyBet(models.Model):
     def __str__(self):
         return f"{self.get_bet_type_display()} - {self.date} ({self.get_status_display()})"
     
-    def validate_result(self):
-        """Valida resultado do bilhete após jogos finalizarem"""
+    def validate_result(self, results_map=None):
+        """
+        Valida o bilhete apenas quando todos os jogos terminaram.
+
+        A validação é deliberadamente estrita: se falta o resultado de uma
+        perna, o bilhete continua pendente em vez de ser marcado como
+        perdido/parcial com dados incompletos.
+        """
         from django.utils import timezone
-        from apps.matches.models import Match
-        
-        # Verificar se todos os jogos das selections finalizaram
-        match_ids = [s['match_id'] for s in self.selections]
-        matches = Match.objects.filter(id__in=match_ids)
-        
-        # Mapear matches por ID para acesso rápido
-        matches_dict = {m.id: m for m in matches}
-        
-        all_finished = True
+        from .services.match_result_sync import (
+            build_results_map,
+            evaluate_market_result,
+            format_score,
+            get_result_info,
+        )
+
+        selections = list(self.selections or [])
+        if not selections:
+            return False
+
+        if results_map is None:
+            results_map = build_results_map(selections, fallback_date=self.date)
+
         any_cancelled = False
-        
-        for selection in self.selections:
-            match_id = selection['match_id']
-            match = matches_dict.get(match_id)
-            
-            if not match:
+        all_resolved = True
+
+        for selection in selections:
+            info = get_result_info(results_map, selection)
+
+            if info is None:
+                selection['result'] = None
+                all_resolved = False
                 continue
-            
-            # Verificar se jogo foi cancelado/adiado
-            if match.status in ['cancelled', 'postponed', 'abandoned']:
+
+            status = info.get('status')
+
+            if status in ('cancelled', 'postponed', 'abandoned'):
                 selection['result'] = 'cancelled'
+                selection['final_score'] = format_score(info)
                 any_cancelled = True
                 continue
-            
-            # Verificar se jogo finalizou
-            if match.status != 'finished':
-                all_finished = False
-                continue
-            
-            # Validar resultado baseado no market
-            market = selection['market']
-            match_result = match.get_result()  # 'home', 'draw', 'away'
-            
-            # Mercados principais
-            if market == 'home_win':
-                selection['result'] = 'won' if match_result == 'home' else 'lost'
-            elif market == 'away_win':
-                selection['result'] = 'won' if match_result == 'away' else 'lost'
-            elif market == 'draw':
-                selection['result'] = 'won' if match_result == 'draw' else 'lost'
-            elif market == 'double_chance_1x':
-                selection['result'] = 'won' if match_result in ['home', 'draw'] else 'lost'
-            elif market == 'double_chance_x2':
-                selection['result'] = 'won' if match_result in ['draw', 'away'] else 'lost'
-            elif market == 'double_chance_12':
-                selection['result'] = 'won' if match_result in ['home', 'away'] else 'lost'
-            
-            # Mercados de gols
-            elif market.startswith('over_'):
-                threshold = float(market.split('_')[1])
-                total_goals = (match.home_score or 0) + (match.away_score or 0)
-                selection['result'] = 'won' if total_goals > threshold else 'lost'
-            elif market.startswith('under_'):
-                threshold = float(market.split('_')[1])
-                total_goals = (match.home_score or 0) + (match.away_score or 0)
-                selection['result'] = 'won' if total_goals < threshold else 'lost'
-            elif market == 'btts_yes':
-                selection['result'] = 'won' if (match.home_score or 0) > 0 and (match.away_score or 0) > 0 else 'lost'
-            elif market == 'btts_no':
-                selection['result'] = 'won' if (match.home_score or 0) == 0 or (match.away_score or 0) == 0 else 'lost'
-            
-            # Casa gols
-            elif market.startswith('home_over_'):
-                threshold = float(market.split('_')[-1])
-                selection['result'] = 'won' if (match.home_score or 0) > threshold else 'lost'
-            elif market.startswith('home_under_'):
-                threshold = float(market.split('_')[-1])
-                selection['result'] = 'won' if (match.home_score or 0) < threshold else 'lost'
-            
-            # Fora gols
-            elif market.startswith('away_over_'):
-                threshold = float(market.split('_')[-1])
-                selection['result'] = 'won' if (match.away_score or 0) > threshold else 'lost'
-            elif market.startswith('away_under_'):
-                threshold = float(market.split('_')[-1])
-                selection['result'] = 'won' if (match.away_score or 0) < threshold else 'lost'
-            
-            else:
-                # Market não suportado - marcar como não validado
+
+            if status != 'finished':
                 selection['result'] = None
-        
-        # Se nem todos jogos finalizaram, aguardar
-        if not all_finished:
+                all_resolved = False
+                continue
+
+            home_score = info.get('home_score')
+            away_score = info.get('away_score')
+            if home_score is None or away_score is None:
+                selection['result'] = None
+                all_resolved = False
+                continue
+
+            if home_score > away_score:
+                match_result = 'home'
+            elif away_score > home_score:
+                match_result = 'away'
+            else:
+                match_result = 'draw'
+
+            result = evaluate_market_result(
+                selection.get('market'),
+                match_result,
+                home_score,
+                away_score,
+            )
+
+            if result is None:
+                selection['result'] = None
+                all_resolved = False
+                continue
+
+            selection['result'] = result
+            selection['final_score'] = format_score(info)
+            selection['result_source'] = 'api-football'
+            selection['settled_at'] = timezone.now().isoformat()
+
+        # Sem todos os resultados não há validação possível.
+        if not all_resolved:
+            self.selections = selections
+            self.save(update_fields=['selections'])
             return False
-        
-        # Se algum jogo foi cancelado, marcar bilhete como cancelado
+
         if any_cancelled:
             self.status = 'cancelled'
             self.actual_result = 'Jogo(s) cancelado(s) ou adiado(s)'
         else:
-            # Determinar status do bilhete
-            results = [s.get('result') for s in self.selections]
-            
+            results = [s.get('result') for s in selections]
+
             if self.bet_type == 'multiple':
-                # Bilhete múltiplo: TODAS apostas devem ganhar
                 if all(r == 'won' for r in results):
                     self.status = 'won'
                     self.actual_result = f"Bilhete ganhou! {len(results)}/{len(results)} acertos"
@@ -269,20 +264,19 @@ class DailyBet(models.Model):
                         self.status = 'lost'
                         self.actual_result = f"Bilhete perdeu - 0/{len(results)} acertos"
             else:
-                # Value bet individual
-                result = results[0]
+                result = results[0] if results else None
                 if result == 'won':
                     self.status = 'won'
                     self.actual_result = 'Aposta ganhou!'
                 else:
                     self.status = 'lost'
                     self.actual_result = 'Aposta perdeu'
-        
-        # Marcar como validado
+
+        self.selections = selections
         self.is_validated = True
         self.validated_at = timezone.now()
         self.save()
-        
+
         return True
     
     def get_roi(self):
@@ -303,12 +297,163 @@ class DailyBet(models.Model):
             return None
 
 
+class SocialProofTicket(models.Model):
+    """
+    Snapshot imutável de um bilhete usado para prova social (apenas admin).
+
+    O snapshot existe para que a imagem exportada continue verificável mesmo
+    que os DailyBet de origem sejam regenerados ou apagados.
+    """
+
+    KIND_CHOICES = [
+        ('verified_ticket', 'Bilhete Verificado'),
+        ('daily_hits', 'Acertos do Dia'),
+        ('simulation', 'Simulação Pós-Jogo'),
+    ]
+
+    STATUS_CHOICES = [
+        ('candidate', 'Candidato'),
+        ('approved', 'Aprovado'),
+        ('exported', 'Exportado'),
+        ('discarded', 'Descartado'),
+    ]
+
+    date = models.DateField(verbose_name='Data de Referência', db_index=True)
+    kind = models.CharField(max_length=24, choices=KIND_CHOICES, verbose_name='Tipo')
+    status = models.CharField(
+        max_length=16, choices=STATUS_CHOICES, default='candidate', verbose_name='Estado'
+    )
+
+    ticket_code = models.CharField(max_length=40, unique=True, verbose_name='Código do Bilhete')
+    reserve_code = models.CharField(max_length=20, blank=True, verbose_name='Código de Reserva')
+
+    legs = models.JSONField(default=list, verbose_name='Seleções')
+    source_bet_ids = models.JSONField(default=list, blank=True, verbose_name='Bilhetes de Origem')
+
+    total_odd = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='Odd Total'
+    )
+    combined_probability = models.FloatField(
+        null=True, blank=True, verbose_name='Probabilidade Combinada'
+    )
+    stake_units = models.FloatField(default=10.0, verbose_name='Stake (unidades)')
+
+    disclosure = models.TextField(blank=True, verbose_name='Aviso Obrigatório')
+    watermark_required = models.BooleanField(
+        default=False, verbose_name='Marca de Água Obrigatória'
+    )
+
+    snapshot_hash = models.CharField(max_length=64, db_index=True, verbose_name='Hash do Snapshot')
+    meta = models.JSONField(default=dict, blank=True, verbose_name='Metadados')
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='social_proof_tickets_created',
+        verbose_name='Criado Por',
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='social_proof_tickets_approved',
+        verbose_name='Aprovado Por',
+    )
+    last_exported_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='social_proof_tickets_exported',
+        verbose_name='Último Exportador',
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Criado Em')
+    approved_at = models.DateTimeField(null=True, blank=True, verbose_name='Aprovado Em')
+    last_exported_at = models.DateTimeField(null=True, blank=True, verbose_name='Última Exportação')
+    export_count = models.PositiveIntegerField(default=0, verbose_name='Exportações')
+
+    class Meta:
+        verbose_name = 'Bilhete de Prova Social'
+        verbose_name_plural = 'Bilhetes de Prova Social'
+        ordering = ['-date', '-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['date', 'kind', 'snapshot_hash'],
+                name='unique_social_proof_snapshot',
+            )
+        ]
+        indexes = [
+            models.Index(fields=['date', 'kind', 'status']),
+        ]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} - {self.ticket_code}"
+
+    def compute_snapshot_hash(self):
+        payload = {
+            'date': self.date.isoformat() if self.date else None,
+            'kind': self.kind,
+            'legs': self.legs or [],
+        }
+        raw = json.dumps(payload, sort_keys=True, ensure_ascii=False, default=str)
+        return hashlib.sha256(raw.encode('utf-8')).hexdigest()
+
+    def save(self, *args, **kwargs):
+        if not self.snapshot_hash:
+            self.snapshot_hash = self.compute_snapshot_hash()
+        if not self.ticket_code:
+            self.ticket_code = f"PC-{self.date.strftime('%Y%m%d')}-{self.snapshot_hash[:6].upper()}"
+        if not self.reserve_code:
+            self.reserve_code = self.snapshot_hash[6:14].upper()
+        super().save(*args, **kwargs)
+
+    @property
+    def legs_count(self):
+        return len(self.legs or [])
+
+    @property
+    def potential_return_units(self):
+        if self.total_odd is None:
+            return None
+        return round(float(self.total_odd) * float(self.stake_units or 0), 2)
+
+    def approve(self, user):
+        from django.utils import timezone
+
+        self.status = 'approved'
+        self.approved_by = user
+        self.approved_at = timezone.now()
+        self.save(update_fields=['status', 'approved_by', 'approved_at'])
+
+    def register_export(self, user):
+        from django.utils import timezone
+
+        self.status = 'exported'
+        self.last_exported_by = user
+        self.last_exported_at = timezone.now()
+        self.export_count = (self.export_count or 0) + 1
+        self.save(
+            update_fields=[
+                'status',
+                'last_exported_by',
+                'last_exported_at',
+                'export_count',
+            ]
+        )
+
+
 class TaskExecution(models.Model):
     """Registro de execuções das tasks Celery (generate_daily_bets, validate_daily_bets)"""
     
     TASK_CHOICES = [
         ('generate_daily_bets', 'Gerar Bilhetes Diários'),
         ('validate_daily_bets', 'Validar Bilhetes'),
+        ('sync_match_results', 'Sincronizar Resultados'),
+        ('build_social_proof_candidates', 'Preparar Prova Social'),
     ]
     
     STATUS_CHOICES = [

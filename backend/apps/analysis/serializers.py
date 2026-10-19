@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Analysis, DailyBet
+from .models import Analysis, DailyBet, SocialProofTicket
 from apps.matches.serializers import MatchDetailSerializer
 
 
@@ -99,4 +99,59 @@ class DailyBetListSerializer(serializers.ModelSerializer):
     def get_selections_count(self, obj):
         """Retorna quantidade de apostas no bilhete"""
         return len(obj.selections) if obj.selections else 0
+
+
+class SocialProofTicketSerializer(serializers.ModelSerializer):
+    """Snapshot de prova social, apenas para administradores."""
+
+    kind_display = serializers.CharField(source='get_kind_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    legs_count = serializers.IntegerField(read_only=True)
+    potential_return_units = serializers.FloatField(read_only=True)
+    headline = serializers.SerializerMethodField()
+    created_by_email = serializers.SerializerMethodField()
+    approved_by_email = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SocialProofTicket
+        fields = [
+            'id', 'date', 'kind', 'kind_display', 'status', 'status_display',
+            'headline', 'ticket_code', 'reserve_code', 'legs', 'legs_count',
+            'source_bet_ids', 'total_odd', 'combined_probability', 'stake_units',
+            'potential_return_units', 'disclosure', 'watermark_required',
+            'snapshot_hash', 'meta', 'created_by', 'created_by_email',
+            'approved_by', 'approved_by_email', 'created_at', 'approved_at',
+            'last_exported_at', 'export_count',
+        ]
+        read_only_fields = fields
+
+    def get_headline(self, obj):
+        return (obj.meta or {}).get('headline') or obj.get_kind_display()
+
+    def get_created_by_email(self, obj):
+        return obj.created_by.email if obj.created_by_id else None
+
+    def get_approved_by_email(self, obj):
+        return obj.approved_by.email if obj.approved_by_id else None
+
+
+class SocialProofTicketListSerializer(serializers.ModelSerializer):
+    """Versão resumida para o histórico da página admin."""
+
+    kind_display = serializers.CharField(source='get_kind_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    legs_count = serializers.IntegerField(read_only=True)
+    headline = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SocialProofTicket
+        fields = [
+            'id', 'date', 'kind', 'kind_display', 'status', 'status_display',
+            'headline', 'ticket_code', 'reserve_code', 'legs_count',
+            'total_odd', 'combined_probability', 'watermark_required',
+            'export_count', 'created_at', 'approved_at', 'last_exported_at',
+        ]
+
+    def get_headline(self, obj):
+        return (obj.meta or {}).get('headline') or obj.get_kind_display()
 

@@ -10,7 +10,8 @@ import {
   DollarSign,
   ArrowLeft,
   BarChart3,
-  Crown
+  Crown,
+  Camera
 } from 'lucide-react';
 import Header from '../../components/Header';
 import BottomNav from '../../components/BottomNav';
@@ -123,6 +124,13 @@ export default function AdminDashboard() {
       icon: Calendar,
       path: '/admin/daily-bets',
       color: 'green',
+    },
+    {
+      title: 'Prova Social',
+      description: 'Gerar bilhetes verificados para capturas de ecrã',
+      icon: Camera,
+      path: '/admin/social-proof',
+      color: 'amber',
     },
   ];
 

@@ -621,6 +621,54 @@ class DailyBetGenerator:
             'reason': reason,
         }
 
+    def _delete_stale_bets(self, target_date):
+        """
+        Remove apenas bilhetes pendentes cujos jogos ainda não começaram.
+
+        Bilhetes validados, com jogos já iniciados ou referenciados por um
+        snapshot de prova social são preservados para não destruir a prova.
+        """
+        from django.utils.dateparse import parse_datetime
+        from apps.analysis.models import SocialProofTicket
+
+        now = timezone.now()
+
+        referenced_ids = set()
+        for ticket in SocialProofTicket.objects.filter(date=target_date).exclude(status='discarded'):
+            for bet_id in ticket.source_bet_ids or []:
+                try:
+                    referenced_ids.add(int(bet_id))
+                except (TypeError, ValueError):
+                    continue
+
+        protected_ids = set()
+        for bet in DailyBet.objects.filter(date=target_date):
+            if bet.id in referenced_ids or bet.is_validated or bet.status != 'pending':
+                protected_ids.add(bet.id)
+                continue
+
+            for selection in bet.selections or []:
+                raw = selection.get('date')
+                if not raw:
+                    continue
+                kickoff = parse_datetime(str(raw))
+                if kickoff is None:
+                    continue
+                if timezone.is_naive(kickoff):
+                    kickoff = timezone.make_aware(kickoff, timezone.get_current_timezone())
+                if kickoff <= now:
+                    protected_ids.add(bet.id)
+                    break
+
+        stale = DailyBet.objects.filter(date=target_date)
+        if protected_ids:
+            stale = stale.exclude(id__in=protected_ids)
+
+        deleted_count = stale.count()
+        stale.delete()
+        if deleted_count:
+            logger.info(f"   🧹 {deleted_count} bilhete(s) pendente(s) removido(s) (jogos não iniciados)")
+
     def generate_for_today(self, days_ahead=1, mode=None, execution=None):
         """
         Gera apostas para partidas do dia usando busca híbrida inteligente
@@ -1006,8 +1054,9 @@ class DailyBetGenerator:
         
         # Gerar bilhetes e value bets
         with transaction.atomic():
-            # Deletar apostas antigas do mesmo dia (se regenerar)
-            DailyBet.objects.filter(date=today).delete()
+            # Deletar apenas apostas ainda não iniciadas. Bilhetes validados,
+            # com jogos já a decorrer ou usados em prova social são preservados.
+            self._delete_stale_bets(today)
             
             # Gerar bilhetes múltiplos
             multiple_bets = self._generate_multiple_tickets(analyses, today)
@@ -1230,6 +1279,7 @@ class DailyBetGenerator:
                 # ✅ CORREÇÃO 21/02: Incluir league_id para anti-correlação robusta
                 all_bets.append({
                     'fixture_id': fixture_id,
+                    'api_fixture_id': fixture_id,
                     'match': f"{home_team} vs {away_team}",
                     'league': league_name,
                     'league_id': analysis.get('league_id'),
@@ -1458,6 +1508,8 @@ class DailyBetGenerator:
                 
                 all_value_bets.append({
                     'match_id': match.id,
+                    'fixture_id': match.id,
+                    'api_fixture_id': match.id,
                     'match': f"{match.home_team.name} vs {match.away_team.name}",
                     'league': match.league.name if match.league else 'N/A',
                     'date': match_date_str,

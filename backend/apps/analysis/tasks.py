@@ -143,7 +143,22 @@ def validate_daily_bets(self, triggered_by='celery', user_id=None):
         
         validated_count = 0
         still_pending_count = 0
-        
+
+        # Sincronizar resultados oficiais das datas com bilhetes pendentes.
+        # Os fixtures dos bilhetes podem não existir como Match local, por isso
+        # o mapa de resultados vem da API e é reutilizado por todos os bilhetes.
+        from .services.match_result_sync import sync_results_for_date
+
+        dates = sorted(set(pending_bets.values_list('date', flat=True)))
+        results_map = {}
+        for pending_date in dates:
+            try:
+                results_map.update(sync_results_for_date(pending_date))
+            except Exception:
+                logger.exception("Falha ao sincronizar resultados de %s", pending_date)
+
+        logger.info(f"📡 Resultados sincronizados: {len(results_map)} fixtures")
+
         for bet in pending_bets:
             logger.info(f"\n{'─' * 80}")
             logger.info(f"Validando: {bet}")
@@ -152,7 +167,7 @@ def validate_daily_bets(self, triggered_by='celery', user_id=None):
             logger.info(f"   Seleções: {len(bet.selections)}")
             
             # Tentar validar
-            was_validated = bet.validate_result()
+            was_validated = bet.validate_result(results_map=results_map)
             
             if was_validated:
                 validated_count += 1
@@ -257,4 +272,117 @@ def cleanup_old_daily_bets(self):
         
     except Exception as e:
         logger.error(f"❌ Erro no cleanup: {e}", exc_info=True)
+        raise
+
+
+@shared_task(bind=True, name='analysis.sync_match_results')
+def sync_match_results(self, target_date=None, triggered_by='celery'):
+    """
+    Sincroniza status e placares oficiais de uma data.
+
+    Agenda sugerida: 20:00, 22:00 e 23:45 (Africa/Maputo), para que a
+    validação dos bilhetes tenha resultados frescos ao fim do dia.
+    """
+    from django.utils.dateparse import parse_date
+    from apps.analysis.models import TaskExecution
+    from .services.match_result_sync import sync_results_for_date
+
+    target = parse_date(str(target_date)) if target_date else (timezone.localdate() - timedelta(days=1))
+    if not target:
+        target = timezone.localdate() - timedelta(days=1)
+
+    execution = TaskExecution.objects.create(
+        task_name='sync_match_results',
+        task_id=self.request.id,
+        triggered_by=triggered_by,
+    )
+
+    try:
+        results = sync_results_for_date(target)
+        finished = sum(1 for info in results.values() if info.get('status') == 'finished')
+
+        result = {
+            'status': 'success',
+            'date': target.isoformat(),
+            'fixtures': len(results),
+            'finished': finished,
+        }
+        execution.mark_finished(status='success', result_data=result)
+
+        logger.info(
+            "sync_match_results %s: %s fixtures, %s finalizados",
+            target,
+            len(results),
+            finished,
+        )
+        return result
+    except Exception as exc:
+        execution.mark_finished(status='failed', error_message=str(exc))
+        raise
+
+
+@shared_task(bind=True, name='analysis.build_social_proof_candidates')
+def build_social_proof_candidates(self, target_date=None, triggered_by='celery'):
+    """
+    Prepara os snapshots de prova social do fim do dia.
+
+    Cria automaticamente apenas snapshots verificados e de acertos do dia.
+    Simulações pós-jogo exigem confirmação manual de um administrador.
+    """
+    from django.utils.dateparse import parse_date
+    from apps.analysis.models import TaskExecution
+    from .services.match_result_sync import sync_results_for_date
+    from .services.social_proof_builder import (
+        KIND_DAILY_HITS,
+        KIND_VERIFIED,
+        SocialProofBuilder,
+    )
+
+    target = parse_date(str(target_date)) if target_date else (timezone.localdate() - timedelta(days=1))
+    if not target:
+        target = timezone.localdate() - timedelta(days=1)
+
+    execution = TaskExecution.objects.create(
+        task_name='build_social_proof_candidates',
+        task_id=self.request.id,
+        triggered_by=triggered_by,
+    )
+
+    try:
+        results = sync_results_for_date(target)
+        validated = SocialProofBuilder.settle_bets(target, results_map=results)
+
+        created = []
+        for kind in (KIND_VERIFIED, KIND_DAILY_HITS):
+            try:
+                ticket, was_created = SocialProofBuilder.create_ticket(target, kind)
+                if was_created:
+                    created.append(
+                        {
+                            'id': ticket.id,
+                            'ticket_code': ticket.ticket_code,
+                            'kind': ticket.kind,
+                        }
+                    )
+            except ValueError as exc:
+                logger.info("Sem candidatos para %s em %s: %s", kind, target, exc)
+
+        result = {
+            'status': 'success',
+            'date': target.isoformat(),
+            'fixtures': len(results),
+            'validated_bets': validated,
+            'created_tickets': created,
+        }
+        execution.mark_finished(status='success', result_data=result)
+
+        logger.info(
+            "build_social_proof_candidates %s: %s bilhetes validados, %s snapshots criados",
+            target,
+            validated,
+            len(created),
+        )
+        return result
+    except Exception as exc:
+        execution.mark_finished(status='failed', error_message=str(exc))
         raise
