@@ -31,7 +31,36 @@ SECRET_KEY = os.getenv('SECRET_KEY', "django-insecure-moeky7@v_l&bck(9b!6-o4o@!o
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = [
+    host.strip()
+    for host in os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+    if host.strip()
+]
+
+# O nginx termina o TLS e envia X-Forwarded-Proto. Sem isto o Django pensa que
+# a request e HTTP e a validacao de Origin do CSRF falha no /admin/ em HTTPS.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
+# Origens de confianca para pedidos POST em HTTPS (admin, login, webhooks).
+# Derivado de ALLOWED_HOSTS; pode ser sobreposto com CSRF_TRUSTED_ORIGINS.
+def _build_csrf_trusted_origins():
+    explicit = os.getenv('CSRF_TRUSTED_ORIGINS', '')
+    if explicit.strip():
+        return [origin.strip() for origin in explicit.split(',') if origin.strip()]
+
+    origins = []
+    for host in ALLOWED_HOSTS:
+        if host in ('*', 'localhost', '127.0.0.1'):
+            continue
+        for scheme in ('https', 'http'):
+            origin = f'{scheme}://{host}'
+            if origin not in origins:
+                origins.append(origin)
+    return origins
+
+
+CSRF_TRUSTED_ORIGINS = _build_csrf_trusted_origins()
 
 
 # Application definition
@@ -166,10 +195,13 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
-STATIC_URL = "static/"
+# URL absoluta: sem o "/" inicial o {% static %} do Django admin gera URLs
+# relativas (ex.: "static/admin/css/base.css") que resolvem para
+# /admin/static/... e dao 404. O nginx serve /static/ a partir do volume.
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-MEDIA_URL = "media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # Default primary key field type
@@ -316,9 +348,24 @@ MPESA_PUBLIC_KEY = os.getenv('MPESA_PUBLIC_KEY', '')
 # Firebase Configuration
 FCM_SERVER_KEY = os.getenv('FCM_SERVER_KEY', '')
 
+# Email transacional (notificacoes de assinatura).
+# Por omissao o console backend: as mensagens aparecem nos logs em vez de
+# falharem por nao existir SMTP no container.
+EMAIL_BACKEND = os.getenv(
+    'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend'
+)
+EMAIL_HOST = os.getenv('EMAIL_HOST', '')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.getenv(
+    'DEFAULT_FROM_EMAIL', 'PlacarCerto <noreply@placarcerto.digital>'
+)
+
 # Application Settings
-FREE_ANALYSIS_LIMIT = 3
-PREMIUM_ANALYSIS_LIMIT = 100
+FREE_ANALYSIS_LIMIT = int(os.getenv('FREE_ANALYSIS_LIMIT', '3'))
+PREMIUM_ANALYSIS_LIMIT = int(os.getenv('PREMIUM_ANALYSIS_LIMIT', '100'))
 
 # Logging Configuration
 LOGGING = {
