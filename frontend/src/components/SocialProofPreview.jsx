@@ -19,7 +19,6 @@ const COLORS = {
   borderMid: '#DCDCDC',
   borderDark: '#DADADA',
   green: '#009100',
-  greenDark: '#00A63F',
   greenBg: '#E6F6EC',
   detailsBg: '#F7F3F6',
   summaryBg: '#FAFAFA',
@@ -125,32 +124,48 @@ function IconCircleOpen({ size }) {
   );
 }
 
-function IconCheckCircle({ size }) {
+function IconCheckCircle({ size, color = '#009100' }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" fill={color}>
+      <path d="M12 2C6.5 2 2 6.5 2 12S6.5 22 12 22 22 17.5 22 12 17.5 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z" />
+    </svg>
+  );
+}
+
+{/* Selo circular de bilhete verificado (ícone das marcas ao lado do código de reserva) */}
+function IconVerifiedSeal({ size }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={COLORS.borderDark} aria-hidden="true">
+      <path d="M12 23C18.08 23 23 18.07 23 12C23 5.92 18.07 1 12 1C5.93 1 1 5.93 1 12C1 18.08 5.93 23 12 23Z" />
       <path
-        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
-        fill="#009100"
+        d="M4.7801 12.17C4.7801 8.18 8.0101 4.95 12.0001 4.95C15.9901 4.95 19.2201 8.18 19.2201 12.17H21.2501C21.2501 12.15 21.2501 12.14 21.2501 12.12C21.2501 7.04 17.1301 2.92 12.0501 2.92C6.9701 2.92 2.8501 7.04 2.8501 12.12C2.8501 12.14 2.8501 12.15 2.8501 12.17H4.7801Z"
+        fill="#FFFFFF"
       />
+      <path d="M17.5401 9.61L20.4701 6.57L19.0001 4.98L16.3101 7.54L17.5401 9.61Z" />
+      <path d="M21.13 5.87L15.09 12.17C15.09 12.17 15.1 16.44 11.02 14.55L12.75 13.94L13.25 12.85L13.64 10.96L20.2 4.66L21.13 5.87Z" />
+      <path
+        d="M14.2098 11.73L20.8698 4.39L19.5998 3.14L17.5698 4.99L15.9998 6.41L12.2598 9.8C11.4798 9.65 10.6398 9.87 10.0398 10.47C9.07982 11.43 9.07982 12.99 10.0398 13.95C10.9998 14.91 12.5598 14.91 13.5198 13.95C14.1298 13.35 14.3498 12.52 14.2098 11.73Z"
+        fill="#FFFFFF"
+      />
+      <path d="M11.1102 12.89C10.7302 12.51 10.7302 11.9 11.1102 11.53C11.4902 11.15 12.1002 11.15 12.4702 11.53C12.8402 11.91 12.8502 12.52 12.4702 12.89C12.0902 13.27 11.4802 13.27 11.1102 12.89Z" />
     </svg>
   );
 }
 
 function IconShieldCheck({ size }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M12 1.5L20 5v6c0 5.25-3.5 8.9-8 11-4.5-2.1-8-5.75-8-11V5l8-3.5z"
-        fill="#009100"
-      />
-      <path
-        d="M8.5 12l2.4 2.4 4.6-4.8"
-        fill="none"
-        stroke="#FFFFFF"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={COLORS.borderDark} aria-hidden="true">
+      <path d="M19.33 10.8102L16.83 12.9802C16.69 14.1202 16.22 15.2102 15.47 16.0902C14.25 17.4402 12.74 18.5102 11.06 19.2202C10.96 19.2702 10.86 19.2902 10.75 19.2902C10.64 19.2902 10.53 19.2702 10.43 19.2202C8.76004 18.5102 7.26004 17.4502 6.05004 16.1002C5.12004 15.0102 4.62004 13.6202 4.63004 12.1902V8.15021C4.63004 7.74021 4.95004 7.40022 5.37004 7.39021C7.18004 7.30021 8.90004 6.59021 10.24 5.38021C10.53 5.13021 10.96 5.13021 11.25 5.38021C12.21 6.25022 13.37 6.86021 14.61 7.17021L16.45 5.12021C13.27 4.69021 11.44 2.36021 11.35 2.25021C11.2 2.07021 10.98 1.97021 10.75 1.97021C10.52 1.97021 10.3 2.07021 10.15 2.25021C10.12 2.29021 7.48004 5.69021 3.04004 5.13021C2.83004 5.08021 2.61004 5.15021 2.45004 5.30022C2.28004 5.44022 2.19004 5.65021 2.19004 5.87021V12.1802C2.18004 14.2002 2.90004 16.1502 4.21004 17.6802C5.93004 19.5902 8.08004 21.0602 10.47 21.9902C10.66 22.0702 10.87 22.0702 11.06 21.9902C13.45 21.0602 15.59 19.5902 17.31 17.6802C18.62 16.1502 19.34 14.2002 19.33 12.1802V10.8102Z" />
+      <path d="M21.4401 6.28L11.4501 16.26C11.2101 16.51 10.8901 16.65 10.5401 16.65C10.2001 16.65 9.87008 16.51 9.63008 16.26L5.54008 12.2C5.22008 11.88 5.09008 11.4 5.21008 10.96C5.33008 10.52 5.68008 10.17 6.12008 10.05C6.56008 9.93001 7.04008 10.06 7.36008 10.38L10.5401 13.55L19.6101 4.46C19.9301 4.14 20.4101 4.01 20.8501 4.13C21.2901 4.25 21.6401 4.59 21.7601 5.04C21.8901 5.48 21.7601 5.95 21.4401 6.28Z" />
+    </svg>
+  );
+}
+
+{/* Seta do select: no original é um triângulo preenchido, não um chevron traçado */}
+function IconSelectCaret({ size }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={COLORS.ink} aria-hidden="true">
+      <path d="M5 8h14l-7 8z" />
     </svg>
   );
 }
@@ -326,7 +341,7 @@ const SocialProofPreview = forwardRef(function SocialProofPreview(
               pointerEvents: 'none',
             }}
           >
-            <IconChevronDown size={s(16)} />
+            <IconSelectCaret size={s(24)} />
           </span>
         </div>
         <button type="button" style={iconButton}>
@@ -394,8 +409,8 @@ const SocialProofPreview = forwardRef(function SocialProofPreview(
               Código de Reserva: {ticket.reserve_code || '—'}
             </div>
             <div style={{ display: 'flex', gap: s(6) }}>
-              <IconCheckCircle size={s(24)} />
-              <IconShieldCheck size={s(18)} />
+              <IconVerifiedSeal size={s(24)} />
+              <IconShieldCheck size={s(24)} />
             </div>
           </div>
         </div>
@@ -408,7 +423,7 @@ const SocialProofPreview = forwardRef(function SocialProofPreview(
             alignItems: 'center',
             padding: s(8),
             backgroundColor: COLORS.white,
-            gap: s(6),
+            gap: s(8),
             flexWrap: 'nowrap',
           }}
         >
@@ -420,54 +435,54 @@ const SocialProofPreview = forwardRef(function SocialProofPreview(
               border: `${b}px solid ${COLORS.borderDark}`,
               borderRadius: s(4),
               overflow: 'hidden',
-              fontSize: s(13),
+              fontSize: s(15),
               fontWeight: 400,
               whiteSpace: 'nowrap',
             }}
           >
-            <span style={{ padding: s(7), whiteSpace: 'nowrap' }}>
+            <span style={{ padding: s(8), whiteSpace: 'nowrap' }}>
               {title} (<strong style={{ color: COLORS.green }}>{legs.length}</strong>)
             </span>
             <span
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: s(3),
-                padding: s(7),
+                gap: s(4),
+                padding: s(8),
                 borderLeft: `${b}px solid ${COLORS.borderDark}`,
-                fontSize: s(12),
+                fontSize: s(15),
                 fontWeight: 500,
                 whiteSpace: 'nowrap',
-                color: COLORS.muted,
+                color: COLORS.text,
               }}
             >
-              <IconCircleOpen size={s(14)} />
+              <IconCircleOpen size={s(16)} />
               {lostCount}
             </span>
             <span
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: s(3),
-                padding: s(7),
+                gap: s(4),
+                padding: s(8),
                 borderLeft: `${b}px solid ${COLORS.borderDark}`,
-                fontSize: s(12),
+                fontSize: s(15),
                 fontWeight: 500,
                 whiteSpace: 'nowrap',
                 color: COLORS.green,
               }}
             >
-              <IconCheckCircle size={s(15)} />
+              <IconCheckCircle size={s(18)} />
               {wonCount}
             </span>
           </div>
 
           <span
             style={{
-              padding: s(7),
+              padding: s(8),
               borderRadius: s(4),
               backgroundColor: COLORS.detailsBg,
-              fontSize: s(12),
+              fontSize: s(15),
               fontWeight: 'bold',
               color: COLORS.ink,
               display: 'flex',
@@ -477,7 +492,7 @@ const SocialProofPreview = forwardRef(function SocialProofPreview(
             }}
           >
             Visualização de detalhes
-            <IconChevronDown size={s(12)} />
+            <IconChevronDown size={s(14)} />
           </span>
         </div>
 
@@ -523,7 +538,7 @@ const SocialProofPreview = forwardRef(function SocialProofPreview(
             }}
           >
             <span>Total De Probabilidades:</span>
-            <strong style={{ color: COLORS.ink }}>{formatOdd(totalOdd)}</strong>
+            <strong>{formatOdd(totalOdd)}</strong>
           </div>
           <div
             style={{
@@ -534,7 +549,7 @@ const SocialProofPreview = forwardRef(function SocialProofPreview(
             }}
           >
             <span>Retorno real:</span>
-            <strong style={{ color: COLORS.ink }}>{formatMzn(returnReal)}</strong>
+            <strong>{formatMzn(returnReal)}</strong>
           </div>
         </div>
 
