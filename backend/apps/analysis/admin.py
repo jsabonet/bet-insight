@@ -431,7 +431,7 @@ class SocialProofTicketAdmin(admin.ModelAdmin):
     fields = [
         'date', 'kind', 'status', 'ticket_code', 'reserve_code',
         'legs_count', 'total_odd', 'combined_probability', 'stake_units',
-        'disclosure', 'watermark_required', 'snapshot_hash', 'meta',
+        'disclosure', 'snapshot_hash', 'meta',
         'source_bet_ids', 'created_by', 'approved_by', 'approved_at',
         'last_exported_by', 'last_exported_at', 'export_count',
         'created_at',

@@ -23,19 +23,9 @@ export const socialProofAPI = {
 
 export const SOCIAL_PROOF_KINDS = [
   {
-    id: 'verified_ticket',
-    label: 'Bilhete verificado',
-    hint: 'Bilhete múltiplo gerado antes dos jogos e que ganhou todas as seleções.',
-  },
-  {
-    id: 'daily_hits',
-    label: 'Acertos do dia',
-    hint: 'Seleções individuais vencedoras. Não representa um bilhete completo.',
-  },
-  {
     id: 'simulation',
     label: 'Simulação pós-jogo',
-    hint: 'Bilhete montado depois dos resultados. Sai sempre com marca de água.',
+    hint: 'Bilhete montado depois dos resultados para fins de marketing.',
   },
 ];
 

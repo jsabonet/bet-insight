@@ -118,7 +118,7 @@ class SocialProofTicketSerializer(serializers.ModelSerializer):
             'id', 'date', 'kind', 'kind_display', 'status', 'status_display',
             'headline', 'ticket_code', 'reserve_code', 'legs', 'legs_count',
             'source_bet_ids', 'total_odd', 'combined_probability', 'stake_units',
-            'potential_return_units', 'disclosure', 'watermark_required',
+            'potential_return_units', 'disclosure',
             'snapshot_hash', 'meta', 'created_by', 'created_by_email',
             'approved_by', 'approved_by_email', 'created_at', 'approved_at',
             'last_exported_at', 'export_count',
@@ -148,7 +148,7 @@ class SocialProofTicketListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'date', 'kind', 'kind_display', 'status', 'status_display',
             'headline', 'ticket_code', 'reserve_code', 'legs_count',
-            'total_odd', 'combined_probability', 'watermark_required',
+            'total_odd', 'combined_probability',
             'export_count', 'created_at', 'approved_at', 'last_exported_at',
         ]
 

@@ -81,7 +81,7 @@ class SocialProofPermissionTests(SocialProofTestBase):
 
     def test_generate_requires_admin(self):
         self._auth(self.regular)
-        response = self.client.post(f'{BASE_URL}generate/', {'kind': 'verified_ticket'}, format='json')
+        response = self.client.post(f'{BASE_URL}generate/', {'kind': 'simulation'}, format='json')
         self.assertEqual(response.status_code, 403)
 
 
@@ -96,27 +96,13 @@ class SocialProofCandidateTests(SocialProofTestBase):
         response = self.client.get(f'{BASE_URL}candidates/', {'date': self.yesterday.isoformat(), 'kind': 'nope'})
         self.assertEqual(response.status_code, 400)
 
-    def test_verified_candidates_include_won_bet_before_kickoff(self):
-        self._won_bet(self.yesterday)
-        response = self.client.get(
-            f'{BASE_URL}candidates/',
-            {'date': self.yesterday.isoformat(), 'kind': 'verified_ticket'},
-        )
-        self.assertEqual(response.status_code, 200)
-        payload = response.json()
-        self.assertEqual(payload['count'], 1)
-        candidate = payload['candidates'][0]
-        self.assertEqual(candidate['legs_count'], 2)
-        self.assertFalse(candidate['watermark_required'])
-
-    def test_bet_created_after_kickoff_is_excluded(self):
-        bet = self._won_bet(self.yesterday)
-        DailyBet.objects.filter(pk=bet.pk).update(created_at=timezone.now())
-        response = self.client.get(
-            f'{BASE_URL}candidates/',
-            {'date': self.yesterday.isoformat(), 'kind': 'verified_ticket'},
-        )
-        self.assertEqual(response.json()['count'], 0)
+    def test_removed_kinds_are_rejected(self):
+        for removed in ('verified_ticket', 'daily_hits'):
+            response = self.client.get(
+                f'{BASE_URL}candidates/',
+                {'date': self.yesterday.isoformat(), 'kind': removed},
+            )
+            self.assertEqual(response.status_code, 400)
 
     def test_simulation_requires_explicit_confirmation(self):
         self._won_bet(self.yesterday)
@@ -128,7 +114,7 @@ class SocialProofCandidateTests(SocialProofTestBase):
         self.assertEqual(response.status_code, 400)
         self.assertIn('simulação', response.json()['error'].lower())
 
-    def test_simulation_ticket_is_watermarked(self):
+    def test_simulation_ticket_has_disclosure(self):
         self._won_bet(self.yesterday, fixture_ids=(201, 202, 203))
         response = self.client.post(
             f'{BASE_URL}generate/',
@@ -141,7 +127,6 @@ class SocialProofCandidateTests(SocialProofTestBase):
         )
         self.assertEqual(response.status_code, 201, response.content)
         body = response.json()
-        self.assertTrue(body['watermark_required'])
         self.assertTrue(body['disclosure'])
 
 
@@ -189,7 +174,6 @@ class SocialProofSimulationFallbackTests(SocialProofTestBase):
 
         self.assertEqual(response.status_code, 201, response.content)
         body = response.json()
-        self.assertTrue(body['watermark_required'])
         self.assertTrue(body['disclosure'])
         self.assertGreaterEqual(body['legs_count'], 2)
         self.assertEqual(body['source_bet_ids'], [])
@@ -237,7 +221,7 @@ class SocialProofLifecycleTests(SocialProofTestBase):
         self._won_bet(self.yesterday)
         self.ticket = SocialProofTicket.objects.create(
             date=self.yesterday,
-            kind='verified_ticket',
+            kind='simulation',
             ticket_code='SP-TEST-0001',
             reserve_code='BW7A',
             legs=[
@@ -257,7 +241,11 @@ class SocialProofLifecycleTests(SocialProofTestBase):
 
     def test_generate_is_idempotent(self):
         url = f'{BASE_URL}generate/'
-        body = {'date': self.yesterday.isoformat(), 'kind': 'verified_ticket'}
+        body = {
+            'date': self.yesterday.isoformat(),
+            'kind': 'simulation',
+            'confirm_simulation': True,
+        }
 
         first = self.client.post(url, body, format='json')
         self.assertEqual(first.status_code, 201)
@@ -267,7 +255,7 @@ class SocialProofLifecycleTests(SocialProofTestBase):
         self.assertEqual(second.status_code, 200)
         self.assertFalse(second.json()['created'])
         self.assertEqual(
-            SocialProofTicket.objects.filter(kind='verified_ticket').count(), 2
+            SocialProofTicket.objects.filter(kind='simulation').count(), 2
         )
 
     def test_export_before_approve_is_blocked(self):

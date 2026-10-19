@@ -16,14 +16,14 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='taskexecution',
             name='task_name',
-            field=models.CharField(choices=[('generate_daily_bets', 'Gerar Bilhetes Diários'), ('validate_daily_bets', 'Validar Bilhetes'), ('sync_match_results', 'Sincronizar Resultados'), ('build_social_proof_candidates', 'Preparar Prova Social')], max_length=50, verbose_name='Task'),
+            field=models.CharField(choices=[('generate_daily_bets', 'Gerar Bilhetes Diários'), ('validate_daily_bets', 'Validar Bilhetes'), ('sync_match_results', 'Sincronizar Resultados')], max_length=50, verbose_name='Task'),
         ),
         migrations.CreateModel(
             name='SocialProofTicket',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('date', models.DateField(db_index=True, verbose_name='Data de Referência')),
-                ('kind', models.CharField(choices=[('verified_ticket', 'Bilhete Verificado'), ('daily_hits', 'Acertos do Dia'), ('simulation', 'Simulação Pós-Jogo')], max_length=24, verbose_name='Tipo')),
+                ('kind', models.CharField(choices=[('simulation', 'Simulação Pós-Jogo')], max_length=24, verbose_name='Tipo')),
                 ('status', models.CharField(choices=[('candidate', 'Candidato'), ('approved', 'Aprovado'), ('exported', 'Exportado'), ('discarded', 'Descartado')], default='candidate', max_length=16, verbose_name='Estado')),
                 ('ticket_code', models.CharField(max_length=40, unique=True, verbose_name='Código do Bilhete')),
                 ('reserve_code', models.CharField(blank=True, max_length=20, verbose_name='Código de Reserva')),

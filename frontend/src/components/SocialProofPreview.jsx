@@ -177,7 +177,6 @@ const SocialProofPreview = forwardRef(function SocialProofPreview(
   const b = Math.max(1, s(1));
 
   const legs = ticket.legs || [];
-  const isSimulation = ticket.kind === 'simulation' || ticket.watermark_required;
 
   const units = Number(stakeUnits) || 0;
   const stake = units * (Number(unitValue) || 0);
@@ -193,11 +192,7 @@ const SocialProofPreview = forwardRef(function SocialProofPreview(
   const wonCount = legs.filter((leg) => leg.result === 'won').length;
   const lostCount = legs.length - wonCount;
 
-  const title = isSimulation
-    ? 'Simulação Pós-Jogo'
-    : ticket.kind === 'daily_hits'
-      ? 'Acertos do Dia'
-      : 'Aposta Múltipla';
+  const title = 'Aposta Múltipla';
 
   const summaryTeams = legs.map((leg) => homeTeam(leg.match)).filter(Boolean);
   const visibleTeams = summaryTeams.slice(0, 3);

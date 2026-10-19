@@ -16,15 +16,12 @@ Página **exclusiva de admin** que monta um bilhete válido a partir de partidas
 
 Estas regras estão implementadas no backend e **não** são apenas sugestões de UI.
 
-1. **Nunca apresentar um bilhete pós-jogo como previsão.** Um bilhete só é
-   `verified_ticket` (o único tipo apresentável como "acertámos") se foi
-   **gerado pelo sistema antes do apito inicial** da partida mais cedo do
-   bilhete: `DailyBet.created_at < primeiro kickoff`. Caso contrário o
-   candidato é descartado com o log
-   `Bilhete X excluído da prova social: não foi gerado antes do kickoff`.
-2. **Simulação leva sempre marca de água.** `kind=simulation` cria o snapshot
-   com `watermark_required=True` e um `disclosure` obrigatório, e a API exige
-   `confirm_simulation: true` no corpo do pedido.
+1. **Nunca apresentar um bilhete pós-jogo como previsão.** Todo o snapshot de
+   prova social é uma simulação montada depois de os resultados serem
+   conhecidos, com aviso obrigatório.
+2. **Simulação leva sempre aviso.** `kind=simulation` cria o snapshot com um
+   `disclosure` obrigatório, e a API exige `confirm_simulation: true` no corpo
+   do pedido.
 3. **Aviso de jogo responsável** no rodapé da imagem (18+).
 4. **Validação estrita.** Um bilhete só é considerado ganho quando *todas* as
    seleções têm resultado confirmado. Falta de resultado, jogo adiado ou
@@ -32,16 +29,14 @@ Estas regras estão implementadas no backend e **não** são apenas sugestões d
 
 ---
 
-## 🎯 Os três modos
+## 🎯 O modo único
 
 | `kind` | O que é | Pode ser publicado como "acertámos"? |
 |---|---|---|
-| `verified_ticket` | Bilhete múltiplo real, gerado antes do kickoff, com todas as pernas ganhas | ✅ Sim |
-| `daily_hits` | Lista de acertos do dia (não é um bilhete completo), a partir de `MAX_HIT_LEGS` melhores seleções | ⚠️ Só como "acertos do dia", nunca como bilhete único |
-| `simulation` | Bilhete composto **depois** de os resultados serem conhecidos, para demonstração | ❌ Nunca; leva marca de água e aviso |
+| `simulation` | Bilhete composto **depois** de os resultados serem conhecidos, para demonstração | ❌ Nunca; leva aviso |
 
-O `verified_ticket` é a única fonte de prova social legítima. Os outros dois
-existem para demonstração de produto e comunicação — nunca como previsão.
+O único modo disponível é a simulação pós-jogo, usada apenas para demonstração
+de produto e comunicação — nunca como previsão.
 
 ---
 
@@ -54,10 +49,9 @@ Em `config/celery.py` (`CELERY_TIMEZONE = Africa/Maputo`):
 | `analysis.sync_match_results` | 20:00 | Resultados das partidas da tarde |
 | `analysis.sync_match_results` (`-late`) | 22:00 | Resultados das partidas da noite |
 | `analysis.sync_match_results` (`-final`) | 23:30 | Fecho do dia + settle dos bilhetes |
-| `analysis.build_social_proof_candidates` | 23:45 | Pré-calcula candidatos de prova social |
 
-Cada corrida regista uma `TaskExecution` (`sync_match_results`,
-`build_social_proof_candidates`) visível no admin de tarefas.
+Cada corrida regista uma `TaskExecution` (`sync_match_results`) visível no
+admin de tarefas.
 
 As tarefas **sincronizam resultados e liquidam bilhetes**, mas **não publicam
 nada**: a aprovação e a captura de tela continuam a ser um ato manual do admin.
@@ -68,8 +62,7 @@ nada**: a aprovação e a captura de tela continuam a ser um ato manual do admin
 
 1. Abrir `/admin/social-proof`.
 2. Escolher a data (padrão: **ontem**, porque os resultados só ficam completos
-   no dia seguinte) e o modo (`Bilhete verificado` / `Acertos do dia` /
-   `Simulação`).
+   no dia seguinte).
 3. Premir **Gerar candidatos**. Se não houver resultados sincronizados,
    usar **Sincronizar resultados** (chama o endpoint de sync) e repetir.
 4. Escolher um candidato → **Criar snapshot**.
@@ -102,7 +95,7 @@ Corpo típico de `generate/`:
 ```json
 {
   "date": "2026-01-15",
-  "kind": "verified_ticket",
+  "kind": "simulation",
   "snapshot_hash": "opcional — fixa um candidato específico",
   "confirm_simulation": true
 }
@@ -124,7 +117,7 @@ de origem sejam regenerados ou apagados.
 - `legs` (JSON: `fixture_id`, `match`, `league`, `kickoff`, `market`,
   `market_label`, `pick`, `odd`, `probability`, `result`, `final_score`)
 - `total_odd`, `combined_probability`, `stake_units`
-- `disclosure`, `watermark_required`
+- `disclosure`
 - `snapshot_hash` (idempotência), `meta`
 - `created_by`, `approved_by`, `last_exported_by`, `export_count`
 
@@ -140,9 +133,9 @@ cd backend
 python manage.py test apps.analysis
 ```
 
-Cobrem: permissões (anónimo/não admin), modos inválidos, exclusão de bilhetes
-gerados depois do kickoff, obrigatoriedade da confirmação de simulação, marca
-de água, idempotência do `generate`, bloqueio de exportação antes da aprovação,
+Cobrem: permissões (anónimo/não admin), modos inválidos (incluindo os antigos
+`verified_ticket` e `daily_hits`), obrigatoriedade da confirmação de simulação,
+idempotência do `generate`, bloqueio de exportação antes da aprovação,
 aprovação/exportação, descarte e validação estrita de `DailyBet`
 (resultado ausente, jogo em curso, mercado não suportado).
 

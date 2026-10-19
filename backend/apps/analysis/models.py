@@ -306,8 +306,6 @@ class SocialProofTicket(models.Model):
     """
 
     KIND_CHOICES = [
-        ('verified_ticket', 'Bilhete Verificado'),
-        ('daily_hits', 'Acertos do Dia'),
         ('simulation', 'Simulação Pós-Jogo'),
     ]
 
@@ -339,9 +337,6 @@ class SocialProofTicket(models.Model):
     stake_units = models.FloatField(default=10.0, verbose_name='Stake (unidades)')
 
     disclosure = models.TextField(blank=True, verbose_name='Aviso Obrigatório')
-    watermark_required = models.BooleanField(
-        default=False, verbose_name='Marca de Água Obrigatória'
-    )
 
     snapshot_hash = models.CharField(max_length=64, db_index=True, verbose_name='Hash do Snapshot')
     meta = models.JSONField(default=dict, blank=True, verbose_name='Metadados')
@@ -453,7 +448,6 @@ class TaskExecution(models.Model):
         ('generate_daily_bets', 'Gerar Bilhetes Diários'),
         ('validate_daily_bets', 'Validar Bilhetes'),
         ('sync_match_results', 'Sincronizar Resultados'),
-        ('build_social_proof_candidates', 'Preparar Prova Social'),
     ]
     
     STATUS_CHOICES = [

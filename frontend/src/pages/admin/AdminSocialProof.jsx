@@ -354,9 +354,8 @@ export default function AdminSocialProof() {
             <div className="flex items-start gap-3">
               <ShieldCheck size={18} className="mt-0.5 shrink-0" />
               <p>
-                Página interna. Use apenas bilhetes reais gerados antes dos jogos. Bilhetes de
-                simulação são montados depois dos resultados e saem <strong>sempre</strong> com
-                marca de água e aviso de simulação.
+                Página interna. Use apenas dados reais gerados antes dos jogos. Bilhetes de
+                simulação são montados depois dos resultados para fins de marketing.
               </p>
             </div>
           </div>
@@ -429,8 +428,8 @@ export default function AdminSocialProof() {
                       onChange={(event) => setConfirmSimulation(event.target.checked)}
                       className="mt-0.5"
                     />
-                    Confirmo que este bilhete é uma simulação pós-jogo, será publicado com marca de
-                    água e não será apresentado como previsão.
+                    Confirmo que este bilhete é uma simulação pós-jogo e não será
+                    apresentado como previsão.
                   </label>
                 )}
 

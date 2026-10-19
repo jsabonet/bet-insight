@@ -21,26 +21,16 @@ from .match_result_sync import (
 
 logger = logging.getLogger(__name__)
 
-KIND_VERIFIED = 'verified_ticket'
-KIND_DAILY_HITS = 'daily_hits'
 KIND_SIMULATION = 'simulation'
 
-VALID_KINDS = {KIND_VERIFIED, KIND_DAILY_HITS, KIND_SIMULATION}
+VALID_KINDS = {KIND_SIMULATION}
 
 DEFAULT_STAKE_UNITS = 10.0
-MAX_HIT_LEGS = 5
+MAX_SIMULATION_LEGS = 5
 MAX_SIMULATION_ODD = 20.0
 MIN_SIMULATION_LEGS = 2
 
 DISCLOSURES = {
-    KIND_VERIFIED: (
-        'Bilhete gerado pelo PlacerCerto antes do início das partidas. '
-        'Resultados oficiais confirmados. 18+ · Jogue com responsabilidade.'
-    ),
-    KIND_DAILY_HITS: (
-        'Acertos individuais de seleções geradas antes do início dos jogos. '
-        'Não representa um bilhete completo vencedor. 18+ · Jogue com responsabilidade.'
-    ),
     KIND_SIMULATION: (
         'SIMULAÇÃO PÓS-JOGO: bilhete composto depois de os resultados serem '
         'conhecidos, apenas para demonstração. Não é uma previsão nem um '
@@ -155,9 +145,9 @@ def _illustrative_odd(market: str, home: int, away: int) -> float:
     """
     Odd ilustrativa para o modo simulação (pós-jogo).
 
-    A simulação é claramente marcada como tal (marca de água + aviso), por
-    isso não usa odds reais de seleções pré-jogo. O valor é determinístico e
-    plausível, baseado apenas no resultado final.
+    A simulação é claramente marcada como tal (aviso), por isso não usa odds
+    reais de seleções pré-jogo. O valor é determinístico e plausível, baseado
+    apenas no resultado final.
     """
     margin = abs((home or 0) - (away or 0))
     if market == 'draw':
@@ -235,11 +225,7 @@ def _build_candidate(target_date, kind: str, legs: list[dict], source_bet_ids) -
         'date': target_date.isoformat(),
         'kind': kind,
         'kind_display': dict(SocialProofTicket.KIND_CHOICES).get(kind, kind),
-        'headline': {
-            KIND_VERIFIED: f"Aposta Múltipla ({len(legs)})",
-            KIND_DAILY_HITS: f"Acertos do Dia ({len(legs)})",
-            KIND_SIMULATION: f"Simulação ({len(legs)})",
-        }[kind],
+        'headline': f"Simulação ({len(legs)})",
         'legs': legs,
         'legs_count': len(legs),
         'total_odd': total_odd,
@@ -305,69 +291,17 @@ class SocialProofBuilder:
         target = _as_date(target_date) or timezone.localdate()
         cls.settle_bets(target)
 
-        if kind == KIND_VERIFIED:
-            return cls._verified_candidates(target)
-
-        if kind == KIND_DAILY_HITS:
-            return cls._hit_candidates(target, kind)
-
-        # Simulação: prefere seleções reais já geradas (com odds pré-jogo).
-        # Se não houver, compõe o bilhete a partir de partidas finalizadas,
-        # sem exigir bilhetes verificados.
-        candidates = cls._hit_candidates(target, kind)
+        # Simulação pós-jogo: prefere seleções reais já geradas (com odds
+        # pré-jogo). Se não houver, compõe o bilhete a partir de partidas
+        # finalizadas, com odds ilustrativas.
+        candidates = cls._simulation_candidates(target)
         if candidates:
             return candidates
         return cls._simulation_candidates_from_finished(target)
 
     @classmethod
-    def _verified_candidates(cls, target_date) -> list[dict]:
-        candidates = []
-
-        bets = DailyBet.objects.filter(
-            date=target_date,
-            bet_type='multiple',
-            status='won',
-            is_validated=True,
-        ).order_by('-total_odd')
-
-        for bet in bets:
-            selections = bet.selections or []
-            if not selections:
-                continue
-
-            legs = []
-            source_ids = [bet.id]
-            first_kickoff = None
-            all_won = True
-
-            for selection in selections:
-                leg = _leg_payload(selection)
-                if leg is None or selection.get('result') != 'won':
-                    all_won = False
-                    break
-                legs.append(leg)
-
-                kickoff = _parse_kickoff(selection.get('date'))
-                if kickoff and (first_kickoff is None or kickoff < first_kickoff):
-                    first_kickoff = kickoff
-
-            if not all_won or not legs:
-                continue
-
-            if first_kickoff is None or bet.created_at >= first_kickoff:
-                logger.info(
-                    "Bilhete %s excluído da prova social: não foi gerado antes do kickoff",
-                    bet.id,
-                )
-                continue
-
-            candidates.append(_build_candidate(target_date, KIND_VERIFIED, legs, source_ids))
-
-        candidates.sort(key=lambda c: (c['total_odd'], c['combined_probability']), reverse=True)
-        return candidates
-
-    @classmethod
-    def _hit_candidates(cls, target_date, kind: str) -> list[dict]:
+    def _simulation_candidates(cls, target_date) -> list[dict]:
+        """Compõe uma simulação a partir de seleções reais que ganharam."""
         bets = DailyBet.objects.filter(date=target_date)
         best_by_fixture: dict[int, dict] = {}
 
@@ -395,26 +329,21 @@ class SocialProofBuilder:
             reverse=True,
         )
 
-        if kind == KIND_DAILY_HITS:
-            chosen = ordered[:MAX_HIT_LEGS]
-        else:
-            chosen = []
-            total_odd = 1.0
-            for leg in ordered:
-                if len(chosen) >= MAX_HIT_LEGS:
-                    break
-                if total_odd * leg['odd'] > MAX_SIMULATION_ODD:
-                    continue
-                chosen.append(leg)
-                total_odd *= leg['odd']
+        chosen = []
+        total_odd = 1.0
+        for leg in ordered:
+            if len(chosen) >= MAX_SIMULATION_LEGS:
+                break
+            if total_odd * leg['odd'] > MAX_SIMULATION_ODD:
+                continue
+            chosen.append(leg)
+            total_odd *= leg['odd']
 
-        if not chosen:
-            return []
-        if kind == KIND_SIMULATION and len(chosen) < MIN_SIMULATION_LEGS:
+        if not chosen or len(chosen) < MIN_SIMULATION_LEGS:
             return []
 
         source_bet_ids = [leg.pop('_source_bet_id') for leg in chosen]
-        return [_build_candidate(target_date, kind, chosen, source_bet_ids)]
+        return [_build_candidate(target_date, KIND_SIMULATION, chosen, source_bet_ids)]
 
     @classmethod
     def _simulation_candidates_from_finished(cls, target_date) -> list[dict]:
@@ -448,7 +377,7 @@ class SocialProofBuilder:
             leg = _simulation_leg_from_result(info)
             if leg is None:
                 continue
-            if len(legs) >= MAX_HIT_LEGS:
+            if len(legs) >= MAX_SIMULATION_LEGS:
                 break
             legs.append(leg)
 

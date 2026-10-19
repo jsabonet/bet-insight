@@ -1167,12 +1167,12 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
 
         Query params:
         - date: YYYY-MM-DD (padrão: ontem)
-        - kind: verified_ticket | daily_hits | simulation
+        - kind: simulation
         """
         target_date = self._parse_date_param(
             request.query_params.get('date'), self._social_proof_default_date()
         )
-        kind = request.query_params.get('kind', 'verified_ticket')
+        kind = request.query_params.get('kind', 'simulation')
 
         if kind not in VALID_KINDS:
             return Response({'error': 'Tipo de prova social inválido.'}, status=400)
@@ -1253,15 +1253,15 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
 
         Body:
         - date: YYYY-MM-DD
-        - kind: verified_ticket | daily_hits | simulation
+        - kind: simulation
         - snapshot_hash: opcional (candidato específico)
         - source_bet_ids: opcional
-        - confirm_simulation: obrigatório para kind=simulation
+        - confirm_simulation: obrigatório
         """
         target_date = self._parse_date_param(
             request.data.get('date'), self._social_proof_default_date()
         )
-        kind = request.data.get('kind', 'verified_ticket')
+        kind = request.data.get('kind', 'simulation')
 
         if kind not in VALID_KINDS:
             return Response({'error': 'Tipo de prova social inválido.'}, status=400)
