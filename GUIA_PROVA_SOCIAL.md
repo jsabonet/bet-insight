@@ -20,8 +20,7 @@ Estas regras estão implementadas no backend e **não** são apenas sugestões d
    prova social é uma simulação montada depois de os resultados serem
    conhecidos, com aviso obrigatório.
 2. **Simulação leva sempre aviso.** `kind=simulation` cria o snapshot com um
-   `disclosure` obrigatório, e a API exige `confirm_simulation: true` no corpo
-   do pedido.
+   `disclosure` obrigatório, incluído na imagem exportada.
 3. **Aviso de jogo responsável** no rodapé da imagem (18+).
 4. **Validação estrita.** Um bilhete só é considerado ganho quando *todas* as
    seleções têm resultado confirmado. Falta de resultado, jogo adiado ou
@@ -65,10 +64,16 @@ nada**: a aprovação e a captura de tela continuam a ser um ato manual do admin
    no dia seguinte).
 3. Premir **Gerar candidatos**. Se não houver resultados sincronizados,
    usar **Sincronizar resultados** (chama o endpoint de sync) e repetir.
-4. Escolher um candidato → **Criar snapshot**.
+4. Escolher um candidato → **Criar**.
+   O campo **Valor da aposta** aceita qualquer valor em meticais a partir de
+   **MT 5** e é aplicado 1:1 na imagem (sem multiplicadores). Depois de escrever
+   o valor, premir **Aplicar** para validar e gravar no snapshot; o botão fica
+   desativado enquanto o valor não mudar. Também é possível ajustar o valor de
+   um snapshot já criado.
 5. **Aprovar** o snapshot (obrigatório antes de exportar).
 6. **Exportar imagem** (1080 px de largura, `html-to-image` → PNG) e copiar a
-   legenda sugerida.
+   legenda sugerida. Se existir um valor por aplicar, a exportação pede primeiro
+   **Aplicar**.
 7. Publicar manualmente. O snapshot fica como `exported` com contagem de
    exportações e autor.
 
@@ -85,6 +90,7 @@ podem ser reexportados (incrementa `export_count`).
 | `GET` | `.../tickets/?date=&kind=&status=&limit=` | Histórico de snapshots |
 | `GET` | `.../tickets/<id>/` | Detalhe do snapshot |
 | `POST` | `.../generate/` | Cria (ou devolve) o snapshot; idempotente por `snapshot_hash` |
+| `POST`/`PATCH` | `.../tickets/<id>/stake/` | Valida e grava o valor da aposta (MT) no snapshot |
 | `POST` | `.../tickets/<id>/approve/` | Aprova |
 | `POST` | `.../tickets/<id>/export/` | Marca como exportado (exige `approved`/`exported`) |
 | `POST` | `.../tickets/<id>/discard/` | Descarta |
@@ -97,12 +103,18 @@ Corpo típico de `generate/`:
   "date": "2026-01-15",
   "kind": "simulation",
   "snapshot_hash": "opcional — fixa um candidato específico",
-  "confirm_simulation": true
+  "stake_amount": 10
 }
 ```
 
-Respostas de erro usadas pela UI: `400` (modo inválido, simulação sem
-confirmação, exportar antes de aprovar, aprovar descartado), `403` (não admin),
+`stake_amount` (valor da aposta **em meticais**, aplicado 1:1 no bilhete) aceita
+qualquer valor a partir de **5** e fica gravado no snapshot; `stake_units`
+continua aceite como alias por compatibilidade e o serializer devolve ambos
+(`stake_units` e `stake_amount`) mais `potential_return` já calculado. O endpoint
+`tickets/<id>/stake/` permite ajustar o valor de um snapshot já criado.
+
+Respostas de erro usadas pela UI: `400` (modo inválido, valor de aposta abaixo
+do mínimo, exportar antes de aprovar, aprovar descartado), `403` (não admin),
 `404` (snapshot inexistente ou `id` não numérico).
 
 ---
@@ -113,10 +125,13 @@ Snapshot **imutável**: mantém as pernas, odds e códigos mesmo que os `DailyBe
 de origem sejam regenerados ou apagados.
 
 - `kind`, `status` (`candidate` → `approved` → `exported`, ou `discarded`)
-- `ticket_code`, `reserve_code`
+- `ticket_code` (9 dígitos, começa sempre por `7`), `reserve_code` (`BW7` + 7
+  caracteres). Ambos derivam do `snapshot_hash`, pelo que o mesmo snapshot gera
+  sempre os mesmos códigos.
 - `legs` (JSON: `fixture_id`, `match`, `league`, `kickoff`, `market`,
   `market_label`, `pick`, `odd`, `probability`, `result`, `final_score`)
-- `total_odd`, `combined_probability`, `stake_units`
+- `total_odd`, `combined_probability`, `stake_units`/`stake_amount` (valor em MT)
+  e `potential_return` (valor × odd total)
 - `disclosure`
 - `snapshot_hash` (idempotência), `meta`
 - `created_by`, `approved_by`, `last_exported_by`, `export_count`
@@ -134,8 +149,9 @@ python manage.py test apps.analysis
 ```
 
 Cobrem: permissões (anónimo/não admin), modos inválidos (incluindo os antigos
-`verified_ticket` e `daily_hits`), obrigatoriedade da confirmação de simulação,
-idempotência do `generate`, bloqueio de exportação antes da aprovação,
+`verified_ticket` e `daily_hits`), geração de simulação sem confirmação extra,
+valor da aposta (persistência e mínimo de MT 5), idempotência do
+`generate`, bloqueio de exportação antes da aprovação,
 aprovação/exportação, descarte e validação estrita de `DailyBet`
 (resultado ausente, jogo em curso, mercado não suportado).
 

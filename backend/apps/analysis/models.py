@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 
 from django.db import models
 from django.conf import settings
@@ -334,7 +335,11 @@ class SocialProofTicket(models.Model):
     combined_probability = models.FloatField(
         null=True, blank=True, verbose_name='Probabilidade Combinada'
     )
-    stake_units = models.FloatField(default=10.0, verbose_name='Stake (unidades)')
+    stake_units = models.FloatField(
+        default=10.0,
+        verbose_name='Valor da Aposta (MT)',
+        help_text='Valor em meticais aplicado directamente no bilhete (1:1).',
+    )
 
     disclosure = models.TextField(blank=True, verbose_name='Aviso Obrigatório')
 
@@ -401,20 +406,47 @@ class SocialProofTicket(models.Model):
         if not self.snapshot_hash:
             self.snapshot_hash = self.compute_snapshot_hash()
         if not self.ticket_code:
-            self.ticket_code = f"PC-{self.date.strftime('%Y%m%d')}-{self.snapshot_hash[:6].upper()}"
+            self.ticket_code = self.build_ticket_code()
         if not self.reserve_code:
-            self.reserve_code = self.snapshot_hash[6:14].upper()
+            self.reserve_code = self.build_reserve_code()
         super().save(*args, **kwargs)
+
+    def _hash_hex(self) -> str:
+        """Hash do snapshot em hexadecimal maiúsculo (nunca vazio)."""
+        raw = str(self.snapshot_hash or '')
+        if re.fullmatch(r'[0-9a-fA-F]{16,}', raw):
+            return raw.upper()
+        return hashlib.sha256(raw.encode('utf-8')).hexdigest().upper()
+
+    def build_ticket_code(self) -> str:
+        """
+        Referência do bilhete no formato da Betway: 9 dígitos, começa sempre por 7.
+
+        Derivada do snapshot para que o mesmo snapshot gere sempre a mesma
+        referência (o campo é único).
+        """
+        digits = int(self._hash_hex(), 16) % 10**8
+        return f'7{digits:08d}'
+
+    def build_reserve_code(self) -> str:
+        """Código de reserva: prefixo BW7 seguido de 7 caracteres alfanuméricos."""
+        return f'BW7{self._hash_hex()[6:13]}'
+
 
     @property
     def legs_count(self):
         return len(self.legs or [])
 
     @property
-    def potential_return_units(self):
+    def potential_return(self):
+        """Retorno potencial em MT (valor da aposta × odd total)."""
         if self.total_odd is None:
             return None
         return round(float(self.total_odd) * float(self.stake_units or 0), 2)
+
+    @property
+    def potential_return_units(self):
+        return self.potential_return
 
     def approve(self, user):
         from django.utils import timezone

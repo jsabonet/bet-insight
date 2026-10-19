@@ -5,14 +5,21 @@ import { toPng } from 'html-to-image';
 import {
   AlertTriangle,
   ArrowLeft,
+  CalendarDays,
   Camera,
   Check,
+  CheckCircle2,
+  ChevronRight,
   Copy,
   Download,
+  Info,
   Loader2,
   RefreshCw,
   ShieldCheck,
+  Sparkles,
   Trash2,
+  Wallet,
+  X,
 } from 'lucide-react';
 
 import Header from '../../components/Header';
@@ -25,19 +32,33 @@ import SocialProofPreview, {
 import { useAuth } from '../../context/AuthContext';
 import { SOCIAL_PROOF_KINDS, socialProofAPI } from '../../services/socialProofAPI';
 
-const UNIT_VALUE = 100;
-const STAKE_OPTIONS = [
-  { units: 5, label: 'MT 500' },
-  { units: 10, label: 'MT 1 000' },
-  { units: 25, label: 'MT 2 500' },
-  { units: 50, label: 'MT 5 000' },
-];
+const MIN_STAKE_VALUE = 5;
+const DEFAULT_STAKE_VALUE = 10;
+const MAX_STAKE_VALUE = 1000000;
+const HISTORY_LIMIT = 50;
+
+function parseStakeValue(raw) {
+  const text = String(raw ?? '').trim();
+  if (!text) return NaN;
+  const normalized = /^\d{1,3}(\.\d{3})+$/.test(text)
+    ? text.replace(/\./g, '')
+    : text.replace(',', '.');
+  const parsed = Number.parseFloat(normalized);
+  return Number.isFinite(parsed) ? parsed : NaN;
+}
 
 function localDateIso(offsetDays = 0) {
   const date = new Date();
   date.setDate(date.getDate() + offsetDays);
   const pad = (value) => String(value).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function formatDateLabel(isoDate) {
+  if (!isoDate) return '—';
+  const [year, month, day] = String(isoDate).split('-');
+  if (!year || !month || !day) return isoDate;
+  return `${day}/${month}/${year}`;
 }
 
 function useMeasuredSize(ref, dependency) {
@@ -63,22 +84,82 @@ function useMeasuredSize(ref, dependency) {
   return size;
 }
 
-function StatusBadge({ status, label }) {
-  const styles = {
-    candidate: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
-    approved: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-    exported: 'bg-sky-500/15 text-sky-400 border-sky-500/30',
-    discarded: 'bg-gray-500/15 text-gray-400 border-gray-500/30',
-  };
+const STATUS_STYLES = {
+  candidate:
+    'bg-amber-50 text-amber-700 ring-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300',
+  approved:
+    'bg-emerald-50 text-emerald-700 ring-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300',
+  exported: 'bg-sky-50 text-sky-700 ring-sky-500/30 dark:bg-sky-500/15 dark:text-sky-300',
+  discarded:
+    'bg-gray-100 text-gray-600 ring-gray-400/30 dark:bg-gray-500/15 dark:text-gray-300',
+};
 
+function StatusBadge({ status, label }) {
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${
-        styles[status] || styles.candidate
+      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${
+        STATUS_STYLES[status] || STATUS_STYLES.candidate
       }`}
     >
+      <span className="size-1.5 rounded-full bg-current opacity-70" aria-hidden="true" />
       {label}
     </span>
+  );
+}
+
+function Alert({ tone, icon: Icon, children, onDismiss }) {
+  const tones = {
+    error: {
+      wrapper: 'border-red-500/30 bg-red-50 text-red-800 dark:bg-red-500/10 dark:text-red-300',
+      button: 'text-red-500 hover:bg-red-500/10',
+    },
+    success: {
+      wrapper:
+        'border-emerald-500/30 bg-emerald-50 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-300',
+      button: 'text-emerald-600 hover:bg-emerald-500/10',
+    },
+    info: {
+      wrapper: 'border-sky-500/30 bg-sky-50 text-sky-800 dark:bg-sky-500/10 dark:text-sky-300',
+      button: 'text-sky-600 hover:bg-sky-500/10',
+    },
+  };
+  const toneStyles = tones[tone] || tones.info;
+
+  return (
+    <div
+      role={tone === 'error' ? 'alert' : 'status'}
+      className={`flex items-start gap-2.5 rounded-xl border px-3 py-2.5 text-sm ${toneStyles.wrapper}`}
+    >
+      <Icon size={16} className="mt-0.5 shrink-0" />
+      <div className="min-w-0 flex-1">{children}</div>
+      {onDismiss && (
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Fechar aviso"
+          className={`-mr-1 shrink-0 rounded-lg p-1 transition ${toneStyles.button}`}
+        >
+          <X size={14} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function StatTile({ label, value, highlight }) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+        {label}
+      </p>
+      <p
+        className={`mt-0.5 text-lg font-bold tabular-nums ${
+          highlight ? 'text-primary-600 dark:text-primary-400' : 'text-gray-900 dark:text-white'
+        }`}
+      >
+        {value}
+      </p>
+    </div>
   );
 }
 
@@ -107,14 +188,13 @@ export default function AdminSocialProof() {
   const [candidates, setCandidates] = useState([]);
   const [ticket, setTicket] = useState(null);
   const [history, setHistory] = useState([]);
-  const [stakeUnits, setStakeUnits] = useState(10);
+  const [stakeInput, setStakeInput] = useState(String(DEFAULT_STAKE_VALUE));
 
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [confirmSimulation, setConfirmSimulation] = useState(false);
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window === 'undefined' ? BASE_WIDTH : window.innerWidth
   );
@@ -130,13 +210,38 @@ export default function AdminSocialProof() {
     return Math.min(1, available / BASE_WIDTH);
   }, [viewportWidth]);
 
-  const isSimulation = kind === 'simulation';
   const activeKind = SOCIAL_PROOF_KINDS.find((item) => item.id === kind);
+
+  const appliedStake = Number(
+    ticket?.stake_amount ?? ticket?.stake_units ?? DEFAULT_STAKE_VALUE
+  );
+  const parsedStake = parseStakeValue(stakeInput);
+  const stakeValid =
+    Number.isFinite(parsedStake) &&
+    parsedStake >= MIN_STAKE_VALUE &&
+    parsedStake <= MAX_STAKE_VALUE;
+  const stakeDirty = Boolean(ticket) && stakeValid && Math.abs(parsedStake - appliedStake) > 0.001;
+  const previewStake = stakeValid ? parsedStake : appliedStake;
+  const totalOdd = Number(ticket?.total_odd) || 0;
+  const canApplyStake = Boolean(ticket) && stakeValid && stakeDirty && !busy;
+
+  const stats = useMemo(() => {
+    return history.reduce(
+      (accumulator, item) => {
+        accumulator.total += 1;
+        if (item.status === 'candidate') accumulator.pending += 1;
+        if (item.status === 'approved') accumulator.approved += 1;
+        if (item.status === 'exported') accumulator.exported += 1;
+        return accumulator;
+      },
+      { total: 0, pending: 0, approved: 0, exported: 0 }
+    );
+  }, [history]);
 
   const loadHistory = useCallback(async () => {
     setLoadingHistory(true);
     try {
-      const response = await socialProofAPI.getTickets({ date, limit: 50 });
+      const response = await socialProofAPI.getTickets({ date, limit: HISTORY_LIMIT });
       setHistory(response.data.tickets || []);
     } catch (requestError) {
       console.error('Erro ao carregar histórico de prova social', requestError);
@@ -187,7 +292,7 @@ export default function AdminSocialProof() {
       return;
     }
     setTicket(null);
-    setConfirmSimulation(false);
+    setStakeInput(String(DEFAULT_STAKE_VALUE));
     setNotice('');
   }, [kind, date]);
 
@@ -215,17 +320,23 @@ export default function AdminSocialProof() {
     setNotice('');
 
     try {
-      const payload = { date, kind };
+      const payload = {
+        date,
+        kind,
+        stake_amount: stakeValid ? parsedStake : DEFAULT_STAKE_VALUE,
+      };
       if (candidate?.snapshot_hash) payload.snapshot_hash = candidate.snapshot_hash;
-      if (isSimulation) payload.confirm_simulation = true;
 
       const response = await socialProofAPI.generate(payload);
+      const appliedStake = response.data.stake_amount ?? response.data.stake_units;
       setTicket(response.data);
-      setStakeUnits(response.data.stake_units || 10);
+      setStakeInput(String(appliedStake));
       setNotice(
         response.data.created
-          ? 'Snapshot criado. Reveja a imagem antes de aprovar.'
-          : 'Já existia um snapshot igual para esta data. A carregar o existente.'
+          ? `Snapshot criado com aposta de ${formatMzn(
+              appliedStake
+            )}. Reveja a imagem antes de aprovar.`
+          : `Snapshot já existente carregado · valor da aposta ${formatMzn(appliedStake)}.`
       );
       await loadHistory();
     } catch (requestError) {
@@ -246,9 +357,42 @@ export default function AdminSocialProof() {
         setKind(nextKind);
       }
       setTicket(response.data);
-      setStakeUnits(response.data.stake_units || 10);
+      setStakeInput(String(response.data.stake_amount ?? response.data.stake_units));
+      setNotice('');
     } catch (requestError) {
       setError(requestError.response?.data?.error || 'Falha ao carregar o snapshot.');
+    } finally {
+      setBusy('');
+    }
+  };
+
+  const applyStakeIfNeeded = useCallback(async () => {
+    if (!ticket || !stakeDirty) return ticket;
+    const response = await socialProofAPI.updateStake(ticket.id, parsedStake);
+    setTicket(response.data);
+    setStakeInput(String(response.data.stake_amount ?? response.data.stake_units));
+    return response.data;
+  }, [ticket, stakeDirty, parsedStake]);
+
+  const handleApplyStake = async (event) => {
+    event?.preventDefault();
+    if (!canApplyStake) return;
+
+    setBusy('stake');
+    setError('');
+    setNotice('');
+    try {
+      const response = await socialProofAPI.updateStake(ticket.id, parsedStake);
+      setTicket(response.data);
+      setStakeInput(String(response.data.stake_amount ?? response.data.stake_units));
+      setNotice(
+        `Valor aplicado: ${formatMzn(
+          response.data.stake_amount ?? response.data.stake_units
+        )} · retorno ${formatMzn(response.data.potential_return ?? 0)}.`
+      );
+      loadHistory();
+    } catch (requestError) {
+      setError(requestError.response?.data?.error || 'Falha ao aplicar o valor da aposta.');
     } finally {
       setBusy('');
     }
@@ -259,6 +403,7 @@ export default function AdminSocialProof() {
     setBusy('approve');
     setError('');
     try {
+      await applyStakeIfNeeded();
       const response = await socialProofAPI.approve(ticket.id);
       setTicket(response.data);
       setNotice('Snapshot aprovado. Já pode exportar a imagem.');
@@ -277,6 +422,7 @@ export default function AdminSocialProof() {
     try {
       await socialProofAPI.discard(ticket.id);
       setTicket(null);
+      setStakeInput(String(DEFAULT_STAKE_VALUE));
       setNotice('Snapshot descartado.');
       await loadHistory();
     } catch (requestError) {
@@ -290,6 +436,10 @@ export default function AdminSocialProof() {
     if (!ticket || !exportRef.current) return;
     if (!['approved', 'exported'].includes(ticket.status)) {
       setError('Aprove o snapshot antes de exportar a imagem.');
+      return;
+    }
+    if (stakeDirty) {
+      setError('Aplique o novo valor da aposta antes de exportar a imagem.');
       return;
     }
 
@@ -313,7 +463,9 @@ export default function AdminSocialProof() {
       await loadHistory();
     } catch (requestError) {
       console.error('Erro ao exportar imagem', requestError);
-      setError('Falha ao gerar a imagem. Tente novamente.');
+      setError(
+        requestError.response?.data?.error || 'Falha ao gerar a imagem. Tente novamente.'
+      );
     } finally {
       setBusy('');
     }
@@ -330,6 +482,8 @@ export default function AdminSocialProof() {
     }
   };
 
+  const exportBlocked = ticket ? !['approved', 'exported'].includes(ticket.status) : true;
+
   return (
     <>
       <Helmet>
@@ -337,255 +491,372 @@ export default function AdminSocialProof() {
         <title>Prova Social · Admin PlacerCerto</title>
       </Helmet>
 
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-24">
+      <div className="min-h-screen bg-gray-50 pb-24 dark:bg-gray-900">
         <Header title="Prova Social" subtitle="Área reservada a administradores" />
 
-        <div className="mx-auto w-full max-w-6xl px-4 pt-4 sm:px-6">
-          <button
-            type="button"
-            onClick={() => navigate('/admin')}
-            className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
-          >
-            <ArrowLeft size={16} />
-            Voltar ao painel
-          </button>
-
-          <div className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-300">
-            <div className="flex items-start gap-3">
-              <ShieldCheck size={18} className="mt-0.5 shrink-0" />
-              <p>
-                Página interna. Use apenas dados reais gerados antes dos jogos. Bilhetes de
-                simulação são montados depois dos resultados para fins de marketing.
-              </p>
-            </div>
+        <div className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => navigate('/admin')}
+              className="inline-flex items-center gap-2 rounded-lg px-1.5 py-1 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-white"
+            >
+              <ArrowLeft size={16} />
+              Voltar ao painel
+            </button>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-[11px] font-semibold text-gray-500 ring-1 ring-inset ring-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700">
+              <CalendarDays size={12} />
+              {formatDateLabel(date)}
+            </span>
           </div>
 
-          {error && (
-            <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-300">
-              {error}
+          <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-50 px-3 py-2.5 text-xs text-amber-800 dark:bg-amber-500/10 dark:text-amber-300">
+            <ShieldCheck size={15} className="mt-0.5 shrink-0" />
+            <p>
+              Página interna. Os bilhetes de simulação são montados depois dos resultados
+              apenas para fins de marketing — nunca como previsão.
+            </p>
+          </div>
+
+          {(error || notice) && (
+            <div className="mb-4 space-y-2">
+              {error && (
+                <Alert tone="error" icon={AlertTriangle} onDismiss={() => setError('')}>
+                  {error}
+                </Alert>
+              )}
+              {notice && (
+                <Alert
+                  tone="success"
+                  icon={CheckCircle2}
+                  onDismiss={() => setNotice('')}
+                >
+                  {notice}
+                </Alert>
+              )}
             </div>
           )}
-          {notice && (
-            <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">
-              {notice}
-            </div>
-          )}
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_440px]">
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-                <div className="flex flex-wrap items-center gap-3">
-                  <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-                    Data
-                    <input
-                      type="date"
-                      value={date}
-                      max={localDateIso(0)}
-                      onChange={(event) => setDate(event.target.value)}
-                      className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white"
-                    />
-                  </label>
-
-                  <button
-                    type="button"
-                    onClick={handleSyncResults}
-                    disabled={busy === 'sync'}
-                    className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
-                  >
-                    {busy === 'sync' ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <RefreshCw size={14} />
-                    )}
-                    Sincronizar resultados
-                  </button>
+          <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="flex min-w-[168px] flex-col gap-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                  Data de referência
+                </span>
+                <div className="relative">
+                  <CalendarDays
+                    size={15}
+                    className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+                  />
+                  <input
+                    type="date"
+                    value={date}
+                    max={localDateIso(0)}
+                    onChange={(event) => setDate(event.target.value)}
+                    className="w-full rounded-xl border border-gray-300 bg-white py-2 pl-8 pr-2 text-sm font-medium text-gray-900 outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100 dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:focus:ring-primary-500/20"
+                  />
                 </div>
+              </label>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {SOCIAL_PROOF_KINDS.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setKind(item.id)}
-                      className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
-                        kind === item.id
-                          ? 'bg-primary-600 text-white'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200'
-                      }`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-
-                <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">{activeKind?.hint}</p>
-
-                {isSimulation && (
-                  <label className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
-                    <input
-                      type="checkbox"
-                      checked={confirmSimulation}
-                      onChange={(event) => setConfirmSimulation(event.target.checked)}
-                      className="mt-0.5"
-                    />
-                    Confirmo que este bilhete é uma simulação pós-jogo e não será
-                    apresentado como previsão.
-                  </label>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                  Tipo de bilhete
+                </span>
+                {SOCIAL_PROOF_KINDS.length > 1 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {SOCIAL_PROOF_KINDS.map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => setKind(item.id)}
+                        className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                          kind === item.id
+                            ? 'bg-primary-600 text-white shadow-sm'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-1.5 rounded-xl bg-primary-50 px-2.5 py-2 text-sm font-semibold text-primary-700 ring-1 ring-inset ring-primary-500/20 dark:bg-primary-500/10 dark:text-primary-300 dark:ring-primary-500/20">
+                    <Sparkles size={14} />
+                    {activeKind?.label}
+                  </div>
                 )}
+              </div>
 
+              <div className="ml-auto flex w-full flex-wrap items-center gap-2 sm:w-auto">
+                <button
+                  type="button"
+                  onClick={handleSyncResults}
+                  disabled={busy === 'sync'}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 sm:flex-none dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+                >
+                  {busy === 'sync' ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <RefreshCw size={15} />
+                  )}
+                  Sincronizar
+                </button>
                 <button
                   type="button"
                   onClick={() => handleGenerate(null)}
-                  disabled={busy === 'auto' || (isSimulation && !confirmSimulation)}
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50"
+                  disabled={busy === 'auto' || loadingCandidates}
+                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 disabled:opacity-50 sm:flex-none"
                 >
                   {busy === 'auto' ? (
-                    <Loader2 size={16} className="animate-spin" />
+                    <Loader2 size={15} className="animate-spin" />
                   ) : (
-                    <Camera size={16} />
+                    <Camera size={15} />
                   )}
-                  Gerar snapshot automático
+                  Gerar snapshot
                 </button>
               </div>
+            </div>
 
-              <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-                    Candidatos ({candidates.length})
+            <p className="mt-3 flex items-start gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+              <Info size={13} className="mt-0.5 shrink-0" />
+              {activeKind?.hint}
+            </p>
+          </section>
+
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <StatTile label="Snapshots do dia" value={stats.total} highlight />
+            <StatTile label="Pendentes" value={stats.pending} />
+            <StatTile label="Aprovados" value={stats.approved} />
+            <StatTile label="Exportados" value={stats.exported} />
+          </div>
+
+          <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_460px] lg:items-start">
+            <div className="order-2 min-w-0 space-y-4 lg:order-none">
+              <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <h2 className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
+                    Candidatos
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-500 dark:bg-gray-700 dark:text-gray-300">
+                      {candidates.length}
+                    </span>
                   </h2>
                   <button
                     type="button"
                     onClick={loadCandidates}
-                    className="text-xs font-medium text-primary-600 hover:underline dark:text-primary-400"
+                    disabled={loadingCandidates}
+                    aria-label="Atualizar candidatos"
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-primary-600 transition hover:bg-primary-50 disabled:opacity-50 dark:text-primary-400 dark:hover:bg-primary-500/10"
                   >
+                    <RefreshCw
+                      size={13}
+                      className={loadingCandidates ? 'animate-spin' : undefined}
+                    />
                     Atualizar
                   </button>
                 </div>
 
                 {loadingCandidates ? (
-                  <div className="flex items-center gap-2 py-6 text-sm text-gray-500 dark:text-gray-400">
+                  <div className="flex items-center gap-2 py-8 text-sm text-gray-500 dark:text-gray-400">
                     <Loader2 size={16} className="animate-spin" /> A calcular bilhetes elegíveis…
                   </div>
                 ) : candidates.length === 0 ? (
-                  <p className="py-6 text-sm text-gray-500 dark:text-gray-400">
-                    Sem candidatos para esta data. Sincronize os resultados e confirme que existem
-                    bilhetes gerados antes do início dos jogos.
-                  </p>
+                  <div className="py-8 text-center">
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                      Sem candidatos para {formatDateLabel(date)}
+                    </p>
+                    <p className="mx-auto mt-1 max-w-sm text-xs text-gray-500 dark:text-gray-400">
+                      Sincronize os resultados e confirme que existem partidas finalizadas para
+                      esta data.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleSyncResults}
+                      disabled={busy === 'sync'}
+                      className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-gray-300 px-3 py-1.5 text-xs font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+                    >
+                      <RefreshCw size={12} /> Sincronizar agora
+                    </button>
+                  </div>
                 ) : (
-                  <ul className="space-y-3">
+                  <ul className="space-y-2.5">
                     {candidates.map((candidate) => (
                       <li
                         key={candidate.snapshot_hash}
-                        className="rounded-xl border border-gray-200 p-3 dark:border-gray-700"
+                        className="rounded-xl border border-gray-200 p-3 transition hover:border-primary-400/60 hover:bg-primary-50/30 dark:border-gray-700 dark:hover:border-primary-500/40 dark:hover:bg-primary-500/5"
                       >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div>
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-gray-900 dark:text-white">
                               {candidate.headline}
                             </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              Odd total {Number(candidate.total_odd).toFixed(2)} · Retorno{' '}
-                              {formatMzn(candidate.total_odd * 10 * UNIT_VALUE)}
-                            </p>
+                            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                              <span className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-200">
+                                Odd {Number(candidate.total_odd).toFixed(2)}
+                              </span>
+                              <span className="inline-flex items-center gap-1 rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-semibold text-gray-600 dark:bg-gray-700 dark:text-gray-200">
+                                {candidate.legs.length} seleções
+                              </span>
+                              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                                Retorno{' '}
+                                {formatMzn(
+                                  Number(candidate.total_odd) *
+                                    (stakeValid ? parsedStake : DEFAULT_STAKE_VALUE)
+                                )}
+                              </span>
+                            </div>
                           </div>
                           <button
                             type="button"
                             onClick={() => handleGenerate(candidate)}
                             disabled={busy === candidate.snapshot_hash}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50 dark:bg-white dark:text-gray-900"
+                            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-gray-700 disabled:opacity-50 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
                           >
                             {busy === candidate.snapshot_hash ? (
                               <Loader2 size={13} className="animate-spin" />
                             ) : (
-                              <Check size={13} />
+                              <Camera size={13} />
                             )}
-                            Criar snapshot
+                            Criar
                           </button>
                         </div>
 
-                        <ol className="mt-2 space-y-1 text-xs text-gray-600 dark:text-gray-300">
+                        <ul className="mt-2 space-y-1 rounded-lg bg-gray-50 px-2 py-1.5 text-[11px] text-gray-600 dark:bg-gray-900/60 dark:text-gray-300">
                           {candidate.legs.slice(0, 4).map((leg, index) => (
                             <li key={`${candidate.snapshot_hash}-${index}`} className="truncate">
                               {leg.pick} · {leg.match} · {Number(leg.odd).toFixed(2)}
                             </li>
                           ))}
                           {candidate.legs.length > 4 && (
-                            <li className="text-gray-400">
+                            <li className="font-medium text-gray-400">
                               + {candidate.legs.length - 4} seleções
                             </li>
                           )}
-                        </ol>
+                        </ul>
                       </li>
                     ))}
                   </ul>
                 )}
-              </div>
+              </section>
 
-              <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-                <h2 className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
-                  Snapshots do dia ({history.length})
-                </h2>
+              <section className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <h2 className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
+                    Snapshots do dia
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-500 dark:bg-gray-700 dark:text-gray-300">
+                      {history.length}
+                    </span>
+                  </h2>
+                  {loadingHistory && (
+                    <Loader2 size={14} className="animate-spin text-gray-400" />
+                  )}
+                </div>
 
-                {loadingHistory ? (
-                  <div className="flex items-center gap-2 py-3 text-sm text-gray-500 dark:text-gray-400">
-                    <Loader2 size={16} className="animate-spin" /> A carregar…
-                  </div>
-                ) : history.length === 0 ? (
-                  <p className="py-3 text-sm text-gray-500 dark:text-gray-400">
+                {history.length === 0 && !loadingHistory ? (
+                  <p className="py-6 text-center text-xs text-gray-500 dark:text-gray-400">
                     Nenhum snapshot criado para esta data.
                   </p>
                 ) : (
-                  <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {history.map((item) => (
-                      <li key={item.id} className="flex items-center justify-between gap-3 py-2">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-gray-900 dark:text-white">
-                            {item.headline}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {item.ticket_code} · {item.kind_display}
-                          </p>
-                        </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <StatusBadge status={item.status} label={item.status_display} />
+                  <ul className="space-y-0.5">
+                    {history.map((item) => {
+                      const isSelected = ticket?.id === item.id;
+                      return (
+                        <li key={item.id}>
                           <button
                             type="button"
                             onClick={() => handleSelectTicket(item.id)}
                             disabled={busy === `load-${item.id}`}
-                            className="rounded-lg border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 disabled:opacity-50 dark:border-gray-600 dark:text-gray-200"
+                            className={`flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left transition disabled:opacity-60 ${
+                              isSelected
+                                ? 'bg-primary-50 ring-1 ring-inset ring-primary-500/30 dark:bg-primary-500/10'
+                                : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                            }`}
                           >
-                            Abrir
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                                {item.headline}
+                              </p>
+                              <p className="truncate text-[11px] text-gray-500 dark:text-gray-400">
+                                {item.ticket_code} · {item.reserve_code}
+                              </p>
+                            </div>
+                            <StatusBadge status={item.status} label={item.status_display} />
+                            {busy === `load-${item.id}` ? (
+                              <Loader2 size={14} className="animate-spin text-gray-400" />
+                            ) : (
+                              <ChevronRight
+                                size={14}
+                                className="shrink-0 text-gray-300 dark:text-gray-500"
+                              />
+                            )}
                           </button>
-                        </div>
-                      </li>
-                    ))}
+                        </li>
+                      );
+                    })}
                   </ul>
                 )}
-              </div>
+              </section>
             </div>
 
-            <div className="space-y-4">
+            <div className="order-1 min-w-0 lg:order-none lg:sticky lg:top-4">
               {!ticket ? (
-                <div className="rounded-2xl border border-dashed border-gray-300 p-8 text-center text-sm text-gray-500 dark:border-gray-600 dark:text-gray-400">
-                  Crie um snapshot para ver a pré-visualização do bilhete.
+                <div className="rounded-2xl border border-dashed border-gray-300 bg-white/60 p-6 text-center dark:border-gray-600 dark:bg-gray-800/40">
+                  <Camera size={26} className="mx-auto text-gray-300 dark:text-gray-600" />
+                  <p className="mt-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
+                    Nenhum snapshot aberto
+                  </p>
+                  <p className="mx-auto mt-1 max-w-xs text-xs text-gray-500 dark:text-gray-400">
+                    Defina o valor da aposta e gere um snapshot, ou abra um snapshot do dia na
+                    lista.
+                  </p>
+
+                  <label
+                    htmlFor="social-proof-stake"
+                    className="mt-4 flex flex-col items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500"
+                  >
+                    Valor da aposta ao gerar
+                    <div className="relative">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
+                        MT
+                      </span>
+                      <input
+                        id="social-proof-stake"
+                        type="number"
+                        inputMode="decimal"
+                        min={MIN_STAKE_VALUE}
+                        max={MAX_STAKE_VALUE}
+                        step="any"
+                        value={stakeInput}
+                        onChange={(event) => setStakeInput(event.target.value)}
+                        aria-invalid={!stakeValid}
+                        className={`w-32 rounded-xl border bg-white py-2 pl-10 pr-3 text-sm font-bold tabular-nums text-gray-900 outline-none transition focus:ring-2 dark:bg-gray-900 dark:text-white ${
+                          stakeValid
+                            ? 'border-gray-300 focus:border-primary-500 focus:ring-primary-100 dark:border-gray-600 dark:focus:ring-primary-500/20'
+                            : 'border-rose-400 focus:border-rose-500 focus:ring-rose-100 dark:border-rose-500/60'
+                        }`}
+                      />
+                    </div>
+                    <span className="text-[11px] font-normal normal-case tracking-normal text-gray-400">
+                      mínimo {formatMzn(MIN_STAKE_VALUE)}
+                    </span>
+                  </label>
                 </div>
               ) : (
-                <>
-                  <div className="rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-                    <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="space-y-3">
+                  <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                    <div className="mb-3 flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                        <p className="truncate text-sm font-bold text-gray-900 dark:text-white">
                           {ticket.headline}
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {ticket.ticket_code}
+                        <p className="truncate text-[11px] text-gray-500 dark:text-gray-400">
+                          Ref {ticket.ticket_code} · {ticket.reserve_code}
                         </p>
                       </div>
                       <StatusBadge status={ticket.status} label={ticket.status_display} />
                     </div>
 
                     <div
-                      className="w-full overflow-hidden"
+                      className="w-full overflow-hidden rounded-xl bg-[#F4F4F6]"
                       style={{ height: sheetSize.height * previewScale || undefined }}
                     >
                       <div
@@ -599,54 +870,117 @@ export default function AdminSocialProof() {
                           ref={sheetRef}
                           ticket={ticket}
                           scale={1}
-                          stakeUnits={stakeUnits}
-                          unitValue={UNIT_VALUE}
+                          stakeValue={previewStake}
                         />
                       </div>
                     </div>
 
-                    <div className="mt-4">
-                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400">
-                        Valor da aposta
-                        <select
-                          value={stakeUnits}
-                          onChange={(event) => setStakeUnits(Number(event.target.value))}
-                          className="ml-2 rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs dark:border-gray-600 dark:bg-gray-900 dark:text-white"
+                    <form
+                      noValidate
+                      onSubmit={handleApplyStake}
+                      className="mt-3 rounded-xl border border-gray-200 bg-gray-50/80 p-3 dark:border-gray-700 dark:bg-gray-900/40"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <label
+                          htmlFor="social-proof-stake"
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-700 dark:text-gray-200"
                         >
-                          {STAKE_OPTIONS.map((option) => (
-                            <option key={option.units} value={option.units}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <p className="mt-1 text-[11px] text-gray-400">
-                        Valor apenas para a imagem. Odd total fixa no snapshot.
-                      </p>
-                    </div>
+                          <Wallet size={14} className="text-gray-400" />
+                          Valor da aposta
+                        </label>
+                        {stakeDirty && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:bg-amber-500/15 dark:text-amber-300">
+                            Por aplicar
+                          </span>
+                        )}
+                      </div>
 
-                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <div className="mt-2 flex items-stretch gap-2">
+                        <div className="relative flex-1">
+                          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
+                            MT
+                          </span>
+                          <input
+                            id="social-proof-stake"
+                            type="number"
+                            inputMode="decimal"
+                            min={MIN_STAKE_VALUE}
+                            max={MAX_STAKE_VALUE}
+                            step="any"
+                            value={stakeInput}
+                            onChange={(event) => setStakeInput(event.target.value)}
+                            aria-invalid={!stakeValid}
+                            aria-describedby="social-proof-stake-hint"
+                            className={`w-full rounded-xl border bg-white py-2 pl-10 pr-3 text-sm font-bold tabular-nums text-gray-900 outline-none transition focus:ring-2 dark:bg-gray-900 dark:text-white ${
+                              stakeValid
+                                ? 'border-gray-300 focus:border-primary-500 focus:ring-primary-100 dark:border-gray-600 dark:focus:ring-primary-500/20'
+                                : 'border-rose-400 focus:border-rose-500 focus:ring-rose-100 dark:border-rose-500/60'
+                            }`}
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={!canApplyStake}
+                          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-gray-900 px-3 py-2 text-xs font-bold text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+                        >
+                          {busy === 'stake' ? (
+                            <Loader2 size={13} className="animate-spin" />
+                          ) : (
+                            <Check size={13} />
+                          )}
+                          Aplicar
+                        </button>
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                        <p
+                          id="social-proof-stake-hint"
+                          className={`text-[11px] ${
+                            stakeValid
+                              ? 'text-gray-500 dark:text-gray-400'
+                              : 'font-semibold text-rose-600 dark:text-rose-400'
+                          }`}
+                        >
+                          {stakeValid
+                            ? `Na imagem: ${formatMzn(appliedStake)} · mínimo ${formatMzn(
+                                MIN_STAKE_VALUE
+                              )}`
+                            : `Informe um valor entre ${formatMzn(
+                                MIN_STAKE_VALUE
+                              )} e ${formatMzn(MAX_STAKE_VALUE)}.`}
+                        </p>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400">
+                          Retorno{' '}
+                          <strong className="font-bold tabular-nums text-gray-800 dark:text-gray-100">
+                            {formatMzn(previewStake * totalOdd)}
+                          </strong>
+                        </p>
+                      </div>
+                    </form>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={handleApprove}
                         disabled={
                           busy === 'approve' || ['approved', 'exported'].includes(ticket.status)
                         }
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-40"
                       >
                         {busy === 'approve' ? (
                           <Loader2 size={15} className="animate-spin" />
                         ) : (
                           <Check size={15} />
                         )}
-                        Aprovar
+                        {['approved', 'exported'].includes(ticket.status) ? 'Aprovado' : 'Aprovar'}
                       </button>
 
                       <button
                         type="button"
                         onClick={handleDownload}
-                        disabled={busy === 'export'}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-3 py-2 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-50"
+                        disabled={busy === 'export' || exportBlocked}
+                        title={exportBlocked ? 'Aprove o snapshot antes de exportar' : undefined}
+                        className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-sky-700 disabled:opacity-40"
                       >
                         {busy === 'export' ? (
                           <Loader2 size={15} className="animate-spin" />
@@ -659,17 +993,17 @@ export default function AdminSocialProof() {
                       <button
                         type="button"
                         onClick={handleCopyCaption}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700"
                       >
                         <Copy size={15} />
-                        Copiar legenda
+                        Legenda
                       </button>
 
                       <button
                         type="button"
                         onClick={handleDiscard}
                         disabled={busy === 'discard'}
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/40 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-500/10 disabled:opacity-50 dark:text-red-400"
+                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-500/40 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-40 dark:text-red-400 dark:hover:bg-red-500/10"
                       >
                         {busy === 'discard' ? (
                           <Loader2 size={15} className="animate-spin" />
@@ -680,27 +1014,32 @@ export default function AdminSocialProof() {
                       </button>
                     </div>
 
-                    {ticket.status === 'candidate' && (
-                      <p className="mt-3 flex items-start gap-2 text-[11px] text-amber-600 dark:text-amber-400">
+                    {exportBlocked && (
+                      <p className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-600 dark:text-amber-400">
                         <AlertTriangle size={13} className="mt-0.5 shrink-0" />
                         Exportação bloqueada até o snapshot ser aprovado.
                       </p>
                     )}
                   </div>
 
-                  <div className="rounded-2xl border border-gray-200 bg-white p-4 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                  <div className="rounded-2xl border border-gray-200 bg-white p-3 text-[11px] text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
                     <p>
-                      <strong className="text-gray-700 dark:text-gray-200">Aviso na imagem:</strong>{' '}
+                      <strong className="font-semibold text-gray-700 dark:text-gray-200">
+                        Aviso na imagem:
+                      </strong>{' '}
                       {ticket.disclosure}
                     </p>
-                    <p className="mt-2">
-                      Exportações: {ticket.export_count} · Última:{' '}
+                    <p className="mt-1.5 flex items-center gap-1.5">
+                      <ChevronRight size={12} className="shrink-0" />
+                      Exportações: {ticket.export_count ?? 0}
                       {ticket.last_exported_at
-                        ? new Date(ticket.last_exported_at).toLocaleString('pt-PT')
-                        : '—'}
+                        ? ` · última em ${new Date(ticket.last_exported_at).toLocaleString(
+                            'pt-PT'
+                          )}`
+                        : ''}
                     </p>
                   </div>
-                </>
+                </div>
               )}
             </div>
           </div>
@@ -716,8 +1055,7 @@ export default function AdminSocialProof() {
               ref={exportRef}
               ticket={ticket}
               scale={EXPORT_WIDTH / BASE_WIDTH}
-              stakeUnits={stakeUnits}
-              unitValue={UNIT_VALUE}
+              stakeValue={previewStake}
             />
           </div>
         )}

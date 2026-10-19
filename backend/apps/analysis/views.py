@@ -1256,7 +1256,7 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
         - kind: simulation
         - snapshot_hash: opcional (candidato específico)
         - source_bet_ids: opcional
-        - confirm_simulation: obrigatório
+        - stake_units: opcional (valor da aposta em MT, mínimo 5)
         """
         target_date = self._parse_date_param(
             request.data.get('date'), self._social_proof_default_date()
@@ -1266,17 +1266,6 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
         if kind not in VALID_KINDS:
             return Response({'error': 'Tipo de prova social inválido.'}, status=400)
 
-        if kind == 'simulation' and request.data.get('confirm_simulation') is not True:
-            return Response(
-                {
-                    'error': (
-                        'Confirme que compreende que este bilhete é uma simulação '
-                        'pós-jogo e não uma previsão.'
-                    )
-                },
-                status=400,
-            )
-
         try:
             ticket, created = SocialProofBuilder.create_ticket(
                 target_date=target_date,
@@ -1284,6 +1273,7 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
                 user=request.user,
                 snapshot_hash=request.data.get('snapshot_hash'),
                 source_bet_ids=request.data.get('source_bet_ids'),
+                stake_units=request.data.get('stake_amount', request.data.get('stake_units')),
             )
         except ValueError as exc:
             return Response({'error': str(exc)}, status=400)
@@ -1332,6 +1322,29 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
             )
 
         ticket.register_export(request.user)
+        return Response(SocialProofTicketSerializer(ticket).data)
+
+    @action(
+        detail=False,
+        methods=['post', 'patch'],
+        url_path='admin/social-proof/tickets/(?P<ticket_id>[^/.]+)/stake',
+        permission_classes=[IsAdminUser],
+    )
+    def admin_social_proof_stake(self, request, ticket_id=None):
+        """
+        Atualiza o valor da aposta (em MT) guardado no snapshot.
+
+        Aceita ``stake_amount`` (preferido) ou ``stake_units`` (legado).
+        """
+        ticket = self._social_proof_ticket(ticket_id)
+
+        stake = request.data.get('stake_amount', request.data.get('stake_units'))
+
+        try:
+            SocialProofBuilder.update_stake(ticket, stake)
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=400)
+
         return Response(SocialProofTicketSerializer(ticket).data)
 
     @action(

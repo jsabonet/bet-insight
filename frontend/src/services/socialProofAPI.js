@@ -14,6 +14,9 @@ export const socialProofAPI = {
 
   approve: (id) => api.post(`${BASE}/tickets/${id}/approve/`),
 
+  updateStake: (id, stakeAmount) =>
+    api.patch(`${BASE}/tickets/${id}/stake/`, { stake_amount: stakeAmount }),
+
   registerExport: (id) => api.post(`${BASE}/tickets/${id}/export/`),
 
   discard: (id) => api.post(`${BASE}/tickets/${id}/discard/`),

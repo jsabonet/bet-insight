@@ -25,7 +25,8 @@ KIND_SIMULATION = 'simulation'
 
 VALID_KINDS = {KIND_SIMULATION}
 
-DEFAULT_STAKE_UNITS = 10.0
+DEFAULT_STAKE_AMOUNT = 10.0
+MIN_STAKE_AMOUNT = 5.0
 MAX_SIMULATION_LEGS = 5
 MAX_SIMULATION_ODD = 20.0
 MIN_SIMULATION_LEGS = 2
@@ -110,6 +111,32 @@ def _safe_float(value, default=0.0) -> float:
         return default
 
 
+def normalize_stake_amount(value, default: float | None = DEFAULT_STAKE_AMOUNT) -> float:
+    """
+    Converte o valor da aposta (em MT) para float >= MIN_STAKE_AMOUNT.
+
+    ``None``/vazio devolve ``default`` (ou levanta ValueError quando não há
+    default). Valores abaixo do mínimo são rejeitados para não gerar bilhetes
+    com stakes irrealistas.
+    """
+    if value is None or (isinstance(value, str) and not value.strip()):
+        if default is None:
+            raise ValueError('Informe o valor da aposta.')
+        return float(default)
+
+    try:
+        amount = float(str(value).strip().replace(',', '.'))
+    except (TypeError, ValueError):
+        raise ValueError('Valor da aposta inválido.')
+
+    if amount < MIN_STAKE_AMOUNT:
+        raise ValueError(
+            f'O valor da aposta deve ser de pelo menos MT {MIN_STAKE_AMOUNT:g}.'
+        )
+
+    return round(amount, 2)
+
+
 def _leg_payload(selection: dict) -> dict | None:
     fixture_id = extract_fixture_id(selection)
     odd = _safe_float(selection.get('odd'))
@@ -141,20 +168,29 @@ def _split_match(match) -> tuple[str, str]:
     return text, ''
 
 
-def _illustrative_odd(market: str, home: int, away: int) -> float:
+def _real_market_odd(fixture_id, market: str) -> float | None:
     """
-    Odd ilustrativa para o modo simulação (pós-jogo).
+    Odd real de mercado (API-Football) para o mercado escolhido.
 
-    A simulação é claramente marcada como tal (aviso), por isso não usa odds
-    reais de seleções pré-jogo. O valor é determinístico e plausível, baseado
-    apenas no resultado final.
+    Devolve None quando a odd não está disponível — nesse caso a perna é
+    descartada, para nunca apresentar probabilidades inventadas.
     """
-    margin = abs((home or 0) - (away or 0))
-    if market == 'draw':
-        return 3.00
-    if market == 'home_win':
-        return 1.90 if margin == 1 else 1.70
-    return 2.00 if margin == 1 else 1.80
+    if fixture_id is None:
+        return None
+    try:
+        from .api_football_service import APIFootballService
+
+        odds = APIFootballService().fetch_odds(fixture_id) or {}
+    except Exception as exc:  # pragma: no cover - falha de rede/API
+        logger.warning('Não foi possível obter odds reais do fixture %s: %s', fixture_id, exc)
+        return None
+
+    try:
+        value = float(odds.get(market))
+    except (TypeError, ValueError):
+        return None
+
+    return value if value > 1.0 else None
 
 
 def _simulation_leg_from_result(info: dict) -> dict | None:
@@ -176,7 +212,9 @@ def _simulation_leg_from_result(info: dict) -> dict | None:
         market = 'draw'
         pick = 'Empate'
 
-    odd = _illustrative_odd(market, home, away)
+    odd = _real_market_odd(info.get('fixture_id'), market)
+    if odd is None:
+        return None
 
     return {
         'fixture_id': info.get('fixture_id'),
@@ -219,7 +257,7 @@ def _build_candidate(target_date, kind: str, legs: list[dict], source_bet_ids) -
 
     total_odd = round(total_odd, 2)
     combined_probability = round(combined_probability, 6)
-    stake_units = DEFAULT_STAKE_UNITS
+    stake_amount = DEFAULT_STAKE_AMOUNT
 
     return {
         'date': target_date.isoformat(),
@@ -230,8 +268,8 @@ def _build_candidate(target_date, kind: str, legs: list[dict], source_bet_ids) -
         'legs_count': len(legs),
         'total_odd': total_odd,
         'combined_probability': combined_probability,
-        'stake_units': stake_units,
-        'potential_return_units': round(stake_units * total_odd, 2),
+        'stake_units': stake_amount,
+        'potential_return_units': round(stake_amount * total_odd, 2),
         'source_bet_ids': sorted(set(source_bet_ids)),
         'disclosure': DISCLOSURES[kind],
         'snapshot_hash': _candidate_hash(target_date, kind, legs),
@@ -293,7 +331,7 @@ class SocialProofBuilder:
 
         # Simulação pós-jogo: prefere seleções reais já geradas (com odds
         # pré-jogo). Se não houver, compõe o bilhete a partir de partidas
-        # finalizadas, com odds ilustrativas.
+        # finalizadas usando as odds reais dessas partidas.
         candidates = cls._simulation_candidates(target)
         if candidates:
             return candidates
@@ -394,14 +432,21 @@ class SocialProofBuilder:
         user=None,
         snapshot_hash: str | None = None,
         source_bet_ids: list | None = None,
+        stake_units=None,
     ):
         """
         Cria (ou devolve) o snapshot correspondente a um candidato.
+
+        Args:
+            stake_units: valor da aposta em MT (>= 5), aplicado 1:1 no bilhete.
+                Quando omitido usa o valor padrão do candidato.
 
         Returns:
             tuple[SocialProofTicket, bool]: instância e se foi criada agora.
         """
         target = _as_date(target_date) or timezone.localdate()
+        stake_explicit = stake_units is not None and str(stake_units).strip() != ''
+        stake = normalize_stake_amount(stake_units)
         candidates = cls.candidates(target, kind)
 
         if not candidates:
@@ -429,12 +474,13 @@ class SocialProofBuilder:
             'source_bet_ids': selected['source_bet_ids'],
             'total_odd': selected['total_odd'],
             'combined_probability': selected['combined_probability'],
-            'stake_units': selected['stake_units'],
+            'stake_units': stake,
             'disclosure': selected['disclosure'],
             'created_by': user,
             'meta': {
                 'headline': selected['headline'],
                 'generated_at': timezone.now().isoformat(),
+                'stake_units': stake,
             },
         }
 
@@ -447,10 +493,28 @@ class SocialProofBuilder:
 
         if created:
             logger.info(
-                "Snapshot de prova social criado: %s (%s, %s pernas)",
+                "Snapshot de prova social criado: %s (%s, %s pernas, MT %s)",
                 ticket.ticket_code,
                 kind,
                 len(selected['legs']),
+                stake,
             )
+        elif stake_explicit:
+            # O admin indicou um valor ao gerar: aplica-o ao snapshot existente.
+            ticket = cls.update_stake(ticket, stake)
 
         return ticket, created
+
+    @classmethod
+    def update_stake(cls, ticket, stake_units) -> SocialProofTicket:
+        """Grava o valor da aposta (MT) escolhido pelo admin no snapshot."""
+        stake = normalize_stake_amount(stake_units)
+        if float(ticket.stake_units or 0) == stake:
+            return ticket
+
+        ticket.stake_units = stake
+        meta = dict(ticket.meta or {})
+        meta['stake_units'] = stake
+        ticket.meta = meta
+        ticket.save(update_fields=['stake_units', 'meta'])
+        return ticket

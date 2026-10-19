@@ -107,6 +107,8 @@ class SocialProofTicketSerializer(serializers.ModelSerializer):
     kind_display = serializers.CharField(source='get_kind_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     legs_count = serializers.IntegerField(read_only=True)
+    stake_amount = serializers.FloatField(source='stake_units', read_only=True)
+    potential_return = serializers.SerializerMethodField()
     potential_return_units = serializers.FloatField(read_only=True)
     headline = serializers.SerializerMethodField()
     created_by_email = serializers.SerializerMethodField()
@@ -118,12 +120,15 @@ class SocialProofTicketSerializer(serializers.ModelSerializer):
             'id', 'date', 'kind', 'kind_display', 'status', 'status_display',
             'headline', 'ticket_code', 'reserve_code', 'legs', 'legs_count',
             'source_bet_ids', 'total_odd', 'combined_probability', 'stake_units',
-            'potential_return_units', 'disclosure',
+            'stake_amount', 'potential_return', 'potential_return_units', 'disclosure',
             'snapshot_hash', 'meta', 'created_by', 'created_by_email',
             'approved_by', 'approved_by_email', 'created_at', 'approved_at',
             'last_exported_at', 'export_count',
         ]
         read_only_fields = fields
+
+    def get_potential_return(self, obj):
+        return obj.potential_return
 
     def get_headline(self, obj):
         return (obj.meta or {}).get('headline') or obj.get_kind_display()

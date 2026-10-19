@@ -181,7 +181,7 @@ function IconChevronDown({ size, color = '#111111' }) {
 /* --------------------------- Componente --------------------------- */
 
 const SocialProofPreview = forwardRef(function SocialProofPreview(
-  { ticket, scale = 1, stakeUnits = 10, unitValue = 100 },
+  { ticket, scale = 1, stakeValue = 10 },
   ref
 ) {
   if (!ticket) return null;
@@ -191,8 +191,7 @@ const SocialProofPreview = forwardRef(function SocialProofPreview(
 
   const legs = ticket.legs || [];
 
-  const units = Number(stakeUnits) || 0;
-  const stake = units * (Number(unitValue) || 0);
+  const stake = Number(stakeValue) || 0;
   const totalOdd = Number(ticket.total_odd) || 0;
   const returnReal = stake * totalOdd;
 
@@ -421,9 +420,9 @@ const SocialProofPreview = forwardRef(function SocialProofPreview(
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            padding: s(8),
+            padding: `${s(5)}px ${s(3)}px`,
             backgroundColor: COLORS.white,
-            gap: s(8),
+            gap: s(3),
             flexWrap: 'nowrap',
           }}
         >
@@ -435,64 +434,66 @@ const SocialProofPreview = forwardRef(function SocialProofPreview(
               border: `${b}px solid ${COLORS.borderDark}`,
               borderRadius: s(4),
               overflow: 'hidden',
-              fontSize: s(15),
+              fontSize: s(13),
               fontWeight: 400,
               whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
-            <span style={{ padding: s(8), whiteSpace: 'nowrap' }}>
+            <span style={{ padding: `${s(6)}px ${s(4)}px`, whiteSpace: 'nowrap' }}>
               {title} (<strong style={{ color: COLORS.green }}>{legs.length}</strong>)
             </span>
             <span
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: s(4),
-                padding: s(8),
+                gap: s(3),
+                padding: `${s(6)}px ${s(4)}px`,
                 borderLeft: `${b}px solid ${COLORS.borderDark}`,
-                fontSize: s(15),
+                fontSize: s(13),
                 fontWeight: 500,
                 whiteSpace: 'nowrap',
                 color: COLORS.text,
               }}
             >
-              <IconCircleOpen size={s(16)} />
+              <IconCircleOpen size={s(12)} />
               {lostCount}
             </span>
             <span
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: s(4),
-                padding: s(8),
+                gap: s(3),
+                padding: `${s(6)}px ${s(4)}px`,
                 borderLeft: `${b}px solid ${COLORS.borderDark}`,
-                fontSize: s(15),
+                fontSize: s(13),
                 fontWeight: 500,
                 whiteSpace: 'nowrap',
                 color: COLORS.green,
               }}
             >
-              <IconCheckCircle size={s(18)} />
+              <IconCheckCircle size={s(14)} />
               {wonCount}
             </span>
           </div>
 
           <span
             style={{
-              padding: s(8),
+              padding: `${s(6)}px ${s(4)}px`,
               borderRadius: s(4),
               backgroundColor: COLORS.detailsBg,
-              fontSize: s(15),
+              fontSize: s(13),
               fontWeight: 'bold',
               color: COLORS.ink,
               display: 'flex',
               alignItems: 'center',
-              gap: s(4),
+              gap: s(3),
               whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
             Visualização de detalhes
-            <IconChevronDown size={s(14)} />
+            <IconChevronDown size={s(11)} />
           </span>
         </div>
 
