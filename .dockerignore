@@ -1,0 +1,49 @@
+# Contexto de build enxuto: evita enviar centenas de MB para o daemon
+# (backend/.venv = ~440 MB, frontend/node_modules = ~150 MB).
+
+# Controlo de versão e metadados
+.git
+.gitignore
+.gitattributes
+.github
+.vscode
+.idea
+
+# Ambientes virtuais e caches Python
+**/.venv
+**/venv
+**/env
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+
+# Dependências e artefactos JS
+**/node_modules
+**/.vite
+**/dist
+**/build
+**/coverage
+**/.turbo
+
+# Segredos e ficheiros de ambiente locais (usados via env_file, não por COPY)
+**/.env
+**/.env.local
+**/.env.production
+**/.env.development
+.env
+
+# Bases de dados e logs locais
+**/*.sqlite3
+**/*.db
+**/*.log
+logs
+
+# Documentação e artefactos de desenvolvimento
+*.md
+docs
+!README.md
+*.zip
+*.tar
+*.tar.gz

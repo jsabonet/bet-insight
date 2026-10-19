@@ -55,11 +55,19 @@ Antes de começar, tenha em mãos:
    
    Planos disponíveis:
    ┌─────────────────────────────────────────────────┐
-   │ $6/mês  - 1GB RAM, 1 vCPU, 25GB SSD  (Mínimo)  │
-   │ $12/mês - 2GB RAM, 1 vCPU, 50GB SSD  ⭐ IDEAL  │
-   │ $18/mês - 2GB RAM, 2 vCPU, 60GB SSD  (Melhor)  │
-   │ $24/mês - 4GB RAM, 2 vCPU, 80GB SSD  (Premium) │
+   │ $4/mês  - 512MB RAM, 1 vCPU, 10GB SSD           │
+   │           ❌ NÃO SUPORTA o build desta stack    │
+   │ $6/mês  - 1GB RAM, 1 vCPU, 25GB SSD  (Mínimo)   │
+   │ $12/mês - 2GB RAM, 1 vCPU, 50GB SSD  ⭐ IDEAL   │
+   │ $18/mês - 2GB RAM, 2 vCPU, 60GB SSD  (Melhor)   │
+   │ $24/mês - 4GB RAM, 2 vCPU, 80GB SSD  (Premium)  │
    └─────────────────────────────────────────────────┘
+   
+   ⚠️ 512 MB NÃO É SUFICIENTE: o build roda `npm ci`, `npm run build`
+   (Vite/Rollup) e `apt-get` ao mesmo tempo; com 512 MB o processo é
+   morto pelo OOM killer e o `docker compose build` parece travado.
+   Se já criou o droplet de 512 MB, crie swap (Passo 1.5) ou redimensione
+   o droplet para 2 GB antes do primeiro deploy.
    
    ⭐ Recomendação: Começar com $12/mês (2GB RAM)
    ```
@@ -138,6 +146,40 @@ apt-get upgrade -y
 
 # Isso leva 2-5 minutos
 ```
+
+### Passo 1.5: Criar swap (OBRIGATÓRIO com menos de 2 GB de RAM)
+
+O build da aplicação (`npm ci` + `npm run build` + `apt-get`) precisa de mais
+memória do que 512 MB / 1 GB oferecem. Sem swap, o kernel mata o processo
+(`Killed` / exit 137) e o `docker compose build` fica minutos sem progresso
+aparente — é o sintoma mais comum de "deploy travado".
+
+```bash
+# Ver se já existe swap
+swapon --show
+free -h
+
+# Criar 2 GB de swap (idempotente, pode rodar de novo sem problema)
+./scripts/setup-swap.sh 2048
+
+# Confirmar
+swapon --show
+free -h
+# A coluna Swap deve mostrar 2.0Gi
+```
+
+> Se preferir fazer manualmente:
+> ```bash
+> fallocate -l 2G /swapfile
+> chmod 600 /swapfile
+> mkswap /swapfile
+> swapon /swapfile
+> echo '/swapfile none swap sw 0 0' >> /etc/fstab
+> sysctl -w vm.swappiness=10
+> ```
+
+Sem swap o build também funciona mais devagar e com risco de falha — o script
+`scripts/deploy.sh` cria o swap automaticamente se for executado como root.
 
 ## 🔧 PARTE 2: Instalar Docker e Dependências
 
@@ -1053,6 +1095,72 @@ docker-compose logs certbot
 # Forçar renovação
 docker-compose run --rm certbot renew --force-renewal
 docker-compose restart nginx
+```
+
+### Problema 8: `docker compose build` parece travado
+
+**Sintoma:** o build fica minutos parado numa única etapa
+(`apt-get install`, `npm ci`, `npm run build`), sem mensagem de erro:
+
+```
+ => [backend 2/10] RUN apt-get update && apt-get install -y ...   432.9s
+ => [frontend builder 4/6] RUN npm ci --legacy-peer-deps          433.3s
+```
+
+**Não está travado — está sem recursos.** Num droplet de 1 vCPU / 512 MB:
+
+| Etapa | Tempo normal (1 vCPU + swap) |
+|-------|------------------------------|
+| `apt-get install` | 1-2 min |
+| `pip install -r requirements.txt` (pandas/scipy/sklearn) | 3-6 min |
+| `npm ci` (~1000 pacotes) | 5-10 min |
+| `npm run build` (Vite/Rollup) | 2-5 min |
+| **Total do primeiro build** | **12-25 min** |
+
+Como confirmar que está a progredir:
+
+```bash
+# Numa segunda sessão SSH
+docker stats            # o build deve consumir CPU > 0%
+top -bn1 | head -20     # procurar processos node/apt/pip
+free -h                 # Swap a ser usado = sinal de falta de RAM
+docker system df
+```
+
+Se `CPU` estiver a 0% e `Swap` a crescer sem parar, ou surgir `Killed`
+(exit 137), falta memória → crie swap com `./scripts/setup-swap.sh`.
+
+**Causas já corrigidas neste repositório:**
+
+- `.dockerignore` — o contexto não envia `backend/.venv` (~440 MB) nem
+  `frontend/node_modules` (~150 MB) para o daemon.
+- `backend/Dockerfile` — `DEBIAN_FRONTEND=noninteractive` (elimina as
+  mensagens `debconf: falling back to frontend: Teletype`) e remoção de
+  `gcc`/`python3-dev`/`musl-dev`/`libpq-dev`, que não são necessários porque
+  todas as dependências têm wheels `manylinux` prontos.
+- `frontend/Dockerfile` — `NODE_OPTIONS=--max-old-space-size=512` e npm sem
+  `audit`/`fund`, para não estourar a memória do droplet.
+- `docker-compose.yml` — `backend`, `celery_worker` e `celery_beat` partilham
+  a tag `placarcerto-backend:latest`, por isso a imagem é construída **uma
+  vez** em vez de três.
+- `scripts/deploy.sh` — build sequencial (`COMPOSE_PARALLEL_LIMIT=1`), cria
+  swap automaticamente e constrói as imagens **antes** de parar os containers
+  antigos (sem downtime se o build falhar).
+
+**Se for interrompido a meio:** basta rodar `./scripts/deploy.sh` outra vez.
+O BuildKit reaproveita as etapas já concluídas, por isso o segundo build é
+muito mais rápido. Só use `--no-cache` quando for realmente necessário.
+
+**Alternativa definitiva:** construir as imagens na sua máquina (ou num
+GitHub Actions runner) e enviar para o Docker Hub / GitHub Container Registry.
+O servidor passa a apenas fazer `docker compose pull`, sem compilar nada.
+
+```bash
+# Na máquina local (ou CI)
+docker buildx build --platform linux/amd64 -f backend/Dockerfile \
+  -t SEU_USUARIO/placarcerto-backend:latest --push .
+docker buildx build --platform linux/amd64 -f frontend/Dockerfile \
+  -t SEU_USUARIO/placarcerto-frontend:latest --push .
 ```
 
 ## 📱 PARTE 10: Comandos Úteis Extras

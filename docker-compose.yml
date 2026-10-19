@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   db:
@@ -38,6 +36,9 @@ services:
 
   # Django Backend
   backend:
+    # A mesma tag é reutilizada pelos serviços celery_*: o Compose constrói
+    # a imagem uma única vez em vez de 3 vezes.
+    image: placarcerto-backend:latest
     build:
       context: .
       dockerfile: ./backend/Dockerfile
@@ -106,6 +107,7 @@ services:
 
   # Celery Worker - Processa tasks em background
   celery_worker:
+    image: placarcerto-backend:latest
     build:
       context: .
       dockerfile: ./backend/Dockerfile
@@ -132,6 +134,7 @@ services:
 
   # Celery Beat - Scheduler de tasks periódicas
   celery_beat:
+    image: placarcerto-backend:latest
     build:
       context: .
       dockerfile: ./backend/Dockerfile

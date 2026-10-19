@@ -5,15 +5,17 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEBIAN_FRONTEND=noninteractive
 
-# Instalar dependências do sistema
-RUN apt-get update && apt-get install -y \
-    postgresql-client \
-    gcc \
-    python3-dev \
-    musl-dev \
-    libpq-dev \
+# Não instalamos toolchain (gcc/python3-dev/libpq-dev/musl-dev): todas as
+# dependências do requirements.txt têm wheels manylinux prontos
+# (psycopg2-binary, numpy, pandas, scipy, scikit-learn, pillow, grpcio).
+# curl é obrigatório para o healthcheck definido no docker-compose.yml.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        postgresql-client \
+        curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Criar diretório de trabalho
@@ -21,7 +23,7 @@ WORKDIR /app
 
 # Copiar requirements e instalar dependências Python
 COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt gunicorn
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar código da aplicação
 COPY backend/ .
@@ -45,4 +47,6 @@ COPY --chown=appuser:appuser docker/backend/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-"]
+# 2 workers: o droplet tem 1 vCPU e pouca RAM. A regra (2*vCPU)+1 = 3 workers
+# fazia cada worker Django (~70-90 MB) estourar a memória do servidor.
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120", "--max-requests", "1000", "--max-requests-jitter", "100", "--access-logfile", "-", "--error-logfile", "-"]
