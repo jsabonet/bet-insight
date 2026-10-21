@@ -13,7 +13,7 @@ Antes de começar, tenha em mãos:
   - Football Data API: https://www.football-data.org/client/register
   - API-Football: https://www.api-football.com/
   - Google Gemini: https://ai.google.dev/
-  - PaySuite (M-Pesa): Contato comercial PaySuite Moçambique
+  - VPay Moçambique: credenciais de API no dashboard da VPay
 - ✅ Cliente SSH instalado (já vem no Windows 10+, Mac e Linux)
 
 
@@ -1030,19 +1030,23 @@ cat backup_20260102_143000.sql | docker-compose exec -T db psql -U postgres beti
 ### Passo 8.4: Atualizar aplicação
 
 ```bash
-# Quando tiver novas mudanças:
+# Atualização de produção (cria backup, atualiza código, faz build,
+# migra banco, coleta estáticos, reinicia e valida os serviços):
+bash scripts/update-production.sh
 
-# 1. Fazer pull das mudanças (se usar Git)
-git pull origin main
+# Ver logs após a atualização:
+docker compose logs -f
 
-# 2. Reconstruir e reiniciar
-./scripts/deploy.sh
-
-# 3. Ver logs
-docker-compose logs -f
-
-# 4. Testar no navegador
+# Testar no navegador
 ```
+
+O script interrompe a atualização se existirem alterações locais, se o backup
+da base de dados falhar, ou se outro deploy estiver em execução. O backup
+PostgreSQL em formato custom fica em `backups/` e não é enviado ao Git. Os
+ficheiros de backup não são apagados automaticamente; copie-os para armazenamento
+seguro externo e defina uma política de retenção. Se a validação final falhar,
+consulte os logs e use o backup apenas com um procedimento de recuperação
+deliberado — o script não restaura a base automaticamente.
 
 ## 🐛 PARTE 9: Resolução de Problemas
 
@@ -1378,8 +1382,7 @@ por IP continua fechado). Reverta depois do HTTPS estar a funcionar.
 
 ```bash
 cd ~/placarcerto
-./scripts/deploy.sh      # faz git pull, regenera o ssl.conf a partir do
-                         # template, valida com nginx -t e recarrega o nginx
+bash scripts/update-production.sh  # backup, git pull, build, migrações e validação
 ```
 
 Se preferir fazer à mão:
@@ -1578,4 +1581,3 @@ Para suporte técnico ou dúvidas sobre este deploy, consulte:
 - Arquivo README.md do projeto
 - Issues no repositório Git
 - Documentação da Digital Ocean
-

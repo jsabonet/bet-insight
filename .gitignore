@@ -17,6 +17,7 @@ build/
 # Django
 *.log
 db.sqlite3
+/backups/
 media/
 staticfiles/
 
