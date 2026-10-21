@@ -94,7 +94,7 @@ export default function PrivacyPage() {
 
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-6 mb-3">2.4. Dados de Pagamento</h3>
               <ul className="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
-                <li>Informações de transação (processadas por PaySuite)</li>
+                <li>Informações de transação (processadas pela VPay)</li>
                 <li>Histórico de assinaturas e pagamentos</li>
                 <li>Não armazenamos dados completos de cartão de crédito</li>
               </ul>
@@ -128,7 +128,7 @@ export default function PrivacyPage() {
                 Não vendemos seus dados pessoais. Compartilhamos informações apenas nas seguintes situações:
               </p>
               <ul className="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
-                <li><strong>Processadores de Pagamento:</strong> PaySuite para processar transações</li>
+                <li><strong>Processadores de Pagamento:</strong> VPay para processar transações</li>
                 <li><strong>Provedores de Serviço:</strong> Empresas que nos ajudam a operar a plataforma (hospedagem, análise, etc.)</li>
                 <li><strong>APIs de Dados:</strong> Football-Data.org e API-Football para estatísticas de partidas</li>
                 <li><strong>Obrigações Legais:</strong> Quando exigido por lei ou ordem judicial</li>

@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .models import Subscription, Payment
-import re
 
 
 class PlanSerializer(serializers.Serializer):
@@ -75,31 +74,22 @@ class SubscriptionSerializer(serializers.ModelSerializer):
 class PaymentSerializer(serializers.ModelSerializer):
     """Serializer para pagamento"""
     status_display = serializers.CharField(source='get_status_display', read_only=True)
+    checkout_url = serializers.SerializerMethodField()
     
     class Meta:
         model = Payment
         fields = [
-            'id', 'amount', 'phone_number', 'transaction_id',
-            'mpesa_reference', 'status', 'status_display',
-            'created_at', 'completed_at'
+            'id', 'amount', 'currency', 'phone_number', 'transaction_id',
+            'vpay_order_id', 'gateway',
+            'payment_method', 'status', 'status_display', 'checkout_url',
+            'metadata', 'created_at', 'completed_at'
         ]
         read_only_fields = [
-            'id', 'transaction_id', 'mpesa_reference', 'status',
+            'id', 'transaction_id', 'vpay_order_id', 'gateway', 'status',
             'created_at', 'completed_at'
         ]
-
-
-class PaymentCreateSerializer(serializers.Serializer):
-    """Serializer para criar pagamento"""
-    plan = serializers.ChoiceField(choices=['monthly', 'quarterly', 'yearly'])
-    phone_number = serializers.CharField(max_length=15)
     
-    def validate_phone_number(self, value):
-        # Validar formato Moçambique: +258 ou 258 ou 84/85/86/87
-        pattern = r'^(\+?258)?[8][2-7][0-9]{7}$'
-        clean_phone = value.replace(' ', '').replace('-', '')
-        if not re.match(pattern, clean_phone):
-            raise serializers.ValidationError(
-                "Número de telefone inválido. Use formato: +258 8X XXX XXXX"
-            )
-        return clean_phone
+    def get_checkout_url(self, obj):
+        """URL de checkout hospedado da VPay."""
+        metadata = obj.metadata or {}
+        return metadata.get('checkout_url') or ''

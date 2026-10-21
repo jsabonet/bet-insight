@@ -326,24 +326,21 @@ GOOGLE_GEMINI_API_KEY = os.getenv('GOOGLE_GEMINI_API_KEY', '')
 OPENWEATHER_API_KEY = os.getenv('OPENWEATHER_API_KEY', '0cb418ce4277f35188b2c1af74a9945a')
 OPENWEATHER_API_URL = os.getenv('OPENWEATHER_API_URL', 'https://api.openweathermap.org/data/2.5')
 
-# PaySuite Configuration (M-Pesa + E-Mola + Outros)
-PAYSUITE_API_TOKEN = os.getenv('PAYSUITE_API_TOKEN', '')
-PAYSUITE_WEBHOOK_SECRET = os.getenv('PAYSUITE_WEBHOOK_SECRET', '')
-PAYSUITE_API_URL = os.getenv('PAYSUITE_API_URL', 'https://paysuite.co.mz/api')
-PAYSUITE_WEBHOOK_URL = os.getenv('PAYSUITE_WEBHOOK_URL', '')
-
-# PaySuite v2 (Credenciais atualizadas - usado pelo paysuite_service)
-PAYSUITE_API_KEY = os.getenv('PAYSUITE_API_KEY', '')
-PAYSUITE_API_SECRET = os.getenv('PAYSUITE_API_SECRET', '')
-PAYSUITE_BASE_URL = os.getenv('PAYSUITE_BASE_URL', 'https://paysuite.tech/api/v1')
-PAYSUITE_ENVIRONMENT = os.getenv('PAYSUITE_ENVIRONMENT', 'production')
-PAYSUITE_PRIVATE_KEY = os.getenv('PAYSUITE_PRIVATE_KEY', '')
-PAYSUITE_MODE = os.getenv('PAYSUITE_MODE', 'token')
-
-# M-Pesa Configuration (Legado - usar PaySuite)
-MPESA_API_HOST = os.getenv('MPESA_API_HOST', '')
-MPESA_API_KEY = os.getenv('MPESA_API_KEY', '')
-MPESA_PUBLIC_KEY = os.getenv('MPESA_PUBLIC_KEY', '')
+# VPay Moçambique (gateway de pagamentos via checkout hospedado)
+# Documentação: https://vpay.co.mz/docs
+# O client_secret NUNCA deve estar no código/controlo de versão; configurar
+# apenas via variável de ambiente (backend/.env ou .env.production).
+VPAY_ENABLED = os.getenv('VPAY_ENABLED', 'True') == 'True'
+VPAY_BASE_URL = os.getenv('VPAY_BASE_URL', 'https://api.vpay.co.mz')
+VPAY_CLIENT_ID = os.getenv('VPAY_CLIENT_ID', '')
+VPAY_CLIENT_SECRET = os.getenv('VPAY_CLIENT_SECRET', '')
+VPAY_APPLICATION_ID = os.getenv('VPAY_APPLICATION_ID', '')
+VPAY_CHECKOUT_BASE_URL = os.getenv('VPAY_CHECKOUT_BASE_URL', 'https://checkout.vpay.co.mz')
+VPAY_WEBHOOK_SECRET = os.getenv('VPAY_WEBHOOK_SECRET', '')
+VPAY_TIMEOUT = float(os.getenv('VPAY_TIMEOUT', '30'))
+# Caminho do endpoint de autenticação (a doc "Autenticação" referencia /api/auth/token,
+# mas a "Referência da API" e o endpoint de polling usam /v1/auth/token).
+VPAY_AUTH_TOKEN_PATH = os.getenv('VPAY_AUTH_TOKEN_PATH', '/v1/auth/token')
 
 # Firebase Configuration
 FCM_SERVER_KEY = os.getenv('FCM_SERVER_KEY', '')

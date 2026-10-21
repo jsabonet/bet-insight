@@ -174,7 +174,7 @@ export const subscriptionsAPI = {
   getHistory: () => api.get('/subscriptions/history/'),
   
   // Pagamentos
-  createPayment: (data) => api.post('/subscriptions/payments/create/', data),
+  createVpayPayment: (data) => api.post('/subscriptions/payments/vpay/create/', data),
   checkPaymentStatus: (txId) => api.get(`/subscriptions/payments/check/${txId}/`),
   getMyPayments: () => api.get('/subscriptions/payments/my-payments/'),
 };
@@ -182,5 +182,4 @@ export const subscriptionsAPI = {
 // Legacy payment endpoint (manter compatibilidade)
 export const paymentsAPI = {
   getAll: () => api.get('/subscriptions/payments/my-payments/'),
-  createPayment: (data) => api.post('/subscriptions/payments/create/', data),
 };

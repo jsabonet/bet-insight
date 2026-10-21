@@ -6,19 +6,19 @@ from datetime import timedelta
 
 class Subscription(models.Model):
     """Assinatura Premium"""
-    
+
     STATUS_CHOICES = [
         ('active', 'Ativa'),
         ('expired', 'Expirada'),
         ('cancelled', 'Cancelada'),
     ]
-    
+
     PLAN_CHOICES = [
         ('monthly', 'Mensal - 499 MZN'),
         ('quarterly', 'Trimestral - 1299 MZN'),
         ('yearly', 'Anual - 4499 MZN'),
     ]
-    
+
     # Relacionamento
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='subscriptions', verbose_name="Usuário")
     
@@ -115,28 +115,41 @@ class Payment(models.Model):
         ('pending', 'Pendente'),
         ('completed', 'Completo'),
         ('failed', 'Falhou'),
+        ('cancelled', 'Cancelado'),
+        ('expired', 'Expirado'),
         ('refunded', 'Reembolsado'),
     ]
     
+    GATEWAY_CHOICES = [
+        ('paysuite', 'Legado (gateway desativado)'),
+        ('vpay', 'VPay'),
+    ]
+
     # Relacionamentos
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='payments', verbose_name="Usuário")
     subscription = models.ForeignKey(Subscription, on_delete=models.SET_NULL, null=True, blank=True, related_name='payments', verbose_name="Assinatura")
-    
+
     # Informações de pagamento
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Valor")
     currency = models.CharField(max_length=3, default='MZN', verbose_name="Moeda")
     phone_number = models.CharField(max_length=15, verbose_name="Telefone")
-    
+
+    # Gateway de pagamento
+    gateway = models.CharField(max_length=20, choices=GATEWAY_CHOICES, default='vpay', verbose_name="Gateway")
+
     # M-Pesa
     transaction_id = models.CharField(max_length=100, unique=True, verbose_name="ID Transação")
     mpesa_reference = models.CharField(max_length=100, blank=True, verbose_name="Referência M-Pesa")
     paysuite_reference = models.CharField(max_length=100, blank=True, default='', verbose_name="Referência PaySuite")
+
+    # VPay
+    vpay_order_id = models.CharField(max_length=100, blank=True, default='', verbose_name="ID Pedido VPay")
     
     # Status
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Status")
     
     # Metadata
-    payment_method = models.CharField(max_length=50, default='mpesa', verbose_name="Método")
+    payment_method = models.CharField(max_length=50, default='vpay', verbose_name="Método")
     metadata = models.JSONField(null=True, blank=True, verbose_name="Metadata")
     
     # Timestamps

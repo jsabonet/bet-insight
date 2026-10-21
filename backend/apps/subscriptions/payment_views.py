@@ -1,300 +1,27 @@
-"""
-Views para processar pagamentos via PaySuite
-"""
+"""Views for reconciling VPay payments."""
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from django.utils import timezone
-from django.db import transaction
-from decimal import Decimal
-import uuid
 import logging
 
-from .models import Subscription, Payment
-from .paysuite_service import paysuite_service
-from .plan_config import get_plan
+from .models import Payment
+from .vpay_service import vpay_service
+from .payment_helpers import apply_vpay_status
 from .serializers import SubscriptionSerializer, PaymentSerializer
-from .emails import (
-    send_payment_confirmed_email,
-    send_payment_failed_email,
-    send_subscription_activated_email
-)
 
 logger = logging.getLogger(__name__)
-
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def create_payment(request):
-    """
-    Inicia processo de pagamento via PaySuite
-    
-    Body:
-    {
-        "plan_slug": "starter|pro|vip",
-        "payment_method": "mpesa|emola"
-    }
-    
-    Nota: Telefone NÃO é mais obrigatório. 
-    O usuário preencherá na página externa da PaySuite.
-    """
-    user = request.user
-    plan_slug = request.data.get('plan_slug')
-    payment_method = request.data.get('payment_method', 'mpesa')
-    
-    # Validações
-    valid_plans = ['teste', 'starter', 'pro', 'vip', 'monthly', 'quarterly', 'yearly']
-    if not plan_slug or plan_slug not in valid_plans:
-        plans_str = ', '.join(valid_plans)
-        return Response(
-            {'error': f'Plano inválido. Use: {plans_str}'},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    
-    # Buscar configuração do plano
-    plan = get_plan(plan_slug)
-    if not plan:
-        return Response(
-            {'error': 'Plano não encontrado'},
-            status=status.HTTP_404_NOT_FOUND
-        )
-    
-    amount = Decimal(str(plan['price']))
-    
-    # Verificar se usuário já tem assinatura ativa
-    existing_subscription = user.subscriptions.filter(
-        status='active',
-        end_date__gt=timezone.now()
-    ).first()
-    
-    if existing_subscription:
-        return Response(
-            {
-                'error': 'Você já possui uma assinatura ativa',
-                'subscription': SubscriptionSerializer(existing_subscription).data
-            },
-            status=status.HTTP_400_BAD_REQUEST
-        )
-    
-    try:
-        with transaction.atomic():
-            # Gerar referência única (apenas letras e números conforme PaySuite)
-            reference = f"BET{user.id}{uuid.uuid4().hex[:8].upper()}"
-            
-            # Criar registro de pagamento (sem assinatura ainda)
-            payment = Payment.objects.create(
-                user=user,
-                subscription=None,
-                amount=amount,
-                phone_number='',  # Será preenchido na página externa
-                transaction_id=reference,
-                payment_method=payment_method,
-                status='pending',
-                metadata={
-                    'plan': plan_slug,
-                    'plan_name': plan['name'],
-                }
-            )
-            
-            # Iniciar pagamento via PaySuite (sem telefone)
-            paysuite_response = paysuite_service.create_payment(
-                phone_number=None,  # Sem telefone - checkout externo
-                amount=amount,
-                reference=reference,
-                description=f"PlacarCerto - {plan['name']}",
-                method=payment_method
-            )
-            
-            if not paysuite_response.get('success'):
-                # Marcar como falho
-                payment.status = 'failed'
-                payment.failed_at = timezone.now()
-                payment.metadata['error'] = paysuite_response.get('error', 'Erro desconhecido')
-                payment.save()
-                
-                return Response(
-                    {
-                        'error': paysuite_response.get('message', 'Erro ao processar pagamento'),
-                        'details': paysuite_response.get('error'),
-                        'paysuite_raw': paysuite_response.get('raw_response')
-                    },
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Atualizar com dados do PaySuite
-            # Guardar identificador do provedor no campo paysuite_reference
-            payment.paysuite_reference = paysuite_response.get('paysuite_reference', '')
-            
-            # Guardar resposta bruta em metadata
-            payment.metadata = payment.metadata or {}
-            payment.metadata['paysuite_response'] = paysuite_response.get('raw_response', {})
-            checkout_url = paysuite_response.get('checkout_url', '')
-            if checkout_url:
-                payment.metadata['checkout_url'] = checkout_url
-            payment.save()
-            
-            logger.info(f"Pagamento iniciado: {reference} - User: {user.id} - Plan: {plan_slug}")
-            logger.info(f"Checkout URL: {checkout_url}")
-            
-            instructions_msg = 'Pagamento iniciado.'
-            if checkout_url:
-                instructions_msg += ' Abriremos a página de checkout para confirmação.'
-
-            # Criar resposta com checkout_url explícito
-            response_data = {
-                'success': True,
-                'message': instructions_msg,
-                'payment': PaymentSerializer(payment).data,
-                'instructions': instructions_msg
-            }
-            
-            # Adicionar checkout_url diretamente na resposta
-            if checkout_url:
-                response_data['checkout_url'] = checkout_url
-                response_data['payment']['checkout_url'] = checkout_url
-            
-            return Response(response_data, status=status.HTTP_201_CREATED)
-            
-    except Exception as e:
-        logger.error(f"Erro ao criar pagamento: {str(e)}")
-        return Response(
-            {'error': 'Erro ao processar pagamento. Tente novamente.'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-
-@api_view(['POST'])
-def paysuite_webhook(request):
-    """
-    Webhook para receber notificações do PaySuite
-    
-    Este endpoint é chamado pela PaySuite quando o status
-    de um pagamento muda (confirmado, falho, etc.)
-    """
-    try:
-        # Obter assinatura do header (se disponível)
-        signature = request.headers.get('X-PaySuite-Signature', '')
-        
-        # Processar webhook
-        webhook_data = paysuite_service.process_webhook(
-            payload=request.data,
-            signature=signature if signature else None
-        )
-        
-        if not webhook_data.get('success'):
-            logger.warning(f"Webhook inválido: {webhook_data}")
-            return Response(
-                {'error': 'Invalid webhook'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        transaction_id = webhook_data['transaction_id']
-        payment_status = webhook_data['status']
-        
-        # Buscar pagamento
-        try:
-            payment = Payment.objects.get(transaction_id=transaction_id)
-        except Payment.DoesNotExist:
-            logger.error(f"Pagamento não encontrado: {transaction_id}")
-            return Response(
-                {'error': 'Payment not found'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        # Atualizar status
-        if payment_status in ('completed', 'success'):
-            # Marcar pagamento como completo
-            payment.status = 'completed'
-            paid_at = webhook_data.get('paid_at') or timezone.now()
-            payment.completed_at = paid_at
-            payment.save()
-            logger.info(f"Pagamento confirmado: {transaction_id}")
-            
-            # Criar/ativar assinatura vinculada ao pagamento
-            plan_slug = (payment.metadata or {}).get('plan')
-            plan_map = {
-                'monthly': 'monthly',
-                'quarterly': 'quarterly',
-                'yearly': 'yearly',
-                'starter': 'monthly',
-                'pro': 'monthly',
-                'vip': 'monthly',
-                'teste': 'monthly',
-            }
-            plan_choice = plan_map.get(plan_slug, 'monthly')
-            
-            # Calcular end_date baseado no plano
-            from datetime import timedelta
-            start_date = timezone.now()
-            if plan_slug == 'teste':
-                end_date = start_date + timedelta(days=1)  # Plano de teste: 1 dia
-            elif plan_choice == 'monthly':
-                end_date = start_date + timedelta(days=30)
-            elif plan_choice == 'quarterly':
-                end_date = start_date + timedelta(days=90)
-            elif plan_choice == 'yearly':
-                end_date = start_date + timedelta(days=365)
-            else:
-                end_date = start_date + timedelta(days=30)  # Default: 30 dias
-            
-            if not payment.subscription:
-                subscription = Subscription.objects.create(
-                    user=payment.user,
-                    plan=plan_choice,
-                    plan_slug=plan_slug,  # Salvar slug original
-                    status='active',
-                    start_date=start_date,
-                    end_date=end_date,
-                    auto_renew=True,
-                    amount_paid=payment.amount,
-                )
-                payment.subscription = subscription
-                payment.save()
-            else:
-                # Garantir que assinatura linkada esteja ativa
-                payment.subscription.status = 'active'
-                payment.subscription.plan_slug = plan_slug  # Atualizar slug
-                payment.subscription.save()
-
-            # Enviar emails de confirmação
-            send_payment_confirmed_email(payment.user, payment, payment.subscription)
-            send_subscription_activated_email(payment.user, payment.subscription)
-            
-        elif payment_status in ('failed', 'cancelled'):
-            payment.status = 'failed'
-            payment.save()
-            logger.warning(f"Pagamento falhou: {transaction_id}")
-            
-            # Enviar email de falha
-            send_payment_failed_email(payment.user, payment)
-        
-        # Atualizar metadata com dados do webhook
-        if not payment.metadata:
-            payment.metadata = {}
-        payment.metadata['webhook_data'] = webhook_data
-        payment.save()
-        
-        return Response({
-            'success': True,
-            'message': 'Webhook processed'
-        })
-        
-    except Exception as e:
-        logger.error(f"Erro ao processar webhook: {str(e)}")
-        return Response(
-            {'error': 'Internal error'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def check_payment_status(request, transaction_id):
     """
-    Verifica status de um pagamento específico consultando a PaySuite
-    Usado para polling do frontend (1 requisição por segundo por até 2 minutos)
+    Verifica o estado de um pedido VPay por polling.
+
+    Os pagamentos de gateways antigos permanecem visíveis para preservar o
+    histórico, mas não são consultados nem alterados por esta integração.
     """
     try:
         payment = Payment.objects.get(
@@ -306,94 +33,41 @@ def check_payment_status(request, transaction_id):
             {'error': 'Pagamento não encontrado'},
             status=status.HTTP_404_NOT_FOUND
         )
-    
-    # Se já está completo, retornar imediatamente
-    if payment.status == 'completed':
+
+    # Se já está num estado terminal, retornar imediatamente
+    if payment.status in ('completed', 'failed', 'cancelled', 'expired'):
         return Response({
-            'status': 'completed',
+            'status': payment.status,
             'payment': PaymentSerializer(payment).data,
             'subscription': SubscriptionSerializer(payment.subscription).data if payment.subscription else None
         })
-    
-    # Consultar status na PaySuite usando o UUID do provider (paysuite_reference)
-    provider_id = (payment.metadata or {}).get('paysuite_reference') or transaction_id
-    
-    logger.info(f"🔍 Consultando status PaySuite para: {provider_id}")
-    paysuite_response = paysuite_service.check_payment_status(provider_id)
-    
-    if paysuite_response.get('success'):
-        paysuite_status = paysuite_response.get('status')
-        logger.info(f"📊 Status PaySuite: {paysuite_status}")
-        
-        # Atualizar payment se status mudou para completed
-        if paysuite_status == 'completed' and payment.status != 'completed':
-            logger.info(f"✅ Ativando assinatura via polling para pagamento {transaction_id}")
-            payment.status = 'completed'
-            payment.completed_at = paysuite_response.get('paid_at') or timezone.now()
-            payment.save()
-            
-            # Criar/ativar assinatura vinculada
-            plan_slug = (payment.metadata or {}).get('plan')
-            plan_map = {
-                'monthly': 'monthly',
-                'quarterly': 'quarterly',
-                'yearly': 'yearly',
-                'starter': 'monthly',
-                'pro': 'monthly',
-                'vip': 'monthly',
-                'teste': 'monthly',
-            }
-            plan_choice = plan_map.get(plan_slug, 'monthly')
-            
-            # Calcular end_date baseado no plano
-            from datetime import timedelta
-            start_date = timezone.now()
-            if plan_slug == 'teste':
-                end_date = start_date + timedelta(days=1)  # Plano de teste: 1 dia
-            elif plan_choice == 'monthly':
-                end_date = start_date + timedelta(days=30)
-            elif plan_choice == 'quarterly':
-                end_date = start_date + timedelta(days=90)
-            elif plan_choice == 'yearly':
-                end_date = start_date + timedelta(days=365)
-            else:
-                end_date = start_date + timedelta(days=30)  # Default: 30 dias
-            
-            if not payment.subscription:
-                subscription = Subscription.objects.create(
-                    user=payment.user,
-                    plan=plan_choice,
-                    plan_slug=plan_slug,  # Salvar slug original
-                    status='active',
-                    start_date=start_date,
-                    end_date=end_date,
-                    auto_renew=True,
-                    amount_paid=payment.amount,
-                )
-                payment.subscription = subscription
-                payment.save()
-            else:
-                payment.subscription.status = 'active'
-                payment.subscription.plan_slug = plan_slug  # Atualizar slug
-                payment.subscription.save()
-            
-            # Enviar emails de confirmação
-            try:
-                send_payment_confirmed_email(payment.user, payment, payment.subscription)
-                send_subscription_activated_email(payment.user, payment.subscription)
-            except Exception as e:
-                logger.error(f"Erro ao enviar emails: {str(e)}")
-        
-        elif paysuite_status == 'failed' and payment.status == 'pending':
-            logger.warning(f"❌ Pagamento falhou na PaySuite: {transaction_id}")
-            payment.status = 'failed'
-            payment.save()
-    
+
+    if payment.gateway != 'vpay':
+        return Response({
+            'status': payment.status,
+            'payment': PaymentSerializer(payment).data,
+            'subscription': SubscriptionSerializer(payment.subscription).data if payment.subscription else None,
+            'provider_status': None,
+            'polling_enabled': False,
+            'message': 'Este pagamento pertence a um gateway desativado e não pode ser reconciliado pelo VPay.',
+        })
+
+    provider_status = None
+    order_id = payment.vpay_order_id or (payment.metadata or {}).get('vpay_order_id')
+    if order_id:
+        vpay_response = vpay_service.get_order_status(order_id)
+        if vpay_response.get('success'):
+            provider_status = vpay_response.get('status')
+            logger.info("Status VPay para %s: %s", order_id, provider_status)
+            apply_vpay_status(payment, provider_status, activate=True)
+    else:
+        logger.warning("Pagamento VPay %s sem order_id para consultar.", transaction_id)
+
     return Response({
         'status': payment.status,
         'payment': PaymentSerializer(payment).data,
         'subscription': SubscriptionSerializer(payment.subscription).data if payment.subscription else None,
-        'paysuite_status': paysuite_response.get('status'),
+        'provider_status': provider_status,
         'polling_enabled': True
     })
 

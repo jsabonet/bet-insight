@@ -152,7 +152,7 @@ export default function TermsPage() {
 
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-6 mb-3">5.2. Pagamentos</h3>
               <ul className="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
-                <li>Pagamentos são processados através do PaySuite (M-Pesa)</li>
+                <li>Pagamentos são processados através da VPay, que disponibiliza os métodos ativos na sua conta</li>
                 <li>Os preços são exibidos em Meticais (MZN)</li>
                 <li>Você autoriza cobranças recorrentes para assinaturas</li>
                 <li>Você é responsável por todos os impostos aplicáveis</li>

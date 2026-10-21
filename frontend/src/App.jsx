@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -74,6 +75,23 @@ function ProtectedRoute({ children }) {
   );
 }
 
+// Após o checkout hospedado da VPay, o utilizador regressa ao site sem a
+// referência da transação na URL. Este componente lê a transação guardada em
+// sessionStorage e encaminha para a página de confirmação (polling).
+function VPayReturnHandler() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const pending = sessionStorage.getItem('vpay_pending_transaction');
+    if (pending) {
+      sessionStorage.removeItem('vpay_pending_transaction');
+      navigate(`/payment/confirmation/${pending}`, { replace: true });
+    }
+  }, [navigate]);
+
+  return null;
+}
+
 // PublicRoute - redirects authenticated users to home
 function PublicRoute({ children }) {
   const { user, loading } = useAuth();
@@ -94,6 +112,7 @@ function App() {
     <HelmetProvider>
       <Router>
         <ScrollToTop />
+        <VPayReturnHandler />
         <ThemeProvider>
         <AuthProvider>
           <StatsProvider>            <StrategyProvider>            <Routes>

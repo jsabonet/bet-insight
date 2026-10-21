@@ -207,11 +207,11 @@ await api.post('/subscriptions/cancel/');
 
 ## 🚀 Próximos Passos
 
-### 1. Integração PaySuite
-- [ ] Criar endpoint para iniciar pagamento
-- [ ] Webhook para confirmação de pagamento
-- [ ] Criar assinatura após pagamento confirmado
-- [ ] Atualizar status do usuário
+### 1. Integração VPay
+- [x] Criar pedido no checkout hospedado
+- [x] Confirmar pagamento via webhook assinado ou polling
+- [x] Criar assinatura após pagamento confirmado
+- [x] Atualizar status do usuário
 
 ### 2. Frontend
 - [ ] Tela de seleção de planos (PricingPage)

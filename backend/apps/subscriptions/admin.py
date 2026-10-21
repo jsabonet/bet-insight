@@ -46,18 +46,18 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
 @admin.register(Payment, site=admin_site)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ['user', 'amount', 'status', 'phone_number', 'transaction_id', 'created_at']
-    list_filter = ['status', 'payment_method', 'created_at']
-    search_fields = ['user__email', 'transaction_id', 'mpesa_reference', 'phone_number']
+    list_display = ['user', 'amount', 'status', 'gateway', 'phone_number', 'transaction_id', 'created_at']
+    list_filter = ['status', 'gateway', 'payment_method', 'created_at']
+    search_fields = ['user__email', 'transaction_id', 'vpay_order_id', 'phone_number']
     date_hierarchy = 'created_at'
     ordering = ['-created_at']
     
     fieldsets = (
         ('Informações do Pagamento', {
-            'fields': ('user', 'subscription', 'amount', 'phone_number')
+            'fields': ('user', 'subscription', 'amount', 'currency', 'phone_number', 'gateway')
         }),
-        ('M-Pesa', {
-            'fields': ('transaction_id', 'mpesa_reference', 'payment_method')
+        ('VPay', {
+            'fields': ('transaction_id', 'vpay_order_id', 'payment_method')
         }),
         ('Status', {
             'fields': ('status', 'completed_at')
