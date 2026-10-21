@@ -1034,6 +1034,10 @@ cat backup_20260102_143000.sql | docker-compose exec -T db psql -U postgres beti
 # migra banco, coleta estáticos, reinicia e valida os serviços):
 bash scripts/update-production.sh
 
+# Se uma execução anterior ficou ativa após a ligação SSH cair, encerra
+# explicitamente apenas essa execução e recomeça o deploy:
+bash scripts/update-production.sh --restart
+
 # Ver logs após a atualização:
 docker compose logs -f
 
@@ -1041,7 +1045,11 @@ docker compose logs -f
 ```
 
 O script interrompe a atualização se existirem alterações locais, se o backup
-da base de dados falhar, ou se outro deploy estiver em execução. O backup
+da base de dados falhar, ou se outro deploy estiver em execução. A opção
+`--restart` termina apenas a árvore de processos da execução anterior deste
+atualizador neste repositório; não termina os serviços da aplicação nem outros
+processos Docker. Use-a apenas se tiver confirmado que quer cancelar o deploy
+em andamento. O backup
 PostgreSQL em formato custom fica em `backups/` e não é enviado ao Git. Os
 ficheiros de backup não são apagados automaticamente; copie-os para armazenamento
 seguro externo e defina uma política de retenção. Se a validação final falhar,
