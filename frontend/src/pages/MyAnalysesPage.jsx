@@ -229,7 +229,7 @@ export default function MyAnalysesPage() {
           <EmptyState
             variant="no-analyses"
             title="Nenhuma análise ainda"
-            description="Comece a analisar partidas para ver seu histórico aqui. Suas análises ajudam a melhorar suas apostas!"
+            description="Comece a analisar partidas para ver seu histórico aqui. Suas análises ajudam a tomar decisões mais informadas."
             action={
               <button
                 onClick={() => navigate('/')}

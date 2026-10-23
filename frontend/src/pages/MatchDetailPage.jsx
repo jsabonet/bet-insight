@@ -1193,10 +1193,10 @@ export default function MatchDetailPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-1">
-                        🎯 Identificação de Value Bets
+                        🎯 Identificação de Valor Esperado
                       </h4>
                       <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                        Comparamos nossas probabilidades com odds do mercado para encontrar apostas com valor positivo.
+                        Comparamos as nossas probabilidades com as do mercado para encontrar seleções com valor esperado positivo.
                       </p>
                     </div>
                   </div>

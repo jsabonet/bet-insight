@@ -80,6 +80,15 @@ app.conf.beat_schedule = {
             'expires': 1800,
         }
     },
+
+    # Libertar comissões de afiliado (pending -> available) — a cada 1 hora.
+    'release-affiliate-commissions': {
+        'task': 'affiliates.release_pending_commissions',
+        'schedule': crontab(minute=15),  # A cada hora aos :15
+        'options': {
+            'expires': 1800,
+        }
+    },
 }
 
 # Configurações adicionais

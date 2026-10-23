@@ -15,6 +15,8 @@ import MatchDetailPage from './pages/MatchDetailPage';
 import MyAnalysesPage from './pages/MyAnalysesPage';
 import ProfilePage from './pages/ProfilePage';
 import PremiumPage from './pages/PremiumPage';
+import AffiliateDashboardPage from './pages/AffiliateDashboardPage';
+import AffiliateApplyPage from './pages/AffiliateApplyPage';
 import PaymentConfirmation from './pages/PaymentConfirmation';
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
@@ -29,6 +31,12 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminDailyBets from './pages/admin/AdminDailyBets';
 import AdminExecutionDetail from './pages/admin/AdminExecutionDetail';
 import AdminSocialProof from './pages/admin/AdminSocialProof';
+import AdminAffiliates from './pages/admin/AdminAffiliates';
+
+import { captureAffiliateRef } from './utils/affiliate';
+
+// Captura o código de afiliado (?ref=CODE) ao carregar a app.
+captureAffiliateRef();
 
 // AdminRoute component - Staff e superusuários
 function AdminRoute({ children }) {
@@ -207,6 +215,24 @@ function App() {
           />
           
           <Route
+            path="/affiliate"
+            element={
+              <ProtectedRoute>
+                <AffiliateDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
+            path="/affiliate/apply"
+            element={
+              <ProtectedRoute>
+                <AffiliateApplyPage />
+              </ProtectedRoute>
+            }
+          />
+          
+          <Route
             path="/payment/confirmation/:transactionId"
             element={
               <ProtectedRoute>
@@ -238,6 +264,15 @@ function App() {
             element={
               <AdminRoute>
                 <AdminDailyBets />
+              </AdminRoute>
+            }
+          />
+          
+          <Route
+            path="/admin/affiliates"
+            element={
+              <AdminRoute>
+                <AdminAffiliates />
               </AdminRoute>
             }
           />

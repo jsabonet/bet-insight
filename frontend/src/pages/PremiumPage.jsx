@@ -204,7 +204,7 @@ export default function PremiumPage() {
       <SEOHead
         title="Planos Premium - Análises Ilimitadas | PlacerCerto"
         description="Desbloqueie análises ilimitadas de futebol com modelos estatísticos avançados. Planos a partir de 49 MZN/semana. Sem compromisso, cancele quando quiser."
-        keywords="planos premium, assinatura futebol, análises ilimitadas, moçambique apostas"
+        keywords="planos premium, assinatura futebol, análises ilimitadas, estatísticas futebol moçambique"
         canonicalUrl="https://placarcerto.digital/premium"
       />
       

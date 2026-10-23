@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ subject }}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f5f7;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f5f7;padding:24px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#16a34a;padding:24px 32px;text-align:center;">
+              <span style="color:#ffffff;font-size:22px;font-weight:bold;letter-spacing:0.5px;">⚽ {{ site_name }}</span>
+            </td>
+          </tr>
+          <!-- Corpo -->
+          <tr>
+            <td style="padding:32px 32px 24px;">
+              {% block content %}{% endblock %}
+            </td>
+          </tr>
+          <!-- Rodapé -->
+          <tr>
+            <td style="background-color:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
+              <p style="font-size:12px;color:#6b7280;margin:0 0 6px;line-height:1.5;">
+                Análise estatística e educativa de futebol. Não promovemos apostas.
+              </p>
+              <p style="font-size:12px;color:#9ca3af;margin:0;line-height:1.5;">
+                © {{ current_year }} {{ site_name }} · {{ site_url }}
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

@@ -30,6 +30,39 @@ from .payment_helpers import VPAY_STATUS_MAP, apply_vpay_status
 logger = logging.getLogger(__name__)
 
 
+def _resolve_affiliate(request, user):
+    """Resolve o afiliado a atribuir ao pagamento.
+
+    Prioridade: código no corpo da requisição (ref/promo_code) > cookie >
+    vínculo já existente do utilizador (AffiliateReferral).
+
+    Devolve (affiliate_code, affiliate_id, referral_source).
+    """
+    from apps.affiliates.services import code_to_string, resolve_affiliate_by_code
+
+    code = request.data.get('ref') or request.data.get('promo_code') or ''
+    source = 'promo_code' if request.data.get('promo_code') else 'link'
+    if not code:
+        code = request.COOKIES.get('affiliate_ref', '')
+        source = 'link'
+
+    affiliate = resolve_affiliate_by_code(code_to_string(code))
+
+    if affiliate is None:
+        # Fallback para vínculo já registado no registo.
+        try:
+            referral = user.referred_by
+            affiliate = referral.affiliate
+            code = referral.code
+            source = referral.source
+        except Exception:
+            affiliate = None
+
+    if affiliate is None:
+        return None, None, None
+    return affiliate.code, affiliate.id, source
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def create_vpay_payment(request):
@@ -157,6 +190,9 @@ def create_vpay_payment(request):
         'price': float(amount),
     }]
 
+    # Resolver o afiliado (código no corpo > cookie > vínculo existente).
+    affiliate_code, affiliate_id, referral_source = _resolve_affiliate(request, user)
+
     try:
         with transaction.atomic():
             reference = f"BET{user.id}{uuid.uuid4().hex[:8].upper()}"
@@ -174,6 +210,9 @@ def create_vpay_payment(request):
                     'plan': plan_slug,
                     'plan_name': plan['name'],
                     'gateway': 'vpay',
+                    'affiliate_code': affiliate_code,
+                    'affiliate_id': affiliate_id,
+                    'referral_source': referral_source,
                 },
             )
 

@@ -1,0 +1,14 @@
+Pagamento confirmado ✅
+
+Olá, {{ user_name }}! O seu pagamento foi confirmado com sucesso.
+
+Resumo do pagamento:
+- Plano: {{ plan_name }}
+- Valor: {{ amount }} {{ currency }}
+- Transação: {{ transaction_id }}
+
+A sua assinatura premium já está ativa.
+
+Aceder: {{ site_url }}
+
+Análise estatística e educativa de futebol. Não promovemos apostas.

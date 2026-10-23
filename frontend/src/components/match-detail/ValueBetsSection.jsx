@@ -627,7 +627,7 @@ export default function ValueBetsSection({ analysis, match }) {
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
             <h3 className="font-bold text-green-700 dark:text-green-400">
-              🎯 {value_bets.length} Oportunidade{value_bets.length > 1 ? 's' : ''} de Value Detectada{value_bets.length > 1 ? 's' : ''}
+              🎯 {value_bets.length} Oportunidade{value_bets.length > 1 ? 's' : ''} de Valor Detectada{value_bets.length > 1 ? 's' : ''}
             </h3>
           </div>
 
@@ -701,7 +701,7 @@ export default function ValueBetsSection({ analysis, match }) {
             <AlertCircle className="w-5 h-5 text-gray-400 dark:text-gray-500" />
             <div>
               <div className="font-medium text-gray-700 dark:text-gray-300">
-                Nenhuma oportunidade de value detectada
+                Nenhuma oportunidade de valor detectada
               </div>
               <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 As odds do mercado estão alinhadas com nossas previsões. Aguarde melhores oportunidades.

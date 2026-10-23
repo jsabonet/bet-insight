@@ -10,6 +10,7 @@ class User(AbstractUser):
     Modelo customizado de usuário para PlacarCerto Mozambique
     """
     email = models.EmailField(unique=True, verbose_name="Email")
+    email_verified = models.BooleanField(default=False, verbose_name="Email Verificado")
     phone = models.CharField(max_length=15, blank=True, verbose_name="Telefone")
     date_of_birth = models.DateField(null=True, blank=True, verbose_name="Data de Nascimento")
     

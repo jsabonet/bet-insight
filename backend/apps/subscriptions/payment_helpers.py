@@ -13,6 +13,7 @@ VPAY_STATUS_MAP = {
     'failed': 'failed',
     'cancelled': 'cancelled',
     'expired': 'expired',
+    'refunded': 'refunded',
 }
 
 # Mapeia o slug configurado (plan_config.PLANS) para uma escolha válida do
@@ -89,6 +90,7 @@ def apply_vpay_status(payment, vpay_status, *, activate=False):
     from .emails import (
         send_payment_confirmed_email,
         send_subscription_activated_email,
+        send_payment_failed_email,
     )
 
     local_status = VPAY_STATUS_MAP.get(vpay_status, 'pending')
@@ -99,7 +101,25 @@ def apply_vpay_status(payment, vpay_status, *, activate=False):
                 subscription = activate_subscription_for_payment(payment)
                 send_payment_confirmed_email(payment.user, payment, subscription)
                 send_subscription_activated_email(payment.user, subscription)
+                # Disparar comissão de afiliado (idempotente).
+                try:
+                    from apps.affiliates.services import create_commission_if_applicable
+                    create_commission_if_applicable(payment)
+                except Exception as exc:
+                    logger.exception('Erro ao criar comissão de afiliado: %s', exc)
     else:
         payment.status = local_status
         payment.save(update_fields=['status', 'updated_at'])
+        if local_status == 'failed':
+            try:
+                send_payment_failed_email(payment.user, payment)
+            except Exception as exc:
+                logger.exception('Erro ao enviar email de falha de pagamento: %s', exc)
+        if local_status == 'refunded':
+            # Reverter comissão em reembolso.
+            try:
+                from apps.affiliates.services import reverse_commission_for_payment
+                reverse_commission_for_payment(payment)
+            except Exception as exc:
+                logger.exception('Erro ao reverter comissão: %s', exc)
     return payment.status

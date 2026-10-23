@@ -1,0 +1,15 @@
+Bem-vindo ao Premium! 🎉
+
+Olá, {{ user_name }}! A sua assinatura {{ plan_name }} foi ativada com sucesso.
+
+Benefícios ativados:
+- {{ daily_limit }} análises por dia
+- Acesso completo a estatísticas
+- Análises detalhadas com IA
+- Suporte prioritário
+
+Válida até: {{ end_date }}
+
+Começar: {{ site_url }}
+
+Análise estatística e educativa de futebol. Não promovemos apostas.

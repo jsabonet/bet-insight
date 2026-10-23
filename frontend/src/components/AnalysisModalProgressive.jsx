@@ -193,7 +193,7 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze, is
       
       let text = `🎯 ANÁLISE - ${homeName} vs ${awayName}\n`;
       text += `📅 ${matchDate} | ${leagueName}\n`;
-      text += `📊 Estratégia: ${localStrategy === 'value' ? 'Value Bets' : 'Bilhetes Múltiplos'}\n`;
+      text += `📊 Estratégia: ${localStrategy === 'value' ? 'Análise de Valor' : 'Seleção Múltipla'}\n`;
       text += `\n━━━━━━━━━━━━━━━━━━━━\n\n`;
       
       // Probabilidades
@@ -453,7 +453,7 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze, is
             >
               <div className="flex items-center justify-center gap-2">
                 <Target className="w-4 h-4" />
-                <span>Value Bets</span>
+                <span>Análise de Valor</span>
               </div>
             </button>
             <button

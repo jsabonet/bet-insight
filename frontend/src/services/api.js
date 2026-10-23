@@ -183,3 +183,30 @@ export const subscriptionsAPI = {
 export const paymentsAPI = {
   getAll: () => api.get('/subscriptions/payments/my-payments/'),
 };
+
+// Affiliates endpoints (Programa de Afiliados)
+export const affiliateAPI = {
+  // Público
+  trackClick: (code) => api.post('/affiliates/track/', { code }),
+  validateCode: (code) => api.post('/affiliates/validate-code/', { code }),
+
+  // Afiliado (autenticado)
+  apply: (data) => api.post('/affiliates/apply/', data),
+  getMe: () => api.get('/affiliates/me/'),
+  updateMe: (data) => api.patch('/affiliates/me/', data),
+  getStats: () => api.get('/affiliates/me/stats/'),
+  getCommissions: (status) => api.get('/affiliates/me/commissions/', { params: status ? { status } : {} }),
+  withdraw: (amount) => api.post('/affiliates/me/withdraw/', { amount }),
+};
+
+// Admin affiliates endpoints
+export const affiliateAdminAPI = {
+  getOverview: () => api.get('/affiliates/admin/overview/'),
+  getAffiliates: (params) => api.get('/affiliates/admin/affiliates/', { params }),
+  getCommissions: (params) => api.get('/affiliates/admin/commissions/', { params }),
+  approveCommission: (id) => api.post(`/affiliates/admin/commissions/${id}/approve/`),
+  markPaid: (id) => api.post(`/affiliates/admin/commissions/${id}/mark-paid/`),
+  setTier: (id, data) => api.post(`/affiliates/admin/affiliates/${id}/set-tier/`, data),
+  toggleSuspend: (id) => api.post(`/affiliates/admin/affiliates/${id}/toggle-suspend/`),
+  exportCommissions: () => api.get('/affiliates/admin/commissions/export/', { responseType: 'blob' }),
+};

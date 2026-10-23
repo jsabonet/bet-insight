@@ -1,0 +1,21 @@
+{% extends "emails/base.html" %}
+{% block content %}
+<h1 style="font-size:22px;color:#111827;margin:0 0 12px;">Nova comissão ganha 💰</h1>
+<p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px;">
+  Olá, {{ user_name }}! Uma nova indicação converteu e gerou uma comissão para si.
+</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;border:1px solid #e5e7eb;border-radius:8px;">
+  <tr><td style="padding:16px;">
+    <p style="font-size:14px;color:#374151;margin:0 0 4px;">Valor: <strong>{{ amount }} {{ currency }}</strong></p>
+    <p style="font-size:14px;color:#374151;margin:0 0 4px;">Taxa aplicada: {{ rate }}%</p>
+    <p style="font-size:14px;color:#374151;margin:0;">Estado: pendente (disponível após revisão)</p>
+  </td></tr>
+</table>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0;">
+  <tr>
+    <td style="background-color:#16a34a;border-radius:8px;">
+      <a href="{{ site_url }}/affiliate" style="display:inline-block;padding:12px 28px;color:#ffffff;font-size:15px;font-weight:bold;text-decoration:none;">Ver comissões</a>
+    </td>
+  </tr>
+</table>
+{% endblock %}

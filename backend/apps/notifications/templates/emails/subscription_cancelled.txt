@@ -1,0 +1,9 @@
+Assinatura cancelada
+
+Olá, {{ user_name }}, a sua assinatura {{ plan_name }} foi cancelada.
+
+Pode continuar a usar o plano gratuito ou reativar a assinatura premium quando quiser.
+
+Reativar: {{ site_url }}/premium
+
+Análise estatística e educativa de futebol. Não promovemos apostas.

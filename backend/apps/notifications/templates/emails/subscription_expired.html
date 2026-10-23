@@ -1,0 +1,18 @@
+{% extends "emails/base.html" %}
+{% block content %}
+<h1 style="font-size:22px;color:#111827;margin:0 0 12px;">A sua assinatura expirou</h1>
+<p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px;">
+  Olá, {{ user_name }}, a sua assinatura <strong>{{ plan_name }}</strong> expirou.
+</p>
+<p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 24px;">
+  A sua conta voltou ao plano gratuito. Para continuar a usufruir de análises
+  ilimitadas e de todos os recursos premium, renove a sua assinatura.
+</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0;">
+  <tr>
+    <td style="background-color:#16a34a;border-radius:8px;">
+      <a href="{{ site_url }}/premium" style="display:inline-block;padding:12px 28px;color:#ffffff;font-size:15px;font-weight:bold;text-decoration:none;">Renovar agora</a>
+    </td>
+  </tr>
+</table>
+{% endblock %}

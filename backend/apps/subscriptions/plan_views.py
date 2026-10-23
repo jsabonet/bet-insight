@@ -276,6 +276,14 @@ def cancel_subscription(request):
         )
     
     subscription.cancel()
+
+    # Notificar o utilizador por email (não bloqueia o cancelamento).
+    try:
+        from .emails import send_subscription_cancelled_email
+        send_subscription_cancelled_email(request.user, subscription)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning('Falha ao enviar email de cancelamento: %s', exc)
     
     return Response({
         'message': 'Assinatura cancelada com sucesso',

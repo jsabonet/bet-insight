@@ -87,6 +87,8 @@ INSTALLED_APPS = [
     "apps.analysis",
     "apps.subscriptions",
     "apps.seo",  # SEO otimização
+    "apps.affiliates",  # Programa de afiliados
+    "apps.notifications",  # Emails transacionais (Resend)
 ]
 
 MIDDLEWARE = [
@@ -345,24 +347,70 @@ VPAY_AUTH_TOKEN_PATH = os.getenv('VPAY_AUTH_TOKEN_PATH', '/v1/auth/token')
 # Firebase Configuration
 FCM_SERVER_KEY = os.getenv('FCM_SERVER_KEY', '')
 
-# Email transacional (notificacoes de assinatura).
-# Por omissao o console backend: as mensagens aparecem nos logs em vez de
-# falharem por nao existir SMTP no container.
-EMAIL_BACKEND = os.getenv(
-    'EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend'
+# ---------------------------------------------------------------------------
+# Email transacional (Resend).
+#
+# O backend padrão é o console (dev/teste): as mensagens aparecem nos logs em
+# vez de falharem por não existir SMTP. Quando RESEND_API_KEY está definida,
+# usamos o backend REST da Resend (apps.notifications.backends.ResendBackend),
+# que requer apenas `requests` (sem SDK adicional).
+#
+# Fluxo de configuração (Resend):
+#   1. Criar conta em https://resend.com
+#   2. Verificar o domínio de envio (ex.: placarcerto.digital) — DNS SPF/DKIM
+#   3. Criar uma API key em "API Keys" e copiá-la
+#   4. Definir RESEND_API_KEY e RESEND_FROM_EMAIL no .env
+# ---------------------------------------------------------------------------
+RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
+RESEND_FROM_EMAIL = os.getenv(
+    'RESEND_FROM_EMAIL', 'PlacarCerto <noreply@placarcerto.digital>'
 )
+RESEND_TIMEOUT = int(os.getenv('RESEND_TIMEOUT', '20'))
+
+EMAIL_BACKEND = os.getenv(
+    'EMAIL_BACKEND',
+    (
+        'apps.notifications.backends.ResendBackend'
+        if RESEND_API_KEY
+        else 'django.core.mail.backends.console.EmailBackend'
+    ),
+)
+# Configuração SMTP mantida por retrocompatibilidade (não usada com Resend).
 EMAIL_HOST = os.getenv('EMAIL_HOST', '')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.getenv(
-    'DEFAULT_FROM_EMAIL', 'PlacarCerto <noreply@placarcerto.digital>'
+    'DEFAULT_FROM_EMAIL', RESEND_FROM_EMAIL or 'PlacarCerto <noreply@placarcerto.digital>'
 )
+
+# URL pública do frontend (usada nos links dos emails).
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://placarcerto.digital')
+# Email de suporte exibido nos emails transacionais.
+SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL', 'suporte@placarcerto.digital')
 
 # Application Settings
 FREE_ANALYSIS_LIMIT = int(os.getenv('FREE_ANALYSIS_LIMIT', '3'))
 PREMIUM_ANALYSIS_LIMIT = int(os.getenv('PREMIUM_ANALYSIS_LIMIT', '100'))
+
+# Programa de Afiliados
+# Taxas em decimal (0.40 = 40%).
+AFFILIATE_DEFAULT_RATE = float(os.getenv('AFFILIATE_DEFAULT_RATE', '0.40'))
+AFFILIATE_VIP_RATE = float(os.getenv('AFFILIATE_VIP_RATE', '0.50'))
+AFFILIATE_RENEWAL_RATE = float(os.getenv('AFFILIATE_RENEWAL_RATE', '0.10'))
+# Janela (dias) em que um cookie de afiliado é válido.
+AFFILIATE_COOKIE_DAYS = int(os.getenv('AFFILIATE_COOKIE_DAYS', '30'))
+# Dias até uma comissão pending ficar available (janela de chargeback/refund).
+AFFILIATE_PENDING_DAYS = int(os.getenv('AFFILIATE_PENDING_DAYS', '14'))
+# Valor mínimo (MZN) para levantamento.
+AFFILIATE_MIN_WITHDRAWAL = int(os.getenv('AFFILIATE_MIN_WITHDRAWAL', '200'))
+# Planos que não geram comissão (separados por vírgula).
+AFFILIATE_EXCLUDED_PLANS = [
+    p.strip()
+    for p in os.getenv('AFFILIATE_EXCLUDED_PLANS', 'teste').split(',')
+    if p.strip()
+]
 
 # Logging Configuration
 LOGGING = {

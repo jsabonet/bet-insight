@@ -1,0 +1,10 @@
+Pedido de levantamento recebido
+
+Olá, {{ user_name }}! Recebemos o seu pedido de levantamento.
+
+- Valor solicitado: {{ amount }} {{ currency }}
+- Método: {{ payout_method }}
+
+A nossa equipa irá processar o pagamento em breve.
+
+Análise estatística e educativa de futebol. Não promovemos apostas.

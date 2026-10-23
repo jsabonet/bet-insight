@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useStats } from '../context/StatsContext';
 import { useAuth } from '../context/AuthContext';
-import { User, Phone, Mail, Calendar, Star, TrendingUp, Award, Bell, Lock, Shield, Trash2 } from 'lucide-react';
+import { User, Phone, Mail, Calendar, Star, TrendingUp, Award, Bell, Lock, Shield, Trash2, Gift } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
 import UserAvatar from '../components/UserAvatar';
@@ -264,6 +265,23 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {/* Affiliate Program CTA */}
+        <Link
+          to="/affiliate"
+          className="card mb-6 animate-slide-up flex items-center gap-4 hover:shadow-lg transition-all bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 border-2 border-primary-200 dark:border-primary-800"
+        >
+          <span className="p-3 rounded-xl bg-primary-600 text-white">
+            <Gift className="w-6 h-6" />
+          </span>
+          <div className="flex-1">
+            <h3 className="font-bold text-gray-900 dark:text-gray-100">Programa de Afiliados</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Ganhe até 50% de comissão ao indicar o PlacarCerto
+            </p>
+          </div>
+          <span className="text-primary-600 dark:text-primary-400 font-bold">›</span>
+        </Link>
 
         {/* Tabs Navigation */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">

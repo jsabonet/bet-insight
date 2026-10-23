@@ -15,7 +15,7 @@ export default function SectionNav({ sections = [] }) {
     { id: 'overview', label: 'Visão Geral', icon: Target },
     { id: 'comparison', label: 'Comparação', icon: GitCompare },
     { id: 'goals', label: 'Gols', icon: Goal },
-    { id: 'valuebets', label: 'Value Bets', icon: Award },
+    { id: 'valuebets', label: 'Análise de Valor', icon: Award },
     { id: 'context', label: 'Contexto', icon: FileText },
     { id: 'lineups', label: 'Escalações', icon: UserCheck },
     { id: 'statistics', label: 'Estatísticas', icon: BarChart3 },

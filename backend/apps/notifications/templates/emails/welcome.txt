@@ -1,0 +1,9 @@
+Olá, {{ user_name }}!
+
+A sua conta no {{ site_name }} foi criada com sucesso.
+
+Comece agora a explorar previsões e probabilidades das principais ligas de Moçambique, África e Europa.
+
+Aceda: {{ site_url }}
+
+Análise estatística e educativa de futebol. Não promovemos apostas.

@@ -17,11 +17,11 @@ export default function StrategySelector() {
               : 'bg-white/10 dark:bg-gray-700/30 text-white/70 dark:text-gray-400 hover:bg-white/20 dark:hover:bg-gray-700/50'
             }
           `}
-          aria-label="Modo Aposta Simples"
+          aria-label="Modo Análise Individual"
         >
           <Zap className="w-4 h-4" />
-          <span className="hidden sm:inline">Aposta Simples</span>
-          <span className="sm:hidden">Simples</span>
+          <span className="hidden sm:inline">Análise Individual</span>
+          <span className="sm:hidden">Individual</span>
         </button>
 
         <button
@@ -34,11 +34,11 @@ export default function StrategySelector() {
               : 'bg-white/10 dark:bg-gray-700/30 text-white/70 dark:text-gray-400 hover:bg-white/20 dark:hover:bg-gray-700/50'
             }
           `}
-          aria-label="Modo Para Bilhete"
+          aria-label="Modo Seleção Múltipla"
         >
           <ClipboardList className="w-4 h-4" />
-          <span className="hidden sm:inline">Para Bilhete</span>
-          <span className="sm:hidden">Bilhete</span>
+          <span className="hidden sm:inline">Seleção Múltipla</span>
+          <span className="sm:hidden">Múltipla</span>
         </button>
       </div>
     </div>

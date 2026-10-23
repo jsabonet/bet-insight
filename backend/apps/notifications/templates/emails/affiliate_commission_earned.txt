@@ -1,0 +1,11 @@
+Nova comissão ganha 💰
+
+Olá, {{ user_name }}! Uma nova indicação converteu e gerou uma comissão para si.
+
+- Valor: {{ amount }} {{ currency }}
+- Taxa aplicada: {{ rate }}%
+- Estado: pendente (disponível após revisão)
+
+Ver comissões: {{ site_url }}/affiliate
+
+Análise estatística e educativa de futebol. Não promovemos apostas.

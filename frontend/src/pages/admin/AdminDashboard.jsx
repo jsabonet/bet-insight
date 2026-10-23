@@ -11,7 +11,8 @@ import {
   ArrowLeft,
   BarChart3,
   Crown,
-  Camera
+  Camera,
+  Gift
 } from 'lucide-react';
 import Header from '../../components/Header';
 import BottomNav from '../../components/BottomNav';
@@ -131,6 +132,13 @@ export default function AdminDashboard() {
       icon: Camera,
       path: '/admin/social-proof',
       color: 'amber',
+    },
+    {
+      title: 'Afiliados',
+      description: 'Gerir afiliados, comissões e pagamentos',
+      icon: Gift,
+      path: '/admin/affiliates',
+      color: 'blue',
     },
   ];
 

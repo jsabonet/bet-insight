@@ -192,11 +192,11 @@ export default function AccuracyStats({ stats }) {
                       <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                     </div>
                     <h4 className="font-bold text-gray-900 dark:text-gray-100">
-                      Value Bets
+                      Análises de Valor
                     </h4>
                   </div>
                   <span className="text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded-lg font-medium">
-                    {by_bet_type.value.total || 0} apostas
+                    {by_bet_type.value.total || 0} análises
                   </span>
                 </div>
                 

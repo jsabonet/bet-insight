@@ -47,8 +47,8 @@ export default function DailyBetsPage() {
       setValueBets(data.value_bets || []);
       setDisplayedDate(data.date || '');
     } catch (err) {
-      console.error('Erro ao carregar bilhetes:', err);
-      setError('Erro ao carregar bilhetes. Tente novamente.');
+      console.error('Erro ao carregar seleções:', err);
+      setError('Erro ao carregar seleções. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -71,7 +71,7 @@ export default function DailyBetsPage() {
   };
 
   const tabs = [
-    { id: 'today', label: 'Bilhetes de Hoje', icon: Target },
+    { id: 'today', label: 'Seleções de Hoje', icon: Target },
     { id: 'stats', label: 'Performance', icon: TrendingUp }
   ];
 
@@ -80,9 +80,9 @@ export default function DailyBetsPage() {
   return (
     <div className="page-container">
       <SEOHead
-        title="Bilhetes Automáticos - PlacerCerto | Análise Estatística de Todas as Partidas"
-        description="Bilhetes prontos gerados por modelos matemáticos com análise completa de todas as partidas do dia usando 109 variáveis estatísticas. Múltiplos 3x, 5x, 7x e Value Bets com Expected Value positivo. Performance transparente e verificável."
-        keywords="bilhetes prontos, apostas automaticas, value bets, bilhetes multiplos, analise estatistica, modelos matematicos, placarcerto"
+        title="Seleções do Dia - PlacerCerto | Análise Estatística de Futebol"
+        description="Análise estatística completa de todas as partidas do dia, com probabilidades calculadas por modelos matemáticos usando 109 variáveis. Seleções individuais e múltiplas com desempenho transparente e verificável."
+        keywords="análise de futebol, seleções do dia, estatísticas de futebol, probabilidades, modelos matemáticos, placarcerto"
       />
 
       <Header showLogo={true} />
@@ -101,11 +101,11 @@ export default function DailyBetsPage() {
           <div className="flex items-center justify-between mb-2">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
-                Bilhetes Automáticos
+                Seleções do Dia
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
                 {selectedDate
-                  ? `Bilhetes gerados em ${displayedDate || selectedDate}`
+                  ? `Seleções geradas em ${displayedDate || selectedDate}`
                   : 'Análise completa de todas as partidas de hoje'}
               </p>
             </div>
@@ -144,7 +144,7 @@ export default function DailyBetsPage() {
           <div className="mb-6 flex items-center gap-3 flex-wrap">
             <label htmlFor="daily-bets-date" className="text-sm font-semibold text-gray-600 dark:text-gray-400">
               <CalendarDays className="w-4 h-4 inline mr-1 -mt-0.5" />
-              Ver bilhetes de outra data:
+              Ver seleções de outra data:
             </label>
             <input
               id="daily-bets-date"
@@ -208,11 +208,11 @@ export default function DailyBetsPage() {
             ) : totalBets === 0 ? (
               <EmptyState
                 variant="no-data"
-                title="Nenhum Bilhete Disponível"
+                title="Nenhuma Seleção Disponível"
                 description={
                   selectedDate
-                    ? `Nenhum bilhete foi gerado em ${displayedDate || selectedDate}.`
-                    : 'Os bilhetes de hoje ainda não foram gerados. Volte mais tarde!'
+                    ? `Nenhuma seleção foi gerada em ${displayedDate || selectedDate}.`
+                    : 'As seleções de hoje ainda não foram geradas. Volte mais tarde!'
                 }
                 action={
                   <button onClick={handleRefresh} className="btn-primary">
@@ -231,7 +231,7 @@ export default function DailyBetsPage() {
                           <Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                         </div>
                         <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                          Bilhetes Múltiplos
+                          Seleções Múltiplas
                         </h2>
                         <span className="text-sm text-gray-500 dark:text-gray-400">
                           ({multipleTickets.length})
@@ -259,7 +259,7 @@ export default function DailyBetsPage() {
                           <Zap className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                         </div>
                         <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                          Value Bets
+                          Análises de Valor
                         </h2>
                         <span className="text-sm text-gray-500 dark:text-gray-400">
                           ({valueBets.length})
@@ -267,7 +267,7 @@ export default function DailyBetsPage() {
                       </div>
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                      Apostas com Expected Value (EV) positivo
+                      Seleções com valor esperado (EV) positivo
                     </p>
                     <div className="space-y-4">
                       {valueBets.map((bet, index) => (

@@ -1,7 +1,16 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
-from .views import RegisterView, UserProfileView, UserStatsView, LoginView
+from .views import (
+    RegisterView,
+    UserProfileView,
+    UserStatsView,
+    LoginView,
+    verify_email,
+    resend_verification,
+    password_reset_request,
+    password_reset_confirm,
+)
 from .admin_views import AdminUserViewSet, admin_stats, admin_analyses_stats, admin_delete_user
 from .admin_management_views import (
     admin_toggle_admin_status,
@@ -18,6 +27,14 @@ urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='register'),
     path('auth/login/', LoginView.as_view(), name='token_obtain_pair'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    # Verificação de email
+    path('auth/verify-email/', verify_email, name='verify-email'),
+    path('auth/resend-verification/', resend_verification, name='resend-verification'),
+
+    # Recuperação de senha
+    path('auth/password-reset/', password_reset_request, name='password-reset'),
+    path('auth/password-reset/confirm/', password_reset_confirm, name='password-reset-confirm'),
     
     # Perfil
     path('profile/', UserProfileView.as_view(), name='user-profile'),

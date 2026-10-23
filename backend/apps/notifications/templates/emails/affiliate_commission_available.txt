@@ -1,0 +1,10 @@
+Comissão disponível ✅
+
+Olá, {{ user_name }}! A sua comissão já está disponível para levantamento.
+
+- Valor: {{ amount }} {{ currency }}
+- Saldo disponível: {{ available_balance }} {{ currency }}
+
+Pedir levantamento: {{ site_url }}/affiliate
+
+Análise estatística e educativa de futebol. Não promovemos apostas.

@@ -1,0 +1,237 @@
+"""Endpoints públicos e do próprio afiliado."""
+import uuid
+import logging
+
+from django.conf import settings
+from django.db.models import Count, Sum, Q
+from django.utils import timezone
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+
+from .models import Affiliate, AffiliateReferral, AffiliateCommission, AffiliateClick
+from .serializers import (
+    AffiliateSerializer,
+    AffiliateApplySerializer,
+    AffiliateCommissionSerializer,
+    WithdrawRequestSerializer,
+)
+from .services import resolve_affiliate_by_code, generate_unique_code, code_to_string
+
+logger = logging.getLogger(__name__)
+
+
+def _get_or_404_affiliate(user):
+    try:
+        return user.affiliate_profile
+    except Affiliate.DoesNotExist:
+        return None
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def apply_affiliate(request):
+    """Candidata o utilizador a afiliado (gera código se ainda não existe)."""
+    existing = _get_or_404_affiliate(request.user)
+    if existing:
+        return Response({
+            'message': 'Já é afiliado.',
+            'affiliate': AffiliateSerializer(existing, context={'request': request}).data,
+        })
+
+    serializer = AffiliateApplySerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    code = generate_unique_code(request.user.username)
+    affiliate = Affiliate.objects.create(
+        user=request.user,
+        code=code,
+        status='active',
+        tier='standard',
+        commission_rate=getattr(settings, 'AFFILIATE_DEFAULT_RATE', 0.40),
+        renewal_rate=getattr(settings, 'AFFILIATE_RENEWAL_RATE', 0.10),
+        payout_method=serializer.validated_data.get('payout_method', 'mpesa'),
+        payout_account=serializer.validated_data.get('payout_account', ''),
+    )
+
+    # Notificar o afiliado por email (não bloqueia a criação).
+    try:
+        from .emails import send_affiliate_approved_email
+        send_affiliate_approved_email(affiliate)
+    except Exception as exc:
+        logger.warning('Falha ao enviar email de afiliado aprovado: %s', exc)
+
+    return Response({
+        'message': 'Conta de afiliado criada com sucesso.',
+        'affiliate': AffiliateSerializer(affiliate, context={'request': request}).data,
+    }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def my_affiliate(request):
+    """Lê/atualiza o perfil de afiliado do utilizador logado."""
+    affiliate = _get_or_404_affiliate(request.user)
+    if affiliate is None:
+        return Response({'error': 'Ainda não é afiliado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.method == 'PATCH':
+        serializer = AffiliateApplySerializer(affiliate, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({
+            'message': 'Dados de pagamento atualizados.',
+            'affiliate': AffiliateSerializer(affiliate, context={'request': request}).data,
+        })
+
+    return Response(AffiliateSerializer(affiliate, context={'request': request}).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def my_affiliate_stats(request):
+    """Estatísticas agregadas do afiliado."""
+    affiliate = _get_or_404_affiliate(request.user)
+    if affiliate is None:
+        return Response({'error': 'Ainda não é afiliado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    now = timezone.now()
+    thirty_days_ago = now - timezone.timedelta(days=30)
+
+    clicks_total = affiliate.clicks.count()
+    clicks_30d = affiliate.clicks.filter(created_at__gte=thirty_days_ago).count()
+    conversions_total = affiliate.referrals.filter(converted_at__isnull=False).count()
+    conversions_30d = affiliate.referrals.filter(
+        converted_at__isnull=False, converted_at__gte=thirty_days_ago,
+    ).count()
+    revenue_30d = affiliate.commissions.filter(
+        created_at__gte=thirty_days_ago,
+    ).exclude(status='reversed').aggregate(s=Sum('amount'))['s'] or 0
+
+    # Série de 7 dias para o gráfico (cliques e conversões).
+    daily = []
+    for i in range(6, -1, -1):
+        day = now.date() - timezone.timedelta(days=i)
+        start = timezone.make_aware(
+            timezone.datetime.combine(day, timezone.datetime.min.time())
+        )
+        end = start + timezone.timedelta(days=1)
+        clicks = affiliate.clicks.filter(created_at__gte=start, created_at__lt=end).count()
+        conv = affiliate.referrals.filter(
+            converted_at__gte=start, converted_at__lt=end,
+        ).count()
+        daily.append({'date': day.isoformat(), 'clicks': clicks, 'conversions': conv})
+
+    return Response({
+        'clicks_total': clicks_total,
+        'clicks_30d': clicks_30d,
+        'conversions_total': conversions_total,
+        'conversions_30d': conversions_30d,
+        'revenue_30d': revenue_30d,
+        'commissions_pending': affiliate.commissions.filter(status='pending').count(),
+        'commissions_available': affiliate.commissions.filter(status='available').count(),
+        'daily': daily,
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def my_commissions(request):
+    """Lista as comissões do afiliado logado."""
+    affiliate = _get_or_404_affiliate(request.user)
+    if affiliate is None:
+        return Response({'error': 'Ainda não é afiliado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    status_filter = request.query_params.get('status')
+    qs = affiliate.commissions.all().select_related('payment', 'payment__user')
+    if status_filter:
+        qs = qs.filter(status=status_filter)
+    return Response(AffiliateCommissionSerializer(qs[:100], many=True).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def withdraw(request):
+    """Pede levantamento (valida saldo disponível e threshold mínimo)."""
+    affiliate = _get_or_404_affiliate(request.user)
+    if affiliate is None:
+        return Response({'error': 'Ainda não é afiliado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    serializer = WithdrawRequestSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    amount = serializer.validated_data['amount']
+
+    min_withdrawal = int(getattr(settings, 'AFFILIATE_MIN_WITHDRAWAL', 200))
+    if amount < min_withdrawal:
+        return Response({
+            'error': f'Valor mínimo de levantamento: {min_withdrawal} MZN.',
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    if amount > affiliate.available_balance:
+        return Response({
+            'error': 'Saldo disponível insuficiente.',
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    # Notificar o afiliado por email (não bloqueia o pedido).
+    try:
+        from .emails import send_withdrawal_requested_email
+        send_withdrawal_requested_email(affiliate, amount)
+    except Exception as exc:
+        logger.warning('Falha ao enviar email de levantamento: %s', exc)
+
+    # MVP: regista o pedido como uma comissão a "marcar como pago" pelo admin.
+    # Sem débito automático: o admin confirma e debita no painel.
+    return Response({
+        'message': 'Pedido de levantamento registado. Será processado pela equipa.',
+        'requested_amount': amount,
+        'available_balance': affiliate.available_balance,
+        'payout_method': affiliate.payout_method,
+        'payout_account': affiliate.payout_account,
+    }, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def track_click(request):
+    """Regista um clique em link de afiliado e devolve click_id + cookie.
+
+    Body: { "code": "JOAO123" }
+    """
+    code = code_to_string(request.data.get('code', ''))
+    affiliate = resolve_affiliate_by_code(code)
+    if affiliate is None:
+        return Response({'error': 'Código de afiliado inválido.'}, status=status.HTTP_404_NOT_FOUND)
+
+    click_id = uuid.uuid4().hex
+    ip = request.META.get('HTTP_X_FORWARDED_FOR')
+    ip = ip.split(',')[0].strip() if ip else request.META.get('REMOTE_ADDR')
+
+    AffiliateClick.objects.create(
+        affiliate=affiliate,
+        code=code,
+        click_id=click_id,
+        ip=ip,
+        user_agent=(request.META.get('HTTP_USER_AGENT', '') or '')[:255],
+    )
+
+    response = Response({'success': True, 'code': code, 'click_id': click_id})
+    cookie_days = int(getattr(settings, 'AFFILIATE_COOKIE_DAYS', 30))
+    response.set_cookie(
+        'affiliate_ref', code,
+        max_age=cookie_days * 24 * 3600,
+        httponly=True,
+        samesite='Lax',
+    )
+    return response
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def validate_code(request):
+    """Valida um código de afiliado (usado no checkout/registo)."""
+    code = code_to_string(request.data.get('code', ''))
+    affiliate = resolve_affiliate_by_code(code)
+    if affiliate is None:
+        return Response({'valid': False, 'error': 'Código inválido.'}, status=status.HTTP_404_NOT_FOUND)
+    return Response({'valid': True, 'code': affiliate.code, 'name': affiliate.user.username})

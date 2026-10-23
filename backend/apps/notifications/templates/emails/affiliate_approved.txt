@@ -1,0 +1,14 @@
+Conta de afiliado aprovada 🎉
+
+Olá, {{ user_name }}! A sua candidatura ao programa de afiliados do {{ site_name }} foi aprovada.
+
+- Código de indicação: {{ affiliate_code }}
+- Comissão por venda: {{ commission_rate }}%
+- Comissão por renovação: {{ renewal_rate }}%
+
+O seu link de indicação:
+{{ affiliate_link }}
+
+Abrir painel: {{ site_url }}/affiliate
+
+Análise estatística e educativa de futebol. Não promovemos apostas.

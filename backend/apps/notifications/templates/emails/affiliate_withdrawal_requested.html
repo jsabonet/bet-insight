@@ -1,0 +1,17 @@
+{% extends "emails/base.html" %}
+{% block content %}
+<h1 style="font-size:22px;color:#111827;margin:0 0 12px;">Pedido de levantamento recebido</h1>
+<p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px;">
+  Olá, {{ user_name }}! Recebemos o seu pedido de levantamento.
+</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;border:1px solid #e5e7eb;border-radius:8px;">
+  <tr><td style="padding:16px;">
+    <p style="font-size:14px;color:#374151;margin:0 0 4px;">Valor solicitado: <strong>{{ amount }} {{ currency }}</strong></p>
+    <p style="font-size:14px;color:#374151;margin:0;">Método: {{ payout_method }}</p>
+  </td></tr>
+</table>
+<p style="font-size:15px;color:#374151;line-height:1.6;margin:0;">
+  A nossa equipa irá processar o pagamento em breve. Receberá uma confirmação
+  quando for concluído.
+</p>
+{% endblock %}

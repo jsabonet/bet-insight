@@ -59,7 +59,7 @@ export default function LandingPage() {
       <SEOHead
         title="PlacerCerto - Análise Estatística Avançada de Futebol | Previsões Precisas"
         description="Plataforma de análise estatística de futebol com modelos matemáticos avançados (Poisson Bivariado + Regressão Logística). Previsões precisas baseadas em 109 variáveis. Ligas de Moçambique, África e Europa."
-        keywords="previsões futebol, análise estatística, modelos poisson, regressão logística, estatísticas futebol moçambique, apostas inteligentes, PlacerCerto"
+        keywords="previsões futebol, análise estatística, modelos poisson, regressão logística, estatísticas futebol moçambique, probabilidades futebol, PlacerCerto"
         canonicalUrl="https://placarcerto.digital/"
         structuredData={generateWebsiteStructuredData()}
       />

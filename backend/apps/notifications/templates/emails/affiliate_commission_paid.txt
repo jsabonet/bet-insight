@@ -1,0 +1,10 @@
+Comissão paga 💸
+
+Olá, {{ user_name }}! Acabámos de efetuar o pagamento da sua comissão.
+
+- Valor pago: {{ amount }} {{ currency }}
+- Método: {{ payout_method }}
+
+O valor deve chegar à sua conta em breve. Obrigado por fazer parte do programa!
+
+Análise estatística e educativa de futebol. Não promovemos apostas.

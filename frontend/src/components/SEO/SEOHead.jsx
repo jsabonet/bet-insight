@@ -7,8 +7,8 @@ import PropTypes from 'prop-types';
  */
 const SEOHead = ({
   title = 'PlacerCerto - Análise Estatística Avançada de Futebol',
-  description = 'Previsões precisas de futebol com modelos estatísticos avançados (Poisson + Regressão). Análise quantitativa de partidas, estatísticas em tempo real e apostas inteligentes. Ligas de Moçambique, África e Europa.',
-  keywords = 'previsões futebol, apostas desportivas, análise estatística futebol, modelos matemáticos futebol, estatísticas futebol, Moçambique futebol, apostas inteligentes, PlacerCerto, análise quantitativa, odds futebol, poisson futebol',
+  description = 'Previsões de futebol com modelos estatísticos avançados (Poisson + Regressão Logística). Análise quantitativa de partidas, probabilidades e estatísticas detalhadas. Ligas de Moçambique, África e Europa. Informação educativa, não um serviço de apostas.',
+  keywords = 'previsões futebol, análise estatística futebol, modelos matemáticos futebol, probabilidades futebol, estatísticas futebol, Moçambique futebol, PlacerCerto, análise quantitativa, poisson futebol, regressão logística',
   ogImage = 'https://placarcerto.digital/og-image.jpg',
   ogType = 'website',
   canonicalUrl,

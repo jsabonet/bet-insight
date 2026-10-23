@@ -1,0 +1,9 @@
+A sua assinatura expirou
+
+Olá, {{ user_name }}, a sua assinatura {{ plan_name }} expirou.
+
+A sua conta voltou ao plano gratuito. Renove para continuar com análises ilimitadas.
+
+Renovar: {{ site_url }}/premium
+
+Análise estatística e educativa de futebol. Não promovemos apostas.

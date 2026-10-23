@@ -55,9 +55,13 @@ class Command(BaseCommand):
                     f'✓ {user.email} - {subscription.get_plan_display()} expirado'
                 )
             )
-            
-            # TODO: Enviar email de expiração
-            # send_subscription_expired_email(user, subscription)
+
+            # Notificar o utilizador por email.
+            try:
+                from apps.subscriptions.emails import send_subscription_expired_email
+                send_subscription_expired_email(user, subscription)
+            except Exception as exc:
+                logger.warning('Falha ao enviar email de expiração: %s', exc)
         
         self.stdout.write(
             self.style.SUCCESS(f'\n✓ {count} assinaturas expiradas com sucesso')

@@ -71,10 +71,10 @@ export default function NavigationMenu({ sections, activeSection, onNavigate }) 
     },
     {
       id: 'odds',
-      name: '💰 Mercados & Odds',
+      name: '💰 Mercados & Probabilidades',
       icon: DollarSign,
       sections: [
-        { id: 'value-bets', name: 'Análise de Value Bets', component: 'ValueBetsSection' }
+        { id: 'value-bets', name: 'Análise de Valor', component: 'ValueBetsSection' }
       ]
     },
     {

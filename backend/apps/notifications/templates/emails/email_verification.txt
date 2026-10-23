@@ -1,0 +1,7 @@
+Olá, {{ user_name }}!
+
+Para ativar totalmente a sua conta no {{ site_name }}, confirme o seu email:
+
+{{ verification_url }}
+
+Análise estatística e educativa de futebol. Não promovemos apostas.

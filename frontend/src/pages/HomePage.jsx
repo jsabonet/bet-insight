@@ -345,8 +345,8 @@ export default function HomePage() {
     <div className="page-container">
       <SEOHead
         title="PlacerCerto - Análise Estatística Avançada de Futebol | Previsões Precisas"
-        description="Previsões de futebol com modelos estatísticos avançados (Poisson Bivariado + Regressão Logística). Análise quantitativa completa de partidas ao vivo e futuras das principais ligas de Moçambique, África e Europa. Estatísticas em tempo real e apostas inteligentes."
-        keywords="previsões futebol moçambique, análise estatística futebol, modelos matemáticos, apostas desportivas, estatísticas futebol ao vivo, PlacerCerto, moçambola, ligas africanas, poisson bivariado, regressão logística, value bets"
+        description="Previsões de futebol com modelos estatísticos avançados (Poisson Bivariado + Regressão Logística). Análise quantitativa completa de partidas ao vivo e futuras das principais ligas de Moçambique, África e Europa. Probabilidades e estatísticas detalhadas."
+        keywords="previsões futebol moçambique, análise estatística futebol, modelos matemáticos, probabilidades futebol, estatísticas futebol ao vivo, PlacerCerto, moçambola, ligas africanas, poisson bivariado, regressão logística"
         canonicalUrl="https://placarcerto.digital/"
         structuredData={matches.length > 0 ? generateMatchListStructuredData(matches.slice(0, 20)) : generateWebsiteStructuredData()}
       />

@@ -26,10 +26,17 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             'required': 'Você deve confirmar que tem 18 anos ou mais.'
         }
     )
+    ref = serializers.CharField(
+        write_only=True,
+        required=False,
+        allow_blank=True,
+        max_length=32,
+        help_text="Código de indicação do afiliado (opcional)."
+    )
     
     class Meta:
         model = User
-        fields = ['email', 'username', 'password', 'password2', 'phone', 'age_confirmation']
+        fields = ['email', 'username', 'password', 'password2', 'phone', 'age_confirmation', 'ref']
     
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
@@ -46,6 +53,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop('password2')
         validated_data.pop('age_confirmation')  # Remover pois não é campo do modelo
+        ref = validated_data.pop('ref', '')  # Não é campo do modelo
         request = self.context.get('request')
         # Capturar fingerprint enviada no corpo
         fingerprint = None
@@ -78,14 +86,14 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'username', 'phone', 'date_of_birth', 'age',
+            'id', 'email', 'email_verified', 'username', 'phone', 'date_of_birth', 'age',
             'is_premium', 'premium_until',
             'daily_analysis_count', 'total_analyses', 'successful_predictions',
             'success_rate', 'can_analyze_today', 'remaining_analyses', 'push_enabled',
             'is_staff', 'is_superuser'
         ]
         read_only_fields = [
-            'id', 'age', 'is_premium', 'premium_until', 'daily_analysis_count',
+            'id', 'email', 'email_verified', 'age', 'is_premium', 'premium_until', 'daily_analysis_count',
             'total_analyses', 'successful_predictions', 'is_staff', 'is_superuser'
         ]
     

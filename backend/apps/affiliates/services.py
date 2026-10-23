@@ -1,0 +1,204 @@
+"""Lógica de negócio do sistema de afiliados.
+
+Centraliza a resolução de códigos de afiliado, a criação (idempotente) de
+comissões quando um pagamento é concluído e a gestão de saldos.
+"""
+import logging
+from decimal import Decimal
+
+from django.conf import settings
+from django.db import transaction
+from django.utils import timezone
+
+from .models import Affiliate, AffiliateReferral, AffiliateCommission
+
+logger = logging.getLogger(__name__)
+
+
+def get_setting(name, default):
+    return getattr(settings, name, default)
+
+
+def excluded_plans():
+    """Planos que NÃO geram comissão (ex.: 'teste')."""
+    value = get_setting('AFFILIATE_EXCLUDED_PLANS', ['teste'])
+    if isinstance(value, str):
+        value = [p.strip() for p in value.split(',') if p.strip()]
+    return set(value)
+
+
+def resolve_affiliate_by_code(code):
+    """Devolve um Affiliate ativo para um código, ou None."""
+    if not code:
+        return None
+    return Affiliate.objects.filter(code__iexact=code, status='active').first()
+
+
+def code_to_string(code):
+    """Normaliza um código (trim + uppercase)."""
+    return (code or '').strip().upper()
+
+
+def generate_unique_code(base):
+    """Gera um código único a partir de uma base (ex.: username)."""
+    base = (base or 'AFF').upper()
+    base = ''.join(ch for ch in base if ch.isalnum())[:12] or 'AFF'
+    code = base
+    counter = 1
+    while Affiliate.objects.filter(code=code).exists():
+        suffix = str(counter)
+        code = f"{base[:12 - len(suffix)]}{suffix}"
+        counter += 1
+    return code
+
+
+def assign_referral(user, code, source='link', click_id=''):
+    """Cria/atualiza o vínculo de indicação de um utilizador (idempotente).
+
+    Retorna o AffiliateReferral (ou None se o código for inválido/inativo).
+    Nunca permite auto-indicação.
+    """
+    code = code_to_string(code)
+    affiliate = resolve_affiliate_by_code(code)
+    if not affiliate:
+        return None
+    if affiliate.user_id == user.id:
+        return None
+
+    referral, created = AffiliateReferral.objects.get_or_create(
+        user=user,
+        defaults={
+            'affiliate': affiliate,
+            'code': code,
+            'source': source,
+            'click_id': click_id or '',
+        },
+    )
+    if not created:
+        # Atualizar o último afiliado (last-click) apenas se for outro afiliado.
+        referral.affiliate = affiliate
+        referral.code = code
+        if source == 'promo_code' or referral.source != 'promo_code':
+            # Código promocional tem prioridade e não pode ser "sobrescrito"
+            # por um link posterior.
+            referral.source = source
+        if click_id:
+            referral.click_id = click_id
+        referral.last_touch_at = timezone.now()
+        referral.save(update_fields=['affiliate', 'code', 'source', 'click_id', 'last_touch_at'])
+    return referral
+
+
+def get_payment_affiliate(payment):
+    """Lê o código de afiliado gravado no metadata do pagamento."""
+    metadata = payment.metadata or {}
+    return metadata.get('affiliate_code'), metadata.get('affiliate_id'), metadata.get('referral_source')
+
+
+def create_commission_if_applicable(payment):
+    """Cria a comissão para um pagamento concluído (idempotente).
+
+    Deve ser chamada após `mark_payment_completed(payment)`. Só gera comissão
+    na primeira venda do plano (excluindo planos como 'teste') e quando o
+    pagamento tem um código de afiliado válido.
+    """
+    if payment.status != 'completed':
+        return None
+
+    # Idempotência: OneToOne com o pagamento garante uma única comissão.
+    if hasattr(payment, 'affiliate_commission'):
+        return payment.affiliate_commission
+
+    affiliate_code, affiliate_id, source = get_payment_affiliate(payment)
+    code = code_to_string(affiliate_code)
+
+    affiliate = None
+    if affiliate_id:
+        affiliate = Affiliate.objects.filter(id=affiliate_id, status='active').first()
+    if affiliate is None and code:
+        affiliate = resolve_affiliate_by_code(code)
+    if affiliate is None:
+        return None
+
+    # Anti-fraude: auto-compra não gera comissão.
+    if affiliate.user_id == payment.user_id:
+        return None
+
+    # Planos excluídos (ex.: teste de 1 MZN) não geram comissão.
+    plan_slug = (payment.metadata or {}).get('plan') or ''
+    if plan_slug in excluded_plans():
+        return None
+
+    plan_price = Decimal(str(payment.amount or 0))
+    if plan_price <= 0:
+        return None
+
+    rate = Decimal(str(affiliate.commission_rate or 0))
+    amount = (plan_price * rate).quantize(Decimal('0.01'))
+
+    if amount <= 0:
+        return None
+
+    referral = None
+    if payment.user_id:
+        referral = AffiliateReferral.objects.filter(user_id=payment.user_id).first()
+        if referral:
+            if referral.converted_at is None:
+                referral.converted_at = timezone.now()
+                referral.save(update_fields=['converted_at'])
+
+    with transaction.atomic():
+        commission, created = AffiliateCommission.objects.get_or_create(
+            payment=payment,
+            defaults={
+                'affiliate': affiliate,
+                'referral': referral,
+                'amount': amount,
+                'rate': rate,
+                'status': 'pending',
+                'available_at': timezone.now() + timezone.timedelta(
+                    days=int(get_setting('AFFILIATE_PENDING_DAYS', 14))
+                ),
+            },
+        )
+
+    if created:
+        _update_affiliate_balances(affiliate)
+        logger.info(
+            'Comissão criada: %s MZN (%.2f%%) para %s via pagamento %s',
+            amount, rate, affiliate.code, payment.transaction_id,
+        )
+        # Notificar o afiliado por email (não bloqueia a criação da comissão).
+        try:
+            from .emails import send_commission_earned_email
+            send_commission_earned_email(commission)
+        except Exception as exc:
+            logger.exception('Erro ao enviar email de comissão ganha: %s', exc)
+
+    return commission
+
+
+def _update_affiliate_balances(affiliate):
+    """Recalcula os saldos (pending/available/total) do afiliado."""
+    from django.db.models import Sum
+    pending = affiliate.commissions.filter(status='pending').aggregate(s=Sum('amount'))['s'] or 0
+    available = affiliate.commissions.filter(status='available').aggregate(s=Sum('amount'))['s'] or 0
+    total = affiliate.commissions.exclude(status='reversed').aggregate(s=Sum('amount'))['s'] or 0
+    affiliate.pending_balance = pending
+    affiliate.available_balance = available
+    affiliate.total_earned = total
+    affiliate.save(update_fields=['pending_balance', 'available_balance', 'total_earned', 'updated_at'])
+
+
+def reverse_commission_for_payment(payment):
+    """Reverte a comissão associada quando o pagamento é reembolsado."""
+    commission = getattr(payment, 'affiliate_commission', None)
+    if not commission or commission.status == 'reversed':
+        return
+    commission.status = 'reversed'
+    commission.save(update_fields=['status', 'updated_at'])
+    _update_affiliate_balances(commission.affiliate)
+    logger.info(
+        'Comissão revertida: %s para %s (pagamento %s)',
+        commission.amount, commission.affiliate.code, payment.transaction_id,
+    )

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { UserPlus, Check } from 'lucide-react';
+import { UserPlus, Check, Gift } from 'lucide-react';
 import Logo from '../components/Logo';
 import PasswordStrengthInput from '../components/PasswordStrengthInput';
+import { getAffiliateRef } from '../utils/affiliate';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -12,6 +13,7 @@ export default function RegisterPage() {
     password: '',
     password2: '',
     phone: '',
+    ref: getAffiliateRef(),
     age_confirmation: false,
   });
   const [error, setError] = useState('');
@@ -143,6 +145,24 @@ export default function RegisterPage() {
                 onChange={handleChange}
                 className="input-field"
                 placeholder="+258 84 XXX XXXX"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <span className="inline-flex items-center gap-1">
+                  <Gift className="w-4 h-4 text-primary-600" />
+                  Código de indicação
+                </span>
+                <span className="text-xs font-normal text-gray-400"> (opcional)</span>
+              </label>
+              <input
+                type="text"
+                name="ref"
+                value={formData.ref}
+                onChange={handleChange}
+                className="input-field uppercase"
+                placeholder="Ex: JOAO123"
               />
             </div>
 

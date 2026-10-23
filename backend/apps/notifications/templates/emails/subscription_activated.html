@@ -1,0 +1,31 @@
+{% extends "emails/base.html" %}
+{% block content %}
+<h1 style="font-size:22px;color:#111827;margin:0 0 12px;">Bem-vindo ao Premium! 🎉</h1>
+<p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px;">
+  Olá, {{ user_name }}! A sua assinatura <strong>{{ plan_name }}</strong> foi
+  ativada com sucesso.
+</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;border:1px solid #e5e7eb;border-radius:8px;">
+  <tr>
+    <td style="padding:16px;">
+      <p style="font-size:14px;color:#374151;margin:0 0 8px;"><strong>Benefícios ativados:</strong></p>
+      <ul style="font-size:14px;color:#374151;margin:0;padding-left:20px;line-height:1.8;">
+        <li>{{ daily_limit }} análises por dia</li>
+        <li>Acesso completo a estatísticas</li>
+        <li>Análises detalhadas com IA</li>
+        <li>Suporte prioritário</li>
+      </ul>
+    </td>
+  </tr>
+</table>
+<p style="font-size:14px;color:#374151;line-height:1.6;margin:0 0 24px;">
+  📅 Válida até: <strong>{{ end_date }}</strong>
+</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0;">
+  <tr>
+    <td style="background-color:#16a34a;border-radius:8px;">
+      <a href="{{ site_url }}" style="display:inline-block;padding:12px 28px;color:#ffffff;font-size:15px;font-weight:bold;text-decoration:none;">Começar a analisar</a>
+    </td>
+  </tr>
+</table>
+{% endblock %}

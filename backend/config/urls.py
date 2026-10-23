@@ -39,6 +39,7 @@ urlpatterns = [
     path('admin/', admin_site.urls),
     path('api/users/', include('apps.users.urls')),
     path('api/subscriptions/', include('apps.subscriptions.urls')),
+    path('api/affiliates/', include('apps.affiliates.urls')),
     path('api/', include(router.urls)),
     
     # SEO URLs

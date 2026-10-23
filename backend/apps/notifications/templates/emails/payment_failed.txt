@@ -1,0 +1,11 @@
+Falha no pagamento
+
+Olá, {{ user_name }}, o seu pagamento não foi confirmado.
+
+Transação: {{ transaction_id }}
+
+Tente novamente ou contacte o suporte: {{ support_email }}
+
+Tentar novamente: {{ site_url }}/premium
+
+Análise estatística e educativa de futebol. Não promovemos apostas.

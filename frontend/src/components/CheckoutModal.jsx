@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import { X, CreditCard, Loader2, XCircle } from 'lucide-react';
+import { X, CreditCard, Loader2, XCircle, Gift } from 'lucide-react';
 import api from '../services/api';
+import { getAffiliateRef } from '../utils/affiliate';
 
 export default function CheckoutModal({ plan, onClose }) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showPromo, setShowPromo] = useState(false);
+  const [promoCode, setPromoCode] = useState(getAffiliateRef());
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -12,9 +15,11 @@ export default function CheckoutModal({ plan, onClose }) {
     setErrorMessage('');
 
     try {
-      const response = await api.post('/subscriptions/payments/vpay/create/', {
-        plan_slug: plan.slug,
-      });
+      const body = { plan_slug: plan.slug };
+      if (promoCode.trim()) {
+        body.ref = promoCode.trim().toUpperCase();
+      }
+      const response = await api.post('/subscriptions/payments/vpay/create/', body);
       const checkoutUrl =
         response.data?.checkout_url ||
         response.data?.payment?.checkout_url ||
@@ -108,6 +113,27 @@ export default function CheckoutModal({ plan, onClose }) {
                   Carteira móvel, cartão, PayPal ou QR Code
                 </span>
               </div>
+            </div>
+
+            {/* Código de indicação (opcional) */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowPromo(!showPromo)}
+                className="flex items-center gap-2 text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline"
+              >
+                <Gift className="w-4 h-4" />
+                Tem um código de indicação?
+              </button>
+              {showPromo && (
+                <input
+                  type="text"
+                  value={promoCode}
+                  onChange={(e) => setPromoCode(e.target.value)}
+                  className="input-field uppercase mt-2"
+                  placeholder="Ex: JOAO123"
+                />
+              )}
             </div>
 
             <button
