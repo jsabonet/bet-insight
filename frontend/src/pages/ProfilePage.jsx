@@ -6,7 +6,8 @@ import { User, Phone, Mail, Calendar, Star, TrendingUp, Award, Bell, Lock, Shiel
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
 import UserAvatar from '../components/UserAvatar';
-import { authAPI } from '../services/api';
+import { authAPI, pushAPI } from '../services/api';
+import { createPushSubscription } from '../utils/pushNotifications';
 
 export default function ProfilePage() {
   const { user, updateUser, logout, refreshProfile } = useAuth();
@@ -19,10 +20,12 @@ export default function ProfilePage() {
     phone: user?.phone || '',
   });
   const [notificationSettings, setNotificationSettings] = useState({
-    push_enabled: user?.push_enabled || false,
+    push_enabled: false,
+    analysis_ready_enabled: true,
     email_notifications: true,
-    match_reminders: true,
+    match_reminders_enabled: true,
   });
+  const [pushStatus, setPushStatus] = useState({ available: false, loading: true });
   const [passwordData, setPasswordData] = useState({
     current_password: '',
     new_password: '',
@@ -39,6 +42,17 @@ export default function ProfilePage() {
   useEffect(() => {
     window.scrollTo(0, 0);
     loadStats();
+    pushAPI.getStatus()
+      .then(({ data }) => {
+        setPushStatus({ ...data, loading: false });
+        setNotificationSettings((current) => ({
+          ...current,
+          push_enabled: data.push_enabled,
+          analysis_ready_enabled: data.analysis_ready_enabled,
+          match_reminders_enabled: data.match_reminders_enabled,
+        }));
+      })
+      .catch(() => setPushStatus({ available: false, loading: false }));
   }, []);
 
   useEffect(() => {
@@ -148,12 +162,25 @@ export default function ProfilePage() {
     setMessage({ type: '', text: '' });
 
     try {
-      await updateUser({ push_enabled: notificationSettings.push_enabled });
+      if (notificationSettings.push_enabled) {
+        if (!pushStatus.available || !pushStatus.public_key) {
+          throw new Error('Notificações push ainda não estão configuradas no servidor.');
+        }
+        await createPushSubscription(pushStatus.public_key);
+      }
+
+      await pushAPI.updatePreferences({
+        push_enabled: notificationSettings.push_enabled,
+        analysis_ready_enabled: notificationSettings.analysis_ready_enabled,
+        match_reminders_enabled: notificationSettings.match_reminders_enabled,
+      });
+      const { data } = await pushAPI.getStatus();
+      setPushStatus({ ...data, loading: false });
       setMessage({ type: 'success', text: 'Configurações de notificação atualizadas!' });
     } catch (error) {
       setMessage({
         type: 'error',
-        text: error.response?.data?.message || 'Erro ao atualizar configurações',
+        text: error.response?.data?.error || error.message || 'Erro ao atualizar configurações',
       });
     } finally {
       setLoading(false);
@@ -468,6 +495,11 @@ export default function ProfilePage() {
             </h3>
 
             <form onSubmit={handleNotificationSubmit} className="space-y-6">
+              {!pushStatus.loading && !pushStatus.available && (
+                <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                  Notificações push ainda não estão configuradas no servidor.
+                </div>
+              )}
               <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-700/50">
                 <div className="flex items-center gap-3">
                   <Bell className="w-5 h-5 text-primary-600 dark:text-primary-400" />
@@ -486,6 +518,28 @@ export default function ProfilePage() {
                     name="push_enabled"
                     checked={notificationSettings.push_enabled}
                     onChange={handleNotificationChange}
+                    disabled={pushStatus.loading || (!pushStatus.available && !notificationSettings.push_enabled)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-700/50">
+                <div className="flex items-center gap-3">
+                  <Bell className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">Análise pronta</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Avisar quando a sua análise terminar</p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="analysis_ready_enabled"
+                    checked={notificationSettings.analysis_ready_enabled}
+                    onChange={handleNotificationChange}
+                    disabled={!notificationSettings.push_enabled}
                     className="sr-only peer"
                   />
                   <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
@@ -531,9 +585,10 @@ export default function ProfilePage() {
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
-                    name="match_reminders"
-                    checked={notificationSettings.match_reminders}
+                    name="match_reminders_enabled"
+                    checked={notificationSettings.match_reminders_enabled}
                     onChange={handleNotificationChange}
+                    disabled={!notificationSettings.push_enabled}
                     className="sr-only peer"
                   />
                   <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>

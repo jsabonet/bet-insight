@@ -51,6 +51,9 @@ services:
       - DJANGO_SETTINGS_MODULE=config.settings
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
       - SECRET_KEY=${SECRET_KEY:-change-this-in-production}
+      - WEBPUSH_VAPID_PUBLIC_KEY=${WEBPUSH_VAPID_PUBLIC_KEY:-}
+      - WEBPUSH_VAPID_PRIVATE_KEY=${WEBPUSH_VAPID_PRIVATE_KEY:-}
+      - WEBPUSH_VAPID_SUBJECT=${WEBPUSH_VAPID_SUBJECT:-mailto:suporte@placarcerto.digital}
     depends_on:
       - db
       - redis
@@ -72,6 +75,9 @@ services:
       - DATABASE_URL=postgresql://betinsight:${DB_PASSWORD:-changeme123}@db:5432/betinsight
       - REDIS_URL=redis://redis:6379/0
       - DJANGO_SETTINGS_MODULE=config.settings
+      - WEBPUSH_VAPID_PUBLIC_KEY=${WEBPUSH_VAPID_PUBLIC_KEY:-}
+      - WEBPUSH_VAPID_PRIVATE_KEY=${WEBPUSH_VAPID_PRIVATE_KEY:-}
+      - WEBPUSH_VAPID_SUBJECT=${WEBPUSH_VAPID_SUBJECT:-mailto:suporte@placarcerto.digital}
     depends_on:
       - db
       - redis
@@ -85,7 +91,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: placercerto_celery_beat
-    command: celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    command: sh -c "python manage.py sync_match_preview_schedule && celery -A config beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
     volumes:
       - ./backend:/app
     environment:
@@ -93,6 +99,9 @@ services:
       - DATABASE_URL=postgresql://betinsight:${DB_PASSWORD:-changeme123}@db:5432/betinsight
       - REDIS_URL=redis://redis:6379/0
       - DJANGO_SETTINGS_MODULE=config.settings
+      - WEBPUSH_VAPID_PUBLIC_KEY=${WEBPUSH_VAPID_PUBLIC_KEY:-}
+      - WEBPUSH_VAPID_PRIVATE_KEY=${WEBPUSH_VAPID_PRIVATE_KEY:-}
+      - WEBPUSH_VAPID_SUBJECT=${WEBPUSH_VAPID_SUBJECT:-mailto:suporte@placarcerto.digital}
     depends_on:
       - db
       - redis

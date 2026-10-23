@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { authAPI } from '../services/api';
+import { authAPI, pushAPI } from '../services/api';
 import { computeFingerprint } from '../utils/fingerprint';
 
 const AuthContext = createContext(null);
@@ -52,7 +52,23 @@ export const AuthProvider = ({ children }) => {
     return newUser;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    let subscription;
+    try {
+      if ('serviceWorker' in navigator) {
+        const registration = await navigator.serviceWorker.getRegistration('/');
+        subscription = await registration?.pushManager?.getSubscription();
+        if (subscription) {
+          try {
+            await pushAPI.removeSubscription(subscription.endpoint);
+          } finally {
+            await subscription.unsubscribe();
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Não foi possível remover a assinatura push durante o logout:', error);
+    }
     authAPI.logout();
     setUser(null);
   };

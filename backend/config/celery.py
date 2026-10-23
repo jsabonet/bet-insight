@@ -39,6 +39,19 @@ app.conf.beat_schedule = {
             'expires': 3600,  # Expirar após 1h se não executar
         }
     },
+
+    # Aquecer uma amostra das próximas partidas antes do pico diário de acessos.
+    'precompute-match-previews': {
+        'task': 'analysis.precompute_match_previews',
+        'schedule': crontab(hour=5, minute=0),
+        'options': {'expires': 1800},
+    },
+
+    'send-analyzed-match-reminders': {
+        'task': 'notifications.send_analyzed_match_reminders',
+        'schedule': crontab(minute='*/5'),
+        'options': {'expires': 300},
+    },
     
     # Validar apostas pendentes - A cada 1 hora
     'validate-daily-bets': {

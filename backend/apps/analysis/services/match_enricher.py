@@ -131,6 +131,57 @@ class MatchDataEnricher:
         
         return enriched
     
+    def enrich_preview(self, match_data):
+        """
+        Enriquecimento LEVE para o preview estatístico.
+
+        Busca apenas o essencial para o preview (estatísticas dos times e odds),
+        pulando lesões, H2H, tendências, descanso, motivação, clima e tabela.
+        Reduz o tempo de ~10s (enrich completo) para ~1s.
+        """
+        api_id = match_data.get('api_id')
+
+        if not api_id:
+            logger.warning("⚠️ api_id não fornecido - preview limitado")
+            return match_data
+
+        fixture_details = self.api_service.fetch_fixture_details(api_id)
+        if not fixture_details:
+            logger.warning("⚠️ Detalhes da partida não encontrados no preview")
+            return match_data
+
+        home_team_id = fixture_details['home_team']['id']
+        away_team_id = fixture_details['away_team']['id']
+        league_id = fixture_details['league']['id']
+        season = fixture_details['league']['season']
+
+        # Estatísticas da liga principal para Copas
+        stats_league_id = self._get_main_league_id(league_id)
+
+        def fetch_team_stats(team_id):
+            return self.api_service.fetch_team_statistics(team_id, stats_league_id, season)
+
+        # Estatísticas dos dois times + odds em paralelo
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            home_future = executor.submit(fetch_team_stats, home_team_id)
+            away_future = executor.submit(fetch_team_stats, away_team_id)
+            odds_future = executor.submit(self.api_service.fetch_odds, api_id)
+
+            home_stats = home_future.result()
+            away_stats = away_future.result()
+            odds = odds_future.result() or {}
+
+        logger.info("✅ PREVIEW ENRIQUECIDO (estatísticas + odds)")
+
+        return {
+            **match_data,
+            'fixture_details': fixture_details,
+            'home_stats': home_stats,
+            'away_stats': away_stats,
+            'odds': odds,
+        }
+
     def _get_table_context(self, league_id, season, home_team_id, away_team_id):
         """Busca posição na tabela e pontos dos times"""
         logger.info("\n📊 Buscando contexto da tabela...")

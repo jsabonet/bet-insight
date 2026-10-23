@@ -319,3 +319,65 @@ def sync_match_results(self, target_date=None, triggered_by='celery'):
     except Exception as exc:
         execution.mark_finished(status='failed', error_message=str(exc))
         raise
+
+
+@shared_task(bind=True, name='analysis.precompute_match_previews')
+def precompute_match_previews(self, max_matches=20):
+    """Aquece o mesmo cache de preview consumido pela página de detalhes."""
+    from rest_framework.test import APIRequestFactory
+    from rest_framework.permissions import AllowAny
+    from apps.matches.models import Match
+    from apps.matches.views import MatchViewSet
+
+    now = timezone.now()
+    matches = list(
+        Match.objects.filter(
+            status='scheduled',
+            api_football_id__isnull=False,
+            match_date__gte=now,
+            match_date__lt=now + timedelta(hours=36),
+        )
+        .select_related('league', 'home_team', 'away_team')
+        .order_by('match_date')[:max_matches]
+    )
+    if not matches:
+        return {'warmed': 0, 'failed': 0}
+
+    factory = APIRequestFactory()
+    preview_view = MatchViewSet.as_view(
+        {'post': 'statistical_preview'}, permission_classes=[AllowAny],
+    )
+    warmed = 0
+    failed = 0
+    for match in matches:
+        request = factory.post(
+            '/api/matches/statistical_preview/',
+            {
+                'home_team': match.home_team.name,
+                'away_team': match.away_team.name,
+                'league': match.league.name,
+                'date': match.match_date.isoformat(),
+                'match_id': match.id,
+                'api_football_id': match.api_football_id,
+                'match_status': 'scheduled',
+            },
+            format='json',
+        )
+        try:
+            response = preview_view(request)
+            if response.status_code == 200:
+                warmed += 1
+            else:
+                failed += 1
+                logger.warning(
+                    'Preview não pré-calculado para fixture %s: HTTP %s',
+                    match.api_football_id,
+                    response.status_code,
+                )
+        except Exception:
+            failed += 1
+            logger.exception('Falha ao pré-calcular fixture %s', match.api_football_id)
+
+    result = {'warmed': warmed, 'failed': failed}
+    logger.info('Pré-cálculo de previews concluído: %s', result)
+    return result

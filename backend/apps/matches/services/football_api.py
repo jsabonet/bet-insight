@@ -291,17 +291,16 @@ class FootballAPIService:
             logger.error(f"Erro ao buscar H2H: {e}")
             return {'success': False, 'error': str(e), 'matches': []}
     
-    def get_team_last_matches(self, team_id: int, last: int = 5) -> Dict:
+    def get_team_last_matches(self, team_id: int, last: int = 5, season: int = None) -> Dict:
         """Buscar últimos jogos de um time"""
         try:
             logger.info(f"Buscando últimos {last} jogos do time {team_id}")
+            params = {'team': team_id, 'last': last}
+            if season:
+                params['season'] = season
             response = self.session.get(
                 f'{self.base_url}/fixtures',
-                params={
-                    'team': team_id,
-                    'last': last,
-                    'season': 2025
-                },
+                params=params,
                 timeout=15
             )
             response.raise_for_status()

@@ -14,8 +14,143 @@ from apps.analysis.services.ai_analyzer import AIAnalyzer
 from apps.analysis.services.analysis_orchestrator import HybridAnalysisOrchestrator
 from apps.analysis.models import Analysis
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logger = logging.getLogger(__name__)
+
+HOME_PRIMARY_LEAGUES = {
+    39, 140, 135, 78, 61, 2, 3, 848, 12, 20, 94, 88, 71, 128, 325, 13, 253, 262, 307,
+}
+HOME_SECONDARY_LEAGUES = {
+    40, 141, 136, 80, 62, 89, 144, 203, 235, 218, 179, 197, 283, 103, 113,
+    119, 244, 345, 169, 327, 45, 48, 137, 81, 82, 66, 556, 551, 73, 129,
+    239, 242, 281, 270, 250, 188, 189, 292, 293, 271, 667, 317, 233, 200,
+}
+HOME_MAX_ODDS_CHECKS = 120
+
+
+def _filter_home_matches(matches):
+    now = timezone.now()
+    candidates = []
+
+    for match in matches:
+        league = match.get('league') or {}
+        league_id = league.get('id') if isinstance(league, dict) else None
+        country = (league.get('country') or '').casefold() if isinstance(league, dict) else ''
+        if league_id in HOME_PRIMARY_LEAGUES:
+            priority = 1
+        elif league_id in HOME_SECONDARY_LEAGUES:
+            priority = 2
+        elif country in {'mozambique', 'moçambique'}:
+            priority = 3
+        else:
+            continue
+
+        if match.get('status') not in ('NS', 'TBD'):
+            continue
+        try:
+            kickoff = datetime.fromisoformat((match.get('match_date') or '').replace('Z', '+00:00'))
+            if timezone.is_naive(kickoff):
+                kickoff = timezone.make_aware(kickoff)
+        except (TypeError, ValueError):
+            continue
+        if kickoff <= now:
+            continue
+
+        candidates.append((priority, kickoff, match))
+
+    candidates.sort(key=lambda item: (item[0], item[1]))
+    league_groups = {}
+    for candidate in candidates:
+        league = candidate[2].get('league') or {}
+        league_id = league.get('id') if isinstance(league, dict) else None
+        league_groups.setdefault(league_id, []).append(candidate)
+
+    # Give each league a chance to pass the odds check before checking a second match
+    # from a competition that already has candidates.
+    ordered_groups = sorted(
+        league_groups.values(),
+        key=lambda group: (group[0][0], group[0][1], group[0][2].get('league', {}).get('id', 0)),
+    )
+    balanced_candidates = []
+    while ordered_groups and len(balanced_candidates) < HOME_MAX_ODDS_CHECKS:
+        next_round = []
+        for group in ordered_groups:
+            balanced_candidates.append(group.pop(0))
+            if group:
+                next_round.append(group)
+            if len(balanced_candidates) >= HOME_MAX_ODDS_CHECKS:
+                break
+        ordered_groups = next_round
+    candidates = balanced_candidates
+    if not candidates:
+        return []
+
+    from apps.analysis.services.api_football_service import APIFootballService
+
+    odds_service = APIFootballService()
+    odds_by_fixture = {}
+
+    def fetch_odds(match):
+        fixture_id = match.get('api_football_id') or match.get('id')
+        return fixture_id, odds_service.fetch_odds(fixture_id)
+
+    with ThreadPoolExecutor(max_workers=min(5, len(candidates))) as executor:
+        futures = [executor.submit(fetch_odds, match) for _, _, match in candidates]
+        for future in as_completed(futures):
+            try:
+                fixture_id, odds = future.result()
+                odds = odds or {}
+                if all(float(odds.get(key) or 0) > 1 for key in ('home_win', 'draw', 'away_win')):
+                    odds_by_fixture[fixture_id] = odds
+            except (TypeError, ValueError):
+                logger.warning('Odds 1X2 inválidas ao validar partidas da Home')
+            except Exception:
+                logger.exception('Falha ao verificar odds para partidas da Home')
+
+    eligible = []
+    for priority, _, match in candidates:
+        fixture_id = match.get('api_football_id') or match.get('id')
+        odds = odds_by_fixture.get(fixture_id)
+        if odds:
+            match['league_priority'] = priority
+            match['market_odds'] = odds
+            match['has_market_odds'] = True
+            eligible.append(match)
+    return eligible
+
+
+def _cached_home_response(data, stale=False):
+    now = timezone.now()
+    matches = []
+    for match in data.get('matches', []):
+        try:
+            kickoff = datetime.fromisoformat((match.get('match_date') or '').replace('Z', '+00:00'))
+            if timezone.is_naive(kickoff):
+                kickoff = timezone.make_aware(kickoff)
+        except (TypeError, ValueError):
+            continue
+        if match.get('status') in ('NS', 'TBD') and kickoff > now:
+            matches.append(match)
+
+    return {
+        **data,
+        'count': len(matches),
+        'matches': matches,
+        'stale': stale,
+        'source': 'api-football-stale-cache' if stale else data.get('source', 'api-football'),
+    }
+
+
+def _cached_api_result(key, timeout, fetch):
+    cached_result = cache.get(key)
+    if cached_result is not None:
+        return cached_result
+
+    result = fetch()
+    if result and result.get('success'):
+        cache.set(key, result, timeout)
+    return result
 
 
 class LeagueViewSet(viewsets.ReadOnlyModelViewSet):
@@ -235,117 +370,102 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def from_api(self, request):
-        """Buscar partidas diretamente da API-Football com cache"""
+        """Retorna partidas futuras de ligas prioritárias com odds 1X2 disponíveis."""
         date = request.query_params.get('date', datetime.now().strftime('%Y-%m-%d'))
         force_real = request.query_params.get('force_real', 'false').lower() == 'true'
+
+        try:
+            start_date = datetime.strptime(date, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({'error': 'Data inválida. Use o formato YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Cache key baseado na hora atual (atualiza a cada 6 horas)
-        cache_key = f'matches_api_{datetime.now().strftime("%Y%m%d_%H")}'
+        cache_key = f'matches_api:home:v2:{start_date.isoformat()}'
+        last_good_cache_key = f'{cache_key}:last-good'
+        failure_cache_key = f'{cache_key}:failure'
         
-        # Tentar buscar do cache (6 horas para economizar MUITO mais requisições)
         if not force_real:
             cached_data = cache.get(cache_key)
             if cached_data:
-                logger.info(f"✅ CACHE HIT: Retornando {len(cached_data['matches'])} partidas do cache")
-                return Response(cached_data)
+                response_data = _cached_home_response(cached_data)
+                logger.info('✅ CACHE HIT: Retornando %s partidas futuras com odds', response_data['count'])
+                return Response(response_data)
+
+            if cache.get(failure_cache_key):
+                stale_data = cache.get(last_good_cache_key)
+                if stale_data:
+                    logger.warning('API indisponível em cache; usando a última lista válida da Home')
+                    return Response(_cached_home_response(stale_data, stale=True))
+                return Response({
+                    'date': date,
+                    'count': 0,
+                    'matches': [],
+                    'error': 'Dados de partidas temporariamente indisponíveis',
+                    'source': 'api-football-unavailable',
+                }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         
         logger.info(f"❌ CACHE MISS: Buscando partidas da API...")
         football_api = FootballAPIService()
         all_matches = []
+        fetch_error = None
         
-        # Buscar TODAS as partidas dos próximos dias (não filtrar por liga)
-        logger.info("⚽ Buscando TODAS as partidas disponíveis...")
-        
-        # Buscar partidas dos próximos 3 dias para ter variedade
-        today = datetime.now()
-        for i in range(3):  # Hoje, amanhã e depois
-            target_date = (today + timedelta(days=i)).strftime('%Y-%m-%d')
+        # Buscar hoje e os próximos dois dias a partir da data solicitada.
+        for i in range(3):
+            target_date = (start_date + timedelta(days=i)).strftime('%Y-%m-%d')
             result = football_api.get_fixtures_by_date(target_date)
             
             if result['success'] and result['fixtures']:
                 all_matches.extend(result['fixtures'])
-                logger.info(f"   {target_date}: {len(result['fixtures'])} partidas")
-        
-        # Definir ligas principais para priorização (serão exibidas primeiro)
-        PRIORITY_LEAGUES = {
-            'Premier League': 1,
-            'La Liga': 1,
-            'Serie A': 1,
-            'Bundesliga': 1,
-            'Ligue 1': 1,
-            'Eredivisie': 2,
-            'Liga Portugal': 2,
-            'Championship': 2,
-            'Brasileirão Série A': 1,
-            'Serie B': 2,
-            'Brasileirão Série B': 2,
-            'Copa Libertadores': 1,
-            'UEFA Champions League': 1,
-            'UEFA Europa League': 2,
-            'UEFA Conference League': 2,
-            'Scottish Premiership': 2,
-            'Belgian Pro League': 2,
-            'Süper Lig': 2,
-            'La Liga 2': 3,
-            'Bundesliga 2': 3,
-            'Ligue 2': 3,
-        }
-        
-        logger.info(f"   Total de partidas brutas: {len(all_matches)}")
-        
-        # Se encontrou partidas reais, retorná-las
+            elif not result.get('success'):
+                fetch_error = result
+                logger.warning('Interrompendo busca da Home após falha da API: %s', result.get('error_code'))
+                break
+
+        if fetch_error and not all_matches:
+            if not force_real:
+                cache.set(failure_cache_key, True, 60)
+                stale_data = cache.get(last_good_cache_key)
+                if stale_data:
+                    logger.warning('Falha ao atualizar a Home; servindo partidas futuras do último cache válido')
+                    return Response(_cached_home_response(stale_data, stale=True))
+            return Response({
+                'date': date,
+                'count': 0,
+                'matches': [],
+                'error': fetch_error.get('error', 'API de partidas indisponível'),
+                'code': fetch_error.get('error_code'),
+                'source': 'api-football-unavailable',
+            }, status=fetch_error.get('http_status', status.HTTP_503_SERVICE_UNAVAILABLE))
+
         if all_matches:
-            # Remover duplicatas por ID
-            unique_matches = {m['fixture']['id']: m for m in all_matches}.values()
-            matches_list = list(unique_matches)
-            
-            # Ordenar por data
-            matches_list.sort(key=lambda x: x['fixture']['date'])
-            
-            logger.info(f"Total de {len(matches_list)} partidas únicas encontradas")
-            
-            # Formatar partidas e adicionar prioridade da liga
-            matches = self._format_api_matches(matches_list)
-            
-            # Adicionar prioridade às partidas baseado na liga
-            for match in matches:
-                league_name = match.get('league', {}).get('name', '') if isinstance(match.get('league'), dict) else match.get('league', '')
-                match['league_priority'] = PRIORITY_LEAGUES.get(league_name, 3)  # 3 = outras ligas
-            
-            # Ordenar por prioridade da liga (menor = mais importante) e depois por data
-            matches.sort(key=lambda x: (x.get('league_priority', 3), x.get('match_date', '')))
-            
+            unique_fixtures = {fixture['fixture']['id']: fixture for fixture in all_matches}.values()
+            matches = _filter_home_matches(self._format_api_matches(unique_fixtures))
+
             response_data = {
                 'date': date,
                 'count': len(matches),
                 'matches': matches,
                 'is_mock': False,
-                'source': 'api-football'
+                'source': 'api-football',
             }
-            
-            # Cachear resultado por 6 horas (economizar MUITO mais requisições)
-            cache.set(cache_key, response_data, 60 * 360)
-            logger.info(f"✅ Cache atualizado com {len(matches)} partidas (válido por 6h)")
-            
+            cache.set(cache_key, response_data, 60 * 60 * 6)
+            cache.set(last_good_cache_key, response_data, 60 * 60 * 24)
+            cache.delete(failure_cache_key)
+            logger.info('✅ Home: %s partidas futuras de qualidade (odds 1X2 confirmadas)', len(matches))
             return Response(response_data)
-        
-        # Se force_real está ativo, retornar erro em vez de mock
+
         if force_real:
             return Response(
                 {'error': 'Nenhuma partida real disponível no momento'},
                 status=status.HTTP_404_NOT_FOUND
             )
-        
-        # Se não houver partidas da API, retornar dados de exemplo
-        logger.warning(f"⚠️  Limite de requisições da API-Football atingido ou sem partidas disponíveis.")
-        logger.info("ℹ️  Exibindo partidas de exemplo. Partidas reais voltarão quando limite resetar (meia-noite UTC).")
-        mock_matches = self._generate_mock_matches(date)
+
+        logger.info('Nenhuma partida futura com liga e odds 1X2 elegíveis para a Home')
         return Response({
             'date': date,
-            'count': len(mock_matches),
-            'matches': mock_matches,
-            'is_mock': True,
-            'source': 'mock'
+            'count': 0,
+            'matches': [],
+            'is_mock': False,
+            'source': 'not-found',
         })
 
     @action(detail=False, methods=['get'])
@@ -458,7 +578,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         if all_matches:
             # Filtrar por query
             query_lower = query.lower()
-            matches = self._format_api_matches(all_matches)
+            matches = _filter_home_matches(self._format_api_matches(all_matches))
             
             filtered = [
                 m for m in matches
@@ -484,7 +604,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def api_detail(self, request):
-        """Detalhes de partida por ID diretamente da API-Football (sem DB)."""
+        """Retorna o resumo da partida sem esperar os dados complementares."""
         fixture_id = request.query_params.get('id')
         if not fixture_id:
             return Response({'error': 'Parâmetro id é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
@@ -503,8 +623,11 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 'is_mock': True
             }, status=status.HTTP_404_NOT_FOUND)
 
-        football_api = FootballAPIService()
-        result = football_api.get_fixture_by_id(fixture_id)
+        result = _cached_api_result(
+            f'match_detail:core:v1:{fixture_id}',
+            60,
+            lambda: FootballAPIService().get_fixture_by_id(fixture_id),
+        )
 
         if not result['success']:
             return Response(
@@ -512,65 +635,109 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 status=result.get('http_status', status.HTTP_502_BAD_GATEWAY)
             )
 
-        # Buscar eventos (gols, cartões, etc.) da partida
-        events_result = football_api.get_fixture_events(fixture_id)
-        if events_result['success']:
-            result['fixture']['events'] = events_result.get('events', [])
-        else:
-            result['fixture']['events'] = []
-
-        # Buscar estatísticas detalhadas (chutes, escanteios, etc.)
-        stats_result = football_api.get_fixture_statistics(fixture_id)
-        if stats_result['success']:
-            result['fixture']['statistics'] = stats_result.get('statistics', [])
-        else:
-            result['fixture']['statistics'] = []
-        
-        # Buscar escalações (lineups)
-        lineups_result = football_api.get_fixture_lineups(fixture_id)
-        if lineups_result['success']:
-            result['fixture']['lineups'] = lineups_result.get('lineups', [])
-        else:
-            result['fixture']['lineups'] = []
-        
-        # Buscar confronto direto (H2H)
         fixture_data = result['fixture']
-        home_team_id = fixture_data['teams']['home']['id']
-        away_team_id = fixture_data['teams']['away']['id']
-        league_id = fixture_data['league']['id']
-        
-        h2h_result = football_api.get_head_to_head(home_team_id, away_team_id, last=10)
-        if h2h_result['success']:
-            result['fixture']['h2h'] = h2h_result.get('matches', [])
-        else:
-            result['fixture']['h2h'] = []
-        
-        # Buscar últimos 5 jogos de cada time
-        home_last_result = football_api.get_team_last_matches(home_team_id, last=5)
-        if home_last_result['success']:
-            result['fixture']['home_last_matches'] = home_last_result.get('matches', [])
-        else:
-            result['fixture']['home_last_matches'] = []
-        
-        away_last_result = football_api.get_team_last_matches(away_team_id, last=5)
-        if away_last_result['success']:
-            result['fixture']['away_last_matches'] = away_last_result.get('matches', [])
-        else:
-            result['fixture']['away_last_matches'] = []
-        
-        # Buscar classificação da liga
-        standings_result = football_api.get_standings(league_id, season=2025)
-        if standings_result['success']:
-            result['fixture']['standings'] = standings_result.get('standings', [])
-        else:
-            result['fixture']['standings'] = []
-
-        # Formatar resposta para o frontend reutilizando o formato das listas
         formatted = self._format_api_matches([result['fixture']])
         if not formatted:
             return Response({'error': 'Partida não encontrada'}, status=status.HTTP_404_NOT_FOUND)
 
-        return Response({'match': formatted[0], 'source': 'api-football'})
+        return Response({
+            'match': formatted[0],
+            'source': 'api-football',
+            'enrichment_pending': True,
+        })
+
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
+    def api_detail_enrichment(self, request):
+        """Carrega um grupo de dados complementares sem bloquear o resumo.
+
+        Grupos suportados: live, history, standings. Sem grupo, carrega todos.
+        """
+        fixture_id = request.query_params.get('id')
+        if not fixture_id:
+            return Response({'error': 'Parâmetro id é obrigatório'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            fixture_id = int(fixture_id)
+        except ValueError:
+            return Response({'error': 'Parâmetro id deve ser numérico'}, status=status.HTTP_400_BAD_REQUEST)
+
+        core = _cached_api_result(
+            f'match_detail:core:v1:{fixture_id}',
+            60,
+            lambda: FootballAPIService().get_fixture_by_id(fixture_id),
+        )
+        if not core or not core.get('success'):
+            return Response({'error': 'Não foi possível carregar os dados da partida'}, status=status.HTTP_502_BAD_GATEWAY)
+
+        fixture = core['fixture']
+        home_team_id = fixture['teams']['home']['id']
+        away_team_id = fixture['teams']['away']['id']
+        league_id = fixture['league']['id']
+        season = fixture['league'].get('season')
+        group = request.query_params.get('group', 'all')
+
+        jobs = {}
+        if group in ('all', 'live'):
+            jobs.update({
+                'events': (
+                    f'match_detail:events:v1:{fixture_id}', 15,
+                    'get_fixture_events', (fixture_id,), 'events', 'events',
+                ),
+                'statistics': (
+                    f'match_detail:statistics:v1:{fixture_id}', 30,
+                    'get_fixture_statistics', (fixture_id,), 'statistics', 'statistics',
+                ),
+                'lineups': (
+                    f'match_detail:lineups:v1:{fixture_id}', 900,
+                    'get_fixture_lineups', (fixture_id,), 'lineups', 'lineups',
+                ),
+            })
+        if group in ('all', 'history'):
+            jobs.update({
+                'h2h': (
+                    f'match_detail:h2h:v1:{home_team_id}:{away_team_id}', 21600,
+                    'get_head_to_head', (home_team_id, away_team_id), 'matches', 'h2h',
+                ),
+                'home_last_matches': (
+                    f'match_detail:team_form:v1:{home_team_id}:{season}', 21600,
+                    'get_team_last_matches', (home_team_id,), 'matches', 'home_last_matches',
+                ),
+                'away_last_matches': (
+                    f'match_detail:team_form:v1:{away_team_id}:{season}', 21600,
+                    'get_team_last_matches', (away_team_id,), 'matches', 'away_last_matches',
+                ),
+            })
+        if group in ('all', 'standings'):
+            jobs['standings'] = (
+                f'match_detail:standings:v1:{league_id}:{season}', 3600,
+                'get_standings', (league_id,), 'standings', 'standings',
+            )
+        if not jobs:
+            return Response({'error': 'Grupo de dados inválido'}, status=status.HTTP_400_BAD_REQUEST)
+
+        def fetch_job(job):
+            key, ttl, method_name, args, result_key, output_field = job
+            if method_name == 'get_team_last_matches':
+                fetch = lambda: getattr(FootballAPIService(), method_name)(*args, season=season)
+            elif method_name == 'get_standings':
+                fetch = lambda: getattr(FootballAPIService(), method_name)(*args, season=season)
+            else:
+                fetch = lambda: getattr(FootballAPIService(), method_name)(*args)
+            return output_field, result_key, _cached_api_result(key, ttl, fetch)
+
+        enrichment = {}
+        with ThreadPoolExecutor(max_workers=len(jobs)) as executor:
+            futures = [executor.submit(fetch_job, job) for job in jobs.values()]
+            for future in as_completed(futures):
+                try:
+                    output_field, result_key, result = future.result()
+                    if result and result.get('success'):
+                        enrichment[output_field] = result.get(result_key, [])
+                    else:
+                        enrichment[output_field] = []
+                except Exception:
+                    logger.exception('Falha ao carregar dados complementares do jogo %s', fixture_id)
+
+        return Response({'enrichment': enrichment, 'group': group})
     
     def _format_api_matches(self, fixtures):
         """Formatar partidas da API para o formato do frontend"""
@@ -1480,6 +1647,43 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         league = request.data.get('league')
         match_date = request.data.get('date')
         match_id = request.data.get('match_id')
+        api_id = request.data.get('api_football_id')
+        if api_id:
+            try:
+                api_id = int(api_id)
+            except (TypeError, ValueError):
+                api_id = None
+
+        if not api_id and match_id:
+            try:
+                local_match = Match.objects.filter(id=match_id).only('api_football_id').first()
+                if local_match:
+                    api_id = local_match.api_football_id
+                else:
+                    api_match = Match.objects.filter(api_football_id=match_id).only('api_football_id').first()
+                    api_id = api_match.api_football_id if api_match else int(match_id)
+            except (TypeError, ValueError):
+                api_id = None
+
+        match_status = str(request.data.get('match_status') or '').upper()
+        live_statuses = {'LIVE', '1H', '2H', 'HT', 'ET', 'P'}
+        finished_statuses = {'FT', 'AET', 'PEN', 'FINISHED'}
+        if match_status in live_statuses:
+            preview_status = 'live'
+            preview_ttl = 20
+        elif match_status in finished_statuses:
+            preview_status = 'finished'
+            preview_ttl = 86400
+        else:
+            preview_status = 'pregame'
+            preview_ttl = 43200
+        preview_cache_key = (
+            f'statistical_preview:v2:{api_id}:{preview_status}' if api_id else None
+        )
+        if preview_cache_key:
+            cached_preview = cache.get(preview_cache_key)
+            if cached_preview is not None:
+                return Response(cached_preview)
         
         logger.info(f"\n{'='*80}")
         logger.info(f"📊 STATISTICAL PREVIEW - {home_team} vs {away_team}")
@@ -1495,10 +1699,9 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             # SEMPRE tentar buscar dados reais - prioridade 1: Enriquecimento completo
             enriched_data = None
             features = None
-            api_id = None
             
             # 1. Tentar obter API ID da partida
-            if match_id:
+            if match_id and not api_id:
                 try:
                     match = Match.objects.get(id=match_id)
                     api_id = match.api_football_id
@@ -1540,9 +1743,9 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             # 3. Se tem API ID, tentar enriquecimento completo
             if api_id:
                 try:
-                    logger.info(f"🔄 Enriquecendo dados com API ID {api_id}...")
+                    logger.info(f"🔄 Enriquecendo dados (preview leve) com API ID {api_id}...")
                     enricher = MatchDataEnricher()
-                    enriched_data = enricher.enrich({
+                    enriched_data = enricher.enrich_preview({
                         'home_team': home_team,
                         'away_team': away_team,
                         'league': league,
@@ -1841,7 +2044,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             logger.info(f"✅ STATISTICAL PREVIEW CONCLUÍDO")
             logger.info(f"{'='*80}\n")
             
-            return Response({
+            payload = {
                 'success': True,
                 'analysis_data': {
                     'consensus': consensus,
@@ -1865,7 +2068,10 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                     'has_real_data': bool(features or enriched_data)
                 },
                 'enriched_data': enriched_data or {}
-            })
+            }
+            if preview_cache_key:
+                cache.set(preview_cache_key, payload, preview_ttl)
+            return Response(payload)
             
         except Exception as e:
             logger.error(f"Erro no statistical_preview: {str(e)}", exc_info=True)

@@ -266,8 +266,22 @@ export default function MatchDetailPage() {
           });
           setMatch(apiResponse.data.match);
           setIsExternalMatch(true);
+
+          ['live', 'history', 'standings'].forEach((group) => {
+            matchesAPI.getApiDetailEnrichment(id, group)
+              .then(({ data }) => {
+                setMatch((current) => (
+                  current?.id === apiResponse.data.match.id
+                    ? { ...current, ...data.enrichment }
+                    : current
+                ));
+              })
+              .catch((enrichmentError) => {
+                console.warn(`Falha ao carregar grupo ${group}:`, enrichmentError.message);
+              });
+          });
           
-          // ✅ Carregar preview em paralelo
+          // O preview estatístico não bloqueia o resumo nem os dados do jogo.
           console.log('🚀 Iniciando loadStatisticalData em paralelo...');
           loadStatisticalData(apiResponse.data.match, true); // Sem await - paralelo!
         } catch (apiError) {
@@ -306,7 +320,9 @@ export default function MatchDetailPage() {
         away_team: matchData.away_team?.name || matchData.away_team,
         league: matchData.league?.name || matchData.league,
         date: matchData.date || matchData.match_date,
-        match_id: matchData.id || matchData.api_football_id,
+        match_id: isExternal ? null : matchData.id,
+        api_football_id: matchData.api_football_id || (isExternal ? matchData.id : null),
+        match_status: matchData.status,
       };
 
       console.log('\n📤 PAYLOAD ENVIADO:');

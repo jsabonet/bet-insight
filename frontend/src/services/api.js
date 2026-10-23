@@ -85,6 +85,13 @@ export const authAPI = {
   deleteAccount: (password) => api.delete('/users/delete-account/', { data: { password } }),
 };
 
+export const pushAPI = {
+  getStatus: () => api.get('/users/push/status/'),
+  registerSubscription: (subscription) => api.post('/users/push/subscriptions/', { subscription }),
+  removeSubscription: (endpoint) => api.delete('/users/push/subscriptions/', { data: { endpoint } }),
+  updatePreferences: (data) => api.patch('/users/push/preferences/', data),
+};
+
 // Admin endpoints
 export const adminAPI = {
   getStats: () => api.get('/users/admin/stats/'),
@@ -126,6 +133,7 @@ export const matchesAPI = {
   getFromAPI: (date) => api.get('/matches/from_api/', { params: { date } }),
   getPastMatches: (date) => api.get('/matches/past_matches/', { params: { date } }),
   getApiDetail: (id) => api.get('/matches/api_detail/', { params: { id } }),
+  getApiDetailEnrichment: (id, group) => api.get('/matches/api_detail_enrichment/', { params: { id, group } }),
   searchMatches: (query) => api.get('/matches/search/', { params: { q: query } }),
   analyzeMatch: (matchId) => api.post(`/matches/${matchId}/analyze/`),
   quickAnalyze: (data) => api.post('/matches/quick_analyze/', data),

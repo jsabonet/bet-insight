@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 import os
 from datetime import timedelta
+from urllib.parse import urlsplit, urlunsplit
 from dotenv import load_dotenv
 
 # Carregar variáveis de ambiente do .env
@@ -138,17 +139,30 @@ DATABASES = {
 }
 
 
-# Cache Configuration
-# https://docs.djangoproject.com/en/5.0/topics/cache/
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'bet-insight-cache',
-        'OPTIONS': {
-            'MAX_ENTRIES': 5000  # Aumentado para 5000 entradas (Fase 4)
+# Cache compartilhado em produção; cache local como fallback de desenvolvimento.
+redis_cache_url = os.getenv('REDIS_CACHE_URL')
+redis_url = os.getenv('REDIS_URL')
+if not redis_cache_url and redis_url:
+    redis_parts = urlsplit(redis_url)
+    redis_cache_url = urlunsplit(
+        (redis_parts.scheme, redis_parts.netloc, '/1', redis_parts.query, redis_parts.fragment)
+    )
+
+if redis_cache_url:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': redis_cache_url,
         }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'bet-insight-cache',
+            'OPTIONS': {'MAX_ENTRIES': 5000},
+        }
+    }
 
 # Cache timeout (em segundos) - OTIMIZADO FASE 4
 CACHE_TTL = {
@@ -346,6 +360,14 @@ VPAY_AUTH_TOKEN_PATH = os.getenv('VPAY_AUTH_TOKEN_PATH', '/v1/auth/token')
 
 # Firebase Configuration
 FCM_SERVER_KEY = os.getenv('FCM_SERVER_KEY', '')
+
+# Web Push (VAPID). Push stays disabled until both keys are configured.
+WEBPUSH_VAPID_PUBLIC_KEY = os.getenv('WEBPUSH_VAPID_PUBLIC_KEY', '').strip()
+WEBPUSH_VAPID_PRIVATE_KEY = os.getenv('WEBPUSH_VAPID_PRIVATE_KEY', '').strip()
+WEBPUSH_VAPID_SUBJECT = os.getenv(
+    'WEBPUSH_VAPID_SUBJECT',
+    f"mailto:{os.getenv('SUPPORT_EMAIL', 'suporte@placarcerto.digital')}",
+).strip()
 
 # ---------------------------------------------------------------------------
 # Email transacional (Resend).

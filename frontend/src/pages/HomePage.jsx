@@ -23,6 +23,8 @@ export default function HomePage() {
   const [displayedMatches, setDisplayedMatches] = useState([]); // Partidas exibidas (paginação)
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [isStaleData, setIsStaleData] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [filter, setFilter] = useState('upcoming');
   const [selectedLeague, setSelectedLeague] = useState('all');
@@ -82,6 +84,8 @@ export default function HomePage() {
 
   const loadMatches = async () => {
     setLoading(true);
+    setLoadError('');
+    setIsStaleData(false);
     try {
       let fetchedMatches = [];
       
@@ -108,6 +112,7 @@ export default function HomePage() {
         const today = new Date().toISOString().split('T')[0];
         const response = await matchesAPI.getFromAPI(today);
         fetchedMatches = response.data.matches || [];
+        setIsStaleData(!!response.data.stale);
       }
       
       // Verificar se são dados mock ou reais
@@ -119,41 +124,25 @@ export default function HomePage() {
       // Prevenir flash de estado vazio antes de aplicar filtros
       setMatches(fetchedMatches);
       
-      // Extrair ligas únicas
-      const uniqueLeagues = [...new Set(fetchedMatches.map(m => m.league?.name || m.league))];
-      
-      // Ordenar ligas: principais sem sufixo primeiro, depois com país
-      const sortedLeagues = uniqueLeagues.sort((a, b) => {
-        // Ligas principais (sem país no nome) - prioridade MÁXIMA
-        const mainLeagues = [
-          'Premier League',
-          'La Liga',
-          'Serie A',
-          'Bundesliga',
-          'Ligue 1',
-          'Ligue 2',
-          'Championship',
-          'Liga Portugal',
-          'Eredivisie',
-          'Brasileirão Série A',
-          'UEFA Champions League',
-          'UEFA Europa League',
-          'Copa Libertadores'
-        ];
-        
-        const aIsMain = mainLeagues.includes(a);
-        const bIsMain = mainLeagues.includes(b);
-        
-        if (aIsMain && !bIsMain) return -1;
-        if (!aIsMain && bIsMain) return 1;
-        
-        // Se ambas são principais ou ambas não são, ordenar alfabeticamente
-        return a.localeCompare(b);
+      // Os filtros refletem apenas competições com partidas já validadas no backend.
+      const leagueStats = new Map();
+      fetchedMatches.forEach((match) => {
+        const name = match.league?.name || match.league;
+        const current = leagueStats.get(name) || { priority: Infinity, count: 0 };
+        current.priority = Math.min(current.priority, match.league_priority ?? 3);
+        current.count += 1;
+        leagueStats.set(name, current);
       });
+      const sortedLeagues = [...leagueStats.entries()]
+        .sort(([nameA, statsA], [nameB, statsB]) =>
+          statsA.priority - statsB.priority || statsB.count - statsA.count || nameA.localeCompare(nameB)
+        )
+        .map(([name]) => name);
       
       setLeagues(sortedLeagues);
     } catch (error) {
       console.error('Erro ao carregar partidas:', error);
+      setLoadError(error.response?.data?.error || 'Não foi possível atualizar as partidas. Tente novamente em instantes.');
     } finally {
       setLoading(false);
     }
@@ -184,8 +173,7 @@ export default function HomePage() {
           // Partidas ao vivo (em andamento)
           return ['1H', '2H', 'HT', 'ET', 'BT', 'P', 'LIVE', 'IN_PLAY'].includes(status);
         } else if (filter === 'today') {
-          // Partidas de hoje
-          return matchDay === today;
+          return matchDay === today && matchDate >= now;
         } else if (filter === 'tomorrow') {
           // Partidas de amanhã
           return matchDay === tomorrowStr;
@@ -199,6 +187,8 @@ export default function HomePage() {
           // Partidas futuras: hoje e amanhã apenas
           // Priorizar jogos de hoje que ainda não começaram
           return (matchDay === today || matchDay === tomorrowStr) && matchDate >= now;
+        } else if (filter === 'all') {
+          return matchDate >= now;
         }
         return true;
       });
@@ -412,6 +402,9 @@ export default function HomePage() {
                   }`}
                 >
                   {league}
+                  <span className="ml-1 rounded-full bg-black/10 dark:bg-white/10 px-1.5 py-0.5 text-xs">
+                    {allMatches.filter((match) => (match.league?.name || match.league) === league).length}
+                  </span>
                 </button>
               ))}
             </div>
@@ -471,16 +464,22 @@ export default function HomePage() {
           </div>
         )}
 
+        {isStaleData && (
+          <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200" role="status">
+            A API de partidas está temporariamente indisponível. Exibindo jogos futuros da última atualização.
+          </div>
+        )}
+
         {/* Matches List */}
         {loading ? (
           <MatchListSkeleton count={8} />
         ) : displayedMatches.length === 0 ? (
           <EmptyState
             variant="no-matches"
-            title={searchQuery ? 'Nenhuma partida encontrada' : `Nenhuma partida ${filter === 'live' ? 'ao vivo' : 'encontrada'}`}
-            description={searchQuery ? `Nenhuma partida encontrada para "${searchQuery}". Tente buscar outro time ou liga.` : "Não há jogos disponíveis no momento. Tente outro filtro ou volte mais tarde."}
+            title={loadError ? 'Partidas temporariamente indisponíveis' : searchQuery ? 'Nenhuma partida encontrada' : `Nenhuma partida ${filter === 'live' ? 'ao vivo' : 'encontrada'}`}
+            description={loadError || (searchQuery ? `Nenhuma partida encontrada para "${searchQuery}". Tente buscar outro time ou liga.` : "Não há jogos disponíveis no momento. Tente outro filtro ou volte mais tarde.")}
             action={
-              filter !== 'all' && !searchQuery && (
+              !loadError && filter !== 'all' && !searchQuery && (
                 <button
                   onClick={() => setFilter('all')}
                   className="btn-primary"
