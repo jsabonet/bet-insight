@@ -44,6 +44,24 @@ class AffiliateApplySerializer(serializers.ModelSerializer):
         }
 
 
+class AffiliateReferralSerializer(serializers.ModelSerializer):
+    """Indicação (conta criada via link/código) para o painel do afiliado."""
+    user_name = serializers.CharField(source='user.username', read_only=True)
+    user_email = serializers.CharField(source='user.email', read_only=True)
+    source_display = serializers.CharField(source='get_source_display', read_only=True)
+    converted = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AffiliateReferral
+        fields = [
+            'id', 'user_name', 'user_email', 'code', 'source', 'source_display',
+            'first_touch_at', 'last_touch_at', 'converted_at', 'converted',
+        ]
+
+    def get_converted(self, obj):
+        return obj.converted_at is not None
+
+
 class AffiliateCommissionSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     plan = serializers.SerializerMethodField()

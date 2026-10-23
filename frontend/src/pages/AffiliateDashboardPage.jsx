@@ -8,6 +8,7 @@ import AffiliateLinkCard from '../components/affiliate/AffiliateLinkCard';
 import BalanceCard from '../components/affiliate/BalanceCard';
 import AffiliateStatsCard from '../components/affiliate/AffiliateStatsCard';
 import CommissionsList from '../components/affiliate/CommissionsList';
+import ReferralsList from '../components/affiliate/ReferralsList';
 import WithdrawModal from '../components/affiliate/WithdrawModal';
 import { affiliateAPI } from '../services/api';
 
@@ -17,19 +18,22 @@ export default function AffiliateDashboardPage() {
   const [affiliate, setAffiliate] = useState(null);
   const [stats, setStats] = useState(null);
   const [commissions, setCommissions] = useState([]);
+  const [referrals, setReferrals] = useState([]);
   const [showWithdraw, setShowWithdraw] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [meRes, statsRes, commissionsRes] = await Promise.all([
+      const [meRes, statsRes, commissionsRes, referralsRes] = await Promise.all([
         affiliateAPI.getMe(),
         affiliateAPI.getStats(),
         affiliateAPI.getCommissions(),
+        affiliateAPI.getReferrals(),
       ]);
       setAffiliate(meRes.data);
       setStats(statsRes.data);
       setCommissions(commissionsRes.data);
+      setReferrals(referralsRes.data);
       setNotAffiliate(false);
     } catch (err) {
       if (err.response?.status === 404) {
@@ -91,6 +95,7 @@ export default function AffiliateDashboardPage() {
           />
           <AffiliateLinkCard referralLink={affiliate?.referral_link} code={affiliate?.code} />
           <AffiliateStatsCard stats={stats} />
+          <ReferralsList referrals={referrals} />
           <CommissionsList commissions={commissions} />
         </div>
       </div>

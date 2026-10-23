@@ -1,9 +1,12 @@
 // Helpers do Programa de Afiliados — leitura/persistência do código de indicação.
 
+import { affiliateAPI } from '../services/api';
+
 const STORAGE_KEY = 'affiliate_ref';
 
 /**
  * Lê o código de afiliado da URL (`?ref=CODE`) e persiste em localStorage.
+ * Regista também o clique no backend (analítica + cookie de atribuição).
  * Devolve o código atual (da URL ou do localStorage) ou '' se não existir.
  */
 export function captureAffiliateRef() {
@@ -12,6 +15,9 @@ export function captureAffiliateRef() {
     const ref = (params.get('ref') || '').trim().toUpperCase();
     if (ref) {
       localStorage.setItem(STORAGE_KEY, ref);
+      // Regista o clique (fire-and-forget): alimenta a métrica "Cliques"
+      // e define o cookie de atribuição no backend.
+      affiliateAPI.trackClick(ref).catch(() => {});
       return ref;
     }
   } catch (e) {

@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 
-from .models import Affiliate, AffiliateCommission
+from .models import Affiliate, AffiliateReferral, AffiliateCommission
 from .services import create_commission_if_applicable
 from apps.subscriptions.models import Payment
 
@@ -87,3 +87,24 @@ class CommissionTests(TestCase):
         payment = make_payment(buyer)
         commission = create_commission_if_applicable(payment)
         self.assertIsNone(commission)
+
+    def test_renewal_uses_renewal_rate(self):
+        affiliate_user = make_user('aff5', 'aff5@example.com')
+        affiliate = make_affiliate(affiliate_user, code='AFF5')
+        buyer = make_user('buyer5', 'buyer5@example.com')
+
+        # Indicação já convertida numa compra anterior (renovação).
+        AffiliateReferral.objects.create(
+            affiliate=affiliate,
+            user=buyer,
+            code='AFF5',
+            source='link',
+            converted_at=timezone.now(),
+        )
+
+        payment = make_payment(buyer, metadata={'affiliate_code': 'AFF5', 'affiliate_id': affiliate.id})
+        commission = create_commission_if_applicable(payment)
+
+        self.assertIsNotNone(commission)
+        self.assertEqual(commission.rate, Decimal('0.10'))  # renewal_rate
+        self.assertEqual(commission.amount, Decimal('59.90'))  # 599 * 0.10

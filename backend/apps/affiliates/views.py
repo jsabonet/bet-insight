@@ -15,6 +15,7 @@ from .serializers import (
     AffiliateSerializer,
     AffiliateApplySerializer,
     AffiliateCommissionSerializer,
+    AffiliateReferralSerializer,
     WithdrawRequestSerializer,
 )
 from .services import resolve_affiliate_by_code, generate_unique_code, code_to_string
@@ -148,6 +149,18 @@ def my_commissions(request):
     if status_filter:
         qs = qs.filter(status=status_filter)
     return Response(AffiliateCommissionSerializer(qs[:100], many=True).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def my_referrals(request):
+    """Lista as indicações (contas criadas via link) do afiliado logado."""
+    affiliate = _get_or_404_affiliate(request.user)
+    if affiliate is None:
+        return Response({'error': 'Ainda não é afiliado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    qs = affiliate.referrals.select_related('user').all()[:50]
+    return Response(AffiliateReferralSerializer(qs, many=True).data)
 
 
 @api_view(['POST'])

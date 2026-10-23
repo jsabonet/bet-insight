@@ -1,0 +1,14 @@
+Nova indicação no seu link 🎉
+
+Olá, {{ user_name }}! O utilizador {{ referred_name }} criou uma conta no {{ site_name }} através do seu link de indicação.
+
+Detalhes da indicação:
+- Utilizador: {{ referred_name }}
+- Email: {{ referred_email }}
+- Código usado: {{ affiliate_code }}
+- Origem: {{ source_display }}
+- Data: {{ first_touch_at }}
+
+Ver o meu painel: {{ site_url }}/affiliate
+
+Análise estatística e educativa de futebol. Não promovemos apostas.

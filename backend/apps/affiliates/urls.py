@@ -13,6 +13,7 @@ urlpatterns = [
     path('me/', views.my_affiliate, name='my-affiliate'),
     path('me/stats/', views.my_affiliate_stats, name='my-affiliate-stats'),
     path('me/commissions/', views.my_commissions, name='my-commissions'),
+    path('me/referrals/', views.my_referrals, name='my-referrals'),
     path('me/withdraw/', views.withdraw, name='withdraw'),
 
     # Admin

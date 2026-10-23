@@ -1,17 +1,18 @@
 {% extends "emails/base.html" %}
+{% block preheader %}A sua assinatura {{ plan_name }} expirou.{% endblock %}
 {% block content %}
-<h1 style="font-size:22px;color:#111827;margin:0 0 12px;">A sua assinatura expirou</h1>
-<p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px;">
-  Olá, {{ user_name }}, a sua assinatura <strong>{{ plan_name }}</strong> expirou.
+<p style="font-size:12px;font-weight:700;color:#6b7280;letter-spacing:0.12em;text-transform:uppercase;margin:0 0 10px;">Assinatura Premium</p>
+<h1 style="font-size:26px;font-weight:800;color:#111827;letter-spacing:-0.02em;line-height:1.2;margin:0 0 14px;">A sua assinatura expirou</h1>
+<p style="font-size:15px;color:#4b5563;line-height:1.65;margin:0 0 24px;">
+  Olá, {{ user_name }}, a sua assinatura <strong style="color:#111827;">{{ plan_name }}</strong> expirou e a sua conta voltou ao plano gratuito.
 </p>
-<p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 24px;">
-  A sua conta voltou ao plano gratuito. Para continuar a usufruir de análises
-  ilimitadas e de todos os recursos premium, renove a sua assinatura.
+<p style="font-size:15px;color:#4b5563;line-height:1.65;margin:0 0 28px;">
+  Renove para continuar a usufruir de análises ilimitadas e de todos os recursos premium.
 </p>
-<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0;">
   <tr>
-    <td style="background-color:#16a34a;border-radius:8px;">
-      <a href="{{ site_url }}/premium" style="display:inline-block;padding:12px 28px;color:#ffffff;font-size:15px;font-weight:bold;text-decoration:none;">Renovar agora</a>
+    <td align="left" style="border-radius:10px;background-color:#16a34a;box-shadow:0 6px 16px rgba(22,163,74,0.28);">
+      <a href="{{ site_url }}/premium" style="display:inline-block;padding:14px 34px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px;">Renovar agora</a>
     </td>
   </tr>
 </table>

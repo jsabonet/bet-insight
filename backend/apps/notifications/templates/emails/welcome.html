@@ -1,18 +1,18 @@
 {% extends "emails/base.html" %}
+{% block preheader %}A sua conta foi criada com sucesso.{% endblock %}
 {% block content %}
-<h1 style="font-size:22px;color:#111827;margin:0 0 12px;">Olá, {{ user_name }}! 👋</h1>
-<p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px;">
-  A sua conta no <strong>{{ site_name }}</strong> foi criada com sucesso. Bem-vindo à
-  plataforma de análise estatística de futebol baseada em modelos matemáticos.
+<p style="font-size:12px;font-weight:700;color:#16a34a;letter-spacing:0.12em;text-transform:uppercase;margin:0 0 10px;">Bem-vindo</p>
+<h1 style="font-size:26px;font-weight:800;color:#111827;letter-spacing:-0.02em;line-height:1.2;margin:0 0 14px;">Olá, {{ user_name }} 👋</h1>
+<p style="font-size:15px;color:#4b5563;line-height:1.65;margin:0 0 16px;">
+  A sua conta no <strong style="color:#111827;">{{ site_name }}</strong> foi criada com sucesso. Bem-vindo à plataforma de análise estatística de futebol baseada em modelos matemáticos.
 </p>
-<p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 24px;">
-  Comece agora a explorar previsões e probabilidades das principais ligas de
-  Moçambique, África e Europa.
+<p style="font-size:15px;color:#4b5563;line-height:1.65;margin:0 0 28px;">
+  Explore previsões, probabilidades e tendências das principais ligas de Moçambique, África e Europa.
 </p>
-<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;">
   <tr>
-    <td style="background-color:#16a34a;border-radius:8px;">
-      <a href="{{ site_url }}" style="display:inline-block;padding:12px 28px;color:#ffffff;font-size:15px;font-weight:bold;text-decoration:none;">Abrir a plataforma</a>
+    <td align="left" style="border-radius:10px;background-color:#16a34a;box-shadow:0 6px 16px rgba(22,163,74,0.28);">
+      <a href="{{ site_url }}" style="display:inline-block;padding:14px 34px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px;">Abrir a plataforma</a>
     </td>
   </tr>
 </table>

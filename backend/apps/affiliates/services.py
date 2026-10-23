@@ -4,6 +4,8 @@ Centraliza a resolução de códigos de afiliado, a criação (idempotente) de
 comissões quando um pagamento é concluído e a gestão de saldos.
 """
 import logging
+import random
+import string
 from decimal import Decimal
 
 from django.conf import settings
@@ -40,15 +42,26 @@ def code_to_string(code):
 
 
 def generate_unique_code(base):
-    """Gera um código único a partir de uma base (ex.: username)."""
+    """Gera um código único a partir de uma base (ex.: username).
+
+    Inclui sempre dígitos numéricos para evitar códigos iguais entre
+    utilizadores com o mesmo nome (ex.: 'joao' -> 'JOAO4821').
+    """
     base = (base or 'AFF').upper()
-    base = ''.join(ch for ch in base if ch.isalnum())[:12] or 'AFF'
-    code = base
+    base = ''.join(ch for ch in base if ch.isalnum())[:8] or 'AFF'
+
+    # Código com 4 dígitos aleatórios; em caso de colisão, tenta novamente.
+    for _ in range(50):
+        candidate = f"{base}{''.join(random.choices(string.digits, k=4))}"
+        if not Affiliate.objects.filter(code=candidate).exists():
+            return candidate
+
+    # Fallback determinístico (extremamente raro).
     counter = 1
+    code = f"{base}{counter}"
     while Affiliate.objects.filter(code=code).exists():
-        suffix = str(counter)
-        code = f"{base[:12 - len(suffix)]}{suffix}"
         counter += 1
+        code = f"{base}{counter}"
     return code
 
 
@@ -86,7 +99,19 @@ def assign_referral(user, code, source='link', click_id=''):
             referral.click_id = click_id
         referral.last_touch_at = timezone.now()
         referral.save(update_fields=['affiliate', 'code', 'source', 'click_id', 'last_touch_at'])
+    else:
+        # Nova conta criada com o link/código do afiliado: notifica por email.
+        _notify_new_referral(referral)
     return referral
+
+
+def _notify_new_referral(referral):
+    """Envia email ao afiliado quando alguém cria conta com o seu link."""
+    try:
+        from .emails import send_new_referral_email
+        send_new_referral_email(referral)
+    except Exception as exc:
+        logger.exception('Erro ao enviar email de nova indicação: %s', exc)
 
 
 def get_payment_affiliate(payment):
@@ -133,19 +158,23 @@ def create_commission_if_applicable(payment):
     if plan_price <= 0:
         return None
 
-    rate = Decimal(str(affiliate.commission_rate or 0))
+    # Determina se é uma renovação (o utilizador já converteu antes) para
+    # aplicar a taxa de renovação em vez da taxa de 1ª venda.
+    referral = None
+    if payment.user_id:
+        referral = AffiliateReferral.objects.filter(user_id=payment.user_id).first()
+
+    is_renewal = referral is not None and referral.converted_at is not None
+    effective_rate = affiliate.renewal_rate if is_renewal else affiliate.commission_rate
+    rate = Decimal(str(effective_rate or 0))
     amount = (plan_price * rate).quantize(Decimal('0.01'))
 
     if amount <= 0:
         return None
 
-    referral = None
-    if payment.user_id:
-        referral = AffiliateReferral.objects.filter(user_id=payment.user_id).first()
-        if referral:
-            if referral.converted_at is None:
-                referral.converted_at = timezone.now()
-                referral.save(update_fields=['converted_at'])
+    if referral and referral.converted_at is None:
+        referral.converted_at = timezone.now()
+        referral.save(update_fields=['converted_at'])
 
     with transaction.atomic():
         commission, created = AffiliateCommission.objects.get_or_create(

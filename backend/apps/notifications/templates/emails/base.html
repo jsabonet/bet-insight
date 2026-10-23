@@ -1,38 +1,140 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="pt" xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light only">
   <title>{{ subject }}</title>
 </head>
-<body style="margin:0;padding:0;background-color:#f4f5f7;font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f5f7;padding:24px 0;">
+<body style="margin:0;padding:0;background-color:#eef2ef;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
+
+  <!-- Pré-visualização (preheader) -->
+  <div style="display:none;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;mso-hide:all;">
+    {% block preheader %}{{ subject }}{% endblock %}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
+  </div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#eef2ef;">
     <tr>
-      <td align="center">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">
-          <!-- Header -->
+      <td align="center" style="padding:36px 16px 44px;">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">
+
+          <!-- ===== Cabeçalho / Marca ===== -->
           <tr>
-            <td style="background-color:#16a34a;padding:24px 32px;text-align:center;">
-              <span style="color:#ffffff;font-size:22px;font-weight:bold;letter-spacing:0.5px;">⚽ {{ site_name }}</span>
+            <td align="center" style="padding:0 0 26px;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+                <tr>
+                  <td align="center" valign="middle" style="padding:0;">
+                    <svg width="72" height="72" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{{ site_name }}">
+                      <defs>
+                        <filter id="pcGlow" x="-50%" y="-50%" width="200%" height="200%">
+                          <feGaussianBlur in="SourceAlpha" stdDeviation="2" result="blur" />
+                          <feFlood flood-color="white" flood-opacity="0.5" result="color" />
+                          <feComposite in="color" in2="blur" operator="in" result="glow" />
+                          <feMerge>
+                            <feMergeNode in="glow" />
+                            <feMergeNode in="SourceGraphic" />
+                          </feMerge>
+                        </filter>
+                        <linearGradient id="pcShield" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stop-color="#16a34a" />
+                          <stop offset="50%" stop-color="#15803d" />
+                          <stop offset="100%" stop-color="#16a34a" />
+                        </linearGradient>
+                        <linearGradient id="pcTech" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stop-color="#10b981" />
+                          <stop offset="100%" stop-color="#22c55e" />
+                        </linearGradient>
+                        <clipPath id="pcLeft">
+                          <rect x="-15" y="-15" width="15" height="30" />
+                        </clipPath>
+                        <clipPath id="pcRight">
+                          <rect x="0" y="-15" width="15" height="30" />
+                        </clipPath>
+                      </defs>
+                      <!-- Escudo -->
+                      <path d="M50 10 L80 20 L80 45 Q80 70 50 90 Q20 70 20 45 L20 20 Z" fill="url(#pcShield)" opacity="0.95" filter="url(#pcGlow)" />
+                      <!-- Circuito -->
+                      <g opacity="0.4">
+                        <path d="M30 30 L35 30 L35 35" stroke="#10b981" stroke-width="1.5" />
+                        <path d="M70 30 L65 30 L65 35" stroke="#10b981" stroke-width="1.5" />
+                        <path d="M30 60 L35 60 L35 55" stroke="#10b981" stroke-width="1.5" />
+                        <path d="M70 60 L65 60 L65 55" stroke="#10b981" stroke-width="1.5" />
+                        <circle cx="35" cy="35" r="1.5" fill="#10b981" />
+                        <circle cx="65" cy="35" r="1.5" fill="#10b981" />
+                        <circle cx="35" cy="55" r="1.5" fill="#10b981" />
+                        <circle cx="65" cy="55" r="1.5" fill="#10b981" />
+                      </g>
+                      <!-- Bola híbrida -->
+                      <g transform="translate(50, 45)">
+                        <circle cx="0" cy="0" r="15" fill="white" clip-path="url(#pcLeft)" />
+                        <path d="M0,-8 L-3,-3 L-1,3 L1,3 L3,-3 Z" fill="#16a34a" clip-path="url(#pcLeft)" />
+                        <circle cx="0" cy="0" r="15" fill="url(#pcTech)" clip-path="url(#pcRight)" />
+                        <rect x="2" y="-6" width="3" height="3" fill="white" opacity="0.8" />
+                        <rect x="6" y="-3" width="3" height="3" fill="white" opacity="0.6" />
+                        <rect x="2" y="0" width="3" height="3" fill="white" opacity="0.7" />
+                        <rect x="6" y="3" width="3" height="3" fill="white" opacity="0.5" />
+                        <rect x="10" y="0" width="3" height="3" fill="white" opacity="0.4" />
+                        <line x1="0" y1="-15" x2="0" y2="15" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="2,2" opacity="0.6" />
+                        <circle cx="-6" cy="-6" r="3" fill="white" opacity="0.4" />
+                      </g>
+                      <!-- Check -->
+                      <g transform="translate(50, 68)">
+                        <circle cx="0" cy="0" r="8" fill="white" opacity="0.95" />
+                        <circle cx="0" cy="0" r="7" fill="#16a34a" />
+                        <path d="M-3,0 L-1,3 L4,-3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                      </g>
+                      <!-- Partículas -->
+                      <g opacity="0.3">
+                        <circle cx="25" cy="40" r="1.5" fill="#10b981" />
+                        <circle cx="75" cy="40" r="1.5" fill="#10b981" />
+                        <circle cx="30" cy="50" r="1" fill="#22c55e" />
+                        <circle cx="70" cy="50" r="1" fill="#22c55e" />
+                      </g>
+                    </svg>
+                  </td>
+                </tr>
+              </table>
+              <div style="font-size:24px;font-weight:800;color:#14532d;letter-spacing:-0.02em;line-height:1.1;margin:14px 0 0;">{{ site_name }}</div>
+              <div style="font-size:11px;font-weight:600;color:#16a34a;letter-spacing:0.16em;text-transform:uppercase;margin:5px 0 0;">Futebol · Estatística · Análise</div>
             </td>
           </tr>
-          <!-- Corpo -->
+
+          <!-- ===== Cartão principal ===== -->
           <tr>
-            <td style="padding:32px 32px 24px;">
-              {% block content %}{% endblock %}
+            <td style="background-color:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;box-shadow:0 1px 2px rgba(17,24,39,0.04);">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="background:linear-gradient(90deg,#16a34a 0%,#22c55e 60%,#4ade80 100%);height:4px;font-size:0;line-height:0;">&nbsp;</td>
+                </tr>
+                <tr>
+                  <td style="padding:40px 40px 32px;">
+                    {% block content %}{% endblock %}
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
-          <!-- Rodapé -->
+
+          <!-- ===== Rodapé ===== -->
           <tr>
-            <td style="background-color:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
-              <p style="font-size:12px;color:#6b7280;margin:0 0 6px;line-height:1.5;">
-                Análise estatística e educativa de futebol. Não promovemos apostas.
+            <td align="center" style="padding:28px 28px 0;">
+              <p style="font-size:12px;color:#6b7280;line-height:1.7;margin:0 0 14px;">
+                Análise estatística e educativa de futebol.<br>
+                Não promovemos apostas nem jogos de azar.
               </p>
-              <p style="font-size:12px;color:#9ca3af;margin:0;line-height:1.5;">
-                © {{ current_year }} {{ site_name }} · {{ site_url }}
+              <p style="font-size:12px;color:#9ca3af;line-height:1.7;margin:0 0 10px;">
+                © {{ current_year }} {{ site_name }} · Todos os direitos reservados
+              </p>
+              <p style="font-size:12px;line-height:1.7;margin:0;">
+                <a href="{{ site_url }}" style="color:#16a34a;text-decoration:none;font-weight:600;">{{ site_url }}</a>
+                <span style="color:#d1d5db;">&nbsp;·&nbsp;</span>
+                <a href="mailto:{{ support_email }}" style="color:#16a34a;text-decoration:none;font-weight:600;">{{ support_email }}</a>
               </p>
             </td>
           </tr>
+
         </table>
       </td>
     </tr>

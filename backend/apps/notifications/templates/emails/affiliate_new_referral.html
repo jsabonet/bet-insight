@@ -1,0 +1,45 @@
+{% extends "emails/base.html" %}
+{% block preheader %}Alguém criou conta com o seu link de indicação.{% endblock %}
+{% block content %}
+<p style="font-size:12px;font-weight:700;color:#16a34a;letter-spacing:0.12em;text-transform:uppercase;margin:0 0 10px;">Nova indicação</p>
+<h1 style="font-size:26px;font-weight:800;color:#111827;letter-spacing:-0.02em;line-height:1.2;margin:0 0 14px;">Alguém criou conta com o seu link 🎉</h1>
+<p style="font-size:15px;color:#4b5563;line-height:1.65;margin:0 0 24px;">
+  Olá, {{ user_name }}! O utilizador <strong style="color:#111827;">{{ referred_name }}</strong> criou uma conta no <strong style="color:#111827;">{{ site_name }}</strong> através do seu link de indicação.
+</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f0fdf4;border:1px solid #dcfce7;border-radius:12px;margin:0 0 28px;">
+  <tr>
+    <td style="padding:20px 24px;">
+      <p style="font-size:12px;font-weight:700;color:#16a34a;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 12px;">Detalhes da indicação</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td style="padding:6px 0;font-size:14px;color:#6b7280;">Utilizador</td>
+          <td align="right" style="padding:6px 0;font-size:14px;color:#111827;font-weight:600;">{{ referred_name }}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;font-size:14px;color:#6b7280;">Email</td>
+          <td align="right" style="padding:6px 0;font-size:13px;color:#111827;font-weight:500;word-break:break-all;">{{ referred_email }}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;font-size:14px;color:#6b7280;">Código usado</td>
+          <td align="right" style="padding:6px 0;font-size:14px;color:#111827;font-weight:700;letter-spacing:0.04em;">{{ affiliate_code }}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;font-size:14px;color:#6b7280;">Origem</td>
+          <td align="right" style="padding:6px 0;font-size:14px;color:#111827;font-weight:600;">{{ source_display }}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;font-size:14px;color:#6b7280;">Data</td>
+          <td align="right" style="padding:6px 0;font-size:14px;color:#111827;font-weight:600;">{{ first_touch_at }}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0;">
+  <tr>
+    <td align="left" style="border-radius:10px;background-color:#16a34a;box-shadow:0 6px 16px rgba(22,163,74,0.28);">
+      <a href="{{ site_url }}/affiliate" style="display:inline-block;padding:14px 34px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px;">Ver o meu painel</a>
+    </td>
+  </tr>
+</table>
+{% endblock %}

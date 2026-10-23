@@ -45,6 +45,33 @@ def send_affiliate_approved_email(affiliate):
         return False
 
 
+def send_new_referral_email(referral):
+    """Email ao afiliado quando alguém cria conta com o seu link/código."""
+    try:
+        affiliate = referral.affiliate
+        user = affiliate.user
+        referred = referral.user
+        send_template_email(
+            to=user.email,
+            subject="Nova indicação no seu link - PlacarCerto",
+            template_name="affiliate_new_referral",
+            context={
+                "user_name": user.username,
+                "referred_name": referred.username,
+                "referred_email": referred.email,
+                "affiliate_code": affiliate.code,
+                "source_display": referral.get_source_display(),
+                "first_touch_at": referral.first_touch_at.strftime("%d/%m/%Y"),
+            },
+            tags=["affiliate", "referral"],
+        )
+        logger.info("Email de nova indicação enviado para %s", user.email)
+        return True
+    except Exception as exc:
+        logger.error("Erro ao enviar email de nova indicação: %s", exc)
+        return False
+
+
 def send_commission_earned_email(commission):
     """Email quando uma nova comissão (pending) é criada."""
     try:

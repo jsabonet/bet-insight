@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { UserPlus, Check, Gift } from 'lucide-react';
 import Logo from '../components/Logo';
 import PasswordStrengthInput from '../components/PasswordStrengthInput';
-import { getAffiliateRef } from '../utils/affiliate';
+import { getAffiliateRef, clearAffiliateRef } from '../utils/affiliate';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -59,6 +59,7 @@ export default function RegisterPage() {
 
     try {
       await register(formData);
+      clearAffiliateRef();
       navigate('/');
     } catch (err) {
       const errors = err.response?.data;

@@ -1,19 +1,31 @@
 {% extends "emails/base.html" %}
+{% block preheader %}Comissão de {{ amount }} {{ currency }} disponível para levantamento.{% endblock %}
 {% block content %}
-<h1 style="font-size:22px;color:#111827;margin:0 0 12px;">Comissão disponível ✅</h1>
-<p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px;">
+<p style="font-size:12px;font-weight:700;color:#16a34a;letter-spacing:0.12em;text-transform:uppercase;margin:0 0 10px;">Comissões</p>
+<h1 style="font-size:26px;font-weight:800;color:#111827;letter-spacing:-0.02em;line-height:1.2;margin:0 0 14px;">Comissão disponível ✅</h1>
+<p style="font-size:15px;color:#4b5563;line-height:1.65;margin:0 0 24px;">
   Olá, {{ user_name }}! A sua comissão já está disponível para levantamento.
 </p>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;border:1px solid #e5e7eb;border-radius:8px;">
-  <tr><td style="padding:16px;">
-    <p style="font-size:14px;color:#374151;margin:0 0 4px;">Valor: <strong>{{ amount }} {{ currency }}</strong></p>
-    <p style="font-size:14px;color:#374151;margin:0;">Saldo disponível: {{ available_balance }} {{ currency }}</p>
-  </td></tr>
-</table>
-<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f0fdf4;border:1px solid #dcfce7;border-radius:12px;margin:0 0 28px;">
   <tr>
-    <td style="background-color:#16a34a;border-radius:8px;">
-      <a href="{{ site_url }}/affiliate" style="display:inline-block;padding:12px 28px;color:#ffffff;font-size:15px;font-weight:bold;text-decoration:none;">Pedir levantamento</a>
+    <td style="padding:20px 24px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td style="padding:6px 0;font-size:14px;color:#6b7280;">Valor</td>
+          <td align="right" style="padding:6px 0;font-size:14px;color:#111827;font-weight:700;">{{ amount }} {{ currency }}</td>
+        </tr>
+        <tr>
+          <td style="padding:6px 0;font-size:14px;color:#6b7280;">Saldo disponível</td>
+          <td align="right" style="padding:6px 0;font-size:14px;color:#111827;font-weight:600;">{{ available_balance }} {{ currency }}</td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0;">
+  <tr>
+    <td align="left" style="border-radius:10px;background-color:#16a34a;box-shadow:0 6px 16px rgba(22,163,74,0.28);">
+      <a href="{{ site_url }}/affiliate" style="display:inline-block;padding:14px 34px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px;">Pedir levantamento</a>
     </td>
   </tr>
 </table>
