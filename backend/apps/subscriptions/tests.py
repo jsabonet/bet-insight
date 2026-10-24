@@ -265,7 +265,7 @@ class VPayViewTests(TestCase):
             'status': 'pending',
         }):
             response = self.client.post('/api/subscriptions/payments/vpay/create/', {
-                'plan_slug': 'starter',
+                'plan_slug': 'premium_vitalicio',
             }, format='json')
 
         self.assertEqual(response.status_code, 201)
@@ -276,11 +276,11 @@ class VPayViewTests(TestCase):
         self.assertEqual(data['payment']['vpay_order_id'], 'ord-999')
 
         payment = Payment.objects.get(transaction_id=data['payment']['transaction_id'])
-        self.assertEqual(payment.amount, 299)
+        self.assertEqual(payment.amount, 250)
         self.assertEqual(payment.currency, 'MZN')
         self.assertEqual(payment.gateway, 'vpay')
         self.assertEqual(payment.vpay_order_id, 'ord-999')
-        self.assertEqual(payment.metadata['plan'], 'starter')
+        self.assertEqual(payment.metadata['plan'], 'premium_vitalicio')
 
     @override_settings(**VPAY_SETTINGS)
     def test_create_vpay_payment_idempotent_reuses_pending_order(self):
@@ -290,14 +290,14 @@ class VPayViewTests(TestCase):
             'checkout_url': 'https://checkout.vpay.co.mz/ord-100',
             'status': 'pending',
         }):
-            first = self.client.post('/api/subscriptions/payments/vpay/create/', {'plan_slug': 'starter'}, format='json')
+            first = self.client.post('/api/subscriptions/payments/vpay/create/', {'plan_slug': 'premium_vitalicio'}, format='json')
             self.assertEqual(first.status_code, 201)
 
         with patch('apps.subscriptions.vpay_views.vpay_service.get_order_status', return_value={
             'success': True,
             'status': 'pending',
         }):
-            second = self.client.post('/api/subscriptions/payments/vpay/create/', {'plan_slug': 'starter'}, format='json')
+            second = self.client.post('/api/subscriptions/payments/vpay/create/', {'plan_slug': 'premium_vitalicio'}, format='json')
 
         self.assertEqual(second.status_code, 200)
         self.assertEqual(Payment.objects.filter(user=self.user, gateway='vpay').count(), 1)
@@ -329,7 +329,8 @@ class VPayViewTests(TestCase):
 
     def test_test_plan_is_hidden_from_non_staff_and_not_payable_via_vpay(self):
         plans = self.client.get('/api/subscriptions/plans/').data
-        self.assertNotIn('premium_vitalicio_teste', [plan['slug'] for plan in plans])
+        slugs = [plan['slug'] for plan in plans]
+        self.assertEqual(set(slugs), {'freemium', 'premium_vitalicio'})
 
         response = self.client.post(
             '/api/subscriptions/payments/vpay/create/',
@@ -337,6 +338,32 @@ class VPayViewTests(TestCase):
             format='json',
         )
         self.assertEqual(response.status_code, 400)
+
+    def test_legacy_plans_are_unavailable_but_existing_subscriptions_remain_active(self):
+        plans = self.client.get('/api/subscriptions/plans/').data
+        self.assertFalse({'starter', 'pro', 'vip'} & {plan['slug'] for plan in plans})
+
+        for slug in ('starter', 'pro', 'vip'):
+            response = self.client.post(
+                '/api/subscriptions/payments/vpay/create/',
+                {'plan_slug': slug},
+                format='json',
+            )
+            self.assertEqual(response.status_code, 400, slug)
+
+        from datetime import timedelta
+        from django.utils import timezone
+
+        subscription = Subscription.objects.create(
+            user=self.user,
+            plan='monthly',
+            plan_slug='pro',
+            status='active',
+            end_date=timezone.now() + timedelta(days=10),
+            amount_paid=599,
+        )
+        self.assertTrue(subscription.is_active())
+        self.assertEqual(self.client.get('/api/subscriptions/my-subscription/').data['plan_slug'], 'pro')
 
     @override_settings(VPAY_ENABLED=False)
     @patch('apps.subscriptions.emails.send_payment_confirmed_email')
@@ -382,7 +409,7 @@ class VPayViewTests(TestCase):
             'error': 'Timeout ao contactar a VPay.',
             'ambiguous': True,
         }):
-            response = self.client.post('/api/subscriptions/payments/vpay/create/', {'plan_slug': 'starter'}, format='json')
+            response = self.client.post('/api/subscriptions/payments/vpay/create/', {'plan_slug': 'premium_vitalicio'}, format='json')
 
         self.assertEqual(response.status_code, 502)
         payment = Payment.objects.filter(user=self.user, gateway='vpay').first()
@@ -393,7 +420,7 @@ class VPayViewTests(TestCase):
         with patch('apps.subscriptions.vpay_views.vpay_service.create_order') as create_order:
             retry = self.client.post(
                 '/api/subscriptions/payments/vpay/create/',
-                {'plan_slug': 'starter'},
+                {'plan_slug': 'premium_vitalicio'},
                 format='json',
             )
 

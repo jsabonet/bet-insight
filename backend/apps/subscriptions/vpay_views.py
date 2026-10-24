@@ -72,7 +72,7 @@ def create_vpay_payment(request):
 
     Body:
     {
-        "plan_slug": "starter|pro|vip|teste"
+        "plan_slug": "premium_vitalicio"
     }
     """
     if not getattr(settings, 'VPAY_ENABLED', True):
@@ -84,7 +84,7 @@ def create_vpay_payment(request):
     user = request.user
     plan_slug = request.data.get('plan_slug')
 
-    valid_plans = ['starter', 'pro', 'vip', 'premium_vitalicio']
+    valid_plans = ['premium_vitalicio']
     if not plan_slug or plan_slug not in valid_plans:
         return Response(
             {'error': f'Plano inválido. Use: {", ".join(valid_plans)}'},

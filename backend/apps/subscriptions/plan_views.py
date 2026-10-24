@@ -37,7 +37,7 @@ def admin_assign_subscription(request):
         }, status=status.HTTP_400_BAD_REQUEST)
 
     plan = get_plan(plan_slug)
-    if not plan:
+    if not plan or not plan.get('is_active'):
         return Response({
             'error': 'Plano inválido'
         }, status=status.HTTP_400_BAD_REQUEST)
