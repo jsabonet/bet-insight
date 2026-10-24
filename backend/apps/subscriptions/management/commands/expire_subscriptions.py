@@ -40,11 +40,6 @@ class Command(BaseCommand):
             subscription.status = 'expired'
             subscription.save()
             
-            # Atualizar usuário
-            user.is_premium = False
-            user.premium_until = None
-            user.save()
-            
             logger.info(
                 f'Assinatura expirada: User {user.id} ({user.email}) '
                 f'- Plan: {subscription.plan_slug}'

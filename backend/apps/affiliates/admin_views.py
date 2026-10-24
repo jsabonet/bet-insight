@@ -113,6 +113,7 @@ def admin_commissions_list(request):
         'plan': (c.payment.metadata or {}).get('plan') if c.payment else None,
         'amount': str(c.amount),
         'rate': str(c.rate),
+        'commission_type': c.commission_type,
         'status': c.status,
         'withdrawal_allocated': c.withdrawal_allocated,
         'available_at': c.available_at,
@@ -219,6 +220,9 @@ def admin_withdrawals_list(request):
         'affiliate_username': item.affiliate.user.username,
         'affiliate_email': item.affiliate.user.email,
         'amount': str(item.amount),
+        'fee_rate': str(item.fee_rate),
+        'fee_amount': str(item.fee_amount),
+        'payout_amount': str(item.payout_amount),
         'payout_method': item.payout_method,
         'payout_method_display': item.get_payout_method_display(),
         'payout_account': item.payout_account,
@@ -379,7 +383,10 @@ def admin_export_commissions(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = 'attachment; filename="comissoes.csv"'
     writer = csv.writer(response)
-    writer.writerow(['id', 'afiliado', 'comprador', 'plano', 'valor', 'taxa', 'status', 'criado_em'])
+    writer.writerow([
+        'id', 'afiliado', 'comprador', 'plano', 'valor',
+        'tipo_comissao', 'taxa', 'status', 'criado_em',
+    ])
     for c in AffiliateCommission.objects.select_related('affiliate', 'payment', 'payment__user').all():
         writer.writerow([
             c.id,
@@ -387,6 +394,7 @@ def admin_export_commissions(request):
             c.payment.user.email if c.payment and c.payment.user else '',
             (c.payment.metadata or {}).get('plan') if c.payment else '',
             c.amount,
+            c.commission_type,
             c.rate,
             c.status,
             c.created_at,

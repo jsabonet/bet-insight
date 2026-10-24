@@ -25,4 +25,5 @@ urlpatterns = [
     # Pagamentos VPay (checkout hospedado)
     path('payments/vpay/create/', vpay_views.create_vpay_payment, name='create-vpay-payment'),
     path('payments/vpay/webhook/', vpay_views.vpay_webhook, name='vpay-webhook'),
+    path('payments/test/activate/', vpay_views.activate_test_plan, name='activate-test-plan'),
 ]

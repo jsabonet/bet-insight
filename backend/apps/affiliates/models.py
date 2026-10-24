@@ -139,6 +139,10 @@ class AffiliateCommission(models.Model):
         ('paid', 'Pago'),
         ('reversed', 'Revertido'),
     ]
+    COMMISSION_TYPE_CHOICES = [
+        ('percentage', 'Percentual (histórico)'),
+        ('fixed', 'Fixa'),
+    ]
 
     affiliate = models.ForeignKey(
         Affiliate, on_delete=models.CASCADE, related_name='commissions',
@@ -159,6 +163,10 @@ class AffiliateCommission(models.Model):
     )
     rate = models.DecimalField(
         max_digits=5, decimal_places=2, verbose_name="Taxa Aplicada",
+    )
+    commission_type = models.CharField(
+        max_length=20, choices=COMMISSION_TYPE_CHOICES, default='percentage',
+        verbose_name="Tipo de Comissão",
     )
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default='pending', verbose_name="Status",
@@ -199,6 +207,18 @@ class AffiliateWithdrawal(models.Model):
     )
     amount = models.DecimalField(
         max_digits=12, decimal_places=2, verbose_name="Valor",
+    )
+    fee_rate = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0,
+        verbose_name="Taxa de Saque (%)",
+    )
+    fee_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name="Taxa de Saque",
+    )
+    payout_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        verbose_name="Valor Líquido a Pagar",
     )
     payout_method = models.CharField(
         max_length=20, choices=Affiliate.PAYOUT_CHOICES,

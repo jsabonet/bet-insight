@@ -70,7 +70,7 @@ export default function AffiliateDashboardPage() {
               Ainda não é afiliado
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Crie a sua conta de afiliado e comece a ganhar até 50% de comissão por cada venda.
+              Crie a sua conta de afiliado e receba 100 MZN por cada venda confirmada.
             </p>
             <Link
               to="/affiliate/apply"
@@ -107,6 +107,11 @@ export default function AffiliateDashboardPage() {
                     <div>
                       <p className="font-semibold text-gray-900 dark:text-gray-100">
                         {Number(item.amount).toLocaleString('pt-PT', { minimumFractionDigits: 2 })} MZN
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Taxa de 6%: {Number(item.fee_amount).toLocaleString('pt-PT', { minimumFractionDigits: 2 })} MZN
+                        {' · Líquido: '}
+                        {Number(item.payout_amount).toLocaleString('pt-PT', { minimumFractionDigits: 2 })} MZN
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         {item.payout_method_display} · {new Date(item.requested_at).toLocaleDateString('pt-PT')}

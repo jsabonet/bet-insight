@@ -9,6 +9,7 @@ from .serializers import PlanSerializer, SubscriptionSerializer
 from .models import Subscription
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Q
 from datetime import timedelta
 
 
@@ -49,7 +50,9 @@ def admin_assign_subscription(request):
     # Se o destino for freemium, apenas cancelar e retornar stub
     if plan_slug == 'freemium':
         with transaction.atomic():
-            current = user.subscriptions.filter(status='active', end_date__gt=timezone.now()).first()
+            current = user.subscriptions.filter(status='active').filter(
+                Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
+            ).first()
             if current:
                 current.cancel()
         # Retornar um stub compatível com frontend
@@ -74,7 +77,9 @@ def admin_assign_subscription(request):
 
     # Para planos pagos, criar assinatura com end_date explícita
     with transaction.atomic():
-        current = user.subscriptions.filter(status='active', end_date__gt=timezone.now()).first()
+        current = user.subscriptions.filter(status='active').filter(
+            Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
+        ).first()
         if current:
             current.cancel()
 
@@ -85,14 +90,16 @@ def admin_assign_subscription(request):
         else:
             duration_days = plan.get('duration_days')
 
-        if not isinstance(duration_days, int) or duration_days <= 0:
+        if not plan.get('lifetime') and (
+            not isinstance(duration_days, int) or duration_days <= 0
+        ):
             return Response({'error': 'Plano sem duração válida'}, status=status.HTTP_400_BAD_REQUEST)
 
-        end = start + timedelta(days=duration_days)
+        end = start + timedelta(days=duration_days) if duration_days else None
 
         sub = Subscription.objects.create(
             user=user,
-            plan=plan_slug,
+            plan=plan_slug if len(plan_slug) <= 20 else 'monthly',
             plan_slug=plan_slug,
             status='active',
             start_date=start,
@@ -129,7 +136,9 @@ def admin_remove_subscription(request):
     except User.DoesNotExist:
         return Response({'error': 'Usuário não encontrado'}, status=status.HTTP_404_NOT_FOUND)
 
-    current = user.subscriptions.filter(status='active', end_date__gt=timezone.now()).first()
+    current = user.subscriptions.filter(status='active').filter(
+        Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
+    ).first()
     if not current:
         return Response({'message': 'Usuário não possui assinatura ativa'}, status=status.HTTP_200_OK)
 
@@ -150,6 +159,11 @@ def list_plans(request):
     Endpoint público para exibir opções de planos
     """
     plans_dict = get_active_plans()
+    if not (request.user.is_authenticated and request.user.is_staff):
+        plans_dict = {
+            slug: plan for slug, plan in plans_dict.items()
+            if not plan.get('staff_only')
+        }
     
     # Converter dict para lista de objetos serializáveis
     plans_list = []
@@ -180,6 +194,11 @@ def list_premium_plans(request):
     Para tela de upgrade/assinatura
     """
     plans_dict = get_premium_plans()
+    if not (request.user.is_authenticated and request.user.is_staff):
+        plans_dict = {
+            slug: plan for slug, plan in plans_dict.items()
+            if not plan.get('staff_only')
+        }
     
     plans_list = []
     for slug, plan_data in plans_dict.items():
@@ -206,11 +225,15 @@ def get_plan_details(request, slug):
     """
     plan = get_plan(slug)
     
-    if not plan:
+    if not plan or not plan.get('is_active'):
         return Response(
             {'error': 'Plano não encontrado'},
             status=status.HTTP_404_NOT_FOUND
         )
+    if plan.get('staff_only') and not (
+        request.user.is_authenticated and request.user.is_staff
+    ):
+        return Response({'error': 'Plano não encontrado'}, status=status.HTTP_404_NOT_FOUND)
     
     plan_obj = {'slug': slug, **plan}
     return Response(plan_obj)
@@ -225,10 +248,13 @@ def my_subscription(request):
     """
     from django.utils import timezone
     
-    subscription = request.user.subscriptions.filter(
-        status='active',
-        end_date__gt=timezone.now()
-    ).first()
+    active_subscriptions = request.user.subscriptions.filter(status='active').filter(
+        Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
+    )
+    subscription = (
+        active_subscriptions.filter(end_date__isnull=True).first()
+        or active_subscriptions.order_by('-end_date').first()
+    )
     
     if not subscription:
         # Usuário sem assinatura = freemium
@@ -258,9 +284,8 @@ def cancel_subscription(request):
     """
     from django.utils import timezone
     
-    subscription = request.user.subscriptions.filter(
-        status='active',
-        end_date__gt=timezone.now()
+    subscription = request.user.subscriptions.filter(status='active').filter(
+        Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
     ).first()
     
     if not subscription:

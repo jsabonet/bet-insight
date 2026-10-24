@@ -13,7 +13,7 @@ from rest_framework.test import APIClient
 
 from apps.users.models import User
 
-from .models import Payment
+from .models import Payment, Subscription
 from .payment_helpers import apply_vpay_status
 from .vpay_service import VPayService, VPayServiceError, vpay_service
 
@@ -307,6 +307,73 @@ class VPayViewTests(TestCase):
     def test_create_vpay_payment_rejects_invalid_plan(self):
         response = self.client.post('/api/subscriptions/payments/vpay/create/', {'plan_slug': 'nope'}, format='json')
         self.assertEqual(response.status_code, 400)
+
+    @override_settings(**VPAY_SETTINGS)
+    def test_lifetime_plan_uses_discounted_price_in_vpay_checkout(self):
+        with patch('apps.subscriptions.vpay_views.vpay_service.create_order', return_value={
+            'success': True,
+            'order_id': 'ord-lifetime',
+            'checkout_url': 'https://checkout.vpay.co.mz/ord-lifetime',
+            'status': 'pending',
+        }) as create_order:
+            response = self.client.post(
+                '/api/subscriptions/payments/vpay/create/',
+                {'plan_slug': 'premium_vitalicio'},
+                format='json',
+            )
+
+        self.assertEqual(response.status_code, 201)
+        payment = Payment.objects.get(transaction_id=response.data['payment']['transaction_id'])
+        self.assertEqual(payment.amount, 250)
+        self.assertEqual(create_order.call_args.kwargs['items'][0]['price'], 250.0)
+
+    def test_test_plan_is_hidden_from_non_staff_and_not_payable_via_vpay(self):
+        plans = self.client.get('/api/subscriptions/plans/').data
+        self.assertNotIn('premium_vitalicio_teste', [plan['slug'] for plan in plans])
+
+        response = self.client.post(
+            '/api/subscriptions/payments/vpay/create/',
+            {'plan_slug': 'premium_vitalicio_teste'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 400)
+
+    @override_settings(VPAY_ENABLED=False)
+    @patch('apps.subscriptions.emails.send_payment_confirmed_email')
+    @patch('apps.subscriptions.emails.send_subscription_activated_email')
+    def test_staff_can_simulate_lifetime_activation_without_gateway(
+        self, _activated_email, _confirmed_email
+    ):
+        self.user.is_staff = True
+        self.user.save(update_fields=['is_staff'])
+
+        response = self.client.post(
+            '/api/subscriptions/payments/test/activate/',
+            {'plan_slug': 'premium_vitalicio_teste'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        payment = Payment.objects.get(transaction_id=response.data['payment']['transaction_id'])
+        subscription = Subscription.objects.get(pk=response.data['subscription']['id'])
+        self.assertEqual(payment.gateway, 'test')
+        self.assertEqual(payment.status, 'completed')
+        self.assertEqual(payment.amount, 250)
+        self.assertEqual(subscription.plan_slug, 'premium_vitalicio_teste')
+        self.assertIsNone(subscription.end_date)
+        self.assertFalse(subscription.auto_renew)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.is_premium_active())
+
+    def test_non_staff_cannot_activate_test_plan(self):
+        response = self.client.post(
+            '/api/subscriptions/payments/test/activate/',
+            {'plan_slug': 'premium_vitalicio_teste'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Payment.objects.filter(gateway='test').exists())
 
     @override_settings(**VPAY_SETTINGS)
     def test_create_vpay_payment_failure_is_ambiguous(self):

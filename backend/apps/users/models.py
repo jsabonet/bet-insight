@@ -75,7 +75,11 @@ class User(AbstractUser):
         if not self.is_premium:
             return False
         if not self.premium_until:
-            return False
+            return self.subscriptions.filter(
+                status='active',
+                plan_slug__in=('premium_vitalicio', 'premium_vitalicio_teste'),
+                end_date__isnull=True,
+            ).exists()
         return timezone.now() <= self.premium_until
     
     def can_analyze(self):
@@ -92,7 +96,10 @@ class User(AbstractUser):
         from apps.subscriptions.plan_config import get_plan_limit
         limit = None
         try:
-            active_sub = self.subscriptions.filter(status='active', end_date__gt=timezone.now()).first()
+            from django.db.models import Q
+            active_sub = self.subscriptions.filter(status='active').filter(
+                Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
+            ).first()
             if active_sub and active_sub.plan_slug:
                 limit = get_plan_limit(active_sub.plan_slug)
         except Exception:

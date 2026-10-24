@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.conf import settings
 from django.utils import timezone
 from datetime import timedelta
@@ -29,7 +30,7 @@ class Subscription(models.Model):
     
     # Período
     start_date = models.DateTimeField(default=timezone.now, verbose_name="Data Início")
-    end_date = models.DateTimeField(verbose_name="Data Fim")
+    end_date = models.DateTimeField(null=True, blank=True, verbose_name="Data Fim")
     
     # Controle de renovação
     auto_renew = models.BooleanField(default=True, verbose_name="Renovação Automática")
@@ -57,18 +58,14 @@ class Subscription(models.Model):
     def save(self, *args, **kwargs):
         """Calcula end_date baseado no plano"""
         if not self.end_date:
-            # Preferir duração derivada do plan_slug configurado
-            try:
-                from .plan_config import get_plan_duration
-                if self.plan_slug:
-                    duration_days = get_plan_duration(self.plan_slug)
-                    if duration_days:
-                        self.end_date = self.start_date + timedelta(days=duration_days)
-            except Exception:
-                # Fallback silencioso para lógica antiga
-                pass
+            from .plan_config import get_plan_duration, is_lifetime_plan
+            lifetime = is_lifetime_plan(self.plan_slug)
+            if self.plan_slug and not lifetime:
+                duration_days = get_plan_duration(self.plan_slug)
+                if duration_days:
+                    self.end_date = self.start_date + timedelta(days=duration_days)
             # Se ainda não definimos end_date, usar mapeamento por plan (choices)
-            if not self.end_date:
+            if not self.end_date and not lifetime:
                 if self.plan == 'monthly':
                     self.end_date = self.start_date + timedelta(days=30)
                 elif self.plan == 'quarterly':
@@ -84,7 +81,13 @@ class Subscription(models.Model):
     def update_user_premium_status(self):
         """Atualiza status premium do usuário baseado nas assinaturas ativas."""
         # Encontrar qualquer assinatura ativa atual do usuário
-        active = self.user.subscriptions.filter(status='active', end_date__gt=timezone.now()).order_by('-end_date').first()
+        active_subscriptions = self.user.subscriptions.filter(status='active').filter(
+            Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
+        )
+        active = (
+            active_subscriptions.filter(end_date__isnull=True).first()
+            or active_subscriptions.order_by('-end_date').first()
+        )
         if active:
             self.user.is_premium = True
             self.user.premium_until = active.end_date
@@ -98,7 +101,9 @@ class Subscription(models.Model):
     
     def is_active(self):
         """Verifica se assinatura está ativa"""
-        return self.status == 'active' and self.end_date > timezone.now()
+        return self.status == 'active' and (
+            self.end_date is None or self.end_date > timezone.now()
+        )
     
     def cancel(self):
         """Cancela a assinatura"""
@@ -123,6 +128,7 @@ class Payment(models.Model):
     GATEWAY_CHOICES = [
         ('paysuite', 'Legado (gateway desativado)'),
         ('vpay', 'VPay'),
+        ('test', 'Simulação de teste'),
     ]
 
     # Relacionamentos

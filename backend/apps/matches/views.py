@@ -982,7 +982,14 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             from apps.subscriptions.plan_config import get_plan_limit
             limit = None
             try:
-                active_sub = request.user.subscriptions.filter(status='active', end_date__gt=timezone.now()).first()
+                from django.db.models import Q
+                active_subscriptions = request.user.subscriptions.filter(status='active').filter(
+                    Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
+                )
+                active_sub = (
+                    active_subscriptions.filter(end_date__isnull=True).first()
+                    or active_subscriptions.order_by('-end_date').first()
+                )
                 if active_sub and active_sub.plan_slug:
                     limit = get_plan_limit(active_sub.plan_slug)
             except Exception:

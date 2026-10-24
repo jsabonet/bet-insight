@@ -72,7 +72,7 @@ class AffiliateCommissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = AffiliateCommission
         fields = [
-            'id', 'amount', 'rate', 'status', 'status_display',
+            'id', 'amount', 'rate', 'commission_type', 'status', 'status_display',
             'plan', 'buyer_email', 'available_at', 'paid_at', 'created_at',
         ]
 

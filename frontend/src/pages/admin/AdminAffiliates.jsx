@@ -301,7 +301,11 @@ export default function AdminAffiliates() {
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
                       {c.affiliate_code} → {c.buyer_email || 'comprador'}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Plano: {c.plan}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                      Plano: {c.plan} · {c.commission_type === 'fixed'
+                        ? `Comissão fixa de ${fmt(c.amount)} MZN`
+                        : `Comissão histórica: ${fmt(c.amount)} MZN`}
+                    </p>
                     {c.status === 'pending' && (
                       <div className="flex gap-2">
                         <button onClick={() => approve(c.id)} className="flex-1 py-2 rounded-lg bg-green-600 text-white text-xs font-semibold flex items-center justify-center gap-1">
@@ -333,7 +337,10 @@ export default function AdminAffiliates() {
                     <div className="flex items-start justify-between gap-3 mb-2">
                       <div>
                         <p className="font-bold text-gray-900 dark:text-gray-100">
-                          {fmt(item.amount)} MZN · {item.affiliate_code}
+                          {fmt(item.payout_amount)} MZN líquidos · {item.affiliate_code}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Pedido: {fmt(item.amount)} MZN · Taxa 6%: {fmt(item.fee_amount)} MZN
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           {item.affiliate_username} · {item.affiliate_email || 'Sem email'}

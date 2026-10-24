@@ -174,6 +174,11 @@ export default function ManageSubscriptionModal({ user, isOpen, onClose, onSucce
                       Válida até: {new Date(currentSubscription.end_date).toLocaleDateString('pt-BR')}
                     </p>
                   )}
+                  {!currentSubscription.end_date && currentSubscription.plan_slug?.startsWith('premium_vitalicio') && (
+                    <p className="text-sm text-green-600 dark:text-green-400">
+                      Acesso vitalício — sem data de expiração
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={handleRemoveSubscription}
@@ -237,11 +242,15 @@ export default function ManageSubscriptionModal({ user, isOpen, onClose, onSucce
                               <span className="font-bold text-primary-600 dark:text-primary-400">
                                 {plan.price === 0 ? 'Grátis' : `${plan.price} MZN`}
                               </span>
-                              {plan.duration_days && (
+                              {plan.lifetime ? (
+                                <span className="text-sm text-green-600 dark:text-green-400">
+                                  • Vitalício
+                                </span>
+                              ) : plan.duration_days ? (
                                 <span className="text-gray-600 dark:text-gray-400">
                                   • {plan.duration_days} dias
                                 </span>
-                              )}
+                              ) : null}
                               <span className="text-gray-600 dark:text-gray-400">
                                 • {plan.daily_analysis_limit} análises/dia
                               </span>

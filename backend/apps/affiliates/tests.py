@@ -60,7 +60,8 @@ class CommissionTests(TestCase):
         commission = create_commission_if_applicable(payment)
         self.assertIsNotNone(commission)
         self.assertEqual(commission.status, 'pending')
-        self.assertEqual(commission.amount, Decimal('239.60'))  # 599 * 0.40
+        self.assertEqual(commission.amount, Decimal('100.00'))
+        self.assertEqual(commission.commission_type, 'fixed')
 
     @patch('apps.notifications.tasks.send_affiliate_push.delay')
     def test_new_referral_enqueues_push_after_commit(self, enqueue):
@@ -123,13 +124,26 @@ class CommissionTests(TestCase):
         commission = create_commission_if_applicable(payment)
         self.assertIsNone(commission)
 
+    def test_simulated_lifetime_plan_never_generates_commission(self):
+        affiliate_user = make_user('test-plan-aff', 'test-plan-aff@example.com')
+        make_affiliate(affiliate_user, code='TESTPLAN')
+        buyer = make_user('test-plan-buyer', 'test-plan-buyer@example.com')
+        payment = make_payment(
+            buyer,
+            amount='250.00',
+            plan='premium_vitalicio_teste',
+            metadata={'affiliate_code': 'TESTPLAN'},
+        )
+
+        self.assertIsNone(create_commission_if_applicable(payment))
+
     def test_no_affiliate_code(self):
         buyer = make_user('buyer4', 'buyer4@example.com')
         payment = make_payment(buyer)
         commission = create_commission_if_applicable(payment)
         self.assertIsNone(commission)
 
-    def test_renewal_uses_renewal_rate(self):
+    def test_renewal_also_receives_fixed_commission(self):
         affiliate_user = make_user('aff5', 'aff5@example.com')
         affiliate = make_affiliate(affiliate_user, code='AFF5')
         buyer = make_user('buyer5', 'buyer5@example.com')
@@ -147,8 +161,8 @@ class CommissionTests(TestCase):
         commission = create_commission_if_applicable(payment)
 
         self.assertIsNotNone(commission)
-        self.assertEqual(commission.rate, Decimal('0.10'))  # renewal_rate
-        self.assertEqual(commission.amount, Decimal('59.90'))  # 599 * 0.10
+        self.assertEqual(commission.amount, Decimal('100.00'))
+        self.assertEqual(commission.commission_type, 'fixed')
 
 
 class AffiliateWithdrawalTests(TestCase):
@@ -186,6 +200,11 @@ class AffiliateWithdrawalTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(AffiliateWithdrawal.objects.count(), 1)
         self.assertEqual(response.data['status'], 'requested')
+        self.assertEqual(response.data['fee_rate'], Decimal('6'))
+        self.assertEqual(response.data['fee_amount'], Decimal('12.00'))
+        self.assertEqual(response.data['payout_amount'], Decimal('188.00'))
+        withdrawal = AffiliateWithdrawal.objects.get()
+        self.assertEqual(withdrawal.payout_amount, Decimal('188.00'))
         self.affiliate.refresh_from_db()
         self.assertEqual(self.affiliate.available_balance, Decimal('300.00'))
         send_email.assert_called_once()

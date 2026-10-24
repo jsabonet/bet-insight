@@ -12,11 +12,12 @@ import logging
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from decimal import Decimal
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 
 import uuid
@@ -24,7 +25,7 @@ import uuid
 from .models import Payment
 from .vpay_service import vpay_service, VPayServiceError
 from .plan_config import get_plan
-from .serializers import PaymentSerializer
+from .serializers import PaymentSerializer, SubscriptionSerializer
 from .payment_helpers import VPAY_STATUS_MAP, apply_vpay_status
 
 logger = logging.getLogger(__name__)
@@ -83,7 +84,7 @@ def create_vpay_payment(request):
     user = request.user
     plan_slug = request.data.get('plan_slug')
 
-    valid_plans = ['teste', 'starter', 'pro', 'vip']
+    valid_plans = ['starter', 'pro', 'vip', 'premium_vitalicio']
     if not plan_slug or plan_slug not in valid_plans:
         return Response(
             {'error': f'Plano inválido. Use: {", ".join(valid_plans)}'},
@@ -96,6 +97,11 @@ def create_vpay_payment(request):
             {'error': 'Plano não encontrado'},
             status=status.HTTP_404_NOT_FOUND,
         )
+    if not plan.get('is_active') or plan.get('payment_mode', 'vpay') != 'vpay':
+        return Response(
+            {'error': 'Este plano não está disponível para pagamento VPay.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
     amount = Decimal(str(plan['price']))
     if amount <= 0:
@@ -105,9 +111,8 @@ def create_vpay_payment(request):
         )
 
     # Não permitir nova assinatura se já existe uma ativa.
-    existing_subscription = user.subscriptions.filter(
-        status='active',
-        end_date__gt=timezone.now(),
+    existing_subscription = user.subscriptions.filter(status='active').filter(
+        Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
     ).first()
     if existing_subscription:
         return Response(
@@ -274,6 +279,59 @@ def create_vpay_payment(request):
             {'error': 'Erro ao processar pagamento. Tente novamente.'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def activate_test_plan(request):
+    """Simula uma compra e ativa o plano de teste apenas para staff/admin."""
+    user = request.user
+    plan_slug = request.data.get('plan_slug')
+    plan = get_plan(plan_slug)
+    if (
+        not plan
+        or not plan.get('is_active')
+        or not plan.get('staff_only')
+        or plan.get('payment_mode') != 'test'
+    ):
+        return Response({'error': 'Plano de teste inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    existing_subscription = user.subscriptions.filter(status='active').filter(
+        Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
+    ).first()
+    if existing_subscription:
+        return Response(
+            {'error': 'Você já possui uma assinatura ativa.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    from .payment_helpers import apply_vpay_status
+    with transaction.atomic():
+        reference = f"TEST{user.id}{uuid.uuid4().hex[:12].upper()}"
+        payment = Payment.objects.create(
+            user=user,
+            amount=Decimal(str(plan['price'])),
+            currency='MZN',
+            phone_number=getattr(user, 'phone', '') or '',
+            transaction_id=reference,
+            gateway='test',
+            payment_method='test',
+            status='pending',
+            metadata={
+                'plan': plan_slug,
+                'plan_name': plan['name'],
+                'gateway': 'test',
+                'simulated': True,
+            },
+        )
+        apply_vpay_status(payment, 'paid', activate=True)
+
+    return Response({
+        'success': True,
+        'message': 'Ativação de teste concluída; nenhum pagamento foi efetuado.',
+        'payment': PaymentSerializer(payment).data,
+        'subscription': SubscriptionSerializer(payment.subscription).data,
+    }, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])

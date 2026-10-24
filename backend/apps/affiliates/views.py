@@ -210,6 +210,9 @@ def withdraw(request):
                 'error': 'Saldo disponível insuficiente.',
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        fee_rate = Decimal(str(getattr(settings, 'AFFILIATE_WITHDRAWAL_FEE_RATE', 6)))
+        fee_amount = (amount * fee_rate / Decimal('100')).quantize(Decimal('0.01'))
+        payout_amount = amount - fee_amount
         if not affiliate.payout_account.strip():
             return Response({
                 'error': 'Configure uma conta de pagamento antes de pedir o levantamento.',
@@ -218,6 +221,9 @@ def withdraw(request):
         withdrawal = AffiliateWithdrawal.objects.create(
             affiliate=affiliate,
             amount=amount,
+            fee_rate=fee_rate,
+            fee_amount=fee_amount,
+            payout_amount=payout_amount,
             payout_method=affiliate.payout_method,
             payout_account=affiliate.payout_account,
         )
@@ -244,7 +250,7 @@ def withdraw(request):
     # Notificar o afiliado por email (não bloqueia o pedido).
     try:
         from .emails import send_withdrawal_requested_email
-        send_withdrawal_requested_email(affiliate, amount)
+        send_withdrawal_requested_email(affiliate, withdrawal)
     except Exception as exc:
         logger.warning('Falha ao enviar email de levantamento: %s', exc)
     try:
@@ -257,6 +263,9 @@ def withdraw(request):
         'message': 'Pedido de levantamento registado. Será processado pela equipa.',
         'id': withdrawal.pk,
         'requested_amount': amount,
+        'fee_rate': withdrawal.fee_rate,
+        'fee_amount': withdrawal.fee_amount,
+        'payout_amount': withdrawal.payout_amount,
         'available_balance': affiliate.available_balance,
         'payout_method': withdrawal.payout_method,
         'payout_account': withdrawal.payout_account,
@@ -275,6 +284,9 @@ def my_withdrawals(request):
     return Response([{
         'id': item.pk,
         'amount': str(item.amount),
+        'fee_rate': str(item.fee_rate),
+        'fee_amount': str(item.fee_amount),
+        'payout_amount': str(item.payout_amount),
         'payout_method': item.payout_method,
         'payout_method_display': item.get_payout_method_display(),
         'status': item.status,

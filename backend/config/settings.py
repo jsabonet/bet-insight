@@ -427,10 +427,15 @@ AFFILIATE_COOKIE_DAYS = int(os.getenv('AFFILIATE_COOKIE_DAYS', '30'))
 AFFILIATE_PENDING_DAYS = int(os.getenv('AFFILIATE_PENDING_DAYS', '14'))
 # Valor mínimo (MZN) para levantamento.
 AFFILIATE_MIN_WITHDRAWAL = int(os.getenv('AFFILIATE_MIN_WITHDRAWAL', '200'))
+AFFILIATE_FIXED_COMMISSION = os.getenv('AFFILIATE_FIXED_COMMISSION', '100')
+AFFILIATE_WITHDRAWAL_FEE_RATE = os.getenv('AFFILIATE_WITHDRAWAL_FEE_RATE', '6')
 # Planos que não geram comissão (separados por vírgula).
 AFFILIATE_EXCLUDED_PLANS = [
     p.strip()
-    for p in os.getenv('AFFILIATE_EXCLUDED_PLANS', 'teste').split(',')
+    for p in os.getenv(
+        'AFFILIATE_EXCLUDED_PLANS',
+        'teste,premium_vitalicio_teste',
+    ).split(',')
     if p.strip()
 ]
 

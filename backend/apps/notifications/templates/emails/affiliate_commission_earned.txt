@@ -3,7 +3,8 @@ Nova comissão ganha 💰
 Olá, {{ user_name }}! Uma nova indicação converteu e gerou uma comissão para si.
 
 - Valor: {{ amount }} {{ currency }}
-- Taxa aplicada: {{ rate }}%
+- Tipo de comissão: {{ commission_type_display }}
+- Taxa percentual histórica (se aplicável): {{ rate }}%
 - Estado: pendente (disponível após revisão)
 
 Ver comissões: {{ site_url }}/affiliate

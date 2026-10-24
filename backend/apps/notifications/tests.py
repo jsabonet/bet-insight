@@ -380,6 +380,31 @@ class PushEventTaskTests(TestCase):
         self.assertIn('5 novo(s) bilhete(s)', deliver.call_args.args[2]['body'])
         self.assertEqual(deliver.call_args.args[2]['url'], '/daily-bets')
 
+    @override_settings(WEBPUSH_VAPID_PUBLIC_KEY='public', WEBPUSH_VAPID_PRIVATE_KEY='private')
+    @patch('apps.notifications.tasks.deliver_push_once', return_value=True)
+    def test_daily_bet_alert_includes_lifetime_premium_subscribers(self, deliver):
+        from apps.subscriptions.models import Subscription
+
+        self.user.is_premium = True
+        self.user.premium_until = None
+        self.user.save(update_fields=['is_premium', 'premium_until'])
+        Subscription.objects.create(
+            user=self.user,
+            plan='monthly',
+            plan_slug='premium_vitalicio',
+            status='active',
+            end_date=None,
+            amount_paid=250,
+            auto_renew=False,
+        )
+        self.subscription.premium_bets_enabled = True
+        self.subscription.save(update_fields=['premium_bets_enabled'])
+
+        result = send_premium_daily_bets_push.run('2026-10-24', 1, 1)
+
+        self.assertEqual(result, {'sent': 1, 'recipients': 1})
+        self.assertEqual(deliver.call_count, 1)
+
 
 class VapidKeyCommandTests(TestCase):
     def test_generated_keys_form_a_valid_vapid_pair(self):

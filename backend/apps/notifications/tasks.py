@@ -6,6 +6,7 @@ from datetime import timedelta
 from celery import shared_task
 from django.conf import settings
 from django.utils import timezone
+from django.db.models import Q
 
 from apps.analysis.models import Analysis
 from apps.matches.models import Match
@@ -315,11 +316,15 @@ def send_premium_daily_bets_push(self, target_date, multiple_count, value_count)
     now = timezone.now()
     subscriptions = PushSubscription.objects.filter(
         user__is_premium=True,
-        user__premium_until__gte=now,
         user__push_enabled=True,
         active=True,
         premium_bets_enabled=True,
-    ).select_related('user')
+    ).filter(
+        Q(user__premium_until__gte=now)
+        | Q(user__premium_until__isnull=True, user__subscriptions__status='active',
+            user__subscriptions__plan_slug__in=('premium_vitalicio', 'premium_vitalicio_teste'),
+            user__subscriptions__end_date__isnull=True)
+    ).distinct().select_related('user')
     total = multiple_count + value_count
     payload = {
         'title': 'Bilhetes automáticos disponíveis',

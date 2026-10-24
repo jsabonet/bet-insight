@@ -18,6 +18,9 @@ class PlanSerializer(serializers.Serializer):
     popular = serializers.BooleanField(required=False, default=False)
     trial_days = serializers.IntegerField(required=False)
     savings = serializers.IntegerField(required=False)
+    original_price = serializers.IntegerField(required=False)
+    lifetime = serializers.BooleanField(required=False)
+    payment_mode = serializers.CharField(required=False)
 
 
 class SubscriptionSerializer(serializers.ModelSerializer):
@@ -68,6 +71,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
             'features': plan.get('features', []),
             'color': plan.get('color', 'blue'),
             'description': plan.get('description', ''),
+            'lifetime': plan.get('lifetime', False),
         }
 
 

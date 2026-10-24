@@ -27,6 +27,8 @@ PLAN_CHOICE_MAP = {
     'pro': 'monthly',
     'vip': 'monthly',
     'teste': 'monthly',
+    'premium_vitalicio': 'monthly',
+    'premium_vitalicio_teste': 'monthly',
 }
 
 
@@ -47,6 +49,8 @@ def activate_subscription_for_payment(payment):
     plan_config.get_plan_duration(plan_slug) e cai nas durações legadas
     (monthly/quarterly/yearly) quando o slug não está configurado.
     """
+    from .plan_config import is_lifetime_plan
+
     plan_slug = (payment.metadata or {}).get('plan') or 'monthly'
     plan_choice = PLAN_CHOICE_MAP.get(plan_slug, 'monthly')
 
@@ -56,7 +60,7 @@ def activate_subscription_for_payment(payment):
             plan=plan_choice,
             plan_slug=plan_slug,
             status='active',
-            auto_renew=True,
+            auto_renew=not is_lifetime_plan(plan_slug),
             amount_paid=payment.amount,
         )
         payment.subscription = subscription
@@ -70,7 +74,7 @@ def activate_subscription_for_payment(payment):
         subscription.status = 'active'
         subscription.plan = plan_choice
         subscription.plan_slug = plan_slug
-        subscription.auto_renew = True
+        subscription.auto_renew = not is_lifetime_plan(plan_slug)
         subscription.save()
         logger.info(
             'Assinatura %s ativada via pagamento %s (plano %s)',

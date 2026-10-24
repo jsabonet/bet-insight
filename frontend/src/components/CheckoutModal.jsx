@@ -3,11 +3,12 @@ import { X, CreditCard, Loader2, XCircle, Gift } from 'lucide-react';
 import api from '../services/api';
 import { getAffiliateRef } from '../utils/affiliate';
 
-export default function CheckoutModal({ plan, onClose }) {
+export default function CheckoutModal({ plan, onClose, onComplete }) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showPromo, setShowPromo] = useState(false);
   const [promoCode, setPromoCode] = useState(getAffiliateRef());
+  const [testActivated, setTestActivated] = useState(false);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -15,6 +16,14 @@ export default function CheckoutModal({ plan, onClose }) {
     setErrorMessage('');
 
     try {
+      if (plan.payment_mode === 'test') {
+        const response = await api.post('/subscriptions/payments/test/activate/', {
+          plan_slug: plan.slug,
+        });
+        setTestActivated(true);
+        onComplete?.(response.data);
+        return;
+      }
       const body = { plan_slug: plan.slug };
       if (promoCode.trim()) {
         body.ref = promoCode.trim().toUpperCase();
@@ -50,7 +59,7 @@ export default function CheckoutModal({ plan, onClose }) {
         <div className="sticky top-0 flex items-center justify-between border-b border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Finalizar Assinatura
+              {plan.payment_mode === 'test' ? 'Testar Premium' : 'Finalizar Assinatura'}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">{plan.name}</p>
           </div>
@@ -66,6 +75,17 @@ export default function CheckoutModal({ plan, onClose }) {
         </div>
 
         <div className="p-6">
+          {testActivated ? (
+            <div className="text-center">
+              <p className="mb-4 font-semibold text-green-700 dark:text-green-400">
+                Ativação de teste concluída. Nenhum pagamento foi efetuado.
+              </p>
+              <button type="button" onClick={onClose} className="btn-primary w-full">
+                Fechar
+              </button>
+            </div>
+          ) : (
+          <>
           {errorMessage && (
             <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
               <div className="mb-2 flex items-center gap-3">
@@ -92,11 +112,13 @@ export default function CheckoutModal({ plan, onClose }) {
             <div className="mb-2 flex items-center justify-between">
               <span className="text-gray-600 dark:text-gray-400">Duração:</span>
               <span className="font-bold text-gray-900 dark:text-gray-100">
-                {plan.duration_days} dias
+                {plan.lifetime ? 'Vitalícia' : `${plan.duration_days} dias`}
               </span>
             </div>
             <div className="mt-2 flex items-center justify-between border-t border-primary-200 pt-2 dark:border-primary-700">
-              <span className="text-lg font-bold text-gray-900 dark:text-gray-100">Total:</span>
+              <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                {plan.payment_mode === 'test' ? 'Valor de referência:' : 'Total:'}
+              </span>
               <span className="text-2xl font-bold text-primary-600 dark:text-primary-400">
                 {plan.price.toLocaleString()} MZN
               </span>
@@ -104,6 +126,12 @@ export default function CheckoutModal({ plan, onClose }) {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {plan.payment_mode === 'test' ? (
+              <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200">
+                Modo de teste exclusivo para staff/admin. A ativação é simulada e não contacta nenhum gateway.
+              </div>
+            ) : (
+            <>
             <div className="rounded-xl border-2 border-violet-600 bg-violet-50 p-4 ring-2 ring-violet-200 dark:border-violet-500 dark:bg-violet-900/20">
               <div className="flex flex-col items-center justify-center gap-2">
                 <span className="rounded bg-violet-700 px-5 py-2 text-lg font-bold text-white">
@@ -135,6 +163,8 @@ export default function CheckoutModal({ plan, onClose }) {
                 />
               )}
             </div>
+            </>
+            )}
 
             <button
               type="submit"
@@ -144,12 +174,12 @@ export default function CheckoutModal({ plan, onClose }) {
               {loading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  A criar pedido VPay...
+                  {plan.payment_mode === 'test' ? 'A ativar teste...' : 'A criar pedido VPay...'}
                 </>
               ) : (
                 <>
                   <CreditCard className="h-5 w-5" />
-                  Continuar para Checkout VPay
+                  {plan.payment_mode === 'test' ? 'Ativar plano de teste' : 'Continuar para Checkout VPay'}
                 </>
               )}
             </button>
@@ -157,10 +187,13 @@ export default function CheckoutModal({ plan, onClose }) {
 
           <div className="mt-4 rounded-lg bg-gray-50 p-3 dark:bg-gray-700/50">
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              Pagamento seguro via checkout hospedado VPay. O estado só será confirmado
-              após validação do servidor VPay.
+              {plan.payment_mode === 'test'
+                ? 'Ativação simulada para testar o fluxo; não é enviado qualquer pagamento.'
+                : 'Pagamento seguro via checkout hospedado VPay. O estado só será confirmado após validação do servidor VPay.'}
             </p>
           </div>
+          </>
+          )}
         </div>
       </div>
     </div>

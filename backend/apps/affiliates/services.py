@@ -23,10 +23,13 @@ def get_setting(name, default):
 
 def excluded_plans():
     """Planos que NÃO geram comissão (ex.: 'teste')."""
-    value = get_setting('AFFILIATE_EXCLUDED_PLANS', ['teste'])
+    value = get_setting(
+        'AFFILIATE_EXCLUDED_PLANS',
+        ['teste', 'premium_vitalicio_teste'],
+    )
     if isinstance(value, str):
         value = [p.strip() for p in value.split(',') if p.strip()]
-    return set(value)
+    return set(value) | {'teste', 'premium_vitalicio_teste'}
 
 
 def resolve_affiliate_by_code(code):
@@ -172,16 +175,14 @@ def create_commission_if_applicable(payment):
     if plan_price <= 0:
         return None
 
-    # Determina se é uma renovação (o utilizador já converteu antes) para
-    # aplicar a taxa de renovação em vez da taxa de 1ª venda.
     referral = None
     if payment.user_id:
         referral = AffiliateReferral.objects.filter(user_id=payment.user_id).first()
 
-    is_renewal = referral is not None and referral.converted_at is not None
-    effective_rate = affiliate.renewal_rate if is_renewal else affiliate.commission_rate
-    rate = Decimal(str(effective_rate or 0))
-    amount = (plan_price * rate).quantize(Decimal('0.01'))
+    amount = Decimal(str(get_setting('AFFILIATE_FIXED_COMMISSION', 100))).quantize(
+        Decimal('0.01')
+    )
+    rate = Decimal('0.00')
 
     if amount <= 0:
         return None
@@ -198,6 +199,7 @@ def create_commission_if_applicable(payment):
                 'referral': referral,
                 'amount': amount,
                 'rate': rate,
+                'commission_type': 'fixed',
                 'status': 'pending',
                 'available_at': timezone.now() + timezone.timedelta(
                     days=int(get_setting('AFFILIATE_PENDING_DAYS', 14))
@@ -208,8 +210,8 @@ def create_commission_if_applicable(payment):
     if created:
         _update_affiliate_balances(affiliate)
         logger.info(
-            'Comissão criada: %s MZN (%.2f%%) para %s via pagamento %s',
-            amount, rate, affiliate.code, payment.transaction_id,
+            'Comissão fixa criada: %s MZN para %s via pagamento %s',
+            amount, affiliate.code, payment.transaction_id,
         )
         # Notificar o afiliado por email (não bloqueia a criação da comissão).
         try:

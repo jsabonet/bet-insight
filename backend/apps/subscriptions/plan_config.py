@@ -33,6 +33,49 @@ PLANS = {
             '🧪 Apenas para testes de pagamento',
         ],
         'description': 'Plano de teste - 1 MZN',
+        'is_active': False,
+        'color': 'green',
+        'popular': False,
+    },
+    'premium_vitalicio': {
+        'name': 'Premium Vitalício',
+        'slug': 'premium_vitalicio',
+        'price': 250,
+        'original_price': 400,
+        'daily_analysis_limit': 150,
+        'duration_days': None,
+        'lifetime': True,
+        'payment_mode': 'vpay',
+        'features': [
+            'Acesso vitalício a todas as funcionalidades Premium',
+            'Até 150 análises por dia',
+            'Análises de IA avançada',
+            'Histórico ilimitado',
+            'Todas as ligas',
+            'Notificações e bilhetes automáticos Premium',
+            'Pagamento único, sem renovação',
+        ],
+        'description': 'Pague uma vez e use para sempre. Oferta de lançamento.',
+        'is_active': True,
+        'color': 'yellow',
+        'popular': True,
+    },
+    'premium_vitalicio_teste': {
+        'name': 'Premium Vitalício (Teste)',
+        'slug': 'premium_vitalicio_teste',
+        'price': 250,
+        'original_price': 400,
+        'daily_analysis_limit': 150,
+        'duration_days': None,
+        'lifetime': True,
+        'payment_mode': 'test',
+        'staff_only': True,
+        'features': [
+            'Acesso vitalício de teste às funcionalidades Premium',
+            'Ativação simulada, sem pagamento real',
+            'Disponível apenas para staff/admin',
+        ],
+        'description': 'Plano interno para testar a ativação Premium.',
         'is_active': True,
         'color': 'green',
         'popular': False,
@@ -131,3 +174,9 @@ def get_plan_duration(slug):
     """Retorna a duração em dias de um plano"""
     plan = get_plan(slug)
     return plan['duration_days'] if plan else None
+
+
+def is_lifetime_plan(slug):
+    """Return whether the configured plan grants access without an expiry."""
+    plan = get_plan(slug)
+    return bool(plan and plan.get('lifetime'))

@@ -35,7 +35,11 @@ def _daily_limit(subscription):
 def send_subscription_activated_email(user, subscription):
     """Email de boas-vindas ao premium (assinatura ativada)."""
     try:
-        end_date = subscription.end_date.strftime("%d/%m/%Y")
+        end_date = (
+            subscription.end_date.strftime("%d/%m/%Y")
+            if subscription.end_date
+            else "Vitalício"
+        )
         send_template_email(
             to=user.email,
             subject="Bem-vindo ao PlacarCerto Premium! 🎉",

@@ -85,6 +85,8 @@ def send_commission_earned_email(commission):
             context={
                 "user_name": user.username,
                 "amount": f"{commission.amount:g}",
+                "commission_type": commission.commission_type,
+                "commission_type_display": commission.get_commission_type_display(),
                 "rate": f"{commission.rate:g}",
                 "currency": "MZN",
             },
@@ -142,7 +144,7 @@ def send_commission_paid_email(commission):
         return False
 
 
-def send_withdrawal_requested_email(affiliate, amount):
+def send_withdrawal_requested_email(affiliate, withdrawal):
     """Email de confirmação quando um pedido de levantamento é registado."""
     try:
         user = affiliate.user
@@ -152,7 +154,9 @@ def send_withdrawal_requested_email(affiliate, amount):
             template_name="affiliate_withdrawal_requested",
             context={
                 "user_name": user.username,
-                "amount": f"{amount:g}",
+                "amount": f"{withdrawal.amount:g}",
+                "fee_amount": f"{withdrawal.fee_amount:g}",
+                "payout_amount": f"{withdrawal.payout_amount:g}",
                 "payout_method": affiliate.get_payout_method_display(),
                 "currency": "MZN",
             },
@@ -184,7 +188,9 @@ def send_withdrawal_admin_email(withdrawal):
     affiliate = withdrawal.affiliate
     subject = f"Novo pedido de levantamento de afiliado - {affiliate.code}"
     message = (
-        f"Foi recebido um pedido de levantamento de {withdrawal.amount:g} MZN.\n\n"
+        f"Foi recebido um pedido de levantamento de {withdrawal.amount:g} MZN.\n"
+        f"Taxa da plataforma ({withdrawal.fee_rate:g}%): {withdrawal.fee_amount:g} MZN.\n"
+        f"Valor líquido a pagar: {withdrawal.payout_amount:g} MZN.\n\n"
         f"Afiliado: {affiliate.code} ({affiliate.user.username})\n"
         f"Email: {affiliate.user.email or 'não informado'}\n"
         f"Método: {withdrawal.get_payout_method_display()}\n"

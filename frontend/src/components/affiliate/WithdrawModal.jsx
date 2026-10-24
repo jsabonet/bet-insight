@@ -7,6 +7,9 @@ export default function WithdrawModal({ availableBalance, onClose, onDone }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const grossAmount = Number(amount) || 0;
+  const feeAmount = Math.round(grossAmount * 0.06 * 100) / 100;
+  const payoutAmount = Math.max(0, grossAmount - feeAmount);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,6 +65,18 @@ export default function WithdrawModal({ availableBalance, onClose, onDone }) {
                   required
                 />
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Valor mínimo: 200 MZN</p>
+                {grossAmount > 0 && (
+                  <div className="mt-3 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-700/50">
+                    <p className="flex justify-between">
+                      <span>Taxa da plataforma (6%)</span>
+                      <span>{feeAmount.toFixed(2)} MZN</span>
+                    </p>
+                    <p className="mt-1 flex justify-between font-semibold">
+                      <span>Valor líquido a receber</span>
+                      <span>{payoutAmount.toFixed(2)} MZN</span>
+                    </p>
+                  </div>
+                )}
               </div>
 
               {error && (

@@ -6,6 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.throttling import ScopedRateThrottle
 from django.utils import timezone
+from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 from apps.subscriptions.plan_config import get_plan_limit
@@ -124,7 +125,13 @@ class UserStatsView(generics.GenericAPIView):
             analyses_today = user.daily_analysis_count
 
         # Determinar assinatura ativa e limite diário a partir dela
-        active_sub = user.subscriptions.filter(status='active', end_date__gt=timezone.now()).first()
+        active_subscriptions = user.subscriptions.filter(status='active').filter(
+            Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
+        )
+        active_sub = (
+            active_subscriptions.filter(end_date__isnull=True).first()
+            or active_subscriptions.order_by('-end_date').first()
+        )
         if active_sub and active_sub.plan_slug:
             daily_limit = get_plan_limit(active_sub.plan_slug)
         else:

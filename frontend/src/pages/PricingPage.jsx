@@ -191,6 +191,11 @@ export default function PricingPage() {
                         Ativo
                       </span>
                     )}
+                    {isCurrent && plan.lifetime && (
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                        Sem data de expiração
+                      </p>
+                    )}
                   </div>
 
                   {/* Plan Name */}
@@ -214,11 +219,20 @@ export default function PricingPage() {
                         </>
                       )}
                     </div>
-                    {plan.duration_days && (
+                    {plan.original_price && plan.original_price > plan.price && (
+                      <p className="text-xs text-gray-500 line-through">
+                        Preço normal: {plan.original_price} MZN
+                      </p>
+                    )}
+                    {plan.lifetime ? (
+                      <p className="text-sm font-semibold text-green-600 dark:text-green-400 mt-1">
+                        Acesso vitalício · pagamento único
+                      </p>
+                    ) : plan.duration_days ? (
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         por {plan.duration_days} dias
                       </p>
-                    )}
+                    ) : null}
                   </div>
 
                   {/* Daily limit */}
@@ -229,6 +243,11 @@ export default function PricingPage() {
                     {isCurrent && currentSubscription && currentSubscription.end_date && (
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                         Expira em: {new Date(currentSubscription.end_date).toLocaleString()} ({Math.max(0, Math.ceil((new Date(currentSubscription.end_date) - new Date()) / (1000*60*60*24)))} dias)
+                      </p>
+                    )}
+                    {isCurrent && plan.lifetime && (
+                      <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                        Sem data de expiração
                       </p>
                     )}
                     {isCurrent && userStats && (
@@ -266,12 +285,13 @@ export default function PricingPage() {
                         : 'bg-primary-600 dark:bg-primary-500 text-white hover:bg-primary-700 dark:hover:bg-primary-600'
                     }`}
                   >
-                    {isCurrent 
-                      ? '✓ Plano Atual' 
-                      : plan.slug === 'freemium' 
-                      ? 'Plano Padrão' 
-                      : 'Assinar Agora'
-                    }
+                    {isCurrent
+                      ? '✓ Plano Atual'
+                      : plan.slug === 'freemium'
+                        ? 'Plano Padrão'
+                        : plan.payment_mode === 'test'
+                          ? 'Testar Premium'
+                          : 'Assinar Agora'}
                   </button>
 
                   {/* Features */}

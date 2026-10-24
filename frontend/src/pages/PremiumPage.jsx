@@ -166,11 +166,15 @@ export default function PremiumPage() {
                 Limite diário: <span className="font-semibold">{currentDailyLimit}</span> análises
               </p>
             )}
-            {currentSubscription?.end_date && (
+            {currentSubscription?.end_date ? (
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Expira em: {new Date(currentSubscription.end_date).toLocaleString()}
               </p>
-            )}
+            ) : currentSubscription?.plan_slug?.startsWith('premium_vitalicio') ? (
+              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                Acesso vitalício — sem data de expiração
+              </p>
+            ) : null}
             <div className="mt-6">
               <button
                 onClick={() => navigate('/')}
@@ -265,6 +269,11 @@ export default function PremiumPage() {
                       </span>
                     ) : (
                       <>
+                        {plan.original_price && plan.original_price > plan.price && (
+                          <p className="text-sm text-gray-500 line-through">
+                            {plan.original_price} MZN
+                          </p>
+                        )}
                         <span className="text-4xl font-bold text-gray-900 dark:text-gray-100">
                           {plan.price}
                         </span>
@@ -273,11 +282,15 @@ export default function PremiumPage() {
                     )}
                   </div>
                   
-                  {plan.duration_days && (
+                  {plan.lifetime ? (
+                    <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+                      Acesso vitalício · pagamento único
+                    </p>
+                  ) : plan.duration_days ? (
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       por {plan.duration_days} dias
                     </p>
-                  )}
+                  ) : null}
                   
                   {plan.savings && (
                     <p className="text-sm text-green-600 dark:text-green-400 font-medium mt-2">
@@ -312,7 +325,13 @@ export default function PremiumPage() {
                       : 'bg-gray-900 dark:bg-gray-700 text-white hover:bg-gray-800 dark:hover:bg-gray-600 active:scale-95'
                   }`}
                 >
-                  {isCurrent ? '✓ Plano Atual' : plan.slug === 'freemium' ? 'Plano Padrão' : 'Assinar Agora'}
+                  {isCurrent
+                    ? '✓ Plano Atual'
+                    : plan.slug === 'freemium'
+                      ? 'Plano Padrão'
+                      : plan.payment_mode === 'test'
+                        ? 'Testar Premium'
+                        : 'Assinar Agora'}
                 </button>
               </div>
             );
@@ -359,6 +378,10 @@ export default function PremiumPage() {
           plan={selectedPlan}
           onClose={() => {
             setShowCheckout(false);
+          }}
+          onComplete={() => {
+            loadCurrentSubscription();
+            loadUserStats();
           }}
         />
       )}
