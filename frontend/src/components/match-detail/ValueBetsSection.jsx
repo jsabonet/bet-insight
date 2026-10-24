@@ -642,6 +642,11 @@ export default function ValueBetsSection({ analysis, match }) {
                     <div className="font-bold text-gray-900 dark:text-white mb-1 text-lg">
                       {vb.market_display}
                     </div>
+                    {vb.original_market && vb.line_adjustment && (
+                      <div className="text-xs text-amber-700 dark:text-amber-400 mb-1">
+                        Linha ajustada: {vb.original_market.replace(/_/g, ' ')} → {vb.market.replace(/_/g, ' ')}
+                      </div>
+                    )}
                     <div className="text-sm text-gray-600 dark:text-gray-400">
                       Probabilidade do modelo: {(vb.model_probability * 100).toFixed(1)}%
                     </div>

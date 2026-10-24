@@ -18,6 +18,12 @@ from apps.analysis.config.market_standards import (
     is_derived_market
 )
 from apps.analysis.services.odds_calculator import OddsCalculator
+from apps.analysis.services.goal_line_safety import (
+    conservative_total_market,
+    goal_market_odd_entry,
+    line_adjustment_label,
+    normalized_probabilities,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -105,9 +111,18 @@ class MarketSelector:
             normalized_poisson[normalized_key] = value
         
         # Combinar consensus + poisson normalizado para ter todos os mercados
-        all_probabilities = {**normalized_poisson, **consensus}
-        
-        logger.info(f"\n🔍 Analisando TODOS os mercados disponíveis: {len(all_probabilities)}")
+        all_probabilities = normalized_probabilities({**normalized_poisson, **consensus})
+        candidate_sources = {}
+        for market_key in all_probabilities:
+            normalized_market = normalize_market_name(market_key) or market_key
+            adjusted_market = conservative_total_market(normalized_market) or normalized_market
+            if adjusted_market not in all_probabilities:
+                continue
+            existing_source = candidate_sources.get(adjusted_market)
+            if existing_source is None or existing_source == adjusted_market:
+                candidate_sources[adjusted_market] = normalized_market
+
+        logger.info(f"\n🔍 Analisando mercados ajustados: {len(candidate_sources)}")
         
         # Criar lookup de context scores do ContextAnalyzer (se disponível)
         context_scores_lookup = {}
@@ -165,7 +180,8 @@ class MarketSelector:
         # Preparar candidatos de TODOS os mercados
         candidates = []
         
-        for market_key, probability in all_probabilities.items():
+        for market_key, original_market in candidate_sources.items():
+            probability = all_probabilities[market_key]
             # Ignorar probabilidades muito baixas
             if probability < 0.10:
                 continue
@@ -196,6 +212,8 @@ class MarketSelector:
             
             candidates.append({
                 'market': normalized_market,
+                'original_market': original_market if original_market != normalized_market else None,
+                'line_adjustment': line_adjustment_label(original_market, normalized_market),
                 'context_score': context_score,
                 'supporting_patterns': supporting_patterns,
                 'probability': probability,
@@ -218,7 +236,14 @@ class MarketSelector:
             market_odd = self._get_market_odd(normalized_market, market_odds)
             
             # Verificar se é odd simulada
-            odd_source = OddsCalculator.get_odd_source(market_odds, normalized_market) if isinstance(market_odds.get(normalized_market), dict) else None
+            odd_data = goal_market_odd_entry(normalized_market, market_odds)
+            odd_source = (
+                odd_data.get('source')
+                if isinstance(odd_data, dict)
+                else None
+            )
+            if isinstance(odd_data, dict) and odd_data.get('is_simulated'):
+                odd_source = 'simulated'
             
             # Calcular EV (apenas para logging e filtragem, não para score)
             if market_odd and market_odd > 0 and probability > 0:
@@ -319,6 +344,11 @@ class MarketSelector:
                 context_analysis.get('patterns', []),
                 model_predictions  # 🆕 NOVO: passar model_predictions para razões contextualizadas
             )
+            if market_data.get('line_adjustment'):
+                reasoning = (
+                    f"Linha ajustada por prudência: {market_data['line_adjustment']}. "
+                    f"{reasoning}"
+                )
             
             logger.info(f"      ✅ Aprovado!")
             
@@ -336,6 +366,8 @@ class MarketSelector:
             
             approved_candidates.append({
                 'market': normalized_market,
+                'original_market': market_data.get('original_market'),
+                'line_adjustment': market_data.get('line_adjustment', ''),
                 'market_display': get_market_display_name(normalized_market),
                 'probability': probability,
                 'context_score': context_score,

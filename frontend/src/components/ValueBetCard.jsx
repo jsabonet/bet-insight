@@ -95,6 +95,11 @@ export default function ValueBetCard({ bet, onViewAnalysis }) {
           <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
             {formatMarket(selection.market_label || selection.market || 'Mercado')}
           </p>
+          {selection.original_market && selection.line_adjustment && (
+            <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+              Linha ajustada: {formatMarket(selection.original_market)} → {formatMarket(selection.market)}
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-3">

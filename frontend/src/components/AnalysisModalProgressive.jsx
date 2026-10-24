@@ -217,6 +217,9 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze, is
         text += `🎲 TOP APOSTAS\n`;
         topBets.forEach((bet, index) => {
           text += `${index + 1}. ${bet.market_display}\n`;
+          if (bet.original_market && bet.line_adjustment) {
+            text += `   Linha ajustada: ${bet.original_market.replace(/_/g, ' ')} → ${bet.market.replace(/_/g, ' ')}\n`;
+          }
           text += `   📊 Probabilidade: ${formatProb(bet.probability)}%\n`;
           if (bet.market_odd) {
             text += `   💰 Odd: ${(bet.market_odd || 0).toFixed(2)}\n`;
@@ -580,6 +583,11 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze, is
                         <p className="text-sm text-gray-600 dark:text-gray-400">
                           {bet.pick}
                         </p>
+                        {bet.original_market && bet.line_adjustment && (
+                          <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                            Linha ajustada: {bet.original_market.replace(/_/g, ' ')} → {bet.market.replace(/_/g, ' ')}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="text-right">

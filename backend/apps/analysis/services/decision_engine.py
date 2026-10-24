@@ -7,6 +7,14 @@ import numpy as np
 from typing import Dict
 from .market_selector import MarketSelector  # NOVO
 from apps.analysis.config import DecisionThresholds, ContextPolicy
+from apps.analysis.config.market_standards import get_market_display_name
+from .goal_line_safety import (
+    conservative_total_market,
+    goal_market_odd,
+    goal_market_odd_entry,
+    line_adjustment_label,
+    normalized_probabilities,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -312,8 +320,8 @@ class DecisionEngine:
         Regras (apenas para strategy == 'multiple'):
         1. Dérbi/Rivalidade emocional extrema -> remove mercados de golos
            agressivos (Over/Under 2.5), mantendo apenas mercados de proteção.
-        2. Elasticidade pragmática -> rebaixa 'Over 2.5' para 'Total Over 1.5'
-           e ajusta a odd associada.
+        As linhas de golos já são ajustadas pelo MarketSelector com probabilidades
+        e odds da linha de destino; não aplicar descontos estimados nesta fase.
 
         Args:
             validated_selections (list): lista de apostas (top_bets ou value_bets)
@@ -336,8 +344,6 @@ class DecisionEngine:
                     "removendo mercados de golos agressivos (Over/Under 2.5)"
                 )
                 selections = self._filter_derby_goals(selections)
-
-            selections = self._apply_elasticity(selections, match)
 
             return selections
         except Exception as e:
@@ -381,10 +387,6 @@ class DecisionEngine:
         normalized = self._normalize_market(market_str)
         return ('over 2 5' in normalized) or ('under 2 5' in normalized)
 
-    def _is_over_25(self, market_str):
-        """True se o mercado é textualmente 'Over 2.5'/'Total Over 2.5'."""
-        return 'over 2 5' in self._normalize_market(market_str)
-
     def _filter_derby_goals(self, selections):
         """Remove mercados de golos agressivos em dérbis (estratégia multiple)."""
         kept = []
@@ -399,80 +401,6 @@ class DecisionEngine:
             kept.append(selection)
         return kept
 
-    @staticmethod
-    def _extract_numeric_odd(value):
-        """Extrai valor numérico de uma odd (suporta dict {'value': x})."""
-        if value is None:
-            return None
-        if isinstance(value, dict):
-            value = value.get('value')
-        try:
-            numeric = float(value)
-            return numeric if numeric > 0 else None
-        except (TypeError, ValueError):
-            return None
-
-    def _extract_selection_odd(self, selection):
-        """Extrai a odd de uma seleção (market_odd ou odd)."""
-        return self._extract_numeric_odd(
-            selection.get('market_odd', selection.get('odd'))
-        )
-
-    def _resolve_over_15_odd(self, selection, old_odd):
-        """
-        Resolve a odd para 'Total Over 1.5':
-        1) chave explícita (odd_over_15 / odd_over_1_5)
-        2) desconto estatístico seguro (odd - 0.20)
-        3) fallback seguro (1.35)
-        """
-        for key in ('odd_over_15', 'odd_over_1_5', 'over_1_5_odd', 'over_15_odd'):
-            explicit = self._extract_numeric_odd(selection.get(key))
-            if explicit is not None:
-                return explicit
-
-        if old_odd is not None and old_odd > 0:
-            discounted = round(old_odd - 0.20, 2)
-            if discounted > 0:
-                return discounted
-
-        return 1.35
-
-    def _apply_elasticity(self, selections, match):
-        """Rebaixa 'Over 2.5' -> 'Total Over 1.5' (estratégia multiple)."""
-        match_id = getattr(match, 'id', 'N/A')
-        updated = []
-        for selection in selections:
-            try:
-                market = selection.get('market', selection.get('market_display', ''))
-                if not self._is_over_25(market):
-                    updated.append(selection)
-                    continue
-
-                old_odd = self._extract_selection_odd(selection)
-                new_odd = self._resolve_over_15_odd(selection, old_odd)
-
-                downgraded = dict(selection)
-                downgraded['market'] = 'Total Over 1.5'
-                downgraded['market_display'] = 'Total Over 1.5'
-                downgraded['market_odd'] = new_odd
-                if 'odd' in downgraded:
-                    downgraded['odd'] = new_odd
-                downgraded['elasticity_applied'] = True
-                downgraded['original_market'] = market
-
-                logger.info(
-                    f"📉 [Elasticidade] Linha rebaixada de Over 2.5 para "
-                    f"Total Over 1.5 na partida {match_id}"
-                )
-                updated.append(downgraded)
-            except Exception as e:
-                logger.warning(
-                    f"⚠️ [Elasticidade] Falha ao rebaixar linha ({e}) - "
-                    "mantendo seleção original"
-                )
-                updated.append(selection)
-        return updated
-
     def _calculate_fair_odds(self, model_predictions):
         """
         Calcula odds justas (sem margem da casa)
@@ -481,7 +409,9 @@ class DecisionEngine:
         Com validação para evitar odds absurdas
         """
         consensus = model_predictions.get('consensus', {})
-        poisson_probs = model_predictions.get('poisson', {}).get('probabilities', {})
+        poisson_probs = normalized_probabilities(
+            model_predictions.get('poisson', {}).get('probabilities', {})
+        )
         
         fair_odds = {}
         
@@ -496,9 +426,11 @@ class DecisionEngine:
         
         # Over/Under (múltiplas linhas) e BTTS (do Poisson)
         poisson_markets = [
+            'over_0.5', 'under_0.5',
             'over_1.5', 'under_1.5', 
             'over_2.5', 'under_2.5', 
             'over_3.5', 'under_3.5', 
+            'over_4.5', 'under_4.5',
             'btts',
             # Team Total Goals
             'home_over_0.5', 'home_over_1.5', 'home_over_2.5',
@@ -555,23 +487,50 @@ class DecisionEngine:
             'home_win': 'home',
             'draw': 'draw',
             'away_win': 'away',
-            'over_2_5': 'over_2_5',
-            'under_2_5': 'under_2_5',
             'btts': 'btts_yes'
         }
-        
+        poisson_probabilities = normalized_probabilities(
+            model_predictions.get('poisson', {}).get('probabilities', {})
+        )
+        total_markets_seen = set()
+        original_total_markets = {}
+        for source_market in poisson_probabilities:
+            target_market = conservative_total_market(source_market)
+            if target_market and target_market in poisson_probabilities:
+                current_source = original_total_markets.get(target_market)
+                if current_source is None or current_source == target_market:
+                    original_total_markets[target_market] = source_market
+
         for model_market, fair_odd in fair_odds.items():
-            market_key = market_mapping.get(model_market)
-            if not market_key:
-                continue
-            
-            raw_odd = market_odds.get(market_key)
+            adjusted_market = conservative_total_market(model_market)
+            if adjusted_market:
+                if adjusted_market in total_markets_seen:
+                    continue
+                total_markets_seen.add(adjusted_market)
+                market_key = adjusted_market
+                model_probability = poisson_probabilities.get(adjusted_market, 0)
+                if model_probability <= 0:
+                    continue
+                fair_odd = round(1 / model_probability, 2)
+                raw_odd = goal_market_odd_entry(adjusted_market, market_odds)
+                market_odd = goal_market_odd(adjusted_market, market_odds)
+                original_market = original_total_markets.get(adjusted_market)
+                if original_market == adjusted_market:
+                    original_market = None
+            else:
+                market_key = market_mapping.get(model_market)
+                if not market_key:
+                    continue
+                raw_odd = market_odds.get(market_key)
+                market_odd = _extract_odd(raw_odd)
+                model_probability = 1 / fair_odd if fair_odd > 0 else 0
+                original_market = None
+
             # Ignorar odds simuladas em value bets
             if _is_simulated(raw_odd):
                 continue
-            market_odd = _extract_odd(raw_odd)
-            
-            if market_odd == 0 or fair_odd == 0:
+
+            if not market_odd or fair_odd == 0:
                 continue
             
             # Margem de segurança: 5%
@@ -580,17 +539,20 @@ class DecisionEngine:
                 edge = value_pct / 100
                 
                 # Probabilidade implícita
-                model_prob = 1 / fair_odd if fair_odd > 0 else 0
+                model_prob = model_probability
                 
                 value_bets.append({
-                    'market': model_market,
-                    'market_display': self._format_market_name(model_market),
+                    'market': market_key,
+                    'market_display': get_market_display_name(market_key) or self._format_market_name(market_key),
                     'model_probability': round(model_prob, 3),
+                    'probability': round(model_prob, 3),
                     'fair_odd': fair_odd,
                     'market_odd': market_odd,
                     'value_pct': round(value_pct, 1),
                     'edge': round(edge, 3),
-                    'stake_suggestion': self._suggest_stake(value_pct, model_prob)
+                    'stake_suggestion': self._suggest_stake(value_pct, model_prob),
+                    'original_market': original_market,
+                    'line_adjustment': line_adjustment_label(original_market, market_key),
                 })
         
         # Ordenar por value
@@ -1741,6 +1703,8 @@ class DecisionEngine:
                 'rank': i,
                 'market': market_data['market'],
                 'market_display': market_data['market_display'],
+                'original_market': market_data.get('original_market'),
+                'line_adjustment': market_data.get('line_adjustment', ''),
                 'pick': pick,
                 'probability': market_data['probability'],
                 'market_odd': market_data['market_odd'],
@@ -2015,4 +1979,3 @@ class DecisionEngine:
         stake = max(0.5, min(kelly_fraction, 3.0))
         
         return round(stake, 1)
-

@@ -137,6 +137,11 @@ export default function MultipleTicketCard({ ticket, onViewDetails }) {
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
                   {formatMarket(selection.market_label || selection.market || 'Mercado')}
                 </p>
+                {selection.original_market && selection.line_adjustment && (
+                  <p className="text-[10px] text-amber-700 dark:text-amber-400">
+                    Linha ajustada: {formatMarket(selection.original_market)} → {formatMarket(selection.market)}
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className="text-right">
