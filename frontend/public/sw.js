@@ -1,4 +1,4 @@
-const CACHE_NAME = 'placarcerto-cache-v3';
+const CACHE_NAME = 'placarcerto-cache-v4';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -49,8 +49,8 @@ self.addEventListener('push', (event) => {
 
   event.waitUntil(self.registration.showNotification(payload.title || 'PlacarCerto', {
     body: payload.body || 'Há uma atualização disponível.',
-    icon: payload.icon || '/icon-192x192.png',
-    badge: payload.badge || '/favicon.svg',
+    icon: payload.icon || 'https://placarcerto.digital/favicon.svg',
+    badge: payload.badge || 'https://placarcerto.digital/favicon.svg',
     tag: payload.tag || 'placarcerto-update',
     data: { url: payload.url || '/' },
   }));

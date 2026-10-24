@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useStats } from '../context/StatsContext';
 import { useAuth } from '../context/AuthContext';
 import { User, Phone, Mail, Calendar, Star, TrendingUp, Award, Bell, Lock, Shield, Trash2, Gift } from 'lucide-react';
@@ -10,10 +10,13 @@ import { authAPI, pushAPI } from '../services/api';
 import { createPushSubscription } from '../utils/pushNotifications';
 
 export default function ProfilePage() {
+  const [searchParams] = useSearchParams();
   const { user, updateUser, logout, refreshProfile } = useAuth();
   const { refreshTrigger } = useStats();
   const [editing, setEditing] = useState(false);
-  const [activeTab, setActiveTab] = useState('profile'); // profile, notifications, security, subscription
+  const [activeTab, setActiveTab] = useState(
+    searchParams.get('tab') === 'notifications' ? 'notifications' : 'profile',
+  );
   const [formData, setFormData] = useState({
     username: user?.username || '',
     email: user?.email || '',
@@ -24,6 +27,8 @@ export default function ProfilePage() {
     analysis_ready_enabled: true,
     email_notifications: true,
     match_reminders_enabled: true,
+    match_events_enabled: true,
+    affiliate_notifications_enabled: true,
   });
   const [pushStatus, setPushStatus] = useState({ available: false, loading: true });
   const [passwordData, setPasswordData] = useState({
@@ -50,6 +55,8 @@ export default function ProfilePage() {
           push_enabled: data.push_enabled,
           analysis_ready_enabled: data.analysis_ready_enabled,
           match_reminders_enabled: data.match_reminders_enabled,
+          match_events_enabled: data.match_events_enabled,
+          affiliate_notifications_enabled: data.affiliate_notifications_enabled,
         }));
       })
       .catch(() => setPushStatus({ available: false, loading: false }));
@@ -173,6 +180,8 @@ export default function ProfilePage() {
         push_enabled: notificationSettings.push_enabled,
         analysis_ready_enabled: notificationSettings.analysis_ready_enabled,
         match_reminders_enabled: notificationSettings.match_reminders_enabled,
+        match_events_enabled: notificationSettings.match_events_enabled,
+        affiliate_notifications_enabled: notificationSettings.affiliate_notifications_enabled,
       });
       const { data } = await pushAPI.getStatus();
       setPushStatus({ ...data, loading: false });
@@ -594,6 +603,50 @@ export default function ProfilePage() {
                   <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
                 </label>
               </div>
+
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-700/50">
+                <div className="flex items-center gap-3">
+                  <Bell className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  <div>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">Eventos das partidas analisadas</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Golos, cartões, penáltis, substituições e VAR</p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="match_events_enabled"
+                    checked={notificationSettings.match_events_enabled}
+                    onChange={handleNotificationChange}
+                    disabled={!notificationSettings.push_enabled}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                </label>
+              </div>
+
+              {pushStatus.is_affiliate && (
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-700/50">
+                  <div className="flex items-center gap-3">
+                    <Bell className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">Atualizações de afiliado</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Novas referências e alterações nas comissões</p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="affiliate_notifications_enabled"
+                      checked={notificationSettings.affiliate_notifications_enabled}
+                      onChange={handleNotificationChange}
+                      disabled={!notificationSettings.push_enabled}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                  </label>
+                </div>
+              )}
 
               <button
                 type="submit"

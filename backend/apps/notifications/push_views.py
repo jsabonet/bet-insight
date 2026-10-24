@@ -35,6 +35,11 @@ class PushStatusView(APIView):
             'push_enabled': bool(request.user.push_enabled and subscription),
             'analysis_ready_enabled': subscription.analysis_ready_enabled if subscription else True,
             'match_reminders_enabled': subscription.match_reminders_enabled if subscription else True,
+            'match_events_enabled': subscription.match_events_enabled if subscription else True,
+            'affiliate_notifications_enabled': (
+                subscription.affiliate_notifications_enabled if subscription else True
+            ),
+            'is_affiliate': hasattr(request.user, 'affiliate_profile'),
         })
 
 
@@ -83,7 +88,12 @@ class PushSubscriptionView(APIView):
 
 class PushPreferencesView(APIView):
     permission_classes = [IsAuthenticated]
-    preference_fields = ('analysis_ready_enabled', 'match_reminders_enabled')
+    preference_fields = (
+        'analysis_ready_enabled',
+        'match_reminders_enabled',
+        'match_events_enabled',
+        'affiliate_notifications_enabled',
+    )
 
     def patch(self, request):
         push_enabled = request.data.get('push_enabled')
@@ -115,4 +125,8 @@ class PushPreferencesView(APIView):
             'push_enabled': bool(request.user.push_enabled and subscription),
             'analysis_ready_enabled': subscription.analysis_ready_enabled if subscription else True,
             'match_reminders_enabled': subscription.match_reminders_enabled if subscription else True,
+            'match_events_enabled': subscription.match_events_enabled if subscription else True,
+            'affiliate_notifications_enabled': (
+                subscription.affiliate_notifications_enabled if subscription else True
+            ),
         })

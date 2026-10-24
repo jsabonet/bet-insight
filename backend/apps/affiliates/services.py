@@ -102,7 +102,21 @@ def assign_referral(user, code, source='link', click_id=''):
     else:
         # Nova conta criada com o link/código do afiliado: notifica por email.
         _notify_new_referral(referral)
+        transaction.on_commit(
+            lambda: _enqueue_new_referral_push(referral.pk, affiliate.user_id)
+        )
     return referral
+
+
+def _enqueue_new_referral_push(referral_id, affiliate_user_id):
+    from apps.notifications.tasks import enqueue_affiliate_push
+    enqueue_affiliate_push(
+        affiliate_user_id,
+        'referral_registered',
+        str(referral_id),
+        'Nova referência registada',
+        'Um novo utilizador registou-se através do seu link de afiliado.',
+    )
 
 
 def _notify_new_referral(referral):
@@ -203,8 +217,32 @@ def create_commission_if_applicable(payment):
             send_commission_earned_email(commission)
         except Exception as exc:
             logger.exception('Erro ao enviar email de comissão ganha: %s', exc)
+        transaction.on_commit(
+            lambda: _enqueue_commission_push(commission.pk, affiliate.user_id, 'commission_created')
+        )
 
     return commission
+
+
+def _enqueue_commission_push(commission_id, affiliate_user_id, event_type):
+    commission = AffiliateCommission.objects.filter(pk=commission_id).first()
+    if not commission:
+        logger.warning('Comissão %s não foi encontrada ao preparar push de afiliado.', commission_id)
+        return
+    from apps.notifications.tasks import enqueue_affiliate_push
+    descriptions = {
+        'commission_created': ('Nova comissão gerada', 'Uma venda foi confirmada e a comissão está pendente.'),
+        'commission_available': ('Comissão disponível', 'Uma comissão ficou disponível para levantamento.'),
+        'commission_paid': ('Comissão paga', 'Uma comissão foi marcada como paga.'),
+    }
+    title, body = descriptions[event_type]
+    enqueue_affiliate_push(
+        affiliate_user_id,
+        event_type,
+        str(commission_id),
+        title,
+        f'{body} Valor: {commission.amount} MZN.',
+    )
 
 
 def _update_affiliate_balances(affiliate):

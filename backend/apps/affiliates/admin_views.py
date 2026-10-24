@@ -131,6 +131,12 @@ def admin_approve_commission(request, commission_id):
         send_commission_available_email(commission)
     except Exception as exc:
         logger.warning('Falha ao enviar email de comissão disponível: %s', exc)
+    from .services import _enqueue_commission_push
+    _enqueue_commission_push(
+        commission.pk,
+        commission.affiliate.user_id,
+        'commission_available',
+    )
 
     return Response({'message': 'Comissão aprovada (available).'})
 
@@ -158,6 +164,12 @@ def admin_mark_paid(request, commission_id):
         send_commission_paid_email(commission)
     except Exception as exc:
         logger.warning('Falha ao enviar email de comissão paga: %s', exc)
+    from .services import _enqueue_commission_push
+    _enqueue_commission_push(
+        commission.pk,
+        commission.affiliate.user_id,
+        'commission_paid',
+    )
 
     return Response({'message': 'Comissão marcada como paga.'})
 

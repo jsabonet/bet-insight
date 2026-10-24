@@ -24,6 +24,7 @@ import AboutPage from './pages/AboutPage';
 import FAQPage from './pages/FAQPage';
 import DailyBetsPage from './pages/DailyBetsPage';
 import CookieConsent from './components/CookieConsent';
+import PushNotificationPrompt from './components/PushNotificationPrompt';
 import TestQuickAnalyze from './pages/TestQuickAnalyze.jsx';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -76,6 +77,7 @@ function ProtectedRoute({ children }) {
   return user ? (
     <>
       <CookieConsent />
+      <PushNotificationPrompt />
       {children}
     </>
   ) : (

@@ -1,12 +1,13 @@
 """Testes do sistema de afiliados."""
 from decimal import Decimal
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 
 from .models import Affiliate, AffiliateReferral, AffiliateCommission
-from .services import create_commission_if_applicable
+from .services import assign_referral, create_commission_if_applicable
 from apps.subscriptions.models import Payment
 
 User = get_user_model()
@@ -56,6 +57,42 @@ class CommissionTests(TestCase):
         self.assertIsNotNone(commission)
         self.assertEqual(commission.status, 'pending')
         self.assertEqual(commission.amount, Decimal('239.60'))  # 599 * 0.40
+
+    @patch('apps.notifications.tasks.send_affiliate_push.delay')
+    def test_new_referral_enqueues_push_after_commit(self, enqueue):
+        affiliate_user = make_user('ref-affiliate', 'ref-affiliate@example.com')
+        affiliate = make_affiliate(affiliate_user, code='REFTEST')
+        referred_user = make_user('referred-user', 'referred@example.com')
+
+        with self.captureOnCommitCallbacks(execute=True):
+            referral = assign_referral(referred_user, affiliate.code)
+
+        enqueue.assert_called_once()
+        self.assertEqual(enqueue.call_args.args[:3], (
+            affiliate_user.id,
+            'referral_registered',
+            str(referral.pk),
+        ))
+
+    @patch('apps.notifications.tasks.send_affiliate_push.delay')
+    def test_new_commission_enqueues_push_after_commit(self, enqueue):
+        affiliate_user = make_user('commission-affiliate', 'commission-affiliate@example.com')
+        affiliate = make_affiliate(affiliate_user, code='COMTEST')
+        buyer = make_user('commission-buyer', 'commission-buyer@example.com')
+        payment = make_payment(
+            buyer,
+            metadata={'affiliate_code': 'COMTEST', 'affiliate_id': affiliate.id},
+        )
+
+        with self.captureOnCommitCallbacks(execute=True):
+            commission = create_commission_if_applicable(payment)
+
+        enqueue.assert_called_once()
+        self.assertEqual(enqueue.call_args.args[:3], (
+            affiliate_user.id,
+            'commission_created',
+            str(commission.pk),
+        ))
 
     def test_idempotent(self):
         affiliate_user = make_user('aff2', 'aff2@example.com')

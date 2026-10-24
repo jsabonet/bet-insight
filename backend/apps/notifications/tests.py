@@ -21,7 +21,12 @@ from apps.matches.models import League, Match, Team
 from apps.notifications.delivery import deliver_push_once
 from apps.notifications.models import PushDelivery, PushSubscription
 from apps.notifications.service import render_template, send_template_email
-from apps.notifications.tasks import send_analysis_ready_push, send_analyzed_match_reminders
+from apps.notifications.tasks import (
+    poll_analyzed_match_events,
+    send_affiliate_push,
+    send_analysis_ready_push,
+    send_analyzed_match_reminders,
+)
 from py_vapid import Vapid
 
 # Conjunto de templates com o contexto mínimo necessário a cada um.
@@ -138,6 +143,8 @@ class WebPushAPITests(TestCase):
             'push_enabled': True,
             'analysis_ready_enabled': False,
             'match_reminders_enabled': True,
+            'match_events_enabled': False,
+            'affiliate_notifications_enabled': False,
         }, format='json')
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data['push_enabled'])
@@ -146,6 +153,8 @@ class WebPushAPITests(TestCase):
 
         subscription = PushSubscription.objects.get(user=self.user)
         self.assertFalse(subscription.analysis_ready_enabled)
+        self.assertFalse(subscription.match_events_enabled)
+        self.assertFalse(subscription.affiliate_notifications_enabled)
 
     @override_settings(WEBPUSH_VAPID_PUBLIC_KEY='public', WEBPUSH_VAPID_PRIVATE_KEY='private')
     def test_subscription_rejects_non_push_provider_endpoint(self):
@@ -264,6 +273,77 @@ class PushEventTaskTests(TestCase):
             analysis = self.create_analysis()
 
         enqueue.assert_called_once_with(analysis.pk)
+
+    @override_settings(WEBPUSH_VAPID_PUBLIC_KEY='public', WEBPUSH_VAPID_PRIVATE_KEY='private')
+    @patch('apps.notifications.tasks.deliver_push_once', return_value=True)
+    @patch('apps.notifications.tasks.FootballAPIService')
+    def test_live_game_events_notify_only_analyzed_match_subscribers(self, api_class, deliver):
+        self.create_analysis()
+        self.match.api_football_id = 54321
+        self.match.status = 'live'
+        self.match.match_date = timezone.now()
+        self.match.save(update_fields=['api_football_id', 'status', 'match_date'])
+        api = api_class.return_value
+        api.get_live_fixtures.return_value = {
+            'success': True,
+            'fixtures': [{'fixture': {'id': 54321}}],
+        }
+        api.get_fixture_events.return_value = {
+            'success': True,
+            'events': [{
+                'time': {'elapsed': 31, 'extra': None},
+                'team': {'id': 1, 'name': 'Home'},
+                'player': {'id': 8, 'name': 'Player'},
+                'assist': {'id': None, 'name': None},
+                'type': 'Goal',
+                'detail': 'Normal Goal',
+            }],
+        }
+
+        result = poll_analyzed_match_events.run()
+
+        self.assertEqual(result, {'sent': 1, 'matches': 1, 'failures': 0})
+        api.get_fixture_events.assert_called_once_with(54321)
+        self.assertEqual(deliver.call_args.args[2]['title'], 'Golo na partida analisada')
+
+    def test_event_classifier_includes_selected_match_event_types(self):
+        from apps.notifications.tasks import _classify_match_event
+
+        self.assertEqual(_classify_match_event({'type': 'Goal', 'detail': 'Normal Goal'}), 'goal')
+        self.assertEqual(_classify_match_event({'type': 'Goal', 'detail': 'Missed Penalty'}), 'penalty')
+        self.assertEqual(_classify_match_event({'type': 'Card', 'detail': 'Red Card'}), 'red_card')
+        self.assertEqual(_classify_match_event({'type': 'Card', 'detail': 'Yellow Card'}), 'yellow_card')
+        self.assertEqual(_classify_match_event({'type': 'subst', 'detail': 'Substitution'}), 'substitution')
+        self.assertEqual(_classify_match_event({'type': 'Var', 'detail': 'Goal cancelled'}), 'var')
+        self.assertEqual(_classify_match_event({'type': 'Card', 'detail': 'Second Yellow Card'}), 'red_card')
+        from apps.notifications.tasks import _match_event_payload
+        payload = _match_event_payload(
+            self.match,
+            {
+                'type': 'subst',
+                'detail': 'Substitution',
+                'comments': 'Injury',
+                'team': {'name': 'Home'},
+                'player': {'name': 'Player'},
+                'assist': {'name': 'Replacement'},
+            },
+        )
+        self.assertEqual(payload['title'], 'Substituição por lesão')
+
+    @override_settings(WEBPUSH_VAPID_PUBLIC_KEY='public', WEBPUSH_VAPID_PRIVATE_KEY='private')
+    @patch('apps.notifications.tasks.deliver_push_once', return_value=True)
+    def test_affiliate_notification_is_sent_to_enabled_subscribers(self, deliver):
+        result = send_affiliate_push.run(
+            self.user.id,
+            'commission_created',
+            'commission-1',
+            'Nova comissão gerada',
+            'Uma venda foi confirmada.',
+        )
+
+        self.assertEqual(result, {'sent': 1})
+        self.assertEqual(deliver.call_args.args[1], 'affiliate:commission_created:commission-1')
+        self.assertEqual(deliver.call_args.args[2]['url'], '/affiliate')
 
 
 class VapidKeyCommandTests(TestCase):

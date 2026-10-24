@@ -52,6 +52,11 @@ app.conf.beat_schedule = {
         'schedule': crontab(minute='*/5'),
         'options': {'expires': 300},
     },
+    'poll-analyzed-match-events': {
+        'task': 'notifications.poll_analyzed_match_events',
+        'schedule': crontab(minute='*/5'),
+        'options': {'expires': 300},
+    },
     
     # Validar apostas pendentes - A cada 1 hora
     'validate-daily-bets': {

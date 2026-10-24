@@ -42,6 +42,12 @@ def release_pending_commissions(self):
             send_commission_available_email(commission)
         except Exception as exc:
             logger.warning('Falha ao enviar email de comissão disponível: %s', exc)
+        from .services import _enqueue_commission_push
+        _enqueue_commission_push(
+            commission.pk,
+            commission.affiliate.user_id,
+            'commission_available',
+        )
 
     logger.info('Comissões libertadas (pending->available): %s', len(commissions))
     return len(commissions)
