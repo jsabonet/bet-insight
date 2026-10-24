@@ -16,6 +16,7 @@ class PushSubscription(models.Model):
     match_reminders_enabled = models.BooleanField(default=True)
     match_events_enabled = models.BooleanField(default=True)
     affiliate_notifications_enabled = models.BooleanField(default=True)
+    premium_bets_enabled = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -29,8 +29,9 @@ export default function ProfilePage() {
     match_reminders_enabled: true,
     match_events_enabled: true,
     affiliate_notifications_enabled: true,
+    premium_bets_enabled: true,
   });
-  const [pushStatus, setPushStatus] = useState({ available: false, loading: true });
+  const [pushStatus, setPushStatus] = useState({ available: false, loading: true, is_premium_active: false });
   const [passwordData, setPasswordData] = useState({
     current_password: '',
     new_password: '',
@@ -57,6 +58,7 @@ export default function ProfilePage() {
           match_reminders_enabled: data.match_reminders_enabled,
           match_events_enabled: data.match_events_enabled,
           affiliate_notifications_enabled: data.affiliate_notifications_enabled,
+          premium_bets_enabled: data.premium_bets_enabled,
         }));
       })
       .catch(() => setPushStatus({ available: false, loading: false }));
@@ -182,6 +184,7 @@ export default function ProfilePage() {
         match_reminders_enabled: notificationSettings.match_reminders_enabled,
         match_events_enabled: notificationSettings.match_events_enabled,
         affiliate_notifications_enabled: notificationSettings.affiliate_notifications_enabled,
+        premium_bets_enabled: notificationSettings.premium_bets_enabled,
       });
       const { data } = await pushAPI.getStatus();
       setPushStatus({ ...data, loading: false });
@@ -500,7 +503,7 @@ export default function ProfilePage() {
         {activeTab === 'notifications' && (
           <div className="card animate-slide-up">
             <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-6">
-              Configurações de Notificações
+              Notificações
             </h3>
 
             <form onSubmit={handleNotificationSubmit} className="space-y-6">
@@ -514,10 +517,7 @@ export default function ProfilePage() {
                   <Bell className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                   <div>
                     <p className="font-medium text-gray-900 dark:text-gray-100">
-                      Notificações Push
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Receba alertas no navegador
+                      Ativar notificações push
                     </p>
                   </div>
                 </div>
@@ -538,8 +538,7 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-3">
                   <Bell className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">Análise pronta</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Avisar quando a sua análise terminar</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">Análises prontas</p>
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -560,10 +559,7 @@ export default function ProfilePage() {
                   <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   <div>
                     <p className="font-medium text-gray-900 dark:text-gray-100">
-                      Email de Análises
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Receba análises por email
+                      Análises por email
                     </p>
                   </div>
                 </div>
@@ -584,10 +580,7 @@ export default function ProfilePage() {
                   <Calendar className="w-5 h-5 text-green-600 dark:text-green-400" />
                   <div>
                     <p className="font-medium text-gray-900 dark:text-gray-100">
-                      Lembrete de Partidas
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Alertas antes dos jogos
+                      Lembretes pré-jogo
                     </p>
                   </div>
                 </div>
@@ -608,7 +601,7 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-3">
                   <Bell className="w-5 h-5 text-red-600 dark:text-red-400" />
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">Eventos das partidas analisadas</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">Eventos ao vivo</p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Golos, cartões, penáltis, substituições e VAR</p>
                   </div>
                 </div>
@@ -630,8 +623,7 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-3">
                     <Bell className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-gray-100">Atualizações de afiliado</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Novas referências e alterações nas comissões</p>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">Referências e comissões</p>
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -639,6 +631,28 @@ export default function ProfilePage() {
                       type="checkbox"
                       name="affiliate_notifications_enabled"
                       checked={notificationSettings.affiliate_notifications_enabled}
+                      onChange={handleNotificationChange}
+                      disabled={!notificationSettings.push_enabled}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-300 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                  </label>
+                </div>
+              )}
+
+              {pushStatus.is_premium_active && (
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-700/50">
+                  <div className="flex items-center gap-3">
+                    <Bell className="w-5 h-5 text-primary-600 dark:text-primary-400" />
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">Bilhetes automáticos</p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="premium_bets_enabled"
+                      checked={notificationSettings.premium_bets_enabled}
                       onChange={handleNotificationChange}
                       disabled={!notificationSettings.push_enabled}
                       className="sr-only peer"

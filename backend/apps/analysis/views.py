@@ -473,6 +473,13 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
             # Executar geração com modo especificado
             generator = DailyBetGenerator()
             results = generator.generate_for_today(mode=mode, execution=execution)
+            if results.get('total_bets', 0) > 0:
+                from apps.notifications.tasks import enqueue_premium_daily_bets_push
+                enqueue_premium_daily_bets_push(
+                    timezone.localdate(),
+                    results.get('multiple_count', 0),
+                    results.get('value_count', 0),
+                )
             
             # Atualizar execução com TODOS os dados (incluindo analyzed_matches)
             result_data = {

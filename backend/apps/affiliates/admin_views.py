@@ -3,7 +3,8 @@ import csv
 import logging
 
 from django.conf import settings
-from django.db.models import Sum, Count, Q
+from django.db import transaction
+from django.db.models import Sum, Count, Q, Exists, OuterRef
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import status
@@ -11,7 +12,10 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
-from .models import Affiliate, AffiliateCommission
+from .models import (
+    Affiliate, AffiliateCommission, AffiliateWithdrawal,
+    AffiliateWithdrawalAllocation,
+)
 from .services import _update_affiliate_balances
 
 logger = logging.getLogger(__name__)
@@ -75,6 +79,7 @@ def admin_affiliates_list(request):
         'available_balance': str(a.available_balance),
         'pending_balance': str(a.pending_balance),
         'payout_method': a.payout_method,
+        'payout_method_display': a.get_payout_method_display(),
         'payout_account': a.payout_account,
         'referrals_count': a.referrals.count(),
         'converted_count': a.referrals.filter(converted_at__isnull=False).count(),
@@ -88,7 +93,15 @@ def admin_affiliates_list(request):
 def admin_commissions_list(request):
     """Lista de comissões com filtros."""
     status_filter = request.query_params.get('status', '')
-    qs = AffiliateCommission.objects.select_related('affiliate', 'payment', 'payment__user').all()
+    qs = AffiliateCommission.objects.select_related(
+        'affiliate', 'payment', 'payment__user',
+    ).annotate(
+        withdrawal_allocated=Exists(
+            AffiliateWithdrawalAllocation.objects.filter(
+                commission_id=OuterRef('pk'),
+            ).exclude(withdrawal__status='rejected')
+        )
+    )
     if status_filter:
         qs = qs.filter(status=status_filter)
 
@@ -101,6 +114,7 @@ def admin_commissions_list(request):
         'amount': str(c.amount),
         'rate': str(c.rate),
         'status': c.status,
+        'withdrawal_allocated': c.withdrawal_allocated,
         'available_at': c.available_at,
         'paid_at': c.paid_at,
         'created_at': c.created_at,
@@ -146,17 +160,30 @@ def admin_approve_commission(request, commission_id):
 def admin_mark_paid(request, commission_id):
     """Marca uma comissão available como paid e debita do saldo disponível."""
     try:
-        commission = AffiliateCommission.objects.get(id=commission_id)
+        affiliate_id = AffiliateCommission.objects.values_list(
+            'affiliate_id', flat=True,
+        ).get(id=commission_id)
     except AffiliateCommission.DoesNotExist:
         return Response({'error': 'Comissão não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
-    if commission.status not in ('available',):
-        return Response({'error': 'Só comissões disponíveis podem ser marcadas como pagas.'}, status=status.HTTP_400_BAD_REQUEST)
+    with transaction.atomic():
+        Affiliate.objects.select_for_update().get(pk=affiliate_id)
+        try:
+            commission = AffiliateCommission.objects.select_for_update().get(id=commission_id)
+        except AffiliateCommission.DoesNotExist:
+            return Response({'error': 'Comissão não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
-    commission.status = 'paid'
-    commission.paid_at = timezone.now()
-    commission.save(update_fields=['status', 'paid_at', 'updated_at'])
-    _update_affiliate_balances(commission.affiliate)
+        if commission.status != 'available':
+            return Response({'error': 'Só comissões disponíveis podem ser marcadas como pagas.'}, status=status.HTTP_400_BAD_REQUEST)
+        if commission.withdrawal_allocations.exclude(withdrawal__status='rejected').exists():
+            return Response({
+                'error': 'Esta comissão está associada a um pedido de levantamento. Processe ou rejeite esse pedido.',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        commission.status = 'paid'
+        commission.paid_at = timezone.now()
+        commission.save(update_fields=['status', 'paid_at', 'updated_at'])
+        _update_affiliate_balances(commission.affiliate)
 
     # Notificar o afiliado (não bloqueia a ação).
     try:
@@ -172,6 +199,143 @@ def admin_mark_paid(request, commission_id):
     )
 
     return Response({'message': 'Comissão marcada como paga.'})
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_withdrawals_list(request):
+    """Lista pedidos de levantamento para a equipa administrativa."""
+    status_filter = request.query_params.get('status', '')
+    withdrawals = AffiliateWithdrawal.objects.select_related(
+        'affiliate', 'affiliate__user', 'processed_by',
+    )
+    if status_filter:
+        withdrawals = withdrawals.filter(status=status_filter)
+
+    return Response([{
+        'id': item.pk,
+        'affiliate_id': item.affiliate_id,
+        'affiliate_code': item.affiliate.code,
+        'affiliate_username': item.affiliate.user.username,
+        'affiliate_email': item.affiliate.user.email,
+        'amount': str(item.amount),
+        'payout_method': item.payout_method,
+        'payout_method_display': item.get_payout_method_display(),
+        'payout_account': item.payout_account,
+        'status': item.status,
+        'status_display': item.get_status_display(),
+        'transaction_reference': item.transaction_reference,
+        'rejection_reason': item.rejection_reason,
+        'requested_at': item.requested_at,
+        'processed_at': item.processed_at,
+        'processed_by': item.processed_by.username if item.processed_by else None,
+    } for item in withdrawals[:500]])
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_process_withdrawal(request, withdrawal_id):
+    """Coloca um pedido solicitado em processamento."""
+    try:
+        affiliate_id = AffiliateWithdrawal.objects.values_list(
+            'affiliate_id', flat=True,
+        ).get(id=withdrawal_id)
+    except AffiliateWithdrawal.DoesNotExist:
+        return Response({'error': 'Pedido de levantamento não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    with transaction.atomic():
+        Affiliate.objects.select_for_update().get(pk=affiliate_id)
+        try:
+            withdrawal = AffiliateWithdrawal.objects.select_for_update().get(id=withdrawal_id)
+        except AffiliateWithdrawal.DoesNotExist:
+            return Response({'error': 'Pedido de levantamento não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if withdrawal.status != 'requested':
+            return Response({'error': 'Só pedidos solicitados podem entrar em processamento.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        withdrawal.status = 'processing'
+        withdrawal.processed_by = request.user
+        withdrawal.save(update_fields=['status', 'processed_by', 'updated_at'])
+
+    return Response({'message': 'Pedido colocado em processamento.'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_complete_withdrawal(request, withdrawal_id):
+    """Regista o pagamento efetivamente enviado ao afiliado."""
+    reference = str(request.data.get('transaction_reference', '')).strip()
+    if not reference:
+        return Response({'error': 'Informe a referência da transação.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        affiliate_id = AffiliateWithdrawal.objects.values_list(
+            'affiliate_id', flat=True,
+        ).get(id=withdrawal_id)
+    except AffiliateWithdrawal.DoesNotExist:
+        return Response({'error': 'Pedido de levantamento não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    with transaction.atomic():
+        affiliate = Affiliate.objects.select_for_update().get(pk=affiliate_id)
+        try:
+            withdrawal = AffiliateWithdrawal.objects.select_for_update().get(id=withdrawal_id)
+        except AffiliateWithdrawal.DoesNotExist:
+            return Response({'error': 'Pedido de levantamento não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if withdrawal.status != 'processing':
+            return Response({'error': 'Só pedidos em processamento podem ser marcados como pagos.'}, status=status.HTTP_400_BAD_REQUEST)
+        if withdrawal.allocations.exclude(commission__status='available').exists():
+            return Response({
+                'error': 'Uma comissão reservada já não está disponível. Rejeite o pedido e verifique o saldo.',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        withdrawal.status = 'paid'
+        withdrawal.transaction_reference = reference[:100]
+        withdrawal.processed_by = request.user
+        withdrawal.processed_at = timezone.now()
+        withdrawal.save(update_fields=[
+            'status', 'transaction_reference', 'processed_by', 'processed_at', 'updated_at',
+        ])
+        _update_affiliate_balances(affiliate)
+
+    return Response({'message': 'Levantamento marcado como pago.'})
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def admin_reject_withdrawal(request, withdrawal_id):
+    """Rejeita um pedido e liberta o saldo reservado."""
+    reason = str(request.data.get('reason', '')).strip()
+    if not reason:
+        return Response({'error': 'Informe o motivo da rejeição.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        affiliate_id = AffiliateWithdrawal.objects.values_list(
+            'affiliate_id', flat=True,
+        ).get(id=withdrawal_id)
+    except AffiliateWithdrawal.DoesNotExist:
+        return Response({'error': 'Pedido de levantamento não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    with transaction.atomic():
+        affiliate = Affiliate.objects.select_for_update().get(pk=affiliate_id)
+        try:
+            withdrawal = AffiliateWithdrawal.objects.select_for_update().get(id=withdrawal_id)
+        except AffiliateWithdrawal.DoesNotExist:
+            return Response({'error': 'Pedido de levantamento não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if withdrawal.status not in ('requested', 'processing'):
+            return Response({'error': 'Este pedido não pode ser rejeitado.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        withdrawal.status = 'rejected'
+        withdrawal.rejection_reason = reason[:2000]
+        withdrawal.processed_by = request.user
+        withdrawal.processed_at = timezone.now()
+        withdrawal.save(update_fields=[
+            'status', 'rejection_reason', 'processed_by', 'processed_at', 'updated_at',
+        ])
+        _update_affiliate_balances(affiliate)
+
+    return Response({'message': 'Pedido rejeitado e saldo libertado.'})
 
 
 @api_view(['POST'])

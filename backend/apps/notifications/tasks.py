@@ -292,3 +292,55 @@ def send_affiliate_push(self, user_id, event_type, event_key, title, body):
     if failed:
         raise self.retry(exc=RuntimeError('Falha temporária ao enviar notificação push de afiliado'))
     return {'sent': sent}
+
+
+def enqueue_premium_daily_bets_push(target_date, multiple_count, value_count):
+    if multiple_count + value_count <= 0:
+        return
+    try:
+        send_premium_daily_bets_push.delay(
+            target_date.isoformat(),
+            multiple_count,
+            value_count,
+        )
+    except Exception:
+        logger.exception('Não foi possível agendar alerta de bilhetes Premium para %s', target_date)
+
+
+@shared_task(bind=True, name='notifications.send_premium_daily_bets_push', max_retries=3, default_retry_delay=60)
+def send_premium_daily_bets_push(self, target_date, multiple_count, value_count):
+    if not web_push_is_configured():
+        return {'sent': 0, 'configured': False}
+
+    now = timezone.now()
+    subscriptions = PushSubscription.objects.filter(
+        user__is_premium=True,
+        user__premium_until__gte=now,
+        user__push_enabled=True,
+        active=True,
+        premium_bets_enabled=True,
+    ).select_related('user')
+    total = multiple_count + value_count
+    payload = {
+        'title': 'Bilhetes automáticos disponíveis',
+        'body': (
+            f'{total} novo(s) bilhete(s) para {target_date}: '
+            f'{multiple_count} múltiplo(s) e {value_count} value bet(s).'
+        ),
+        'url': '/daily-bets',
+        'tag': f'premium-daily-bets-{target_date}',
+    }
+
+    sent = 0
+    failed = False
+    event_key = f'premium-daily-bets:{target_date}'
+    for subscription in subscriptions:
+        delivered = deliver_push_once(subscription, event_key, payload)
+        if delivered:
+            sent += 1
+        elif PushSubscription.objects.filter(pk=subscription.pk, active=True).exists():
+            failed = True
+
+    if failed:
+        raise self.retry(exc=RuntimeError('Falha temporária ao enviar alerta de bilhetes Premium'))
+    return {'sent': sent, 'recipients': subscriptions.count()}

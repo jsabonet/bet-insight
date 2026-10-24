@@ -1,16 +1,22 @@
 """Endpoints públicos e do próprio afiliado."""
 import uuid
 import logging
+from decimal import Decimal
 
 from django.conf import settings
-from django.db.models import Count, Sum, Q
+from django.db import transaction
+from django.db.models import Sum
+from django.db.models import Count, Q
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Affiliate, AffiliateReferral, AffiliateCommission, AffiliateClick
+from .models import (
+    Affiliate, AffiliateReferral, AffiliateCommission, AffiliateClick,
+    AffiliateWithdrawal, AffiliateWithdrawalAllocation,
+)
 from .serializers import (
     AffiliateSerializer,
     AffiliateApplySerializer,
@@ -181,10 +187,59 @@ def withdraw(request):
             'error': f'Valor mínimo de levantamento: {min_withdrawal} MZN.',
         }, status=status.HTTP_400_BAD_REQUEST)
 
-    if amount > affiliate.available_balance:
-        return Response({
-            'error': 'Saldo disponível insuficiente.',
-        }, status=status.HTTP_400_BAD_REQUEST)
+    with transaction.atomic():
+        affiliate = Affiliate.objects.select_for_update().get(pk=affiliate.pk)
+        commissions = list(
+            AffiliateCommission.objects.select_for_update()
+            .filter(affiliate=affiliate, status='available')
+            .order_by('created_at', 'id')
+        )
+        allocated = {
+            row['commission_id']: row['total']
+            for row in AffiliateWithdrawalAllocation.objects.filter(
+                commission__in=commissions,
+                withdrawal__status__in=('requested', 'processing', 'paid'),
+            ).values('commission_id').annotate(total=Sum('amount'))
+        }
+        remaining_balance = sum(
+            max(commission.amount - allocated.get(commission.id, Decimal('0.00')), Decimal('0.00'))
+            for commission in commissions
+        )
+        if amount > remaining_balance:
+            return Response({
+                'error': 'Saldo disponível insuficiente.',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not affiliate.payout_account.strip():
+            return Response({
+                'error': 'Configure uma conta de pagamento antes de pedir o levantamento.',
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        withdrawal = AffiliateWithdrawal.objects.create(
+            affiliate=affiliate,
+            amount=amount,
+            payout_method=affiliate.payout_method,
+            payout_account=affiliate.payout_account,
+        )
+        amount_to_allocate = amount
+        for commission in commissions:
+            available = max(
+                commission.amount - allocated.get(commission.id, Decimal('0.00')),
+                Decimal('0.00'),
+            )
+            allocation_amount = min(available, amount_to_allocate)
+            if allocation_amount > 0:
+                AffiliateWithdrawalAllocation.objects.create(
+                    withdrawal=withdrawal,
+                    commission=commission,
+                    amount=allocation_amount,
+                )
+                amount_to_allocate -= allocation_amount
+            if amount_to_allocate == 0:
+                break
+
+        from .services import _update_affiliate_balances
+        _update_affiliate_balances(affiliate)
 
     # Notificar o afiliado por email (não bloqueia o pedido).
     try:
@@ -192,16 +247,43 @@ def withdraw(request):
         send_withdrawal_requested_email(affiliate, amount)
     except Exception as exc:
         logger.warning('Falha ao enviar email de levantamento: %s', exc)
+    try:
+        from .emails import send_withdrawal_admin_email
+        send_withdrawal_admin_email(withdrawal)
+    except Exception as exc:
+        logger.warning('Falha ao notificar administradores do levantamento: %s', exc)
 
-    # MVP: regista o pedido como uma comissão a "marcar como pago" pelo admin.
-    # Sem débito automático: o admin confirma e debita no painel.
     return Response({
         'message': 'Pedido de levantamento registado. Será processado pela equipa.',
+        'id': withdrawal.pk,
         'requested_amount': amount,
         'available_balance': affiliate.available_balance,
-        'payout_method': affiliate.payout_method,
-        'payout_account': affiliate.payout_account,
-    }, status=status.HTTP_200_OK)
+        'payout_method': withdrawal.payout_method,
+        'payout_account': withdrawal.payout_account,
+        'status': withdrawal.status,
+    }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def my_withdrawals(request):
+    affiliate = _get_or_404_affiliate(request.user)
+    if affiliate is None:
+        return Response({'error': 'Ainda não é afiliado.'}, status=status.HTTP_404_NOT_FOUND)
+
+    withdrawals = affiliate.withdrawals.all()[:100]
+    return Response([{
+        'id': item.pk,
+        'amount': str(item.amount),
+        'payout_method': item.payout_method,
+        'payout_method_display': item.get_payout_method_display(),
+        'status': item.status,
+        'status_display': item.get_status_display(),
+        'transaction_reference': item.transaction_reference,
+        'rejection_reason': item.rejection_reason,
+        'requested_at': item.requested_at,
+        'processed_at': item.processed_at,
+    } for item in withdrawals])
 
 
 @api_view(['POST'])

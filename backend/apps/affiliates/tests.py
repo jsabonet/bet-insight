@@ -5,9 +5,13 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
+from rest_framework.test import APIClient
 
-from .models import Affiliate, AffiliateReferral, AffiliateCommission
+from .models import (
+    Affiliate, AffiliateReferral, AffiliateCommission, AffiliateWithdrawal,
+)
 from .services import assign_referral, create_commission_if_applicable
+from .services import _update_affiliate_balances
 from apps.subscriptions.models import Payment
 
 User = get_user_model()
@@ -145,3 +149,129 @@ class CommissionTests(TestCase):
         self.assertIsNotNone(commission)
         self.assertEqual(commission.rate, Decimal('0.10'))  # renewal_rate
         self.assertEqual(commission.amount, Decimal('59.90'))  # 599 * 0.10
+
+
+class AffiliateWithdrawalTests(TestCase):
+    def setUp(self):
+        self.affiliate_user = make_user('withdraw-aff', 'withdraw-aff@example.com')
+        self.affiliate = make_affiliate(self.affiliate_user, code='WITHDRAW')
+        buyer = make_user('withdraw-buyer', 'withdraw-buyer@example.com')
+        payment = make_payment(buyer)
+        self.commission = AffiliateCommission.objects.create(
+            affiliate=self.affiliate,
+            payment=payment,
+            amount=Decimal('500.00'),
+            rate=Decimal('0.40'),
+            status='available',
+        )
+        self.affiliate.payout_account = '841234567'
+        self.affiliate.save(update_fields=['payout_account'])
+        _update_affiliate_balances(self.affiliate)
+        self.client = APIClient()
+        self.client.force_authenticate(self.affiliate_user)
+
+    @patch('apps.affiliates.emails.send_mail')
+    @patch('apps.affiliates.emails.send_withdrawal_requested_email')
+    def test_request_persists_and_reserves_balance(self, send_email, admin_send_mail):
+        admin = make_user('withdraw-notice-admin', 'withdraw-notice@example.com')
+        admin.is_staff = True
+        admin.save(update_fields=['is_staff'])
+
+        response = self.client.post(
+            '/api/affiliates/me/withdraw/',
+            {'amount': '200.00'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(AffiliateWithdrawal.objects.count(), 1)
+        self.assertEqual(response.data['status'], 'requested')
+        self.affiliate.refresh_from_db()
+        self.assertEqual(self.affiliate.available_balance, Decimal('300.00'))
+        send_email.assert_called_once()
+        admin_send_mail.assert_called_once()
+
+    @patch('apps.affiliates.emails.send_mail')
+    @patch('apps.affiliates.emails.send_withdrawal_requested_email')
+    def test_reserved_balance_cannot_be_requested_twice(self, _send_email, _admin_send_mail):
+        first = self.client.post(
+            '/api/affiliates/me/withdraw/', {'amount': '300.00'}, format='json',
+        )
+        second = self.client.post(
+            '/api/affiliates/me/withdraw/', {'amount': '300.00'}, format='json',
+        )
+
+        self.assertEqual(first.status_code, 201)
+        self.assertEqual(second.status_code, 400)
+        self.assertEqual(AffiliateWithdrawal.objects.count(), 1)
+
+    @patch('apps.affiliates.emails.send_mail')
+    @patch('apps.affiliates.emails.send_withdrawal_requested_email')
+    def test_admin_can_process_and_record_payment(self, _send_email, _admin_send_mail):
+        response = self.client.post(
+            '/api/affiliates/me/withdraw/', {'amount': '200.00'}, format='json',
+        )
+        withdrawal_id = response.data['id']
+        admin = make_user('withdraw-admin', 'withdraw-admin@example.com')
+        admin.is_staff = True
+        admin.save(update_fields=['is_staff'])
+        self.client.force_authenticate(admin)
+
+        processing = self.client.post(
+            f'/api/affiliates/admin/withdrawals/{withdrawal_id}/process/',
+            format='json',
+        )
+        paid = self.client.post(
+            f'/api/affiliates/admin/withdrawals/{withdrawal_id}/complete/',
+            {'transaction_reference': 'MPESA-TX-123'},
+            format='json',
+        )
+
+        self.assertEqual(processing.status_code, 200)
+        self.assertEqual(paid.status_code, 200)
+        withdrawal = AffiliateWithdrawal.objects.get(pk=withdrawal_id)
+        self.assertEqual(withdrawal.status, 'paid')
+        self.assertEqual(withdrawal.transaction_reference, 'MPESA-TX-123')
+        self.affiliate.refresh_from_db()
+        self.assertEqual(self.affiliate.available_balance, Decimal('300.00'))
+
+    @patch('apps.affiliates.emails.send_mail')
+    @patch('apps.affiliates.emails.send_withdrawal_requested_email')
+    def test_rejection_releases_reserved_balance(self, _send_email, _admin_send_mail):
+        response = self.client.post(
+            '/api/affiliates/me/withdraw/', {'amount': '200.00'}, format='json',
+        )
+        admin = make_user('withdraw-reject-admin', 'withdraw-reject@example.com')
+        admin.is_staff = True
+        admin.save(update_fields=['is_staff'])
+        self.client.force_authenticate(admin)
+
+        rejected = self.client.post(
+            f"/api/affiliates/admin/withdrawals/{response.data['id']}/reject/",
+            {'reason': 'Dados de pagamento inválidos.'},
+            format='json',
+        )
+
+        self.assertEqual(rejected.status_code, 200)
+        self.affiliate.refresh_from_db()
+        self.assertEqual(self.affiliate.available_balance, Decimal('500.00'))
+
+    @patch('apps.affiliates.emails.send_mail')
+    @patch('apps.affiliates.emails.send_withdrawal_requested_email')
+    def test_commission_cannot_be_paid_while_allocated_to_withdrawal(self, _send_email, _admin_send_mail):
+        self.client.post(
+            '/api/affiliates/me/withdraw/', {'amount': '200.00'}, format='json',
+        )
+        admin = make_user('withdraw-commission-admin', 'withdraw-commission@example.com')
+        admin.is_staff = True
+        admin.save(update_fields=['is_staff'])
+        self.client.force_authenticate(admin)
+
+        response = self.client.post(
+            f'/api/affiliates/admin/commissions/{self.commission.pk}/mark-paid/',
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.commission.refresh_from_db()
+        self.assertEqual(self.commission.status, 'available')

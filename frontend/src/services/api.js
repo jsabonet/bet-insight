@@ -205,6 +205,7 @@ export const affiliateAPI = {
   getStats: () => api.get('/affiliates/me/stats/'),
   getCommissions: (status) => api.get('/affiliates/me/commissions/', { params: status ? { status } : {} }),
   getReferrals: () => api.get('/affiliates/me/referrals/'),
+  getWithdrawals: () => api.get('/affiliates/me/withdrawals/'),
   withdraw: (amount) => api.post('/affiliates/me/withdraw/', { amount }),
 };
 
@@ -213,8 +214,12 @@ export const affiliateAdminAPI = {
   getOverview: () => api.get('/affiliates/admin/overview/'),
   getAffiliates: (params) => api.get('/affiliates/admin/affiliates/', { params }),
   getCommissions: (params) => api.get('/affiliates/admin/commissions/', { params }),
+  getWithdrawals: (params) => api.get('/affiliates/admin/withdrawals/', { params }),
   approveCommission: (id) => api.post(`/affiliates/admin/commissions/${id}/approve/`),
   markPaid: (id) => api.post(`/affiliates/admin/commissions/${id}/mark-paid/`),
+  processWithdrawal: (id) => api.post(`/affiliates/admin/withdrawals/${id}/process/`),
+  completeWithdrawal: (id, transactionReference) => api.post(`/affiliates/admin/withdrawals/${id}/complete/`, { transaction_reference: transactionReference }),
+  rejectWithdrawal: (id, reason) => api.post(`/affiliates/admin/withdrawals/${id}/reject/`, { reason }),
   setTier: (id, data) => api.post(`/affiliates/admin/affiliates/${id}/set-tier/`, data),
   toggleSuspend: (id) => api.post(`/affiliates/admin/affiliates/${id}/toggle-suspend/`),
   exportCommissions: () => api.get('/affiliates/admin/commissions/export/', { responseType: 'blob' }),

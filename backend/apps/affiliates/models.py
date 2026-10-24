@@ -183,6 +183,81 @@ class AffiliateCommission(models.Model):
         return f"{self.amount} MZN - {self.affiliate.code} ({self.status})"
 
 
+class AffiliateWithdrawal(models.Model):
+    """Pedido de levantamento com dados de pagamento e histórico de processamento."""
+
+    STATUS_CHOICES = [
+        ('requested', 'Solicitado'),
+        ('processing', 'Em processamento'),
+        ('paid', 'Pago'),
+        ('rejected', 'Rejeitado'),
+    ]
+
+    affiliate = models.ForeignKey(
+        Affiliate, on_delete=models.CASCADE, related_name='withdrawals',
+        verbose_name="Afiliado",
+    )
+    amount = models.DecimalField(
+        max_digits=12, decimal_places=2, verbose_name="Valor",
+    )
+    payout_method = models.CharField(
+        max_length=20, choices=Affiliate.PAYOUT_CHOICES,
+        verbose_name="Método de Pagamento",
+    )
+    payout_account = models.CharField(max_length=60, verbose_name="Conta para Pagamento")
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default='requested',
+        verbose_name="Status",
+    )
+    transaction_reference = models.CharField(
+        max_length=100, blank=True, verbose_name="Referência da Transação",
+    )
+    rejection_reason = models.TextField(blank=True, verbose_name="Motivo da Rejeição")
+    processed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='processed_affiliate_withdrawals', verbose_name="Processado Por",
+    )
+    requested_at = models.DateTimeField(auto_now_add=True, verbose_name="Solicitado Em")
+    processed_at = models.DateTimeField(null=True, blank=True, verbose_name="Processado Em")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado Em")
+
+    class Meta:
+        verbose_name = "Levantamento de Afiliado"
+        verbose_name_plural = "Levantamentos de Afiliados"
+        ordering = ['-requested_at']
+        indexes = [
+            models.Index(fields=['status', 'requested_at']),
+            models.Index(fields=['affiliate', 'status']),
+        ]
+
+    def __str__(self):
+        return f"{self.amount} MZN - {self.affiliate.code} ({self.status})"
+
+
+class AffiliateWithdrawalAllocation(models.Model):
+    """Parte de uma comissão reservada ou paga por um pedido de levantamento."""
+
+    withdrawal = models.ForeignKey(
+        AffiliateWithdrawal, on_delete=models.CASCADE, related_name='allocations',
+        verbose_name="Levantamento",
+    )
+    commission = models.ForeignKey(
+        AffiliateCommission, on_delete=models.CASCADE, related_name='withdrawal_allocations',
+        verbose_name="Comissão",
+    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Valor")
+
+    class Meta:
+        verbose_name = "Alocação de Levantamento"
+        verbose_name_plural = "Alocações de Levantamento"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['withdrawal', 'commission'],
+                name='unique_withdrawal_commission_allocation',
+            ),
+        ]
+
+
 class AffiliateClick(models.Model):
     """Registo de cliques em links de afiliado (analítica/anti-fraude)."""
 

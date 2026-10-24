@@ -39,7 +39,9 @@ class PushStatusView(APIView):
             'affiliate_notifications_enabled': (
                 subscription.affiliate_notifications_enabled if subscription else True
             ),
+            'premium_bets_enabled': subscription.premium_bets_enabled if subscription else True,
             'is_affiliate': hasattr(request.user, 'affiliate_profile'),
+            'is_premium_active': request.user.is_premium_active(),
         })
 
 
@@ -93,6 +95,7 @@ class PushPreferencesView(APIView):
         'match_reminders_enabled',
         'match_events_enabled',
         'affiliate_notifications_enabled',
+        'premium_bets_enabled',
     )
 
     def patch(self, request):
@@ -129,4 +132,5 @@ class PushPreferencesView(APIView):
             'affiliate_notifications_enabled': (
                 subscription.affiliate_notifications_enabled if subscription else True
             ),
+            'premium_bets_enabled': subscription.premium_bets_enabled if subscription else True,
         })

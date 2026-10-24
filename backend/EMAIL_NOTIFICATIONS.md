@@ -45,7 +45,7 @@ apps/affiliates/emails.py      # approved, commission_earned/available/paid, wit
 | 11 | `create_commission_if_applicable` | Comissão ganha | `affiliate_commission_earned` |
 | 12 | `affiliates.release_pending_commissions` (celery) | Comissão disponível | `affiliate_commission_available` |
 | 13 | `admin_mark_paid` | Comissão paga | `affiliate_commission_paid` |
-| 14 | `POST /api/affiliates/withdraw/` | Levantamento pedido | `affiliate_withdrawal_requested` |
+| 14 | `POST /api/affiliates/me/withdraw/` | Confirmação ao afiliado e aviso por email aos administradores ativos | `affiliate_withdrawal_requested` + email administrativo |
 
 ---
 

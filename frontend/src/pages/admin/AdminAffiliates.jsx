@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
-  ArrowLeft, Users, Coins, Star, ShieldOff, Shield, Download, RefreshCw, CheckCircle2
+  ArrowLeft, Users, Coins, Star, ShieldOff, Shield, Download, RefreshCw, CheckCircle2, Wallet
 } from 'lucide-react';
 import Header from '../../components/Header';
 import BottomNav from '../../components/BottomNav';
@@ -11,10 +11,11 @@ import { affiliateAdminAPI } from '../../services/api';
 export default function AdminAffiliates() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview'); // overview | affiliates | commissions
+  const [activeTab, setActiveTab] = useState('overview');
   const [overview, setOverview] = useState(null);
   const [affiliates, setAffiliates] = useState([]);
   const [commissions, setCommissions] = useState([]);
+  const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState({ type: '', text: '' });
 
@@ -30,14 +31,17 @@ export default function AdminAffiliates() {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [ov, af, cm] = await Promise.all([
+      const [ov, af, pendingCommissions, availableCommissions, wd] = await Promise.all([
         affiliateAdminAPI.getOverview(),
         affiliateAdminAPI.getAffiliates(),
         affiliateAdminAPI.getCommissions({ status: 'pending' }),
+        affiliateAdminAPI.getCommissions({ status: 'available' }),
+        affiliateAdminAPI.getWithdrawals(),
       ]);
       setOverview(ov.data);
       setAffiliates(af.data);
-      setCommissions(cm.data);
+      setCommissions([...pendingCommissions.data, ...availableCommissions.data]);
+      setWithdrawals(wd.data);
     } catch (e) {
       console.error('Erro ao carregar afiliados:', e);
     } finally {
@@ -69,6 +73,40 @@ export default function AdminAffiliates() {
       loadAll();
     } catch (e) {
       showMsg('error', e.response?.data?.error || 'Erro.');
+    }
+  };
+
+  const processWithdrawal = async (id) => {
+    try {
+      await affiliateAdminAPI.processWithdrawal(id);
+      showMsg('success', 'Pedido colocado em processamento.');
+      loadAll();
+    } catch (e) {
+      showMsg('error', e.response?.data?.error || 'Erro ao processar pedido.');
+    }
+  };
+
+  const completeWithdrawal = async (id) => {
+    const reference = window.prompt('Informe a referência da transação efetuada:');
+    if (!reference?.trim()) return;
+    try {
+      await affiliateAdminAPI.completeWithdrawal(id, reference.trim());
+      showMsg('success', 'Levantamento marcado como pago.');
+      loadAll();
+    } catch (e) {
+      showMsg('error', e.response?.data?.error || 'Erro ao registar pagamento.');
+    }
+  };
+
+  const rejectWithdrawal = async (id) => {
+    const reason = window.prompt('Informe o motivo da rejeição:');
+    if (!reason?.trim()) return;
+    try {
+      await affiliateAdminAPI.rejectWithdrawal(id, reason.trim());
+      showMsg('success', 'Pedido rejeitado e saldo libertado.');
+      loadAll();
+    } catch (e) {
+      showMsg('error', e.response?.data?.error || 'Erro ao rejeitar pedido.');
     }
   };
 
@@ -110,6 +148,7 @@ export default function AdminAffiliates() {
     { id: 'overview', label: 'Resumo', icon: Coins },
     { id: 'affiliates', label: 'Afiliados', icon: Users },
     { id: 'commissions', label: 'Comissões', icon: Star },
+    { id: 'withdrawals', label: 'Levantamentos', icon: Wallet },
   ];
 
   return (
@@ -205,6 +244,9 @@ export default function AdminAffiliates() {
                       <div>
                         <p className="font-bold text-gray-900 dark:text-gray-100">{a.code}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">{a.email || a.username}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {a.payout_method_display} · {a.payout_account || 'Conta não configurada'}
+                        </p>
                       </div>
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                         a.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
@@ -267,7 +309,13 @@ export default function AdminAffiliates() {
                         </button>
                       </div>
                     )}
-                    {c.status === 'available' && (
+
+                    {c.status === 'available' && c.withdrawal_allocated && (
+                      <p className="text-xs text-amber-700 dark:text-amber-400">
+                        Reservada por um pedido de levantamento.
+                      </p>
+                    )}
+                    {c.status === 'available' && !c.withdrawal_allocated && (
                       <button onClick={() => markPaid(c.id)} className="w-full py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold">
                         Marcar como pago
                       </button>
@@ -275,6 +323,61 @@ export default function AdminAffiliates() {
                   </div>
                 ))}
                 {commissions.length === 0 && <p className="text-center text-gray-500 py-8">Sem comissões pendentes.</p>}
+              </div>
+            )}
+
+            {activeTab === 'withdrawals' && (
+              <div className="space-y-3">
+                {withdrawals.map((item) => (
+                  <div key={item.id} className="card">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div>
+                        <p className="font-bold text-gray-900 dark:text-gray-100">
+                          {fmt(item.amount)} MZN · {item.affiliate_code}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {item.affiliate_username} · {item.affiliate_email || 'Sem email'}
+                        </p>
+                      </div>
+                      <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                        item.status === 'paid'
+                          ? 'bg-green-100 text-green-700'
+                          : item.status === 'rejected'
+                            ? 'bg-red-100 text-red-700'
+                            : 'bg-amber-100 text-amber-700'
+                      }`}>{item.status_display}</span>
+                    </div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      {item.payout_method_display}: <span className="font-semibold">{item.payout_account}</span>
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                      Pedido em {new Date(item.requested_at).toLocaleString('pt-PT')}
+                      {item.transaction_reference ? ` · Ref. ${item.transaction_reference}` : ''}
+                      {item.rejection_reason ? ` · Motivo: ${item.rejection_reason}` : ''}
+                    </p>
+                    {item.status === 'requested' && (
+                      <div className="flex gap-2">
+                        <button onClick={() => processWithdrawal(item.id)} className="flex-1 py-2 rounded-lg bg-primary-600 text-white text-xs font-semibold">
+                          Iniciar processamento
+                        </button>
+                        <button onClick={() => rejectWithdrawal(item.id)} className="flex-1 py-2 rounded-lg border border-red-200 text-red-700 text-xs font-semibold">
+                          Rejeitar
+                        </button>
+                      </div>
+                    )}
+                    {item.status === 'processing' && (
+                      <div className="flex gap-2">
+                        <button onClick={() => completeWithdrawal(item.id)} className="flex-1 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold">
+                          Registar pagamento
+                        </button>
+                        <button onClick={() => rejectWithdrawal(item.id)} className="flex-1 py-2 rounded-lg border border-red-200 text-red-700 text-xs font-semibold">
+                          Rejeitar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {withdrawals.length === 0 && <p className="text-center text-gray-500 py-8">Sem pedidos de levantamento.</p>}
               </div>
             )}
           </>

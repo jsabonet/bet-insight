@@ -24,6 +24,13 @@ class Command(BaseCommand):
         try:
             generator = DailyBetGenerator()
             results = generator.generate_for_today()
+            if results.get('total_bets', 0) > 0:
+                from apps.notifications.tasks import enqueue_premium_daily_bets_push
+                enqueue_premium_daily_bets_push(
+                    timezone.localdate(),
+                    results.get('multiple_count', 0),
+                    results.get('value_count', 0),
+                )
             
             self.stdout.write("\n" + "=" * 100)
             self.stdout.write(self.style.SUCCESS('✅ GERAÇÃO CONCLUÍDA COM SUCESSO'))

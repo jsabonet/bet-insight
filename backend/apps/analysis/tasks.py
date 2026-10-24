@@ -52,6 +52,13 @@ def generate_daily_bets(self, triggered_by='celery', user_id=None):
         
         # Gerar bilhetes e value bets
         results = generator.generate_for_today()
+        if results.get('total_bets', 0) > 0:
+            from apps.notifications.tasks import enqueue_premium_daily_bets_push
+            enqueue_premium_daily_bets_push(
+                timezone.localdate(),
+                results.get('multiple_count', 0),
+                results.get('value_count', 0),
+            )
         
         logger.info(f"\n{'=' * 100}")
         logger.info("✅ TASK CONCLUÍDA COM SUCESSO")

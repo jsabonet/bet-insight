@@ -1,4 +1,6 @@
 """Serializers do sistema de afiliados."""
+from decimal import Decimal
+
 from rest_framework import serializers
 from django.db.models import Count, Sum
 from django.utils import timezone
@@ -94,4 +96,4 @@ class AffiliateStatsSerializer(serializers.Serializer):
 
 class WithdrawRequestSerializer(serializers.Serializer):
     """Pedido de levantamento."""
-    amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal('0.01'))

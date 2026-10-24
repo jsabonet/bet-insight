@@ -22,6 +22,7 @@ from apps.notifications.delivery import deliver_push_once
 from apps.notifications.models import PushDelivery, PushSubscription
 from apps.notifications.service import render_template, send_template_email
 from apps.notifications.tasks import (
+    send_premium_daily_bets_push,
     poll_analyzed_match_events,
     send_affiliate_push,
     send_analysis_ready_push,
@@ -150,6 +151,9 @@ class WebPushAPITests(TestCase):
         self.assertTrue(response.data['push_enabled'])
         self.assertFalse(response.data['analysis_ready_enabled'])
         self.assertTrue(response.data['match_reminders_enabled'])
+        self.assertFalse(response.data['match_events_enabled'])
+        self.assertFalse(response.data['affiliate_notifications_enabled'])
+        self.assertTrue(response.data['premium_bets_enabled'])
 
         subscription = PushSubscription.objects.get(user=self.user)
         self.assertFalse(subscription.analysis_ready_enabled)
@@ -344,6 +348,37 @@ class PushEventTaskTests(TestCase):
         self.assertEqual(result, {'sent': 1})
         self.assertEqual(deliver.call_args.args[1], 'affiliate:commission_created:commission-1')
         self.assertEqual(deliver.call_args.args[2]['url'], '/affiliate')
+
+    @override_settings(WEBPUSH_VAPID_PUBLIC_KEY='public', WEBPUSH_VAPID_PRIVATE_KEY='private')
+    @patch('apps.notifications.tasks.deliver_push_once', return_value=True)
+    def test_daily_bet_alert_only_targets_active_premium_subscribers(self, deliver):
+        self.user.is_premium = True
+        self.user.premium_until = timezone.now() + timedelta(days=7)
+        self.user.save(update_fields=['is_premium', 'premium_until'])
+        self.subscription.premium_bets_enabled = True
+        self.subscription.save(update_fields=['premium_bets_enabled'])
+
+        free_user = get_user_model().objects.create_user(
+            username='free-user',
+            email='free@example.com',
+            password='Strong-test-pass-123',
+            push_enabled=True,
+        )
+        PushSubscription.objects.create(
+            user=free_user,
+            endpoint='https://fcm.googleapis.com/free-device',
+            p256dh_key='public-key',
+            auth_key='auth-key',
+            premium_bets_enabled=True,
+        )
+
+        result = send_premium_daily_bets_push.run('2026-10-24', 2, 3)
+
+        self.assertEqual(result, {'sent': 1, 'recipients': 1})
+        self.assertEqual(deliver.call_count, 1)
+        self.assertEqual(deliver.call_args.args[1], 'premium-daily-bets:2026-10-24')
+        self.assertIn('5 novo(s) bilhete(s)', deliver.call_args.args[2]['body'])
+        self.assertEqual(deliver.call_args.args[2]['url'], '/daily-bets')
 
 
 class VapidKeyCommandTests(TestCase):

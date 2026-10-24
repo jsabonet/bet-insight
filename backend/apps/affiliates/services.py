@@ -248,11 +248,18 @@ def _enqueue_commission_push(commission_id, affiliate_user_id, event_type):
 def _update_affiliate_balances(affiliate):
     """Recalcula os saldos (pending/available/total) do afiliado."""
     from django.db.models import Sum
+    from .models import AffiliateWithdrawalAllocation
+
     pending = affiliate.commissions.filter(status='pending').aggregate(s=Sum('amount'))['s'] or 0
     available = affiliate.commissions.filter(status='available').aggregate(s=Sum('amount'))['s'] or 0
+    reserved = AffiliateWithdrawalAllocation.objects.filter(
+        withdrawal__affiliate=affiliate,
+        withdrawal__status__in=('requested', 'processing', 'paid'),
+        commission__status='available',
+    ).aggregate(s=Sum('amount'))['s'] or 0
     total = affiliate.commissions.exclude(status='reversed').aggregate(s=Sum('amount'))['s'] or 0
     affiliate.pending_balance = pending
-    affiliate.available_balance = available
+    affiliate.available_balance = max(available - reserved, 0)
     affiliate.total_earned = total
     affiliate.save(update_fields=['pending_balance', 'available_balance', 'total_earned', 'updated_at'])
 

@@ -6,6 +6,7 @@ central (``apps.notifications.service``).
 import logging
 
 from django.conf import settings
+from django.core.mail import send_mail
 
 from apps.notifications.service import send_template_email
 
@@ -160,4 +161,50 @@ def send_withdrawal_requested_email(affiliate, amount):
         return True
     except Exception as exc:
         logger.error("Erro ao enviar email de levantamento: %s", exc)
+        return False
+
+
+def send_withdrawal_admin_email(withdrawal):
+    """Avisa os administradores com email configurado sobre um novo pedido."""
+    from django.contrib.auth import get_user_model
+
+    admin_emails = list(
+        get_user_model().objects.filter(
+            is_active=True,
+            is_staff=True,
+        ).exclude(email='').values_list('email', flat=True).distinct()
+    )
+    if not admin_emails:
+        logger.warning(
+            "Pedido de levantamento %s registado sem destinatário administrativo com email.",
+            withdrawal.pk,
+        )
+        return False
+
+    affiliate = withdrawal.affiliate
+    subject = f"Novo pedido de levantamento de afiliado - {affiliate.code}"
+    message = (
+        f"Foi recebido um pedido de levantamento de {withdrawal.amount:g} MZN.\n\n"
+        f"Afiliado: {affiliate.code} ({affiliate.user.username})\n"
+        f"Email: {affiliate.user.email or 'não informado'}\n"
+        f"Método: {withdrawal.get_payout_method_display()}\n"
+        f"Conta: {withdrawal.payout_account}\n"
+        f"Estado: {withdrawal.get_status_display()}\n\n"
+        f"Abra o painel administrativo: {_frontend_url('/admin/affiliates')}"
+    )
+    try:
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            admin_emails,
+            fail_silently=False,
+        )
+        return True
+    except Exception as exc:
+        logger.exception(
+            "Erro ao notificar administradores do levantamento %s: %s",
+            withdrawal.pk,
+            exc,
+        )
         return False

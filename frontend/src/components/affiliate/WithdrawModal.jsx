@@ -39,7 +39,7 @@ export default function WithdrawModal({ availableBalance, onClose, onDone }) {
               <Wallet className="w-12 h-12 text-green-500 mx-auto mb-3" />
               <p className="font-semibold text-gray-900 dark:text-gray-100">Pedido registado!</p>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                A equipa processará o seu levantamento em breve.
+                O pedido ficou registado e o valor foi reservado. Pode acompanhar o estado no seu painel.
               </p>
             </div>
           ) : (
