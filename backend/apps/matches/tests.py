@@ -57,7 +57,7 @@ class MatchDetailPerformanceTests(SimpleTestCase):
 			'player': {'name': 'Player One'},
 			'time': {'elapsed': 12},
 		}]
-		def cached_live_data(key, _timeout, _fetch):
+		def cached_live_data(key, _timeout, _fetch, force_refresh=False):
 			if 'events' in key:
 				return {'success': True, 'events': events}
 			return {'success': True, 'fixture': fixture}
@@ -70,7 +70,7 @@ class MatchDetailPerformanceTests(SimpleTestCase):
 			response = MatchViewSet.as_view(
 				{'get': 'live_score'}, permission_classes=[AllowAny],
 			)(
-				self.factory.get('/api/matches/50/live_score/'),
+				self.factory.get('/api/matches/50/live_score/', {'force_refresh': 'true'}),
 				pk='50',
 			)
 
@@ -84,8 +84,9 @@ class MatchDetailPerformanceTests(SimpleTestCase):
 		self.assertEqual(cached_result.call_count, 2)
 		self.assertEqual(
 			{call.args[:2] for call in cached_result.call_args_list},
-			{('match_live_score:v1:77', 30), ('match_live_events:v1:77', 30)},
+			{('match_live_score:v1:77', 4), ('match_live_events:v1:77', 4)},
 		)
+		self.assertTrue(all(call.kwargs['force_refresh'] for call in cached_result.call_args_list))
 
 	def test_live_score_rejects_fixtures_without_external_id(self):
 		match = SimpleNamespace(api_football_id=None)

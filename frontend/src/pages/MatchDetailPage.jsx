@@ -16,22 +16,9 @@ import SEOHead from '../components/SEO/SEOHead';
 import { generateMatchStructuredData } from '../utils/structuredData';
 
 const LIVE_MATCH_STATUSES = new Set(['LIVE', '1H', '2H', 'HT', 'ET', 'BT', 'P', 'INT']);
-const FINISHED_MATCH_STATUSES = new Set([
-  'FINISHED', 'CANCELLED', 'POSTPONED', 'FT', 'AET', 'PEN', 'PST', 'CANC', 'ABD', 'AWD', 'WO',
-]);
-const LIVE_SCORE_POLL_INTERVAL = 60000;
+const LIVE_SCORE_POLL_INTERVAL = 5000;
 
 const isLiveMatch = (status) => LIVE_MATCH_STATUSES.has(String(status || '').toUpperCase());
-
-const shouldRefreshLiveScore = (match) => {
-  const status = String(match.status || '').toUpperCase();
-  if (isLiveMatch(status)) return true;
-  if (FINISHED_MATCH_STATUSES.has(status)) return false;
-
-  const kickoff = new Date(match.match_date || match.date).getTime();
-  const now = Date.now();
-  return Number.isFinite(kickoff) && now >= kickoff - 15 * 60 * 1000 && now <= kickoff + 6 * 60 * 60 * 1000;
-};
 
 // Lazy load componentes pesados
 const AtAGlance = lazy(() => import('../components/match-detail/AtAGlance'));
@@ -184,14 +171,15 @@ export default function MatchDetailPage() {
   // Atualiza o placar fora do caminho de renderização do cache local.
   useEffect(() => {
     if (!match || isExternalMatch || !match.api_football_id) return;
-    const needsHistoricalEvents = FINISHED_MATCH_STATUSES.has(String(match.status || '').toUpperCase())
-      && !Array.isArray(match.events);
-    if (!shouldRefreshLiveScore(match) && !needsHistoricalEvents) return;
 
     let active = true;
-    const refreshLiveScore = async () => {
+    let intervalId;
+    let requestInFlight = false;
+    const refreshLiveScore = async (forceRefresh = false) => {
+      if (requestInFlight) return;
+      requestInFlight = true;
       try {
-        const { data } = await matchesAPI.getLiveScore(match.id);
+        const { data } = await matchesAPI.getLiveScore(match.id, forceRefresh);
         if (!active) return;
         setMatch((current) => current?.id === match.id
           ? {
@@ -203,18 +191,26 @@ export default function MatchDetailPage() {
               events: data.events ?? current.events,
             }
           : current);
+
+        if (isLiveMatch(data.status)) {
+          if (!intervalId) intervalId = setInterval(refreshLiveScore, LIVE_SCORE_POLL_INTERVAL);
+        } else if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = undefined;
+        }
       } catch (refreshError) {
         console.warn('Não foi possível atualizar o placar ao vivo:', refreshError.message);
+      } finally {
+        requestInFlight = false;
       }
     };
 
-    refreshLiveScore();
-    const interval = setInterval(refreshLiveScore, LIVE_SCORE_POLL_INTERVAL);
+    refreshLiveScore(true);
     return () => {
       active = false;
-      clearInterval(interval);
+      if (intervalId) clearInterval(intervalId);
     };
-  }, [match?.id, match?.api_football_id, match?.status, match?.match_date, match?.events, isExternalMatch]);
+  }, [match?.id, match?.api_football_id, isExternalMatch]);
 
   // Probabilidades são atualizadas separadamente, sem refazer o carregamento do detalhe.
   useEffect(() => {

@@ -134,7 +134,10 @@ export const matchesAPI = {
   getToday: () => api.get('/matches/today/'),
   getLive: () => api.get('/matches/live/'),
   getDetail: (id) => api.get(`/matches/${id}/`),
-  getLiveScore: (id) => api.get(`/matches/${id}/live_score/`),
+  getLiveScore: (id, forceRefresh = false) =>
+    api.get(`/matches/${id}/live_score/`, {
+      params: forceRefresh ? { force_refresh: 'true' } : undefined,
+    }),
   
   // Novos endpoints - Integração com APIs externas
   getFromAPI: (date) => api.get('/matches/from_api/', { params: { date } }),

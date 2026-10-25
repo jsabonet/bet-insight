@@ -142,8 +142,8 @@ def _cached_home_response(data, stale=False):
     }
 
 
-def _cached_api_result(key, timeout, fetch):
-    cached_result = cache.get(key)
+def _cached_api_result(key, timeout, fetch, force_refresh=False):
+    cached_result = None if force_refresh else cache.get(key)
     if cached_result is not None:
         return cached_result
 
@@ -198,18 +198,21 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             )
 
         fixture_id = match.api_football_id
+        force_refresh = request.query_params.get('force_refresh') == 'true'
         with ThreadPoolExecutor(max_workers=2) as executor:
             score_future = executor.submit(
                 _cached_api_result,
                 f'match_live_score:v1:{fixture_id}',
-                30,
+                4,
                 lambda: FootballAPIService().get_fixture_live(fixture_id),
+                force_refresh=force_refresh,
             )
             events_future = executor.submit(
                 _cached_api_result,
                 f'match_live_events:v1:{fixture_id}',
-                30,
+                4,
                 lambda: FootballAPIService().get_fixture_events(fixture_id),
+                force_refresh=force_refresh,
             )
             result = score_future.result()
             events_result = events_future.result()
