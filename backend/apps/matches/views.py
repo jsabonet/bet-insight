@@ -189,7 +189,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=True, methods=['get'])
     def live_score(self, request, pk=None):
-        """Atualiza apenas o placar de uma partida local sem carregar seus extras."""
+        """Atualiza placar e eventos recentes sem carregar os extras da partida."""
         match = self.get_object()
         if not match.api_football_id:
             return Response(
@@ -197,12 +197,24 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        result = _cached_api_result(
-            f'match_live_score:v1:{match.api_football_id}',
-            30,
-            lambda: FootballAPIService().get_fixture_live(match.api_football_id),
-        )
-        if not result.get('success'):
+        fixture_id = match.api_football_id
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            score_future = executor.submit(
+                _cached_api_result,
+                f'match_live_score:v1:{fixture_id}',
+                30,
+                lambda: FootballAPIService().get_fixture_live(fixture_id),
+            )
+            events_future = executor.submit(
+                _cached_api_result,
+                f'match_live_events:v1:{fixture_id}',
+                30,
+                lambda: FootballAPIService().get_fixture_events(fixture_id),
+            )
+            result = score_future.result()
+            events_result = events_future.result()
+
+        if not result or not result.get('success'):
             return Response(
                 {
                     'error': result.get('error', 'Não foi possível atualizar o placar'),
@@ -225,6 +237,17 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             return Response(
                 {'error': 'Resposta incompleta ao atualizar o placar'},
                 status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        events = []
+        events_available = bool(events_result and events_result.get('success'))
+        if events_available:
+            events = events_result.get('events') or []
+        else:
+            logger.warning(
+                'Não foi possível atualizar eventos da partida %s: %s',
+                fixture_id,
+                (events_result or {}).get('error', 'erro não especificado'),
             )
 
         status_code = str(status_code).upper()
@@ -250,13 +273,16 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         if changed_fields:
             match.save(update_fields=changed_fields)
 
-        return Response({
+        response_data = {
             'fixture_id': match.api_football_id,
             'home_score': goals['home'],
             'away_score': goals['away'],
             'status': status_code,
             'elapsed': fixture_status.get('elapsed'),
-        })
+        }
+        if events_available:
+            response_data['events'] = events
+        return Response(response_data)
     
     def _generate_mock_matches(self, date):
         """Gerar partidas de exemplo para teste"""

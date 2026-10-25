@@ -183,7 +183,10 @@ export default function MatchDetailPage() {
 
   // Atualiza o placar fora do caminho de renderização do cache local.
   useEffect(() => {
-    if (!match || isExternalMatch || !match.api_football_id || !shouldRefreshLiveScore(match)) return;
+    if (!match || isExternalMatch || !match.api_football_id) return;
+    const needsHistoricalEvents = FINISHED_MATCH_STATUSES.has(String(match.status || '').toUpperCase())
+      && !Array.isArray(match.events);
+    if (!shouldRefreshLiveScore(match) && !needsHistoricalEvents) return;
 
     let active = true;
     const refreshLiveScore = async () => {
@@ -197,6 +200,7 @@ export default function MatchDetailPage() {
               away_score: data.away_score ?? current.away_score,
               status: data.status || current.status,
               elapsed: data.elapsed,
+              events: data.events ?? current.events,
             }
           : current);
       } catch (refreshError) {
@@ -210,7 +214,7 @@ export default function MatchDetailPage() {
       active = false;
       clearInterval(interval);
     };
-  }, [match?.id, match?.api_football_id, match?.status, match?.match_date, isExternalMatch]);
+  }, [match?.id, match?.api_football_id, match?.status, match?.match_date, match?.events, isExternalMatch]);
 
   // Probabilidades são atualizadas separadamente, sem refazer o carregamento do detalhe.
   useEffect(() => {
@@ -860,7 +864,7 @@ export default function MatchDetailPage() {
               </h3>
               
               {/* Goleadores Casa - apenas para jogos ao vivo ou finalizados */}
-              {(match.status === 'FT' || isLiveMatch(match.status)) && match.events && (
+              {(match.status === 'FT' || match.status === 'finished' || isLiveMatch(match.status)) && match.events && (
                 <div className="w-full">
                   {match.events
                     .filter(event => 
@@ -936,7 +940,7 @@ export default function MatchDetailPage() {
               </h3>
               
               {/* Goleadores Fora - apenas para jogos ao vivo ou finalizados */}
-              {(match.status === 'FT' || isLiveMatch(match.status)) && match.events && (
+              {(match.status === 'FT' || match.status === 'finished' || isLiveMatch(match.status)) && match.events && (
                 <div className="w-full">
                   {match.events
                     .filter(event => 
@@ -967,7 +971,7 @@ export default function MatchDetailPage() {
           </div>
 
           {/* Estatísticas rápidas ao vivo (cartões e últimos eventos) */}
-          {(match.status === 'FT' || isLiveMatch(match.status)) && match.events && match.events.length > 0 && (
+          {(match.status === 'FT' || match.status === 'finished' || isLiveMatch(match.status)) && match.events && match.events.length > 0 && (
             <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 mb-4">
               <div className="grid grid-cols-2 gap-4 mb-3">
                 {/* Cartões Casa */}

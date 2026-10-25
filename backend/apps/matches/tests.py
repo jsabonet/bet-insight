@@ -51,9 +51,20 @@ class MatchDetailPerformanceTests(SimpleTestCase):
 			'fixture': {'status': {'short': '1H', 'elapsed': 24}},
 			'goals': {'home': 1, 'away': 0},
 		}
+		events = [{
+			'type': 'Goal',
+			'team': {'name': 'Home FC'},
+			'player': {'name': 'Player One'},
+			'time': {'elapsed': 12},
+		}]
+		def cached_live_data(key, _timeout, _fetch):
+			if 'events' in key:
+				return {'success': True, 'events': events}
+			return {'success': True, 'fixture': fixture}
+
 		with (
 			patch.object(MatchViewSet, 'get_object', return_value=match),
-			patch('apps.matches.views._cached_api_result', return_value={'success': True, 'fixture': fixture}) as cached_result,
+			patch('apps.matches.views._cached_api_result', side_effect=cached_live_data) as cached_result,
 			patch('apps.matches.views.FootballAPIService'),
 		):
 			response = MatchViewSet.as_view(
@@ -68,9 +79,13 @@ class MatchDetailPerformanceTests(SimpleTestCase):
 		self.assertEqual(response.data['away_score'], 0)
 		self.assertEqual(response.data['status'], '1H')
 		self.assertEqual(response.data['elapsed'], 24)
+		self.assertEqual(response.data['events'], events)
 		self.assertEqual(match.status, 'live')
-		cached_result.assert_called_once()
-		self.assertEqual(cached_result.call_args.args[:2], ('match_live_score:v1:77', 30))
+		self.assertEqual(cached_result.call_count, 2)
+		self.assertEqual(
+			{call.args[:2] for call in cached_result.call_args_list},
+			{('match_live_score:v1:77', 30), ('match_live_events:v1:77', 30)},
+		)
 
 	def test_live_score_rejects_fixtures_without_external_id(self):
 		match = SimpleNamespace(api_football_id=None)
