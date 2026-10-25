@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useStats } from '../context/StatsContext';
-import { Bell, Star, Sun, Moon, Target } from 'lucide-react';
+import { Sun, Moon, Target } from 'lucide-react';
 import Logo from './Logo';
 import UserAvatar from './UserAvatar';
 import DailyLimitIndicator from './DailyLimitIndicator';
 import StrategySelector from './StrategySelector';
 import { authAPI } from '../services/api';
 import InstallPWAButton from './InstallPWAButton';
+import NotificationBell from './NotificationBell';
 
 export default function Header({ title, subtitle, showLogo = false }) {
   const navigate = useNavigate();
@@ -75,9 +76,7 @@ export default function Header({ title, subtitle, showLogo = false }) {
                 <Moon className="w-5 h-5" />
               )}
             </button>
-            <button className="w-10 h-10 bg-white/15 dark:bg-gray-700/50 backdrop-blur-sm rounded-xl flex items-center justify-center hover:bg-white/25 dark:hover:bg-gray-600/50 transition-all border border-white/30 dark:border-gray-600/50">
-              <Bell className="w-5 h-5" />
-            </button>
+            {user && <NotificationBell />}
           </div>
         </div>
         

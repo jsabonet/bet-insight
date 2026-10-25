@@ -5,9 +5,49 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from django.utils import timezone
 
-from .models import PushSubscription
+from .models import Notification, PushSubscription
 from .push import web_push_is_configured
+
+
+class NotificationListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        notifications = Notification.objects.filter(user=request.user)
+        unread_count = notifications.filter(read_at__isnull=True).count()
+        items = notifications[:30]
+        return Response({
+            'unread_count': unread_count,
+            'results': [
+                {
+                    'id': item.id,
+                    'title': item.title,
+                    'body': item.body,
+                    'url': item.url,
+                    'created_at': item.created_at,
+                    'read': item.read_at is not None,
+                }
+                for item in items
+            ],
+        })
+
+
+class NotificationReadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, notification_id=None):
+        notifications = Notification.objects.filter(user=request.user, read_at__isnull=True)
+        if notification_id is None:
+            updated = notifications.update(read_at=timezone.now())
+            return Response({'updated': updated})
+
+        updated = notifications.filter(pk=notification_id).update(read_at=timezone.now())
+        if not updated and not Notification.objects.filter(user=request.user, pk=notification_id).exists():
+            return Response({'error': 'Notificação não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'updated': bool(updated)})
+
 
 ALLOWED_PUSH_HOSTS = (
     'fcm.googleapis.com',

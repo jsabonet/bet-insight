@@ -19,7 +19,7 @@ from rest_framework.test import APIClient
 from apps.analysis.models import Analysis
 from apps.matches.models import League, Match, Team
 from apps.notifications.delivery import deliver_push_once
-from apps.notifications.models import PushDelivery, PushSubscription
+from apps.notifications.models import Notification, PushDelivery, PushSubscription
 from apps.notifications.service import render_template, send_template_email
 from apps.notifications.tasks import (
     send_premium_daily_bets_push,
@@ -181,6 +181,89 @@ class WebPushAPITests(TestCase):
         self.assertFalse(self.user.push_enabled)
 
 
+class NotificationInboxTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='inbox-user',
+            email='inbox@example.com',
+            password='Strong-test-pass-123',
+        )
+        self.other_user = get_user_model().objects.create_user(
+            username='other-inbox-user',
+            email='other-inbox@example.com',
+            password='Strong-test-pass-123',
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(self.user)
+
+    def test_list_returns_only_current_users_notifications_and_unread_count(self):
+        notification = Notification.objects.create(
+            user=self.user,
+            event_key='analysis-ready:12',
+            title='Análise pronta',
+            body='Casa vs Fora',
+            url='/match/12',
+        )
+        Notification.objects.create(
+            user=self.other_user,
+            event_key='analysis-ready:13',
+            title='Outra análise',
+            body='Não deve aparecer',
+        )
+
+        response = self.client.get('/api/users/notifications/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['unread_count'], 1)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['id'], notification.id)
+        self.assertFalse(response.data['results'][0]['read'])
+
+    def test_user_can_mark_one_or_all_notifications_as_read(self):
+        first = Notification.objects.create(
+            user=self.user,
+            event_key='analysis-ready:21',
+            title='Primeira',
+            body='Conteúdo',
+        )
+        second = Notification.objects.create(
+            user=self.user,
+            event_key='analysis-ready:22',
+            title='Segunda',
+            body='Conteúdo',
+        )
+        foreign = Notification.objects.create(
+            user=self.other_user,
+            event_key='analysis-ready:23',
+            title='Privada',
+            body='Conteúdo',
+        )
+
+        response = self.client.post(f'/api/users/notifications/{first.id}/read/')
+        self.assertEqual(response.status_code, 200)
+        first.refresh_from_db()
+        self.assertIsNotNone(first.read_at)
+
+        response = self.client.post('/api/users/notifications/read/')
+        self.assertEqual(response.status_code, 200)
+        second.refresh_from_db()
+        foreign.refresh_from_db()
+        self.assertIsNotNone(second.read_at)
+        self.assertIsNone(foreign.read_at)
+
+    def test_read_endpoint_does_not_disclose_other_users_notifications(self):
+        notification = Notification.objects.create(
+            user=self.other_user,
+            event_key='analysis-ready:31',
+            title='Privada',
+            body='Conteúdo',
+        )
+
+        response = self.client.post(f'/api/users/notifications/{notification.id}/read/')
+
+        self.assertEqual(response.status_code, 404)
+
+
 class PushDeliveryTests(TestCase):
     def setUp(self):
         user_model = get_user_model()
@@ -207,6 +290,7 @@ class PushDeliveryTests(TestCase):
 
         send_push.assert_called_once_with(self.subscription, payload)
         self.assertEqual(PushDelivery.objects.filter(subscription=self.subscription).count(), 1)
+        self.assertEqual(Notification.objects.filter(user=self.user).count(), 1)
 
 
 class PushEventTaskTests(TestCase):

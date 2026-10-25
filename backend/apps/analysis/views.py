@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status as http_status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from rest_framework.permissions import BasePermission, IsAuthenticated, AllowAny, IsAdminUser
 from django_filters.rest_framework import DjangoFilterBackend
 from django.http import Http404
 from django.shortcuts import get_object_or_404
@@ -24,6 +24,22 @@ from .services.social_proof_builder import SocialProofBuilder, VALID_KINDS
 from apps.matches.models import Match
 
 logger = logging.getLogger(__name__)
+
+
+class IsPremiumOrAdmin(BasePermission):
+    message = 'As Seleções do Dia estão disponíveis apenas para contas Premium.'
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(
+            user
+            and user.is_authenticated
+            and (
+                user.is_staff
+                or user.is_superuser
+                or user.is_premium_active()
+            )
+        )
 
 
 class AnalysisViewSet(viewsets.ReadOnlyModelViewSet):
@@ -166,14 +182,14 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet para Apostas Diárias (Bilhetes e Value Bets)
     
-    Endpoints públicos para transparência:
+    Seleções disponíveis para contas Premium; estatísticas continuam públicas:
     - GET /daily-bets/today/ - Apostas geradas para hoje
     - GET /daily-bets/history/ - Histórico com estatísticas
     - GET /daily-bets/{id}/ - Detalhes de uma aposta específica
     """
     
     queryset = DailyBet.objects.all().order_by('-date', '-expected_value')
-    permission_classes = [AllowAny]  # Público para transparência!
+    permission_classes = [IsPremiumOrAdmin]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['bet_type', 'status', 'is_validated']
     
@@ -312,7 +328,7 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
             'recent_bets': DailyBetListSerializer(recent_bets, many=True).data
         })
     
-    @action(detail=False, methods=['get'], url_path='stats')
+    @action(detail=False, methods=['get'], url_path='stats', permission_classes=[AllowAny])
     def public_stats(self, request):
         """
         Estatísticas públicas agregadas (todos os tempos)

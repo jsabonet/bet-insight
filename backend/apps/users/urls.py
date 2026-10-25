@@ -18,7 +18,13 @@ from .admin_management_views import (
     admin_reset_user_password,
     admin_list_all_users,
 )
-from apps.notifications.push_views import PushPreferencesView, PushStatusView, PushSubscriptionView
+from apps.notifications.push_views import (
+    NotificationListView,
+    NotificationReadView,
+    PushPreferencesView,
+    PushStatusView,
+    PushSubscriptionView,
+)
 
 admin_router = DefaultRouter()
 admin_router.register(r'admin/users', AdminUserViewSet, basename='admin-users')
@@ -43,6 +49,9 @@ urlpatterns = [
     path('push/status/', PushStatusView.as_view(), name='push-status'),
     path('push/subscriptions/', PushSubscriptionView.as_view(), name='push-subscriptions'),
     path('push/preferences/', PushPreferencesView.as_view(), name='push-preferences'),
+    path('notifications/', NotificationListView.as_view(), name='notifications'),
+    path('notifications/read/', NotificationReadView.as_view(), name='notifications-read-all'),
+    path('notifications/<int:notification_id>/read/', NotificationReadView.as_view(), name='notification-read'),
 
     # Admin - router (CRUD de usuários + actions)
     path('', include(admin_router.urls)),

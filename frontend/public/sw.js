@@ -1,11 +1,4 @@
-const CACHE_NAME = 'placarcerto-cache-v4';
-const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest',
-  '/favicon.svg',
-  '/offline.html'
-];
+const CACHE_NAME = 'placarcerto-cache-v5';
 
 // Mensagem para forçar ativação imediata
 self.addEventListener('message', (event) => {
@@ -15,28 +8,21 @@ self.addEventListener('message', (event) => {
 });
 
 self.addEventListener('install', (event) => {
-  console.log('🔧 SW v3 instalando...');
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
-  );
+  console.log('🔧 SW v5 instalando...');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('✅ SW v3 ativando...');
+  console.log('✅ SW v5 ativando...');
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            console.log('🗑️ Deletando cache antigo:', key);
-            return caches.delete(key);
-          }
-        })
-      )
-    )
+    caches.keys()
+      .then((keys) => Promise.all(
+        keys
+          .filter((key) => key.startsWith('placarcerto-cache-') && key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      ))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('push', (event) => {
@@ -77,31 +63,19 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // NÃO interceptar API calls - deixar ir direto para o backend
-  if (url.pathname.startsWith('/api/') || event.request.url.includes('/api/')) {
-    console.log('🌐 Ignorando API call:', url.pathname);
-    return; // Não chama event.respondWith() - deixa o fetch acontecer normalmente
+  if (
+    event.request.method !== 'GET'
+    || url.origin !== self.location.origin
+    || url.pathname.startsWith('/api/')
+    || event.request.mode !== 'navigate'
+  ) {
+    return;
   }
 
-  // Static assets and pages
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return (
-        cached ||
-        fetch(event.request).then((response) => {
-          const clone = response.clone();
-          // Only cache GET successful responses
-          if (event.request.method === 'GET' && response.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        }).catch(() => {
-          // Serve offline fallback for navigations
-          if (event.request.mode === 'navigate') {
-            return caches.match('/offline.html');
-          }
-        })
-      );
-    })
+    fetch(event.request).catch(() => new Response(
+      '<!doctype html><html lang="pt"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sem ligação</title><body><h1>Sem ligação à internet</h1><p>Verifique a sua ligação e tente novamente.</p></body></html>',
+      { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+    ))
   );
 });

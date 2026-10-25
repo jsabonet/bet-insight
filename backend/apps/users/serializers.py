@@ -81,6 +81,7 @@ class UserSerializer(serializers.ModelSerializer):
     success_rate = serializers.SerializerMethodField()
     can_analyze_today = serializers.SerializerMethodField()
     remaining_analyses = serializers.SerializerMethodField()
+    is_premium_active = serializers.SerializerMethodField()
     age = serializers.ReadOnlyField()
     
     class Meta:
@@ -88,6 +89,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'email', 'email_verified', 'username', 'phone', 'date_of_birth', 'age',
             'is_premium', 'premium_until',
+            'is_premium_active',
             'daily_analysis_count', 'total_analyses', 'successful_predictions',
             'success_rate', 'can_analyze_today', 'remaining_analyses', 'push_enabled',
             'is_staff', 'is_superuser'
@@ -99,7 +101,10 @@ class UserSerializer(serializers.ModelSerializer):
     
     def get_success_rate(self, obj):
         return obj.get_success_rate()
-    
+
+    def get_is_premium_active(self, obj):
+        return obj.is_premium_active()
+
     def get_can_analyze_today(self, obj):
         return obj.can_analyze()
     

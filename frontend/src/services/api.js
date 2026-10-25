@@ -92,6 +92,12 @@ export const pushAPI = {
   updatePreferences: (data) => api.patch('/users/push/preferences/', data),
 };
 
+export const notificationAPI = {
+  getAll: () => api.get('/users/notifications/'),
+  markRead: (id) => api.post(`/users/notifications/${id}/read/`),
+  markAllRead: () => api.post('/users/notifications/read/'),
+};
+
 // Admin endpoints
 export const adminAPI = {
   getStats: () => api.get('/users/admin/stats/'),
