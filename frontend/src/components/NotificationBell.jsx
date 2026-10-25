@@ -145,9 +145,9 @@ export default function NotificationBell() {
         <section
           role="dialog"
           aria-label="Notificações"
-          className="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-gray-200 bg-white text-gray-900 shadow-2xl shadow-black/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+          className="absolute right-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-gray-200 bg-white text-gray-900 shadow-2xl shadow-black/20 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-100 dark:shadow-black/50"
         >
-          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800">
+          <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 dark:border-gray-800/80 dark:bg-gray-900/50">
             <div>
               <h2 className="font-bold">Notificações</h2>
               <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -158,7 +158,7 @@ export default function NotificationBell() {
               <button
                 type="button"
                 onClick={markAllRead}
-                className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-primary-700 transition hover:bg-primary-50 dark:text-primary-300 dark:hover:bg-gray-800"
+                className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-semibold text-primary-700 transition hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-primary-300 dark:hover:bg-gray-800/70"
               >
                 <CheckCheck className="h-4 w-4" />
                 Marcar lidas
@@ -190,7 +190,7 @@ export default function NotificationBell() {
                     setOpen(false);
                     navigate('/profile?tab=notifications');
                   }}
-                  className="mt-4 rounded-lg px-3 py-2 text-xs font-semibold text-primary-700 transition hover:bg-primary-50 dark:text-primary-300 dark:hover:bg-gray-800"
+                  className="mt-4 rounded-lg px-3 py-2 text-xs font-semibold text-primary-700 transition hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:text-primary-300 dark:hover:bg-gray-800/70"
                 >
                   Configurar notificações
                 </button>
@@ -201,19 +201,23 @@ export default function NotificationBell() {
                   key={notification.id}
                   type="button"
                   onClick={() => openNotification(notification)}
-                  className={`flex w-full gap-3 border-b border-gray-100 px-4 py-3 text-left transition last:border-b-0 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/70 ${
-                    notification.read ? '' : 'bg-primary-50/70 dark:bg-primary-950/20'
+                  className={`flex w-full gap-3 border-b border-gray-100 border-l-2 px-4 py-3 text-left transition last:border-b-0 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500 dark:border-gray-800/80 dark:hover:bg-gray-800/60 ${
+                    notification.read
+                      ? 'border-l-transparent dark:border-l-transparent'
+                      : 'border-l-primary-500 bg-primary-50/70 dark:border-l-primary-400 dark:bg-gray-800/50'
                   }`}
                 >
                   <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
-                    notification.read ? 'bg-gray-300 dark:bg-gray-600' : 'bg-primary-500'
+                    notification.read ? 'bg-gray-300 dark:bg-gray-600' : 'bg-primary-500 dark:bg-primary-400'
                   }`} aria-hidden="true" />
                   <span className="min-w-0 flex-1">
-                    <span className="block text-sm font-semibold">{notification.title}</span>
+                    <span className={`block text-sm font-semibold ${
+                      notification.read ? 'text-gray-700 dark:text-gray-200' : 'text-gray-900 dark:text-gray-100'
+                    }`}>{notification.title}</span>
                     <span className="mt-0.5 block text-xs leading-5 text-gray-600 dark:text-gray-300">
                       {notification.body}
                     </span>
-                    <span className="mt-2 flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400">
+                    <span className="mt-2 flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-500">
                       <Clock3 className="h-3 w-3" />
                       {formatNotificationDate(notification.created_at)}
                     </span>
