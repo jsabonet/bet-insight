@@ -17,6 +17,12 @@ from django.db import transaction
 
 from apps.matches.models import Match
 from apps.analysis.models import DailyBet
+from apps.analysis.config.supergiants import (
+    is_home_over_market,
+    is_protective_supergiant_market,
+    is_supergiant_away,
+    is_supergiant_match,
+)
 from .analysis_orchestrator import HybridAnalysisOrchestrator
 from .api_football_service import APIFootballService
 from apps.matches.services.football_api import FootballAPIService
@@ -1170,6 +1176,7 @@ class DailyBetGenerator:
         
         # Extrair todas as top_bets de MULTIPLE
         all_bets = []
+        seen_fixture_ids = set()
         
         for analysis in analyses:
             match = analysis['match']
@@ -1178,11 +1185,27 @@ class DailyBetGenerator:
             away_team = analysis['away_team']
             league_name = analysis['league_name']
             match_date = analysis['match_date']
-            result = analysis['value_result']
+            supergiant_fixture = is_supergiant_match(match)
+            result = (
+                analysis.get('multiple_result')
+                if supergiant_fixture
+                else analysis.get('value_result')
+            )
             
-            # ✅ CORREÇÃO 21/02: Pular se análise VALUE falhou
+            # Jogos com supergigante usam a análise MULTIPLE, já restringida
+            # pelo DecisionEngine aos mercados protetivos.
             if result is None:
-                logger.debug(f"   ⏩ Pulando {home_team} vs {away_team}: análise VALUE falhou")
+                logger.debug(
+                    f"   ⏩ Pulando {home_team} vs {away_team}: "
+                    f"análise {'MULTIPLE' if supergiant_fixture else 'VALUE'} falhou"
+                )
+                continue
+
+            if fixture_id in seen_fixture_ids:
+                logger.debug(
+                    "   ⏩ Pulando fixture duplicado no inventário: %s",
+                    fixture_id,
+                )
                 continue
             
             analysis_data = result.get('analysis_data', {})
@@ -1242,15 +1265,29 @@ class DailyBetGenerator:
                 for bet in top_bets:
                     prob = bet.get('probability', 0)
                     odd = bet.get('market_odd', 0)
-                    ev_pct = bet.get('ev_pct', 0)
+                    market = bet.get('market', '')
+                    protective_market = is_protective_supergiant_market(market)
+
+                    if supergiant_fixture and not protective_market:
+                        continue
+                    if (
+                        is_supergiant_away(match)
+                        and is_home_over_market(market)
+                    ):
+                        continue
+
+                    min_odd = (
+                        1.15
+                        if supergiant_fixture and protective_market
+                        else self.MIN_ODD_MULTIPLE
+                    )
                     
                     # ✅ CORREÇÃO CRÍTICA 21/02: Usar VALUE_RESULT (EV >= 5%) com filtros de múltiplos
                     # - VALUE_RESULT já filtra EV >= 5% (MIN_VALUE_EV)
-                    # - Prob ≥65% → alta confiança para bilhetes múltiplos
-                    # - Odd 1.30-1.50 → 3-5 apostas = odd total 2.20-7.59
-                    # RESULTADO: Melhor dos dois mundos (EV positivo + prob alta)
+                    # Em jogos com supergigante, a análise MULTIPLE prioriza
+                    # cobertura protetiva e permite odd mínima de 1.15.
                     if (prob >= 0.65 and  # Mínimo 65% (pragmático)
-                        odd >= self.MIN_ODD_MULTIPLE and  # Odd mínima 1.30
+                        odd >= min_odd and  # Odd mínima padrão 1.30 ou protetiva 1.15
                         odd <= self.MAX_ODD_MULTIPLE):  # Odd máxima 1.50
                         eligible_bets.append(bet)
                 
@@ -1295,6 +1332,7 @@ class DailyBetGenerator:
                     'score': best_bet.get('post_score', best_bet['score']),
                     'result': None  # Será preenchido após validação
                 })
+                seen_fixture_ids.add(fixture_id)
         
         logger.info(f"   📊 {len(all_bets)} apostas elegíveis para bilhetes")
         
@@ -1320,12 +1358,17 @@ class DailyBetGenerator:
         all_bets.sort(key=lambda x: x['score'], reverse=True)
         logger.info(f"   🎯 Ordenação por SCORE contextual (não apenas probabilidade)")
         
-        # Criar bilhetes de 3, 5 e 7 apostas
+        # Cada bilhete consome partidas apenas depois de ser criado com sucesso.
+        # Assim, os bilhetes existentes nunca partilham o mesmo fixture.
         tickets = []
+        remaining_bets = list(all_bets)
         
         for size in [3, 5, 7]:
-            if len(all_bets) < size:
-                logger.info(f"   ⚠️  Apostas insuficientes para bilhete {size}x ({len(all_bets)} disponíveis)")
+            if len(remaining_bets) < size:
+                logger.info(
+                    f"   ⚠️  Apostas insuficientes e sem reutilização para bilhete "
+                    f"{size}x ({len(remaining_bets)} partidas disponíveis)"
+                )
                 continue
             
             # ✅ CORRIGIDO 17/02/2026: Filtrar apostas por probabilidade mínima dinâmica
@@ -1340,13 +1383,17 @@ class DailyBetGenerator:
                 min_combined_prob = self.MIN_COMBINED_PROBABILITY_7X
             
             # Filtrar apostas que atendem a probabilidade mínima individual
-            eligible_bets = [bet for bet in all_bets if bet['probability'] >= min_individual_prob]
+            eligible_bets = [
+                bet for bet in remaining_bets
+                if bet['probability'] >= min_individual_prob
+            ]
             
             if len(eligible_bets) < size:
                 logger.info(f"   ⏩ Bilhete {size}x: apenas {len(eligible_bets)} apostas ≥{min_individual_prob*100:.0f}% (precisa de {size})")
                 continue
             
-            # ✅ CORREÇÃO 21/02: Seleção com anti-correlação (liga + grupo de mercado)
+            # Diversifica por liga dentro de cada bilhete; o inventário restante
+            # mantém as partidas exclusivas entre bilhetes.
             selections = self._select_diversified_bets(eligible_bets, size)
             
             if not selections:
@@ -1431,6 +1478,14 @@ class DailyBetGenerator:
                 )
                 
                 tickets.append(bet)
+                consumed_fixture_ids = {
+                    selection.get('fixture_id') or selection.get('api_fixture_id')
+                    for selection in selections
+                }
+                remaining_bets = [
+                    candidate for candidate in remaining_bets
+                    if candidate.get('fixture_id') not in consumed_fixture_ids
+                ]
                 
                 logger.info(f"\n   ✅ Bilhete {size}x criado:")
                 # ✅ CORREÇÃO 21/02: Mostrar probabilidade AJUSTADA (mesma salva no DB)

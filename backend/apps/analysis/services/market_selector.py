@@ -17,6 +17,10 @@ from apps.analysis.config.market_standards import (
     get_market_category,
     is_derived_market
 )
+from apps.analysis.config.supergiants import (
+    is_protective_supergiant_market,
+    is_supergiant_match,
+)
 from apps.analysis.services.odds_calculator import OddsCalculator
 from apps.analysis.services.goal_line_safety import (
     conservative_total_market,
@@ -48,7 +52,8 @@ class MarketSelector:
                           context_analysis: Dict,
                           model_predictions: Dict,
                           market_odds: Dict,
-                          strategy: str = 'value') -> List[Dict]:
+                          strategy: str = 'value',
+                          match=None) -> List[Dict]:
         """
         Seleciona top 3 mercados baseado em contexto + modelo.
         
@@ -219,6 +224,17 @@ class MarketSelector:
                 'probability': probability,
                 'context_type': context_type  # Para debug
             })
+
+        supergiant_fixture = is_supergiant_match(match)
+        if supergiant_fixture:
+            candidates = [
+                candidate for candidate in candidates
+                if is_protective_supergiant_market(candidate['market'])
+            ]
+            logger.info(
+                "🛡️ Supergigante detectado: restringindo candidatos a Dupla Chance "
+                "e Under 3.5/4.5"
+            )
             
         logger.info(f"   ✅ {len(candidates)} mercados candidatos criados\n")
         
@@ -274,6 +290,17 @@ class MarketSelector:
             if not market_odd or market_odd <= 0:
                 logger.info(f"      ❌ Rejeitado: sem odd disponível no mercado")
                 continue
+
+            if (
+                supergiant_fixture
+                and is_protective_supergiant_market(normalized_market)
+                and market_odd < 1.15
+            ):
+                logger.info(
+                    f"      ❌ Rejeitado: odd {market_odd:.2f} < 1.15 "
+                    "no mercado protetivo de jogo com supergigante"
+                )
+                continue
             
             # Filtros baseados em estratégia
             if strategy == 'value':
@@ -328,8 +355,12 @@ class MarketSelector:
                 # Alinha com gerador automático (1.30-1.50) e AI Analyzer (1.30-2.00)
                 # Odds muito baixas (<1.30): retorno péssimo mesmo com prob alta
                 # Odds muito altas (>2.00): risco alto para combinações
-                if market_odd < 1.30:
-                    logger.info(f"      ❌ Rejeitado: odd {market_odd:.2f} < 1.30 (bilhetes requerem odds ≥ 1.30)")
+                minimum_odd = 1.15 if supergiant_fixture else 1.30
+                if market_odd < minimum_odd:
+                    logger.info(
+                        f"      ❌ Rejeitado: odd {market_odd:.2f} < {minimum_odd:.2f} "
+                        f"(limite para jogo com supergigante)"
+                    )
                     continue
                 elif market_odd > 2.00:
                     logger.info(f"      ❌ Rejeitado: odd {market_odd:.2f} > 2.00 (bilhetes requerem odds ≤ 2.00)")

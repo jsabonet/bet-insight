@@ -8,6 +8,12 @@ from typing import Dict
 from .market_selector import MarketSelector  # NOVO
 from apps.analysis.config import DecisionThresholds, ContextPolicy
 from apps.analysis.config.market_standards import get_market_display_name
+from apps.analysis.config.supergiants import (
+    is_home_over_market,
+    is_protective_supergiant_market,
+    is_supergiant_away,
+    is_supergiant_match,
+)
 from .goal_line_safety import (
     conservative_total_market,
     goal_market_odd,
@@ -235,7 +241,8 @@ class DecisionEngine:
             market_odds,
             confidence,
             risk,
-            strategy
+            strategy,
+            match=match,
         )
         
         for bet in top_bets:
@@ -306,6 +313,32 @@ class DecisionEngine:
         result['value_bets'] = self._apply_tactical_safety_filters(
             result.get('value_bets', []), match, strategy
         )
+        if strategy == 'multiple' and is_supergiant_match(match):
+            safe_bet = next(iter(result['top_bets']), None)
+            if safe_bet:
+                result['recommendation'] = {
+                    'market': safe_bet['market'],
+                    'market_display': safe_bet['market_display'],
+                    'pick': safe_bet['pick'],
+                    'probability': safe_bet['probability'],
+                    'odd': safe_bet['market_odd'],
+                    'fair_odd': safe_bet.get('fair_odd'),
+                    'value_pct': safe_bet.get('ev_pct'),
+                    'reason': 'supergiant_protective_market',
+                    'reason_pt': 'Mercado protetivo selecionado para jogo com supergigante',
+                }
+            else:
+                result['recommendation'] = {
+                    'market': 'no_safe_selection',
+                    'market_display': 'Sem recomendação protetiva',
+                    'pick': 'Sem seleção',
+                    'probability': 0,
+                    'odd': None,
+                    'fair_odd': None,
+                    'value_pct': None,
+                    'reason': 'supergiant_no_protective_market',
+                    'reason_pt': 'Não foi encontrado mercado protetivo elegível',
+                }
 
         return result
 
@@ -318,7 +351,9 @@ class DecisionEngine:
         (ModelEnsembleML / FeatureEngineer permanecem intactos).
 
         Regras (apenas para strategy == 'multiple'):
-        1. Dérbi/Rivalidade emocional extrema -> remove mercados de golos
+        1. Supergigante -> mantém apenas Dupla Chance (1X/X2) e Under 3.5/4.5;
+           veta golos da equipa da casa contra supergigante visitante.
+        2. Dérbi/Rivalidade emocional extrema -> remove mercados de golos
            agressivos (Over/Under 2.5), mantendo apenas mercados de proteção.
         As linhas de golos já são ajustadas pelo MarketSelector com probabilidades
         e odds da linha de destino; não aplicar descontos estimados nesta fase.
@@ -334,10 +369,29 @@ class DecisionEngine:
         if not validated_selections or strategy != 'multiple':
             return validated_selections
 
-        original = validated_selections
-        try:
-            selections = list(validated_selections)
+        selections = list(validated_selections)
 
+        if is_supergiant_match(match):
+            away_is_supergiant = is_supergiant_away(match)
+            filtered = []
+            for selection in selections:
+                market = selection.get('market', selection.get('market_display', ''))
+                if away_is_supergiant and is_home_over_market(market):
+                    logger.info(
+                        "   ❌ [Supergigante] Veto de golos da equipa da casa contra visitante de elite: %s",
+                        market,
+                    )
+                    continue
+                if not is_protective_supergiant_market(market):
+                    logger.info(
+                        "   ❌ [Supergigante] Removido mercado fora da lista protetiva: %s",
+                        market,
+                    )
+                    continue
+                filtered.append(selection)
+            selections = filtered
+
+        try:
             if self._is_derby_match(match):
                 logger.info(
                     "🚫 [Filtros Táticos] Dérbi/rivalidade extrema detectada - "
@@ -349,9 +403,9 @@ class DecisionEngine:
         except Exception as e:
             logger.warning(
                 f"⚠️ [Filtros Táticos] Erro ao aplicar filtros ({e}) - "
-                "mantendo seleções originais"
+                "mantendo filtros de supergigante já aplicados"
             )
-            return original
+            return selections
 
     def _is_derby_match(self, match):
         """Detecta se a partida envolve rivalidade emocional extrema."""
@@ -1612,7 +1666,7 @@ class DecisionEngine:
             return "0.5-1% do bankroll"
     
     def _select_contextual_bets(self, context_analysis, model_predictions, market_odds, 
-                               confidence, risk, strategy):
+                               confidence, risk, strategy, match=None):
         """
         Seleciona top 3 apostas usando análise contextual INTELIGENTE.
         
@@ -1641,7 +1695,8 @@ class DecisionEngine:
             context_analysis,
             model_predictions,
             market_odds,
-            strategy
+            strategy,
+            match=match,
         )
         
         # 🆕 NOVO: Calcular contextual_fit para cada mercado
