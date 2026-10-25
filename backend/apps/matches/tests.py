@@ -1,5 +1,6 @@
 from unittest.mock import patch
 from datetime import timedelta
+from types import SimpleNamespace
 
 from django.core.cache import cache
 from django.test import SimpleTestCase
@@ -36,6 +37,56 @@ class MatchDetailPerformanceTests(SimpleTestCase):
 		self.assertTrue(response.data['enrichment_pending'])
 		api_service.return_value.get_fixture_events.assert_not_called()
 		api_service.return_value.get_head_to_head.assert_not_called()
+
+	def test_live_score_refreshes_and_persists_only_current_fixture_state(self):
+		match = SimpleNamespace(
+			id=50,
+			api_football_id=77,
+			home_score=0,
+			away_score=0,
+			status='scheduled',
+			save=lambda **_kwargs: None,
+		)
+		fixture = {
+			'fixture': {'status': {'short': '1H', 'elapsed': 24}},
+			'goals': {'home': 1, 'away': 0},
+		}
+		with (
+			patch.object(MatchViewSet, 'get_object', return_value=match),
+			patch('apps.matches.views._cached_api_result', return_value={'success': True, 'fixture': fixture}) as cached_result,
+			patch('apps.matches.views.FootballAPIService'),
+		):
+			response = MatchViewSet.as_view(
+				{'get': 'live_score'}, permission_classes=[AllowAny],
+			)(
+				self.factory.get('/api/matches/50/live_score/'),
+				pk='50',
+			)
+
+		self.assertEqual(response.status_code, 200)
+		self.assertEqual(response.data['home_score'], 1)
+		self.assertEqual(response.data['away_score'], 0)
+		self.assertEqual(response.data['status'], '1H')
+		self.assertEqual(response.data['elapsed'], 24)
+		self.assertEqual(match.status, 'live')
+		cached_result.assert_called_once()
+		self.assertEqual(cached_result.call_args.args[:2], ('match_live_score:v1:77', 30))
+
+	def test_live_score_rejects_fixtures_without_external_id(self):
+		match = SimpleNamespace(api_football_id=None)
+		with (
+			patch.object(MatchViewSet, 'get_object', return_value=match),
+			patch('apps.matches.views._cached_api_result') as cached_result,
+		):
+			response = MatchViewSet.as_view(
+				{'get': 'live_score'}, permission_classes=[AllowAny],
+			)(
+				self.factory.get('/api/matches/50/live_score/'),
+				pk='50',
+			)
+
+		self.assertEqual(response.status_code, 404)
+		cached_result.assert_not_called()
 
 	def test_history_enrichment_keeps_h2h_and_team_forms_separate(self):
 		fixture = {

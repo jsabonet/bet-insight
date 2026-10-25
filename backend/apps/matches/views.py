@@ -186,6 +186,77 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         if self.action == 'retrieve':
             return MatchDetailSerializer
         return MatchListSerializer
+
+    @action(detail=True, methods=['get'])
+    def live_score(self, request, pk=None):
+        """Atualiza apenas o placar de uma partida local sem carregar seus extras."""
+        match = self.get_object()
+        if not match.api_football_id:
+            return Response(
+                {'error': 'Partida sem ID da API-Football'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        result = _cached_api_result(
+            f'match_live_score:v1:{match.api_football_id}',
+            30,
+            lambda: FootballAPIService().get_fixture_live(match.api_football_id),
+        )
+        if not result.get('success'):
+            return Response(
+                {
+                    'error': result.get('error', 'Não foi possível atualizar o placar'),
+                    'details': result.get('details'),
+                    'code': result.get('error_code'),
+                },
+                status=result.get('http_status', status.HTTP_502_BAD_GATEWAY),
+            )
+
+        fixture = result.get('fixture') or {}
+        fixture_details = fixture.get('fixture') or {}
+        fixture_status = fixture_details.get('status') or {}
+        goals = fixture.get('goals') or {}
+        status_code = fixture_status.get('short')
+        if status_code is None or 'home' not in goals or 'away' not in goals:
+            logger.error(
+                'Resposta incompleta da API-Football ao atualizar placar da partida %s',
+                match.api_football_id,
+            )
+            return Response(
+                {'error': 'Resposta incompleta ao atualizar o placar'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        status_code = str(status_code).upper()
+        local_status = None
+        if status_code in {'1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE', 'INT'}:
+            local_status = 'live'
+        elif status_code in {'FT', 'AET', 'PEN'}:
+            local_status = 'finished'
+        elif status_code in {'NS', 'TBD'}:
+            local_status = 'scheduled'
+        elif status_code in {'PST', 'CANC', 'ABD', 'AWD', 'WO'}:
+            local_status = 'cancelled'
+
+        changed_fields = []
+        for field, value in (
+            ('home_score', goals['home']),
+            ('away_score', goals['away']),
+            ('status', local_status),
+        ):
+            if value is not None and getattr(match, field) != value:
+                setattr(match, field, value)
+                changed_fields.append(field)
+        if changed_fields:
+            match.save(update_fields=changed_fields)
+
+        return Response({
+            'fixture_id': match.api_football_id,
+            'home_score': goals['home'],
+            'away_score': goals['away'],
+            'status': status_code,
+            'elapsed': fixture_status.get('elapsed'),
+        })
     
     def _generate_mock_matches(self, date):
         """Gerar partidas de exemplo para teste"""

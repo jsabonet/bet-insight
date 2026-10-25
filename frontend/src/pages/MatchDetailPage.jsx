@@ -15,6 +15,24 @@ import SectionNav from '../components/match-detail/SectionNav';
 import SEOHead from '../components/SEO/SEOHead';
 import { generateMatchStructuredData } from '../utils/structuredData';
 
+const LIVE_MATCH_STATUSES = new Set(['LIVE', '1H', '2H', 'HT', 'ET', 'BT', 'P', 'INT']);
+const FINISHED_MATCH_STATUSES = new Set([
+  'FINISHED', 'CANCELLED', 'POSTPONED', 'FT', 'AET', 'PEN', 'PST', 'CANC', 'ABD', 'AWD', 'WO',
+]);
+const LIVE_SCORE_POLL_INTERVAL = 60000;
+
+const isLiveMatch = (status) => LIVE_MATCH_STATUSES.has(String(status || '').toUpperCase());
+
+const shouldRefreshLiveScore = (match) => {
+  const status = String(match.status || '').toUpperCase();
+  if (isLiveMatch(status)) return true;
+  if (FINISHED_MATCH_STATUSES.has(status)) return false;
+
+  const kickoff = new Date(match.match_date || match.date).getTime();
+  const now = Date.now();
+  return Number.isFinite(kickoff) && now >= kickoff - 15 * 60 * 1000 && now <= kickoff + 6 * 60 * 60 * 1000;
+};
+
 // Lazy load componentes pesados
 const AtAGlance = lazy(() => import('../components/match-detail/AtAGlance'));
 const GoalsAndPoisson = lazy(() => import('../components/match-detail/GoalsAndPoisson'));
@@ -163,26 +181,44 @@ export default function MatchDetailPage() {
     }
   }, [strategy]);
 
-  // Atualização automática para partidas ao vivo - OTIMIZADO (3 min)
+  // Atualiza o placar fora do caminho de renderização do cache local.
   useEffect(() => {
-    if (!match) return;
-    
-    const isLive = ['LIVE', '1H', '2H', 'HT'].includes(match.status);
-    
-    if (isLive) {
-      console.log('🔴 PARTIDA AO VIVO - Iniciando atualização automática a cada 3 min');
-      const interval = setInterval(() => {
-        console.log('🔄 Atualizando dados da partida ao vivo...');
-        loadMatchDetails();
-        loadLiveProbabilities(); // ✅ Atualizar probabilidades ao vivo
-      }, 180000); // Atualizar a cada 3 minutos (economizar quota API)
-      
-      return () => {
-        console.log('⏹️ Parando atualização automática');
-        clearInterval(interval);
-      };
-    }
-  }, [match?.status]);
+    if (!match || isExternalMatch || !match.api_football_id || !shouldRefreshLiveScore(match)) return;
+
+    let active = true;
+    const refreshLiveScore = async () => {
+      try {
+        const { data } = await matchesAPI.getLiveScore(match.id);
+        if (!active) return;
+        setMatch((current) => current?.id === match.id
+          ? {
+              ...current,
+              home_score: data.home_score ?? current.home_score,
+              away_score: data.away_score ?? current.away_score,
+              status: data.status || current.status,
+              elapsed: data.elapsed,
+            }
+          : current);
+      } catch (refreshError) {
+        console.warn('Não foi possível atualizar o placar ao vivo:', refreshError.message);
+      }
+    };
+
+    refreshLiveScore();
+    const interval = setInterval(refreshLiveScore, LIVE_SCORE_POLL_INTERVAL);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [match?.id, match?.api_football_id, match?.status, match?.match_date, isExternalMatch]);
+
+  // Probabilidades são atualizadas separadamente, sem refazer o carregamento do detalhe.
+  useEffect(() => {
+    if (!match || !isLiveMatch(match.status)) return;
+
+    const interval = setInterval(loadLiveProbabilities, 180000);
+    return () => clearInterval(interval);
+  }, [match?.id, match?.status]);
 
   // Contador de segundos desde a última atualização
   useEffect(() => {
@@ -824,7 +860,7 @@ export default function MatchDetailPage() {
               </h3>
               
               {/* Goleadores Casa - apenas para jogos ao vivo ou finalizados */}
-              {(match.status === 'FT' || match.status === 'LIVE' || match.status === '1H' || match.status === '2H' || match.status === 'HT') && match.events && (
+              {(match.status === 'FT' || isLiveMatch(match.status)) && match.events && (
                 <div className="w-full">
                   {match.events
                     .filter(event => 
@@ -856,7 +892,7 @@ export default function MatchDetailPage() {
             {/* Placar ou Hora */}
             <div className="flex flex-col items-center gap-2 min-w-[120px]">
               {/* Indicador de Ao Vivo */}
-              {(match.status === 'LIVE' || match.status === '1H' || match.status === '2H' || match.status === 'HT') && (
+              {isLiveMatch(match.status) && (
                 <div className="flex items-center gap-2 mb-1">
                   <span className="relative flex h-3 w-3">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -866,7 +902,7 @@ export default function MatchDetailPage() {
                 </div>
               )}
               
-              {match.home_score !== null && match.away_score !== null ? (
+              {match.home_score != null && match.away_score != null ? (
                 <div className="flex items-center gap-4">
                   <span className="text-5xl font-bold text-gray-900 dark:text-white">{match.home_score}</span>
                   <span className="text-3xl font-bold text-gray-400 dark:text-gray-500">-</span>
@@ -881,12 +917,14 @@ export default function MatchDetailPage() {
                 </span>
               )}
               <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-semibold">
+                {match.elapsed != null && Number.isFinite(Number(match.elapsed)) ? `${match.elapsed}' · ` : ''}
                 {match.status === 'NS' ? 'Não iniciado' : 
-                 match.status === 'FT' ? 'Finalizado' :
+                 (match.status === 'FT' || match.status === 'AET' || match.status === 'PEN' || match.status === 'finished') ? 'Finalizado' :
                  match.status === '1H' ? '1º Tempo' :
                  match.status === 'HT' ? 'Intervalo' :
                  match.status === '2H' ? '2º Tempo' :
-                 match.status === 'LIVE' ? 'Ao vivo' : match.status}
+                 (isLiveMatch(match.status) || match.status === 'live') ? 'Ao vivo' :
+                 match.status === 'scheduled' ? 'Não iniciado' : match.status}
               </span>
             </div>
 
@@ -898,7 +936,7 @@ export default function MatchDetailPage() {
               </h3>
               
               {/* Goleadores Fora - apenas para jogos ao vivo ou finalizados */}
-              {(match.status === 'FT' || match.status === 'LIVE' || match.status === '1H' || match.status === '2H' || match.status === 'HT') && match.events && (
+              {(match.status === 'FT' || isLiveMatch(match.status)) && match.events && (
                 <div className="w-full">
                   {match.events
                     .filter(event => 
@@ -929,7 +967,7 @@ export default function MatchDetailPage() {
           </div>
 
           {/* Estatísticas rápidas ao vivo (cartões e últimos eventos) */}
-          {(match.status === 'FT' || match.status === 'LIVE' || match.status === '1H' || match.status === '2H' || match.status === 'HT') && match.events && match.events.length > 0 && (
+          {(match.status === 'FT' || isLiveMatch(match.status)) && match.events && match.events.length > 0 && (
             <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 mb-4">
               <div className="grid grid-cols-2 gap-4 mb-3">
                 {/* Cartões Casa */}
