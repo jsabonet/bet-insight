@@ -104,7 +104,7 @@ export default function PremiumPage() {
     {
       icon: TrendingUp,
       title: 'Análises Diárias',
-      description: 'Análises de IA para suas partidas favoritas',
+      description: 'Análises estatísticas para suas partidas favoritas',
       free: '5 por dia',
       premium: 'Até 150 por dia',
     },

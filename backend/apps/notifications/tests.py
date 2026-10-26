@@ -217,6 +217,7 @@ class NotificationInboxTests(TestCase):
         self.assertEqual(response.data['unread_count'], 1)
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['id'], notification.id)
+        self.assertEqual(response.data['results'][0]['event_key'], notification.event_key)
         self.assertFalse(response.data['results'][0]['read'])
 
     def test_user_can_mark_one_or_all_notifications_as_read(self):

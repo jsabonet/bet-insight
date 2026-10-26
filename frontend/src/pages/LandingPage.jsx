@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useEffect } from 'react';
-import { TrendingUp, Brain, Shield, Zap, Clock, Target, ArrowRight, Star, CheckCircle2 } from 'lucide-react';
+import { TrendingUp, BarChart3, Shield, Zap, Clock, Target, ArrowRight, Star, CheckCircle2 } from 'lucide-react';
 import Logo from '../components/Logo';
 import Footer from '../components/Footer';
 import { useTheme } from '../context/ThemeContext';
@@ -16,7 +16,7 @@ export default function LandingPage() {
 
   const features = [
     {
-      icon: Brain,
+      icon: BarChart3,
       title: 'Análise Estatística Avançada',
       description: 'Modelos matemáticos comprovados (Poisson + Regressão) processam estatísticas para previsões precisas.'
     },
@@ -177,7 +177,7 @@ export default function LandingPage() {
             <div className="absolute -bottom-6 -left-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-4 animate-float" style={{ animationDelay: '0.5s' }}>
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                  <Brain className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  <BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">109</p>

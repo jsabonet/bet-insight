@@ -11,10 +11,11 @@ import AccuracyStats from '../components/AccuracyStats';
 import EmptyState from '../components/EmptyState';
 import { Skeleton } from '../components/Skeleton';
 import SEOHead from '../components/SEO/SEOHead';
+import { isUnsupportedAsianGoalMarket } from '../utils/marketUtils';
 
 export default function DailyBetsPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const isAdmin = user?.is_staff || user?.is_superuser;
   const canAccessSelections = user?.is_premium_active || isAdmin;
   const [loading, setLoading] = useState(true);
@@ -36,10 +37,49 @@ export default function DailyBetsPage() {
       loadDailyBets();
     } else {
       setLoading(false);
+      setMultipleTickets([]);
+      setValueBets([]);
+      setDisplayedDate('');
     }
     loadStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, canAccessSelections]);
+
+  useEffect(() => {
+    if (!canAccessSelections) return undefined;
+
+    let active = true;
+    let checking = false;
+    const verifyPremiumAccess = async () => {
+      if (checking) return;
+      checking = true;
+      try {
+        const currentUser = await refreshProfile();
+        if (
+          active &&
+          currentUser &&
+          !currentUser.is_premium_active &&
+          !currentUser.is_staff &&
+          !currentUser.is_superuser
+        ) {
+          setMultipleTickets([]);
+          setValueBets([]);
+          setDisplayedDate('');
+          setError(null);
+        }
+      } finally {
+        checking = false;
+      }
+    };
+
+    window.addEventListener('focus', verifyPremiumAccess);
+    const intervalId = window.setInterval(verifyPremiumAccess, 60_000);
+    return () => {
+      active = false;
+      window.removeEventListener('focus', verifyPremiumAccess);
+      window.clearInterval(intervalId);
+    };
+  }, [canAccessSelections, refreshProfile]);
 
   const loadDailyBets = async () => {
     if (!canAccessSelections) return;
@@ -49,12 +89,24 @@ export default function DailyBetsPage() {
       const response = await dailyBetsAPI.getToday(selectedDate || undefined);
       const data = response.data;
       
-      setMultipleTickets(data.multiple_tickets || []);
-      setValueBets(data.value_bets || []);
+      setMultipleTickets((data.multiple_tickets || []).filter(
+        (ticket) => !(ticket.selections || []).some(isUnsupportedAsianGoalMarket)
+      ));
+      setValueBets((data.value_bets || []).filter(
+        (bet) => !(bet.selections || []).some(isUnsupportedAsianGoalMarket)
+      ));
       setDisplayedDate(data.date || '');
     } catch (err) {
       console.error('Erro ao carregar seleções:', err);
-      setError('Erro ao carregar seleções. Tente novamente.');
+      if (err.response?.status === 403) {
+        setMultipleTickets([]);
+        setValueBets([]);
+        setDisplayedDate('');
+        setError(null);
+        await refreshProfile();
+      } else {
+        setError('Erro ao carregar seleções. Tente novamente.');
+      }
     } finally {
       setLoading(false);
     }

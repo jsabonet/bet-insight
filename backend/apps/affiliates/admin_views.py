@@ -16,6 +16,7 @@ from .models import (
     Affiliate, AffiliateCommission, AffiliateWithdrawal,
     AffiliateWithdrawalAllocation,
 )
+from apps.notifications.models import Notification
 from .services import _update_affiliate_balances
 
 logger = logging.getLogger(__name__)
@@ -301,6 +302,15 @@ def admin_complete_withdrawal(request, withdrawal_id):
             'status', 'transaction_reference', 'processed_by', 'processed_at', 'updated_at',
         ])
         _update_affiliate_balances(affiliate)
+        Notification.objects.get_or_create(
+            user=affiliate.user,
+            event_key=f'affiliate_withdrawal_paid_{withdrawal.pk}',
+            defaults={
+                'title': 'Levantamento pago',
+                'body': f'O seu levantamento de {withdrawal.payout_amount} MZN foi pago.',
+                'url': '/affiliate',
+            },
+        )
 
     return Response({'message': 'Levantamento marcado como pago.'})
 

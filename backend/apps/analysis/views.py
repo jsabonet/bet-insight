@@ -81,10 +81,12 @@ class AnalysisViewSet(viewsets.ReadOnlyModelViewSet):
         
         # Verificar se usuário pode analisar
         if not user.can_analyze():
+            daily_limit = user.get_daily_analysis_limit()
             return Response({
                 'error': 'Limite de análises diárias atingido',
-                'daily_limit': 5 if not user.is_premium_active() else 100,
-                'used': user.daily_analysis_count
+                'daily_limit': max(daily_limit, user.daily_analysis_count) + user.bonus_analysis_credits,
+                'used': user.daily_analysis_count,
+                'bonus_analysis_credits': user.bonus_analysis_credits,
             }, status=http_status.HTTP_403_FORBIDDEN)
         
         # Verificar se já existe análise
@@ -135,6 +137,8 @@ class AnalysisViewSet(viewsets.ReadOnlyModelViewSet):
         
         # Incrementar contador
         user.increment_analysis_count()
+        from apps.affiliates.services import reward_member_referral_for_first_analysis
+        reward_member_referral_for_first_analysis(user)
         
         return Response({
             'message': 'Análise gerada com sucesso!',

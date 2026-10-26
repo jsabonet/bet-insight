@@ -86,6 +86,7 @@ export default function PrivacyPage() {
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-6 mb-3">2.3. Dados Técnicos</h3>
               <ul className="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
                 <li>Endereço IP</li>
+                <li>Identificador técnico do dispositivo usado para segurança e prevenção de abuso</li>
                 <li>Tipo e versão do navegador</li>
                 <li>Sistema operacional</li>
                 <li>Dispositivo utilizado</li>
@@ -114,6 +115,7 @@ export default function PrivacyPage() {
                 <li><strong>Processamento de Pagamentos:</strong> Gerenciar assinaturas premium</li>
                 <li><strong>Melhoria do Serviço:</strong> Analisar uso para melhorar funcionalidades</li>
                 <li><strong>Segurança:</strong> Detectar e prevenir fraudes e abusos</li>
+                <li><strong>Convites:</strong> Comparar IP e identificador do dispositivo para limitar recompensas duplicadas; esses sinais não impedem o cadastro de contas na mesma rede</li>
                 <li><strong>Conformidade Legal:</strong> Cumprir obrigações legais e regulatórias</li>
               </ul>
             </section>
@@ -218,6 +220,9 @@ export default function PrivacyPage() {
               </ul>
               <p className="text-gray-700 dark:text-gray-300 mt-4">
                 Quando você exclui sua conta, removemos permanentemente seus dados pessoais dentro de 30 dias, exceto quando a retenção é exigida por lei.
+              </p>
+              <p className="text-gray-700 dark:text-gray-300 mt-4">
+                Para prevenir recompensas duplicadas, mantemos identificadores derivados e protegidos do IP e do dispositivo associados aos convites recompensados, sujeitos aos prazos de retenção acima.
               </p>
             </section>
 

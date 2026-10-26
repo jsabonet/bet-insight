@@ -42,6 +42,11 @@ ALLOWED_HOSTS = [
 # a request e HTTP e a validacao de Origin do CSRF falha no /admin/ em HTTPS.
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
+TRUSTED_PROXY_IPS = tuple(
+    address.strip()
+    for address in os.getenv('TRUSTED_PROXY_IPS', '').split(',')
+    if address.strip()
+)
 
 # Origens de confianca para pedidos POST em HTTPS (admin, login, webhooks).
 # Derivado de ALLOWED_HOSTS; pode ser sobreposto com CSRF_TRUSTED_ORIGINS.

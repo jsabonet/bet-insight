@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader2, CheckCircle, XCircle, Clock, ArrowLeft } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
 export default function PaymentConfirmation() {
   const { transactionId } = useParams();
   const navigate = useNavigate();
+  const { refreshProfile } = useAuth();
   const [status, setStatus] = useState('checking'); // checking, success, failed, pending
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -38,6 +40,7 @@ export default function PaymentConfirmation() {
       setPayment(paymentData);
 
       if (paymentData.status === 'completed') {
+        await refreshProfile();
         setStatus('success');
         setLoading(false);
       } else if (paymentData.status === 'failed') {

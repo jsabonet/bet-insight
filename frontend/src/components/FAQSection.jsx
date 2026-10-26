@@ -46,8 +46,8 @@ export const defaultFAQs = [
     answer: "Utilizamos modelos matemáticos avançados (Poisson Bivariado + Regressão Logística) que processam 109 variáveis por partida, incluindo forma recente, confrontos diretos, estatísticas de gols, motivação das equipas e muito mais. O ensemble combina 50% Poisson, 35% Regressão Logística e 15% market priors."
   },
   {
-    question: "As previsões são feitas por inteligência artificial?",
-    answer: "Não. As previsões são geradas exclusivamente por modelos estatísticos comprovados (Poisson Bivariado e Regressão Logística) com base em 109 variáveis quantitativas. Todas as análises são puramente matemáticas e verificáveis."
+    question: "Como são calculadas as previsões?",
+    answer: "As previsões são calculadas por modelos matemáticos, incluindo Poisson Bivariado e Regressão Logística, com base em dados estatísticos das partidas."
   },
   {
     question: "Quantas análises posso fazer gratuitamente?",

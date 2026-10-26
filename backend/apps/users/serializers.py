@@ -1,9 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
-from datetime import date
-from dateutil.relativedelta import relativedelta
 from .models import User
+from .ip_utils import get_client_ip
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -67,9 +66,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         )
         # Guardar IP e fingerprint no cadastro
         if request:
-            ip = request.META.get('HTTP_X_FORWARDED_FOR')
-            ip = ip.split(',')[0].strip() if ip else request.META.get('REMOTE_ADDR')
-            user.signup_ip = ip
+            user.signup_ip = get_client_ip(request)
         if fingerprint:
             user.device_fingerprint = fingerprint[:255]
         user.save()
@@ -91,12 +88,14 @@ class UserSerializer(serializers.ModelSerializer):
             'is_premium', 'premium_until',
             'is_premium_active',
             'daily_analysis_count', 'total_analyses', 'successful_predictions',
-            'success_rate', 'can_analyze_today', 'remaining_analyses', 'push_enabled',
+            'success_rate', 'can_analyze_today', 'remaining_analyses',
+            'bonus_analysis_credits', 'push_enabled',
             'is_staff', 'is_superuser'
         ]
         read_only_fields = [
             'id', 'email', 'email_verified', 'age', 'is_premium', 'premium_until', 'daily_analysis_count',
-            'total_analyses', 'successful_predictions', 'is_staff', 'is_superuser'
+            'total_analyses', 'successful_predictions', 'bonus_analysis_credits',
+            'is_staff', 'is_superuser'
         ]
     
     def get_success_rate(self, obj):
@@ -109,19 +108,13 @@ class UserSerializer(serializers.ModelSerializer):
         return obj.can_analyze()
     
     def get_remaining_analyses(self, obj):
-        from apps.subscriptions.plan_config import get_plan_limit
         today = timezone.now().date()
-        
+
         if obj.last_analysis_date != today:
             count = 0
         else:
             count = obj.daily_analysis_count
-        
-        if obj.is_premium_active():
-            from django.conf import settings
-            return settings.PREMIUM_ANALYSIS_LIMIT - count
-        free_limit = get_plan_limit('freemium')
-        return free_limit - count
+        return max(obj.get_daily_analysis_limit() - count, 0) + obj.bonus_analysis_credits
 
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):

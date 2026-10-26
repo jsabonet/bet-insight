@@ -71,7 +71,7 @@ export default function TermsPage() {
               </p>
               <ul className="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
                 <li><strong>Análises Estatísticas:</strong> Dados e estatísticas sobre partidas de futebol</li>
-                <li><strong>Previsões com IA:</strong> Análises automatizadas baseadas em inteligência artificial</li>
+                <li><strong>Previsões estatísticas:</strong> Estimativas calculadas a partir de dados e modelos matemáticos</li>
                 <li><strong>Histórico de Confrontos:</strong> Informações sobre confrontos diretos entre equipas</li>
                 <li><strong>Insights e Tendências:</strong> Análises de desempenho e padrões</li>
               </ul>

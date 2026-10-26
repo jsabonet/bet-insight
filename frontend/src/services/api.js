@@ -211,6 +211,7 @@ export const affiliateAPI = {
   // Afiliado (autenticado)
   apply: (data) => api.post('/affiliates/apply/', data),
   getMe: () => api.get('/affiliates/me/'),
+  getMemberReferrals: () => api.get('/affiliates/member/referrals/'),
   updateMe: (data) => api.patch('/affiliates/me/', data),
   getStats: () => api.get('/affiliates/me/stats/'),
   getCommissions: (status) => api.get('/affiliates/me/commissions/', { params: status ? { status } : {} }),

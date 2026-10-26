@@ -1067,6 +1067,8 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             
             # Incrementar contador de análises do usuário
             request.user.increment_analysis_count()
+            from apps.affiliates.services import reward_member_referral_for_first_analysis
+            reward_member_referral_for_first_analysis(request.user)
             
             # Mapear predição para display
             prediction_display_map = {
@@ -1476,6 +1478,8 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                                     analysis_data={'source': 'ai', 'fallback': True}
                                 )
                                 request.user.increment_analysis_count()
+                                from apps.affiliates.services import reward_member_referral_for_first_analysis
+                                reward_member_referral_for_first_analysis(request.user)
                                 saved = True
                                 saved_info = {'id': saved_analysis.id, 'created_at': saved_analysis.created_at}
                     else:
@@ -1548,6 +1552,8 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                                 analysis_data={'source': 'ai', 'fallback': True}
                             )
                             request.user.increment_analysis_count()
+                            from apps.affiliates.services import reward_member_referral_for_first_analysis
+                            reward_member_referral_for_first_analysis(request.user)
                             saved = True
                             saved_info = {'id': saved_analysis.id, 'created_at': saved_analysis.created_at}
         except Exception:

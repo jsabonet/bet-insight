@@ -23,6 +23,7 @@ class NotificationListView(APIView):
             'results': [
                 {
                     'id': item.id,
+                    'event_key': item.event_key,
                     'title': item.title,
                     'body': item.body,
                     'url': item.url,

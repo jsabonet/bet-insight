@@ -564,6 +564,11 @@ class AdminSubscriptionManagementTests(TestCase):
         self.assertFalse(self.user.is_premium)
         self.assertIsNone(self.user.premium_until)
 
+        user_client = APIClient()
+        user_client.force_authenticate(self.user)
+        access_response = user_client.get('/api/daily-bets/today/')
+        self.assertEqual(access_response.status_code, 403)
+
     def test_admin_subscription_lookup_returns_selected_users_plan(self):
         Subscription.objects.create(
             user=self.admin,

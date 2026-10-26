@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useEffect } from 'react';
-import { Target, Users, Zap, Brain, TrendingUp, Shield, Heart, Mail, CheckCircle2 } from 'lucide-react';
+import { Target, Users, Zap, BarChart3, TrendingUp, Shield, Heart, Mail, CheckCircle2 } from 'lucide-react';
 import Logo from '../components/Logo';
 import Footer from '../components/Footer';
 import SEOHead from '../components/SEO/SEOHead';
@@ -106,7 +106,7 @@ export default function AboutPage() {
                 O PlacarCerto nasceu da paixão pelo futebol e da visão de tornar análises estatísticas avançadas acessíveis a todos os fãs do desporto.
               </p>
               <p>
-                Acreditamos que informação de qualidade não deve ser privilégio de poucos. Por isso, desenvolvemos uma plataforma que combina dados em tempo real, histórico completo de confrontos e inteligência artificial para fornecer análises precisas e compreensíveis.
+                Acreditamos que informação de qualidade não deve ser privilégio de poucos. Por isso, desenvolvemos uma plataforma que combina dados em tempo real, histórico de confrontos e modelos estatísticos para fornecer análises claras e compreensíveis.
               </p>
               <p>
                 Nossa missão é empoderar fãs de futebol com informações confiáveis, ajudando-os a entender melhor o jogo que amam através de estatísticas claras e previsões baseadas em dados reais.
@@ -166,13 +166,13 @@ export default function AboutPage() {
 
             <div className="text-center">
               <div className="w-20 h-20 bg-primary-100 dark:bg-primary-900/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <Brain className="w-10 h-10 text-primary-600 dark:text-primary-400" />
+                <BarChart3 className="w-10 h-10 text-primary-600 dark:text-primary-400" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                2. IA Analisa
+                2. Modelos Estatísticos
               </h3>
               <p className="text-gray-600 dark:text-gray-400">
-                Nossa inteligência artificial processa milhares de dados, identifica padrões, tendências e fatores que influenciam o resultado das partidas.
+                Nossos modelos matemáticos processam dados das partidas para calcular probabilidades e identificar tendências relevantes.
               </p>
             </div>
 

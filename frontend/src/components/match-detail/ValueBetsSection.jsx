@@ -1,5 +1,6 @@
 import { DollarSign, TrendingUp, AlertCircle, Target, BarChart3, Percent, Sparkles, Award, Activity } from 'lucide-react';
 import { TeamLogo } from '../../utils/logos';
+import { isUnsupportedAsianGoalMarket } from '../../utils/marketUtils';
 
 /**
  * VALUE BETS & ODDS - VERSÃO EXPANDIDA E PROFISSIONAL
@@ -10,6 +11,9 @@ export default function ValueBetsSection({ analysis, match }) {
   if (!analysis?.analysis_data) return null;
 
   const { fair_odds, market_odds, value_bets, poisson, consensus, recommendation, confidence, risk } = analysis.analysis_data;
+  const visibleValueBets = (value_bets || []).filter(
+    (valueBet) => !isUnsupportedAsianGoalMarket(valueBet)
+  );
 
   // Probabilidades implícitas do mercado
   const calcImpliedProb = (odd) => odd > 0 ? (1 / odd) * 100 : 0;
@@ -366,9 +370,9 @@ export default function ValueBetsSection({ analysis, match }) {
             <Target className="w-4 h-4 text-white" />
           </div>
           <h3 className="font-semibold text-gray-900 dark:text-white text-base">Resultado Final (1X2)</h3>
-          {value_bets && value_bets.length > 0 && (
+          {visibleValueBets.length > 0 && (
             <span className="ml-auto text-xs font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded-full">
-              {value_bets.filter(vb => ['home_win', 'draw', 'away_win'].includes(vb.market)).length} Values
+              {visibleValueBets.filter(vb => ['home_win', 'draw', 'away_win'].includes(vb.market)).length} Values
             </span>
           )}
         </div>
@@ -622,7 +626,7 @@ export default function ValueBetsSection({ analysis, match }) {
       )}
 
       {/* VALUE BETS DETECTADOS */}
-      {value_bets && value_bets.length > 0 && (
+      {visibleValueBets.length > 0 && (
         <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-5 border-2 border-green-400 dark:border-green-700">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
@@ -632,7 +636,7 @@ export default function ValueBetsSection({ analysis, match }) {
           </div>
 
           <div className="space-y-3">
-            {value_bets.map((vb, index) => (
+            {visibleValueBets.map((vb, index) => (
               <div
                 key={index}
                 className="bg-white dark:bg-gray-800 rounded-lg p-4 border-2 border-green-300 dark:border-green-800"

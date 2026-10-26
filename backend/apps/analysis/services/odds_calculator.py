@@ -1,7 +1,7 @@
 """
 Odds Calculator - Cálculo de Odds para Mercados Derivados
 
-Calcula odds de mercados derivados (DC, DNB, Asian Lines) a partir de odds base,
+Calcula odds de mercados derivados (DC, DNB) a partir de odds base,
 resolvendo o problema de usar odds genéricas (2.00) para mercados sem odds reais.
 
 Date: 2026-02-14
@@ -25,7 +25,6 @@ class OddsCalculator:
     Mercados Derivados (calculados):
     - Double Chance (1x, 12, x2)
     - Draw No Bet (dnb_home, dnb_away)
-    - Asian Lines (1.75, 2.25, 2.75, 3.25)
     """
     
     def __init__(self, bookmaker_margin: float = 1.05):
@@ -60,10 +59,6 @@ class OddsCalculator:
         # Draw No Bet
         dnb_odds = self.calculate_draw_no_bet(base_odds)
         derived_odds.update(dnb_odds)
-        
-        # Asian Lines
-        asian_odds = self.calculate_asian_lines(base_odds)
-        derived_odds.update(asian_odds)
         
         return derived_odds
     
@@ -189,53 +184,6 @@ class OddsCalculator:
                 }
         
         return dnb_odds
-    
-    def calculate_asian_lines(self, base_odds: Dict[str, float]) -> Dict[str, Dict]:
-        """
-        Calcula odds de Asian Handicap (linhas quebradas).
-        
-        Asian Lines combinam duas apostas:
-        - Over 2.25 = 50% Over 2.0 + 50% Over 2.5
-        - Over 2.75 = 50% Over 2.5 + 50% Over 3.0
-        
-        Fórmula: Odd_Asian = 2 / (1/Odd_Lower + 1/Odd_Upper)
-        
-        Args:
-            base_odds: Dict com over/under inteiros
-            
-        Returns:
-            Dict com odds Asian: {'over_1.75': {...}, 'under_2.25': {...}, ...}
-        """
-        asian_odds = {}
-        
-        # Definir combinações
-        asian_combinations = {
-            'over_1.75': ('over_1.5', 'over_2.5'),   # Média de 1.5 e 2.0, mas usamos 2.5 como proxy
-            'under_1.75': ('under_1.5', 'under_2.5'),
-            'over_2.25': ('over_2.5', 'over_2.5'),   # Idealmente seria 2.0 e 2.5
-            'under_2.25': ('under_2.5', 'under_2.5'),
-            'over_2.75': ('over_2.5', 'over_3.5'),
-            'under_2.75': ('under_2.5', 'under_3.5'),
-            'over_3.25': ('over_3.5', 'over_3.5'),   # Idealmente seria 3.0 e 3.5
-            'under_3.25': ('under_3.5', 'under_3.5'),
-        }
-        
-        for asian_market, (lower, upper) in asian_combinations.items():
-            lower_odd = base_odds.get(lower)
-            upper_odd = base_odds.get(upper)
-            
-            if lower_odd and upper_odd and lower_odd > 0 and upper_odd > 0:
-                # Média harmônica das duas odds
-                asian_odd = round(2 / (1/lower_odd + 1/upper_odd), 2)
-                
-                asian_odds[asian_market] = {
-                    'value': asian_odd,
-                    'source': 'calculated',
-                    'from': [lower, upper],
-                    'formula': f"2 / (1/{lower_odd:.2f} + 1/{upper_odd:.2f})"
-                }
-        
-        return asian_odds
     
     def calculate_simulated_odds(self, probabilities: Dict[str, float]) -> Dict[str, Dict]:
         """

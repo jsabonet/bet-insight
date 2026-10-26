@@ -110,7 +110,7 @@ export default function PricingPage() {
 
   return (
     <div className="page-container">
-      <Header title="Escolha seu Plano" subtitle="Análises ilimitadas com IA" />
+      <Header title="Escolha seu Plano" subtitle="Análises estatísticas de futebol" />
       
       <div className="page-content pb-24">
         <button
@@ -132,7 +132,7 @@ export default function PricingPage() {
                 Mais análises, mais lucro!
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Análises ilimitadas com inteligência artificial avançada
+                Análises estatísticas detalhadas para acompanhar mais partidas
               </p>
             </div>
           </div>

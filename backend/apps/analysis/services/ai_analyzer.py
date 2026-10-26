@@ -332,8 +332,8 @@ class AIAnalyzer:
         
         # Score base: combinação de probabilidade e EV
         if strategy == 'multiple':
-            # ✅ RECALIBRAÇÃO: equilibrar probabilidade e EV (antes a prob crua esmagava o EV,
-            # favorecendo linhas altas como "Under 2.75" em detrimento da decisão tática).
+            # ✅ RECALIBRAÇÃO: equilibrar probabilidade e EV para evitar privilegiar
+            # linhas altas de golos em detrimento da decisão tática.
             base_score = probability * 45 + max(0, ev_pct) * 0.55
         else:
             base_score = probability * 40 + max(0, ev_pct) * 0.6
@@ -759,8 +759,8 @@ class AIAnalyzer:
             # DailyBetGenerator._generate_multiple_tickets:
             #   elegível = prob >= 65% AND 1.30 <= odd <= 1.50 (MAX_ODD_MULTIPLE do gerador)
             #   escolha  = max(contextual_fit, score, probability)
-            # Antes usava-se MAX_ODD_MULTIPLE=2.00 e best_bet=top_bets[0], o que divergia do
-            # bilhete e exibia linhas como "Under 2.75" @ 1.31 em vez da seleção real.
+            # Antes usava-se MAX_ODD_MULTIPLE=2.00 e best_bet=top_bets[0], o que divergia
+            # do bilhete e podia exibir uma seleção diferente da efetivamente recomendada.
             MIN_ODD_MULTIPLE = 1.30
             MAX_ODD_MULTIPLE = 1.50
             MIN_PROB_MULTIPLE = 0.65
@@ -1118,4 +1118,3 @@ REGRAS CRÍTICAS:
 """
         
         return prompt
-

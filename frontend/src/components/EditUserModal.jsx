@@ -1,40 +1,41 @@
 import { useState, useEffect } from 'react';
-import { X, Shield, User, Mail, Phone, Calendar, Lock, Save } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Shield, User, Mail, Phone, Save } from 'lucide-react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function EditUserModal({ user, isOpen, onClose, onSuccess }) {
+  const { user: currentUser } = useAuth();
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     phone: '',
     first_name: '',
     last_name: '',
-    is_premium: false,
-    premium_until: '',
     is_active: true,
     is_staff: false,
     is_superuser: false,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('info'); // info, admin, subscription
+  const [activeTab, setActiveTab] = useState('info');
 
   useEffect(() => {
-    if (user) {
+    if (isOpen && user) {
       setFormData({
         username: user.username || '',
         email: user.email || '',
         phone: user.phone || '',
         first_name: user.first_name || '',
         last_name: user.last_name || '',
-        is_premium: user.is_premium || false,
-        premium_until: user.premium_until ? user.premium_until.split('T')[0] : '',
         is_active: user.is_active !== undefined ? user.is_active : true,
         is_staff: user.is_staff || false,
         is_superuser: user.is_superuser || false,
       });
+      setActiveTab('info');
+      setError('');
     }
-  }, [user]);
+  }, [isOpen, user]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -50,23 +51,11 @@ export default function EditUserModal({ user, isOpen, onClose, onSuccess }) {
     setError('');
 
     try {
-      // Preparar dados para envio
-      const dataToSend = { ...formData };
-      
-      // Converter premium_until para ISO se preenchido, ou enviar null se vazio
-      if (dataToSend.premium_until && dataToSend.premium_until.trim() !== '') {
-        try {
-          dataToSend.premium_until = new Date(dataToSend.premium_until).toISOString();
-        } catch (dateErr) {
-          setError('Data de premium inválida. Use o formato: AAAA-MM-DD');
-          setLoading(false);
-          return;
-        }
-      } else {
-        dataToSend.premium_until = null;
+      const { is_staff, is_superuser, ...dataToSend } = formData;
+      if (currentUser?.is_superuser) {
+        dataToSend.is_staff = is_staff;
+        dataToSend.is_superuser = is_superuser;
       }
-
-      console.log('Enviando dados:', dataToSend);
       await api.put(`/users/admin/users/${user.id}/update/`, dataToSend);
       onSuccess('Usuário atualizado com sucesso!');
       onClose();
@@ -87,12 +76,17 @@ export default function EditUserModal({ user, isOpen, onClose, onSuccess }) {
     setError('');
 
     try {
+      const nextIsStaff = !formData.is_staff;
       await api.post(`/users/admin/users/${user.id}/toggle-admin/`, {
-        is_staff: !formData.is_staff,
-        is_superuser: formData.is_superuser
+        is_staff: nextIsStaff,
+        is_superuser: nextIsStaff && formData.is_superuser
       });
-      setFormData(prev => ({ ...prev, is_staff: !prev.is_staff }));
-      onSuccess(`Usuário ${!formData.is_staff ? 'promovido a' : 'removido de'} admin!`);
+      setFormData(prev => ({
+        ...prev,
+        is_staff: nextIsStaff,
+        is_superuser: nextIsStaff && prev.is_superuser
+      }));
+      onSuccess(`Usuário ${nextIsStaff ? 'promovido a' : 'removido de'} admin!`);
     } catch (err) {
       console.error('Erro ao alterar status admin:', err);
       setError(err.response?.data?.error || 'Erro ao alterar status admin');
@@ -103,8 +97,8 @@ export default function EditUserModal({ user, isOpen, onClose, onSuccess }) {
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+  return createPortal(
+    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
       <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -145,16 +139,6 @@ export default function EditUserModal({ user, isOpen, onClose, onSuccess }) {
             }`}
           >
             Administração
-          </button>
-          <button
-            onClick={() => setActiveTab('subscription')}
-            className={`px-4 py-3 font-medium text-sm transition-all border-b-2 ${
-              activeTab === 'subscription'
-                ? 'border-primary-600 dark:border-primary-400 text-primary-600 dark:text-primary-400'
-                : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-            }`}
-          >
-            Assinatura
           </button>
         </div>
 
@@ -290,8 +274,12 @@ export default function EditUserModal({ user, isOpen, onClose, onSuccess }) {
                   <button
                     type="button"
                     onClick={handleToggleAdmin}
-                    disabled={loading}
-                    className={`px-4 py-2 rounded-xl font-medium transition-all ${
+                    disabled={
+                      loading ||
+                      user?.id === currentUser?.id ||
+                      (user?.is_superuser && !currentUser?.is_superuser)
+                    }
+                    className={`px-4 py-2 rounded-xl font-medium transition-all disabled:cursor-not-allowed disabled:opacity-50 ${
                       formData.is_staff
                         ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
                         : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
@@ -301,7 +289,7 @@ export default function EditUserModal({ user, isOpen, onClose, onSuccess }) {
                   </button>
                 </div>
 
-                {formData.is_staff && (
+                {formData.is_staff && currentUser?.is_superuser && (
                   <div className="flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl">
                     <input
                       type="checkbox"
@@ -323,59 +311,6 @@ export default function EditUserModal({ user, isOpen, onClose, onSuccess }) {
                 <p className="text-sm text-amber-800 dark:text-amber-200">
                   ⚠️ <strong>Atenção:</strong> Administradores têm acesso a funcionalidades sensíveis.
                   Apenas promova usuários confiáveis.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Tab: Assinatura */}
-          {activeTab === 'subscription' && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl">
-                <input
-                  type="checkbox"
-                  id="is_premium"
-                  name="is_premium"
-                  checked={formData.is_premium}
-                  onChange={handleChange}
-                  className="w-5 h-5 text-yellow-600 rounded"
-                />
-                <label htmlFor="is_premium" className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  <Shield className="w-4 h-4 inline mr-1 fill-yellow-500" />
-                  Usuário Premium
-                </label>
-              </div>
-
-              {formData.is_premium && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    <Calendar className="w-4 h-4 inline mr-1" />
-                    Premium Válido Até
-                  </label>
-                  <input
-                    type="date"
-                    name="premium_until"
-                    value={formData.premium_until}
-                    onChange={handleChange}
-                    className="input-field"
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Deixe em branco para premium ilimitado
-                  </p>
-                </div>
-              )}
-
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
-                <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                  💡 Dica: Gerenciar Planos
-                </h4>
-                <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
-                  Para atribuir planos específicos (Starter, Pro, VIP), use a seção de "Assinaturas" 
-                  no painel administrativo.
-                </p>
-                <p className="text-xs text-blue-600 dark:text-blue-400">
-                  Este checkbox de "Premium" é um atalho rápido para ativar/desativar manualmente.
                 </p>
               </div>
             </div>
@@ -410,6 +345,7 @@ export default function EditUserModal({ user, isOpen, onClose, onSuccess }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

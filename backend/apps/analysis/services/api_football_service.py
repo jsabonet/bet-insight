@@ -213,16 +213,6 @@ class APIFootballService:
                             elif 'Under' in val_str and 'under_1.5' not in odds_result:
                                 odds_result['under_1.5'] = float(value['odd'])
                                 odds_result['under_15'] = float(value['odd'])  # Compatibilidade backward
-                        elif '1.75' in val_str or '1,75' in val_str:
-                            if 'Over' in val_str and 'over_1.75' not in odds_result:
-                                odds_result['over_1.75'] = float(value['odd'])
-                            elif 'Under' in val_str and 'under_1.75' not in odds_result:
-                                odds_result['under_1.75'] = float(value['odd'])
-                        elif '2.25' in val_str or '2,25' in val_str:
-                            if 'Over' in val_str and 'over_2.25' not in odds_result:
-                                odds_result['over_2.25'] = float(value['odd'])
-                            elif 'Under' in val_str and 'under_2.25' not in odds_result:
-                                odds_result['under_2.25'] = float(value['odd'])
                         elif '2.5' in val_str:
                             if 'Over' in val_str and 'over_2.5' not in odds_result:
                                 odds_result['over_2.5'] = float(value['odd'])
@@ -230,16 +220,6 @@ class APIFootballService:
                             elif 'Under' in val_str and 'under_2.5' not in odds_result:
                                 odds_result['under_2.5'] = float(value['odd'])
                                 odds_result['under_25'] = float(value['odd'])  # Compatibilidade backward
-                        elif '2.75' in val_str or '2,75' in val_str:
-                            if 'Over' in val_str and 'over_2.75' not in odds_result:
-                                odds_result['over_2.75'] = float(value['odd'])
-                            elif 'Under' in val_str and 'under_2.75' not in odds_result:
-                                odds_result['under_2.75'] = float(value['odd'])
-                        elif '3.25' in val_str or '3,25' in val_str:
-                            if 'Over' in val_str and 'over_3.25' not in odds_result:
-                                odds_result['over_3.25'] = float(value['odd'])
-                            elif 'Under' in val_str and 'under_3.25' not in odds_result:
-                                odds_result['under_3.25'] = float(value['odd'])
                         elif '3.5' in val_str:
                             if 'Over' in val_str and 'over_3.5' not in odds_result:
                                 odds_result['over_3.5'] = float(value['odd'])

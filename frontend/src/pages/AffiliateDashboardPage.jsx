@@ -70,7 +70,7 @@ export default function AffiliateDashboardPage() {
               Ainda não é afiliado
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Crie a sua conta de afiliado e receba 100 MZN por cada venda confirmada.
+              Candidate-se ao programa e receba comissões por vendas confirmadas, conforme as regras vigentes.
             </p>
             <Link
               to="/affiliate/apply"

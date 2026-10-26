@@ -4,7 +4,7 @@ import { matchesAPI, analysisAPI, authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useStats } from '../context/StatsContext';
 import { useStrategy } from '../context/StrategyContext';
-import { ArrowLeft, Brain, AlertCircle, Sparkles, ChevronDown, CheckCircle, HelpCircle, Info, X } from 'lucide-react';
+import { ArrowLeft, BarChart3, AlertCircle, ChevronDown, CheckCircle, HelpCircle, Info, X } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
 import AnalysisModalProgressive from '../components/AnalysisModalProgressive';
@@ -41,7 +41,7 @@ export default function MatchDetailPage() {
   
   const [match, setMatch] = useState(null);
   const [analysis, setAnalysis] = useState(null);
-  const [statisticalData, setStatisticalData] = useState(null); // Dados estatísticos separados da IA
+  const [statisticalData, setStatisticalData] = useState(null); // Dados estatísticos da partida
   const [loading, setLoading] = useState(false); // ✅ Começar sem loading para UI instantânea
   const [loadingStats, setLoadingStats] = useState(false); // Loading específico para dados estatísticos
   const [error, setError] = useState('');
@@ -333,7 +333,7 @@ export default function MatchDetailPage() {
     }
   };
 
-  // Função para carregar dados estatísticos (SEM IA) - RÁPIDO
+  // Carrega rapidamente os dados estatísticos da partida.
   const loadStatisticalData = async (matchData, isExternal) => {
     setLoadingStats(true);
     const startTime = performance.now();
@@ -1110,11 +1110,11 @@ export default function MatchDetailPage() {
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-start gap-3 flex-1">
                   <div className="p-2 bg-primary-100 dark:bg-primary-800 rounded-lg">
-                    <Brain className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                    <BarChart3 className="w-6 h-6 text-primary-600 dark:text-primary-400" />
                   </div>
                   <div className="flex-1">
                     <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-1">
-                      Análise Inteligente
+                      Análise Estatística
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                       Gere uma explicação detalhada e contextualizada sobre os dados estatísticos desta partida
@@ -1126,7 +1126,7 @@ export default function MatchDetailPage() {
                   disabled={showModal}
                   className="btn-primary inline-flex items-center gap-2 whitespace-nowrap w-full sm:w-auto justify-center"
                 >
-                  <Sparkles className="w-5 h-5" />
+                  <BarChart3 className="w-5 h-5" />
                   {showModal ? 'Analisando...' : 'Gerar Análise'}
                 </button>
               </div>
@@ -1159,7 +1159,7 @@ export default function MatchDetailPage() {
                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-lg transition-colors -m-4 mb-0"
               >
                 <div className="flex items-center gap-2">
-                  <Brain className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                  <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
                   <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white">
                     Como Analisamos Esta Partida
                   </h3>
@@ -1224,26 +1224,6 @@ export default function MatchDetailPage() {
                   <div className="flex gap-2 sm:gap-3">
                     <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs sm:text-sm">
                       3
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-1">
-                        🤖 Validação com IA
-                      </h4>
-                      <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        Usamos <strong>Google Gemini</strong> para análise contextual:
-                      </p>
-                      <ul className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 space-y-1 ml-4">
-                        <li>• Detecta padrões complexos</li>
-                        <li>• Analisa motivação (títulos, rebaixamento)</li>
-                        <li>• Considera fatores qualitativos</li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  {/* Passo 4 */}
-                  <div className="flex gap-2 sm:gap-3">
-                    <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs sm:text-sm">
-                      4
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white mb-1">
@@ -1457,7 +1437,7 @@ export default function MatchDetailPage() {
                   ⚠️ Aviso Importante
                 </h4>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Esta análise é baseada em dados estatísticos e inteligência artificial, 
+                  Esta análise é baseada em dados estatísticos e modelos matemáticos,
                   mas <strong>NÃO garante resultados</strong>. Apostas esportivas envolvem risco financeiro.
                 </p>
               </div>
@@ -1477,7 +1457,7 @@ export default function MatchDetailPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-amber-600 dark:text-amber-400 flex-shrink-0">•</span>
-                    <span>Nossa IA serve como <strong>ferramenta de apoio</strong>, não como garantia</span>
+                    <span>As previsões são uma <strong>ferramenta de apoio</strong>, não uma garantia</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-amber-600 dark:text-amber-400 flex-shrink-0">•</span>

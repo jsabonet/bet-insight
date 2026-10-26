@@ -307,6 +307,23 @@ export default function ProfilePage() {
 
         {/* Affiliate Program CTA */}
         <Link
+          to="/member-referrals"
+          className="card mb-4 animate-slide-up flex items-center gap-4 hover:shadow-lg transition-all border border-emerald-200 dark:border-emerald-800"
+        >
+          <span className="p-3 rounded-xl bg-emerald-600 text-white">
+            <Gift className="w-6 h-6" />
+          </span>
+          <div className="flex-1">
+            <h3 className="font-bold text-gray-900 dark:text-gray-100">Convide um membro</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Você e o seu convidado recebem 5 análises após a primeira análise dele.
+            </p>
+          </div>
+          <span className="text-emerald-600 dark:text-emerald-400 font-bold">›</span>
+        </Link>
+
+        {/* Affiliate Program CTA */}
+        <Link
           to="/affiliate"
           className="card mb-6 animate-slide-up flex items-center gap-4 hover:shadow-lg transition-all bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 border-2 border-primary-200 dark:border-primary-800"
         >
@@ -316,7 +333,7 @@ export default function ProfilePage() {
           <div className="flex-1">
             <h3 className="font-bold text-gray-900 dark:text-gray-100">Programa de Afiliados</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Ganhe até 50% de comissão ao indicar o PlacarCerto
+              Receba comissões por vendas confirmadas, conforme as regras do programa.
             </p>
           </div>
           <span className="text-primary-600 dark:text-primary-400 font-bold">›</span>
@@ -645,7 +662,10 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-3">
                     <Bell className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                     <div>
-                      <p className="font-medium text-gray-900 dark:text-gray-100">Bilhetes automáticos</p>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">Novos bilhetes do dia</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Receba um push quando os bilhetes diários estiverem disponíveis.
+                      </p>
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">

@@ -11,6 +11,43 @@ from django.utils import timezone
 from datetime import timedelta
 
 
+class MemberReferral(models.Model):
+    """Convite entre membros, recompensado após a primeira análise do convidado."""
+
+    REWARD_STATUS_CHOICES = [
+        ('pending', 'Pendente'),
+        ('rewarded', 'Recompensado'),
+        ('ineligible', 'Não elegível'),
+    ]
+
+    inviter = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='member_referrals_sent',
+    )
+    invitee = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='member_referral_received',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    rewarded_at = models.DateTimeField(null=True, blank=True)
+    reward_status = models.CharField(
+        max_length=12,
+        choices=REWARD_STATUS_CHOICES,
+        default='pending',
+    )
+    reward_ip_hash = models.CharField(max_length=64, null=True, blank=True, unique=True)
+    reward_device_hash = models.CharField(max_length=64, null=True, blank=True, unique=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['inviter', 'rewarded_at'])]
+
+    def __str__(self):
+        return f'{self.inviter_id} invited {self.invitee_id}'
+
+
 class Affiliate(models.Model):
     """Perfil de afiliado ligado (1:1) a um utilizador."""
 

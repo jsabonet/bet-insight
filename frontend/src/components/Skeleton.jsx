@@ -201,7 +201,7 @@ export function AnalysisModalSkeleton() {
         ))}
       </div>
 
-      {/* Análise IA */}
+      {/* Resumo contextual */}
       <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-6">
         <Skeleton className="h-5 w-40 mb-4" />
         <div className="space-y-2">

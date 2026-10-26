@@ -1055,31 +1055,6 @@ class DecisionEngine:
                     'category': 'totals'
                 })
         
-        # Asian Lines (1.75, 2.25, 2.75, 3.25)
-        for market, prob_key, alt_keys in [
-            ('over_1_75', 'over_1.75', ['over_1_75', 'over_175']), ('under_1_75', 'under_1.75', ['under_1_75', 'under_175']),
-            ('over_2_25', 'over_2.25', ['over_2_25', 'over_225']), ('under_2_25', 'under_2.25', ['under_2_25', 'under_225']),
-            ('over_2_75', 'over_2.75', ['over_2_75', 'over_275']), ('under_2_75', 'under_2.75', ['under_2_75', 'under_275']),
-            ('over_3_25', 'over_3.25', ['over_3_25', 'over_325']), ('under_3_25', 'under_3.25', ['under_3_25', 'under_325'])
-        ]:
-            prob = poisson_probs.get(prob_key, 0)
-            market_odd = _get_odd(market_odds, alt_keys)
-            fair_odd = fair_odds.get(market, 0)
-            if prob >= 0.25 and market_odd is not None and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:
-                ev_pct = ((market_odd / fair_odd) - 1) * 100
-                score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
-                candidates.append({
-                    'market': market,
-                    'market_display': f"{'Over' if 'over' in market else 'Under'} {prob_key.split('_')[1]} gols",
-                    'pick': 'Sim' if 'over' in market else 'Não',
-                    'probability': prob,
-                    'market_odd': market_odd,
-                    'fair_odd': fair_odd,
-                    'ev_pct': ev_pct,
-                    'score': score,
-                    'category': 'asian_lines'
-                })
-        
         # BTTS Yes
         btts_prob = poisson_probs.get('btts', 0)
         btts_odd = _get_odd(market_odds, ['btts_yes', 'btts'])  # ✅ Usar helper com fallback

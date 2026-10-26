@@ -25,6 +25,8 @@ import FAQPage from './pages/FAQPage';
 import DailyBetsPage from './pages/DailyBetsPage';
 import CookieConsent from './components/CookieConsent';
 import PushNotificationPrompt from './components/PushNotificationPrompt';
+import EngagementToast from './components/EngagementToast';
+import MemberReferralsPage from './pages/MemberReferralsPage';
 import TestQuickAnalyze from './pages/TestQuickAnalyze.jsx';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -78,6 +80,7 @@ function ProtectedRoute({ children }) {
     <>
       <CookieConsent />
       <PushNotificationPrompt />
+      <EngagementToast />
       {children}
     </>
   ) : (
@@ -221,6 +224,15 @@ function App() {
             element={
               <ProtectedRoute>
                 <AffiliateDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/member-referrals"
+            element={
+              <ProtectedRoute>
+                <MemberReferralsPage />
               </ProtectedRoute>
             }
           />

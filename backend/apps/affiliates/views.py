@@ -36,6 +36,26 @@ def _get_or_404_affiliate(user):
         return None
 
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def member_referral_summary(request):
+    """Resumo privado do programa de convites entre membros."""
+    user = request.user
+    if not user.member_referral_code:
+        user.save(update_fields=['member_referral_code'])
+
+    referrals = user.member_referrals_sent.all()
+    return Response({
+        'code': user.member_referral_code,
+        'total_invites': referrals.count(),
+        'completed_invites': referrals.filter(reward_status='rewarded').count(),
+        'pending_invites': referrals.filter(reward_status='pending').count(),
+        'ineligible_invites': referrals.filter(reward_status='ineligible').count(),
+        'bonus_analysis_credits': user.bonus_analysis_credits,
+        'reward_per_member': 5,
+    })
+
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def apply_affiliate(request):

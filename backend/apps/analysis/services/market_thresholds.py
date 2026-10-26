@@ -52,16 +52,6 @@ MARKET_THRESHOLDS = {
     'over_4.5': 0.50,       # 85.1% ⭐ EXCELENTE
     'under_4.5': 0.50,      # 85.1% ⭐ EXCELENTE
     
-    # ===== Asian Lines (62.59% categoria) =====
-    'over_1.75': 0.58,      # 76.1%
-    'under_1.75': 0.58,     # 76.1%
-    'over_2.25': 0.65,      # 52.5% ⚠️ DIFÍCIL
-    'under_2.25': 0.65,     # 52.5% ⚠️ DIFÍCIL
-    'over_2.75': 0.65,      # 52.6% ⚠️ DIFÍCIL
-    'under_2.75': 0.65,     # 52.6% ⚠️ DIFÍCIL
-    'over_3.25': 0.58,      # 69.1%
-    'under_3.25': 0.58,     # 69.1%
-    
     # ===== BTTS (54.17% categoria) =====
     'btts_yes': 0.68,       # 54.2% ⚠️ MUITO DIFÍCIL
     'btts_no': 0.68,        # 54.2% ⚠️ MUITO DIFÍCIL

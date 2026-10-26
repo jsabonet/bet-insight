@@ -1,18 +1,18 @@
 """
 Boost System: ML + Poisson Híbrido
 
-Sistema que combina predições ML (1X2) com Poisson (todos os mercados)
-para gerar predições de alta qualidade em todos os 49 mercados.
+Sistema que combina predições ML (1X2) com Poisson para gerar
+predições de alta qualidade nos mercados suportados pelo produto.
 
 ESTRATÉGIA:
 1. ML prevê 1X2 (84.79% acurácia validada)
 2. Ajusta lambdas do Poisson baseado em probabilidades ML
-3. Poisson gera todos os 49 mercados
+3. Poisson gera os mercados suportados
 4. Aplica thresholds calibrados por mercado
 5. Retorna apenas predições de alta qualidade
 
 VALIDAÇÃO:
-- 71.92% acurácia geral em 49 mercados
+- 71.92% de acurácia geral na validação histórica de 49 mercados
 - 97,596/135,700 predições corretas
 - Thresholds calibrados por acurácia real
 """
@@ -61,7 +61,7 @@ class HybridBoostSystem:
             
         Returns:
             Dict com:
-                - all_markets: {market_name: probability} (todos os 49)
+                - all_markets: {market_name: probability}
                 - filtered_markets: {market_name: probability} (apenas acima do threshold)
                 - high_quality_markets: {market_name: probability} (apenas qualidade >= min_quality)
                 - summary: estatísticas
@@ -112,7 +112,7 @@ class HybridBoostSystem:
             logger.error(f"❌ Erro ao gerar mercados Poisson: {e}")
             return {}
         
-        # 3. Mapear para os 49 mercados do sistema
+        # 3. Mapear para os mercados suportados pelo sistema
         markets = {
             # 1X2
             'home_win': all_probs['home_win'],
@@ -135,16 +135,6 @@ class HybridBoostSystem:
             'under_3.5': all_probs['under_3.5'],
             'over_4.5': all_probs['over_4.5'],
             'under_4.5': all_probs['under_4.5'],
-            
-            # Asian Lines (corrigido: usar pontos)
-            'over_1.75': all_probs['over_1.75'],
-            'under_1.75': all_probs['under_1.75'],
-            'over_2.25': all_probs['over_2.25'],
-            'under_2.25': all_probs['under_2.25'],
-            'over_2.75': all_probs['over_2.75'],
-            'under_2.75': all_probs['under_2.75'],
-            'over_3.25': all_probs['over_3.25'],
-            'under_3.25': all_probs['under_3.25'],
             
             # BTTS
             'btts_yes': all_probs['btts_yes'],

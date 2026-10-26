@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Star, Sparkles, TrendingUp, AlertCircle, Target, Trophy, Zap, ClipboardList, Loader2, CheckCircle2, Brain, Copy, Check, ExternalLink } from 'lucide-react';
+import { X, Star, BarChart3, TrendingUp, AlertCircle, Target, Trophy, Zap, ClipboardList, Loader2, CheckCircle2, Copy, Check, ExternalLink } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useStrategy } from '../context/StrategyContext';
 import { useStats } from '../context/StatsContext';
 import { TeamLogo } from '../utils/logos';
+import { isUnsupportedAsianGoalMarket } from '../utils/marketUtils';
 import { Skeleton } from './Skeleton';
 
 /**
@@ -12,7 +13,7 @@ import { Skeleton } from './Skeleton';
  * 
  * Onda 1 (instantâneo): Badge + Probabilidades + Confiança (do card/preview)
  * Onda 2 (2-4s): Top 3 apostas (modelos estatísticos)
- * Onda 3 (5-8s): Análise IA completa
+ * Onda 3 (5-8s): Resumo contextual
  * 
  * @param {boolean} isSavedAnalysis - Se true, mostra botão para detalhes da partida (apenas em Minhas Análises)
  */
@@ -140,7 +141,7 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze, is
           console.log('⚠️ Sem odds disponíveis para esta partida');
         }
         
-        // Onda 3: AI Analysis
+        // Onda 3: Resumo contextual
         setPhase(3);
         setAiAnalysis(result.ai_analysis || null);
         
@@ -213,9 +214,12 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze, is
       }
       
       // Top Bets
-      if (topBets && topBets.length > 0) {
+      const visibleTopBets = (topBets || []).filter(
+        (bet) => !isUnsupportedAsianGoalMarket(bet)
+      );
+      if (visibleTopBets.length > 0) {
         text += `🎲 TOP APOSTAS\n`;
-        topBets.forEach((bet, index) => {
+        visibleTopBets.forEach((bet, index) => {
           text += `${index + 1}. ${bet.market_display}\n`;
           if (bet.original_market && bet.line_adjustment) {
             text += `   Linha ajustada: ${bet.original_market.replace(/_/g, ' ')} → ${bet.market.replace(/_/g, ' ')}\n`;
@@ -332,11 +336,11 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze, is
         }
       }
       
-      // Análise IA (apenas se for válida e não for o texto estruturado COMPLETO antigo)
+      // Adiciona o resumo contextual quando está disponível.
       if (aiAnalysis && 
           aiAnalysis !== 'None' && 
           !(aiAnalysis.includes('ANÁLISE COMPLETA DE APOSTAS') && aiAnalysis.includes('Via Placar Certo'))) {
-        text += `🤖 ANÁLISE IA\n`;
+        text += `📝 RESUMO CONTEXTUAL\n`;
         text += `${aiAnalysis}\n`;
         text += `\n`;
       }
@@ -400,7 +404,7 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze, is
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 z-10">
           <div className="flex justify-between items-center mb-3">
             <div className="flex items-center gap-3">
-              <Brain className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              <BarChart3 className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 Análise Completa
               </h2>
@@ -560,13 +564,13 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze, is
           )}
 
           {/* ============ ONDA 2: Top 3 Apostas (Carregado) ============ */}
-          {topBets && topBets.length > 0 && (
+          {topBets && topBets.filter((bet) => !isUnsupportedAsianGoalMarket(bet)).length > 0 && (
             <div className="space-y-3 animate-fade-in">
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
                 <Trophy className="w-4 h-4" />
                 TOP 3 APOSTAS
               </h3>
-              {topBets.map((bet, idx) => (
+              {topBets.filter((bet) => !isUnsupportedAsianGoalMarket(bet)).map((bet, idx) => (
                 <div
                   key={idx}
                   className="bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:border-purple-400 dark:hover:border-purple-500 transition-colors"
@@ -574,7 +578,7 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze, is
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                        #{bet.rank}
+                        #{idx + 1}
                       </span>
                       <div>
                         <p className="font-bold text-gray-900 dark:text-white">
@@ -865,24 +869,24 @@ export default function AnalysisModalProgressive({ match, onClose, onAnalyze, is
             </div>
           )}
 
-          {/* ============ ONDA 3: Análise IA (Loading) ============ */}
+          {/* ============ ONDA 3: Resumo contextual (Loading) ============ */}
           {phase === 3 && !aiAnalysis && (
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-8 animate-fade-in">
               <div className="flex flex-col items-center justify-center">
-                <Sparkles className="w-10 h-10 text-purple-600 dark:text-purple-400 animate-pulse mb-3" />
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Gerando análise com IA...</p>
+                <BarChart3 className="w-10 h-10 text-purple-600 dark:text-purple-400 animate-pulse mb-3" />
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preparando resumo da análise...</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Analisando padrões e contexto</p>
               </div>
             </div>
           )}
 
-          {/* ============ ONDA 3: Análise IA (Carregado) ============ */}
+          {/* ============ ONDA 3: Resumo contextual (Carregado) ============ */}
           {aiAnalysis && 
            aiAnalysis !== 'None' && 
            !(aiAnalysis.includes('ANÁLISE COMPLETA DE APOSTAS') && aiAnalysis.includes('Via Placar Certo')) && (
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-6 space-y-4 animate-fade-in">
               <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                   ANÁLISE CONTEXTUAL
                 </h3>

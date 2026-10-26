@@ -33,9 +33,9 @@ const DailyLimitIndicator = memo(function DailyLimitIndicator({ refreshTrigger }
     );
   }
 
-  const { analyses_count_today, daily_limit, is_premium } = stats;
+  const { analyses_count_today, daily_limit, is_premium, bonus_analysis_credits } = stats;
   const percentage = (analyses_count_today / daily_limit) * 100;
-  const remaining = daily_limit - analyses_count_today;
+  const remaining = stats.remaining ?? Math.max(daily_limit - analyses_count_today, 0);
 
   // Cor baseada na porcentagem usada
   const getColor = () => {
@@ -65,7 +65,9 @@ const DailyLimitIndicator = memo(function DailyLimitIndicator({ refreshTrigger }
       {/* Tooltip on hover */}
       <div className="hidden sm:block">
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          {remaining > 0 ? `${remaining} restantes hoje` : 'Limite atingido'}
+          {remaining > 0
+            ? `${remaining} restantes hoje${bonus_analysis_credits ? ` (${bonus_analysis_credits} bónus)` : ''}`
+            : 'Limite atingido'}
         </p>
       </div>
     </div>

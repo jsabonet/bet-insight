@@ -372,30 +372,7 @@ class PoissonBivariateModel:
         logger.info(f"      12 (Casa ou Fora): {prob_12*100:.1f}%")
         logger.info(f"      X2 (Empate ou Fora): {prob_X2*100:.1f}%")
         
-        # 10. Asian Lines (split bets)
-        # Over 2.25 = 50% Over 2 + 50% Over 2.5
-        prob_over_2 = sum(score_matrix[h, a] for h in range(7) for a in range(7) if h + a > 2)
-        prob_over_2_25 = (prob_over_2 + prob_over_25) / 2
-        prob_under_2_25 = 1 - prob_over_2_25
-        
-        # Over 2.75 = 50% Over 2.5 + 50% Over 3
-        prob_over_3 = sum(score_matrix[h, a] for h in range(7) for a in range(7) if h + a > 3)
-        prob_over_2_75 = (prob_over_25 + prob_over_3) / 2
-        prob_under_2_75 = 1 - prob_over_2_75
-        
-        # Over 1.75 = 50% Over 1.5 + 50% Over 2
-        prob_over_1_75 = (prob_over_15 + prob_over_2) / 2
-        prob_under_1_75 = 1 - prob_over_1_75
-        
-        # Over 3.25 = 50% Over 3 + 50% Over 3.5
-        prob_over_3_25 = (prob_over_3 + prob_over_35) / 2
-        prob_under_3_25 = 1 - prob_over_3_25
-        
-        logger.info(f"   Asian Lines:")
-        logger.info(f"      Over 2.25: {prob_over_2_25*100:.1f}%")
-        logger.info(f"      Over 2.75: {prob_over_2_75*100:.1f}%")
-        
-        # 11. Team Totals (under)
+        # 10. Team Totals (under)
         home_under_05 = 1 - home_over_05
         home_under_15 = 1 - home_over_15
         home_under_25 = 1 - home_over_25
@@ -452,16 +429,6 @@ class PoissonBivariateModel:
                 'under_3.5': float(prob_under_35),
                 'over_4.5': float(prob_over_45),
                 'under_4.5': float(prob_under_45),
-                
-                # Asian Lines
-                'over_1.75': float(prob_over_1_75),
-                'under_1.75': float(prob_under_1_75),
-                'over_2.25': float(prob_over_2_25),
-                'under_2.25': float(prob_under_2_25),
-                'over_2.75': float(prob_over_2_75),
-                'under_2.75': float(prob_under_2_75),
-                'over_3.25': float(prob_over_3_25),
-                'under_3.25': float(prob_under_3_25),
                 
                 # BTTS
                 'btts': float(prob_btts),

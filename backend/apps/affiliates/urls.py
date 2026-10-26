@@ -7,6 +7,7 @@ urlpatterns = [
     # Público
     path('track/', views.track_click, name='track-click'),
     path('validate-code/', views.validate_code, name='validate-code'),
+    path('member/referrals/', views.member_referral_summary, name='member-referrals'),
 
     # Afiliado (autenticado)
     path('apply/', views.apply_affiliate, name='apply'),

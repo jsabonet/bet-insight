@@ -162,7 +162,7 @@ export default function PushNotificationPrompt() {
           Não perca as suas análises
         </h2>
         <p className="mt-2 text-sm leading-6 text-gray-600 dark:text-gray-300">
-          Ative as notificações para saber quando uma análise estiver pronta e receber lembretes das partidas que acompanha.
+          Ative as notificações para saber quando uma análise estiver pronta, receber lembretes de partidas e, no Premium, ser avisado quando os bilhetes do dia estiverem disponíveis.
         </p>
 
         {!browserSupportsPush && (

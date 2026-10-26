@@ -12,7 +12,7 @@ PLANS = {
         'duration_days': None,  # Permanente
         'features': [
             '3 análises por dia',
-            'Análise de IA básica',
+            'Análise estatística básica',
             'Histórico de 7 dias',
             'Acesso a ligas principais',
         ],
@@ -28,7 +28,7 @@ PLANS = {
         'duration_days': 1,  # 1 dia apenas
         'features': [
             '3 análises por dia',
-            'Análise de IA básica',
+            'Análise estatística básica',
             'Válido por 1 dia',
             '🧪 Apenas para testes de pagamento',
         ],
@@ -49,7 +49,7 @@ PLANS = {
         'features': [
             'Acesso vitalício a todas as funcionalidades Premium',
             'Até 150 análises por dia',
-            'Análises de IA avançada',
+            'Análises estatísticas avançadas',
             'Histórico ilimitado',
             'Todas as ligas',
             'Notificações e bilhetes automáticos Premium',
@@ -89,7 +89,7 @@ PLANS = {
         'trial_days': 7,
         'features': [
             '15 análises por dia',
-            'Análise de IA avançada',
+            'Análise estatística avançada',
             'Histórico 30 dias',
             'Todas as ligas',
             '🎁 7 dias grátis',
@@ -107,7 +107,7 @@ PLANS = {
         'duration_days': 30,
         'features': [
             '40 análises por dia',
-            'Análise de IA avançada',
+            'Análise estatística avançada',
             'Histórico ilimitado',
             'Todas as ligas',
             'Suporte prioritário',
@@ -126,7 +126,7 @@ PLANS = {
         'duration_days': 90,
         'features': [
             '80 análises por dia',
-            'Análise de IA avançada',
+            'Análise estatística avançada',
             'Histórico ilimitado',
             'Todas as ligas',
             'Suporte WhatsApp dedicado',

@@ -7,11 +7,16 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from apps.notifications.models import Notification
 from .models import (
     Affiliate, AffiliateReferral, AffiliateCommission, AffiliateWithdrawal,
 )
 from .services import assign_referral, create_commission_if_applicable
-from .services import _update_affiliate_balances
+from .services import (
+    _update_affiliate_balances,
+    assign_member_referral,
+    reward_member_referral_for_first_analysis,
+)
 from apps.subscriptions.models import Payment
 
 User = get_user_model()
@@ -50,6 +55,123 @@ def make_payment(user, amount='599.00', plan='pro', metadata=None):
 
 
 class CommissionTests(TestCase):
+    def test_member_referral_summary_is_private_and_returns_share_code(self):
+        user = make_user('summary-member', 'summary-member@example.com')
+        client = APIClient()
+        client.force_authenticate(user)
+
+        response = client.get('/api/affiliates/member/referrals/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['code'], user.member_referral_code)
+        self.assertEqual(response.data['reward_per_member'], 5)
+
+    def test_member_invite_grants_five_credits_to_both_once(self):
+        inviter = make_user('member-inviter', 'member-inviter@example.com')
+        invitee = make_user('member-invitee', 'member-invitee@example.com')
+        inviter.signup_ip = '192.0.2.10'
+        inviter.device_fingerprint = 'inviter-device'
+        inviter.save(update_fields=['signup_ip', 'device_fingerprint'])
+        invitee.signup_ip = '192.0.2.11'
+        invitee.device_fingerprint = 'invitee-device'
+        invitee.total_analyses = 1
+        invitee.save(update_fields=['signup_ip', 'device_fingerprint', 'total_analyses'])
+        referral = assign_member_referral(invitee, inviter.member_referral_code)
+
+        self.assertIsNotNone(referral)
+        self.assertTrue(reward_member_referral_for_first_analysis(invitee))
+        self.assertFalse(reward_member_referral_for_first_analysis(invitee))
+
+        inviter.refresh_from_db()
+        invitee.refresh_from_db()
+        referral.refresh_from_db()
+        self.assertEqual(inviter.bonus_analysis_credits, 5)
+        self.assertEqual(invitee.bonus_analysis_credits, 5)
+        self.assertIsNotNone(referral.rewarded_at)
+        self.assertEqual(referral.reward_status, 'rewarded')
+
+    def test_member_referral_reward_is_blocked_for_shared_ip(self):
+        inviter = make_user('shared-ip-inviter', 'shared-ip-inviter@example.com')
+        invitee = make_user('shared-ip-invitee', 'shared-ip-invitee@example.com')
+        inviter.signup_ip = '192.0.2.12'
+        invitee.signup_ip = '192.0.2.12'
+        invitee.total_analyses = 1
+        inviter.save(update_fields=['signup_ip'])
+        invitee.save(update_fields=['signup_ip', 'total_analyses'])
+        referral = assign_member_referral(invitee, inviter.member_referral_code)
+
+        self.assertFalse(reward_member_referral_for_first_analysis(invitee))
+
+        inviter.refresh_from_db()
+        invitee.refresh_from_db()
+        referral.refresh_from_db()
+        self.assertEqual(inviter.bonus_analysis_credits, 0)
+        self.assertEqual(invitee.bonus_analysis_credits, 0)
+        self.assertEqual(referral.reward_status, 'ineligible')
+
+    def test_member_referral_reward_is_blocked_for_shared_device(self):
+        inviter = make_user('shared-device-inviter', 'shared-device-inviter@example.com')
+        invitee = make_user('shared-device-invitee', 'shared-device-invitee@example.com')
+        inviter.signup_ip = '192.0.2.15'
+        inviter.device_fingerprint = 'shared-device'
+        invitee.signup_ip = '192.0.2.16'
+        invitee.device_fingerprint = 'shared-device'
+        invitee.total_analyses = 1
+        inviter.save(update_fields=['signup_ip', 'device_fingerprint'])
+        invitee.save(update_fields=['signup_ip', 'device_fingerprint', 'total_analyses'])
+        referral = assign_member_referral(invitee, inviter.member_referral_code)
+
+        self.assertFalse(reward_member_referral_for_first_analysis(invitee))
+
+        referral.refresh_from_db()
+        self.assertEqual(referral.reward_status, 'ineligible')
+
+    def test_member_referral_reward_requires_first_analysis(self):
+        inviter = make_user('late-inviter', 'late-inviter@example.com')
+        invitee = make_user('late-invitee', 'late-invitee@example.com')
+        inviter.signup_ip = '192.0.2.13'
+        invitee.signup_ip = '192.0.2.14'
+        invitee.total_analyses = 2
+        inviter.save(update_fields=['signup_ip'])
+        invitee.save(update_fields=['signup_ip', 'total_analyses'])
+        assign_member_referral(invitee, inviter.member_referral_code)
+
+        self.assertFalse(reward_member_referral_for_first_analysis(invitee))
+        inviter.refresh_from_db()
+        invitee.refresh_from_db()
+        self.assertEqual(inviter.bonus_analysis_credits, 0)
+        self.assertEqual(invitee.bonus_analysis_credits, 0)
+
+    def test_affiliate_code_does_not_trigger_member_reward_program(self):
+        inviter = make_user('affiliate-inviter', 'affiliate-inviter@example.com')
+        affiliate = make_affiliate(inviter, code='MEMBERAFF')
+        invitee = make_user('affiliate-invitee', 'affiliate-invitee@example.com')
+
+        referral = assign_member_referral(invitee, affiliate.code)
+
+        self.assertIsNone(referral)
+
+    def test_member_cannot_invite_self(self):
+        user = make_user('self-inviter', 'self-inviter@example.com')
+
+        self.assertIsNone(assign_member_referral(user, user.member_referral_code))
+
+    def test_bonus_credits_extend_daily_analysis_limit(self):
+        user = make_user('bonus-user', 'bonus-user@example.com')
+        from apps.subscriptions.plan_config import get_plan_limit
+        daily_limit = get_plan_limit('freemium')
+        user.daily_analysis_count = daily_limit
+        user.last_analysis_date = timezone.now().date()
+        user.bonus_analysis_credits = 2
+        user.save()
+
+        self.assertTrue(user.can_analyze())
+        user.increment_analysis_count()
+        user.refresh_from_db()
+        self.assertEqual(user.daily_analysis_count, daily_limit + 1)
+        self.assertEqual(user.bonus_analysis_credits, 1)
+
+
     def test_commission_created_for_valid_payment(self):
         affiliate_user = make_user('aff', 'aff@example.com')
         affiliate = make_affiliate(affiliate_user)
@@ -251,6 +373,10 @@ class AffiliateWithdrawalTests(TestCase):
         withdrawal = AffiliateWithdrawal.objects.get(pk=withdrawal_id)
         self.assertEqual(withdrawal.status, 'paid')
         self.assertEqual(withdrawal.transaction_reference, 'MPESA-TX-123')
+        self.assertTrue(Notification.objects.filter(
+            user=self.affiliate_user,
+            event_key=f'affiliate_withdrawal_paid_{withdrawal.pk}',
+        ).exists())
         self.affiliate.refresh_from_db()
         self.assertEqual(self.affiliate.available_balance, Decimal('300.00'))
 

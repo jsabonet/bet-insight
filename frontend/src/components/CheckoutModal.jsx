@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, CreditCard, Loader2, XCircle, Gift } from 'lucide-react';
 import api from '../services/api';
 import { getAffiliateRef } from '../utils/affiliate';
@@ -36,7 +37,7 @@ export default function CheckoutModal({ plan, onClose, onComplete }) {
       const transactionId = response.data?.payment?.transaction_id;
 
       if (!checkoutUrl || !transactionId) {
-        throw new Error('A VPay não devolveu os dados necessários para abrir o checkout.');
+        throw new Error('Não foi possível abrir o pagamento M-Pesa. Tente novamente.');
       }
 
       sessionStorage.setItem('vpay_pending_transaction', String(transactionId));
@@ -46,15 +47,15 @@ export default function CheckoutModal({ plan, onClose, onComplete }) {
         error.response?.data?.error ||
         error.response?.data?.message ||
         error.message ||
-        'Não foi possível iniciar o pagamento VPay. Tente novamente.'
+        'Não foi possível iniciar o pagamento M-Pesa. Tente novamente.'
       );
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-gray-800">
         <div className="sticky top-0 flex items-center justify-between border-b border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
           <div>
@@ -133,13 +134,25 @@ export default function CheckoutModal({ plan, onClose, onComplete }) {
             ) : (
             <>
             <div className="rounded-xl border-2 border-violet-600 bg-violet-50 p-4 ring-2 ring-violet-200 dark:border-violet-500 dark:bg-violet-900/20">
-              <div className="flex flex-col items-center justify-center gap-2">
-                <span className="rounded bg-violet-700 px-5 py-2 text-lg font-bold text-white">
-                  VPay
-                </span>
-                <span className="text-xs text-gray-600 dark:text-gray-400">
-                  Carteira móvel, cartão, PayPal ou QR Code
-                </span>
+              <div className="flex flex-col items-center gap-3 text-center">
+                <img
+                  src="/mpesa-logo.png"
+                  alt="M-Pesa"
+                  className="h-auto w-36 object-contain"
+                />
+                <div>
+                  <p className="font-bold text-gray-900 dark:text-gray-100">
+                    Método de pagamento: M-Pesa
+                  </p>
+                  <ol className="mt-2 space-y-1 text-left text-sm text-gray-700 dark:text-gray-300">
+                    <li>1. Continue para abrir o pagamento seguro.</li>
+                    <li>2. Escolha M-Pesa e informe o número a utilizar.</li>
+                    <li>3. Confirme o pedido na notificação do seu telemóvel.</li>
+                  </ol>
+                  <p className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                    O plano será ativado após a confirmação. Nunca partilhe o seu PIN.
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -174,12 +187,12 @@ export default function CheckoutModal({ plan, onClose, onComplete }) {
               {loading ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" />
-                  {plan.payment_mode === 'test' ? 'A ativar teste...' : 'A criar pedido VPay...'}
+                  {plan.payment_mode === 'test' ? 'A ativar teste...' : 'A preparar pagamento...'}
                 </>
               ) : (
                 <>
                   <CreditCard className="h-5 w-5" />
-                  {plan.payment_mode === 'test' ? 'Ativar plano de teste' : 'Continuar para Checkout VPay'}
+                  {plan.payment_mode === 'test' ? 'Ativar plano de teste' : 'Continuar para pagamento M-Pesa'}
                 </>
               )}
             </button>
@@ -189,13 +202,14 @@ export default function CheckoutModal({ plan, onClose, onComplete }) {
             <p className="text-xs text-gray-600 dark:text-gray-400">
               {plan.payment_mode === 'test'
                 ? 'Ativação simulada para testar o fluxo; não é enviado qualquer pagamento.'
-                : 'Pagamento seguro via checkout hospedado VPay. O estado só será confirmado após validação do servidor VPay.'}
+                : 'Pagamento processado com segurança. A assinatura será ativada após confirmação.'}
             </p>
           </div>
           </>
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

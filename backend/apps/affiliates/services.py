@@ -6,13 +6,15 @@ comissões quando um pagamento é concluído e a gestão de saldos.
 import logging
 import random
 import string
+import hashlib
+import hmac
 from decimal import Decimal
 
 from django.conf import settings
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from .models import Affiliate, AffiliateReferral, AffiliateCommission
+from .models import Affiliate, AffiliateReferral, AffiliateCommission, MemberReferral
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +113,105 @@ def assign_referral(user, code, source='link', click_id=''):
     return referral
 
 
+def assign_member_referral(user, code):
+    """Regista um convite entre membros sem misturar o programa de afiliados."""
+    code = code_to_string(code)
+    if not code:
+        return None
+
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    inviter = User.objects.filter(member_referral_code__iexact=code).first()
+    if inviter is None or inviter.pk == user.pk:
+        return None
+
+    referral, _ = MemberReferral.objects.get_or_create(
+        invitee=user,
+        defaults={'inviter': inviter},
+    )
+    return referral
+
+
+def reward_member_referral_for_first_analysis(user):
+    """Concede cinco análises uma vez, limitando a uma recompensa por IP/dispositivo."""
+    from django.contrib.auth import get_user_model
+    from apps.notifications.models import Notification
+    from apps.users.models import User as UserModel
+
+    User = get_user_model()
+    if user.total_analyses != 1:
+        return False
+
+    try:
+        with transaction.atomic():
+            referral = (
+                MemberReferral.objects.select_for_update()
+                .filter(invitee=user, reward_status='pending')
+                .first()
+            )
+            if referral is None:
+                return False
+
+            inviter = User.objects.select_for_update().get(pk=referral.inviter_id)
+            invitee = User.objects.select_for_update().get(pk=referral.invitee_id)
+
+            ip = invitee.signup_ip
+            fingerprint = invitee.device_fingerprint.strip()
+            shared_ip = bool(
+                ip and UserModel.objects.filter(signup_ip=ip).exclude(pk=invitee.pk).exists()
+            )
+            shared_device = bool(
+                fingerprint
+                and UserModel.objects.filter(device_fingerprint=fingerprint)
+                .exclude(pk=invitee.pk)
+                .exists()
+            )
+            if not ip or shared_ip or shared_device:
+                referral.reward_status = 'ineligible'
+                referral.save(update_fields=['reward_status'])
+                return False
+
+            secret = settings.SECRET_KEY.encode('utf-8')
+            ip_hash = hmac.new(secret, f'ip:{ip}'.encode('utf-8'), hashlib.sha256).hexdigest() if ip else None
+            device_hash = (
+                hmac.new(secret, f'device:{fingerprint}'.encode('utf-8'), hashlib.sha256).hexdigest()
+                if fingerprint else None
+            )
+            referral.reward_ip_hash = ip_hash
+            referral.reward_device_hash = device_hash
+            referral.reward_status = 'rewarded'
+            referral.rewarded_at = timezone.now()
+            referral.save(update_fields=[
+                'reward_ip_hash',
+                'reward_device_hash',
+                'reward_status',
+                'rewarded_at',
+            ])
+
+            inviter.bonus_analysis_credits += 5
+            invitee.bonus_analysis_credits += 5
+            inviter.save(update_fields=['bonus_analysis_credits'])
+            invitee.save(update_fields=['bonus_analysis_credits'])
+
+            for recipient in (inviter, invitee):
+                Notification.objects.get_or_create(
+                    user=recipient,
+                    event_key=f'member_referral_reward_{referral.pk}',
+                    defaults={
+                        'title': 'Convite concluído: +5 análises',
+                        'body': 'O seu convite concluiu a primeira análise. Recebeu 5 análises bónus.',
+                        'url': '/member-referrals',
+                    },
+                )
+    except IntegrityError:
+        MemberReferral.objects.filter(invitee=user, reward_status='pending').update(
+            reward_status='ineligible',
+        )
+        return False
+
+    return True
+
+
 def _enqueue_new_referral_push(referral_id, affiliate_user_id):
     from apps.notifications.tasks import enqueue_affiliate_push
     enqueue_affiliate_push(
@@ -124,6 +225,17 @@ def _enqueue_new_referral_push(referral_id, affiliate_user_id):
 
 def _notify_new_referral(referral):
     """Envia email ao afiliado quando alguém cria conta com o seu link."""
+    from apps.notifications.models import Notification
+
+    Notification.objects.get_or_create(
+        user=referral.affiliate.user,
+        event_key=f'affiliate_referral_registered_{referral.pk}',
+        defaults={
+            'title': 'Nova indicação registada',
+            'body': 'Uma nova conta registou-se através do seu link de afiliado.',
+            'url': '/affiliate',
+        },
+    )
     try:
         from .emails import send_new_referral_email
         send_new_referral_email(referral)

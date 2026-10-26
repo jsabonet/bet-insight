@@ -3,6 +3,7 @@ from django.db import models
 from django.utils import timezone
 from datetime import date
 from dateutil.relativedelta import relativedelta
+import secrets
 
 
 class User(AbstractUser):
@@ -21,6 +22,17 @@ class User(AbstractUser):
     # Controle de análises
     daily_analysis_count = models.IntegerField(default=0, verbose_name="Análises Hoje")
     last_analysis_date = models.DateField(null=True, blank=True, verbose_name="Data Última Análise")
+    bonus_analysis_credits = models.PositiveIntegerField(
+        default=0,
+        verbose_name="Créditos de Análise Bónus",
+    )
+    member_referral_code = models.CharField(
+        max_length=12,
+        unique=True,
+        null=True,
+        blank=True,
+        verbose_name="Código de Convite de Membro",
+    )
     
     # Notificações Push
     fcm_token = models.CharField(max_length=255, blank=True, verbose_name="FCM Token")
@@ -47,6 +59,19 @@ class User(AbstractUser):
     
     def __str__(self):
         return self.email
+
+    def save(self, *args, **kwargs):
+        if not self.member_referral_code:
+            while True:
+                code = secrets.token_hex(6).upper()
+                if not type(self).objects.filter(member_referral_code=code).exists():
+                    self.member_referral_code = code
+                    break
+            if kwargs.get('update_fields') is not None:
+                update_fields = tuple(kwargs['update_fields'])
+                if 'member_referral_code' not in update_fields:
+                    kwargs['update_fields'] = update_fields + ('member_referral_code',)
+        super().save(*args, **kwargs)
     
     @property
     def age(self):
@@ -69,6 +94,23 @@ class User(AbstractUser):
         if not self.age:
             return False
         return self.age >= 18
+
+    def get_daily_analysis_limit(self):
+        from django.db.models import Q
+        from apps.subscriptions.plan_config import get_plan_limit
+
+        active_sub = self.subscriptions.filter(status='active').filter(
+            Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
+        ).first()
+        if active_sub and active_sub.plan_slug:
+            limit = get_plan_limit(active_sub.plan_slug)
+            if limit is not None:
+                return limit
+
+        if self.is_premium_active():
+            from django.conf import settings
+            return settings.PREMIUM_ANALYSIS_LIMIT
+        return get_plan_limit('freemium')
     
     def is_premium_active(self):
         """Verifica se o usuário tem premium ativo"""
@@ -92,35 +134,29 @@ class User(AbstractUser):
             self.last_analysis_date = today
             self.save()
         
-        # Definir limite diário com base na assinatura ativa (plan_slug)
-        from apps.subscriptions.plan_config import get_plan_limit
-        limit = None
-        try:
-            from django.db.models import Q
-            active_sub = self.subscriptions.filter(status='active').filter(
-                Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
-            ).first()
-            if active_sub and active_sub.plan_slug:
-                limit = get_plan_limit(active_sub.plan_slug)
-        except Exception:
-            limit = None
+        limit = self.get_daily_analysis_limit()
+        return self.daily_analysis_count < limit or self.bonus_analysis_credits > 0
 
-        if limit is None:
-            # Fallback para configurações existentes
-            if self.is_premium_active():
-                from django.conf import settings
-                limit = settings.PREMIUM_ANALYSIS_LIMIT
-            else:
-                limit = get_plan_limit('freemium')
-
-        return self.daily_analysis_count < limit
-    
     def increment_analysis_count(self):
         """Incrementa contador de análises"""
+        today = timezone.now().date()
+        if self.last_analysis_date != today:
+            self.daily_analysis_count = 0
+            self.last_analysis_date = today
+
+        limit = self.get_daily_analysis_limit()
+        if self.daily_analysis_count >= limit and self.bonus_analysis_credits > 0:
+            self.bonus_analysis_credits -= 1
+
         self.daily_analysis_count += 1
         self.total_analyses += 1
-        self.last_analysis_date = timezone.now().date()
-        self.save()
+        self.last_analysis_date = today
+        self.save(update_fields=[
+            'daily_analysis_count',
+            'total_analyses',
+            'last_analysis_date',
+            'bonus_analysis_credits',
+        ])
     
     def get_success_rate(self):
         """Calcula taxa de acerto"""

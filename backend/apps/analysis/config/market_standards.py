@@ -34,16 +34,6 @@ CANONICAL_MARKETS = {
     'over_4.5': ['over_4.5', 'over_4_5', 'over45', 'over_45'],
     'under_4.5': ['under_4.5', 'under_4_5', 'under45', 'under_45'],
     
-    # Asian Lines
-    'over_1.75': ['over_1.75', 'over_1_75'],
-    'under_1.75': ['under_1.75', 'under_1_75'],
-    'over_2.25': ['over_2.25', 'over_2_25'],
-    'under_2.25': ['under_2.25', 'under_2_25'],
-    'over_2.75': ['over_2.75', 'over_2_75'],
-    'under_2.75': ['under_2.75', 'under_2_75'],
-    'over_3.25': ['over_3.25', 'over_3_25'],
-    'under_3.25': ['under_3.25', 'under_3_25'],
-    
     # BTTS
     'btts_yes': ['btts_yes', 'btts', 'both_teams_score', 'gg'],
     'btts_no': ['btts_no', 'btts_not', 'no_btts', 'ng'],
@@ -133,16 +123,6 @@ MARKET_DISPLAY_NAMES = {
     'over_4.5': 'Over 4.5',
     'under_4.5': 'Under 4.5',
     
-    # Asian Lines
-    'over_1.75': 'Over 1.75',
-    'under_1.75': 'Under 1.75',
-    'over_2.25': 'Over 2.25',
-    'under_2.25': 'Under 2.25',
-    'over_2.75': 'Over 2.75',
-    'under_2.75': 'Under 2.75',
-    'over_3.25': 'Over 3.25',
-    'under_3.25': 'Under 3.25',
-    
     # BTTS
     'btts_yes': 'Ambos Marcam',
     'btts_no': 'Ambos Não Marcam',
@@ -207,8 +187,6 @@ MARKET_CATEGORIES = {
     'double_chance': ['1x', '12', 'x2'],
     'totals': ['over_0.5', 'under_0.5', 'over_1.5', 'under_1.5', 'over_2.5', 'under_2.5', 
                'over_3.5', 'under_3.5', 'over_4.5', 'under_4.5'],
-    'asian': ['over_1.75', 'under_1.75', 'over_2.25', 'under_2.25', 'over_2.75', 'under_2.75',
-              'over_3.25', 'under_3.25'],
     'btts': ['btts_yes', 'btts_no'],
     'clean_sheets': ['home_clean_sheet', 'away_clean_sheet'],
     'team_totals': ['home_over_0.5', 'home_under_0.5', 'home_over_1.5', 'home_under_1.5',
@@ -326,7 +304,7 @@ def is_derived_market(market: str) -> bool:
     """
     Verifica se o mercado é derivado (calculado a partir de outros).
     
-    Mercados derivados: Double Chance, DNB, Asian Lines
+    Mercados derivados: Double Chance, DNB
     Mercados base: 1X2, Over/Under inteiros, BTTS
     
     Args:

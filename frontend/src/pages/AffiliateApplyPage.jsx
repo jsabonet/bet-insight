@@ -41,7 +41,7 @@ export default function AffiliateApplyPage() {
         <div className="card animate-slide-up bg-gradient-to-br from-primary-600 to-primary-800 dark:from-primary-900 dark:to-gray-900 text-white border-0">
           <div className="flex items-center gap-2 mb-2">
             <Gift className="w-6 h-6" />
-            <h2 className="text-xl font-bold">Ganhe até 50% por venda</h2>
+            <h2 className="text-xl font-bold">Receba comissões por vendas confirmadas</h2>
           </div>
           <p className="text-sm text-white/80">
             Partilhe o seu link e receba comissões sempre que alguém assinar o PlacarCerto

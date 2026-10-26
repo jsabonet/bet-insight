@@ -9,10 +9,10 @@ from django.utils import timezone
 from django.db.models import Q
 from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
-from apps.subscriptions.plan_config import get_plan_limit
 from .models import User
 from .serializers import UserRegistrationSerializer, UserSerializer, UserProfileUpdateSerializer
 from .tokens import account_activation_token, password_reset_token, decode_uid
+from .ip_utils import get_client_ip
 
 
 class RegisterView(generics.CreateAPIView):
@@ -48,19 +48,27 @@ class RegisterView(generics.CreateAPIView):
 
     def _assign_affiliate(self, request, user):
         """Vincula o utilizador ao afiliado (link ou código promocional)."""
-        try:
-            from apps.affiliates.services import assign_referral
+        code = request.data.get('ref') or request.data.get('promo_code') or ''
+        source = 'promo_code' if request.data.get('promo_code') else 'link'
+        if not code:
+            code = request.COOKIES.get('affiliate_ref', '')
+            source = 'link'
+        if not code:
+            return
 
-            code = request.data.get('ref') or request.data.get('promo_code') or ''
-            source = 'promo_code' if request.data.get('promo_code') else 'link'
-            if not code:
-                code = request.COOKIES.get('affiliate_ref', '')
-                source = 'link'
-            if code:
-                assign_referral(user, code, source=source)
+        from apps.affiliates.services import assign_member_referral, assign_referral
+
+        try:
+            assign_referral(user, code, source=source)
         except Exception as exc:
             import logging
-            logging.getLogger(__name__).warning('Falha ao atribuir afiliado: %s', exc)
+            logging.getLogger(__name__).exception('Falha ao atribuir afiliado: %s', exc)
+
+        try:
+            assign_member_referral(user, code)
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).exception('Falha ao registar convite entre membros: %s', exc)
 
     def _send_welcome_emails(self, user):
         """Envia email de boas-vindas e de verificação (não bloqueia o registo)."""
@@ -84,8 +92,7 @@ class LoginView(TokenObtainPairView):
         # Se login OK, registrar IP e fingerprint
         try:
             user = User.objects.get(username=request.data.get('username'))
-            ip = request.META.get('HTTP_X_FORWARDED_FOR')
-            ip = ip.split(',')[0].strip() if ip else request.META.get('REMOTE_ADDR')
+            ip = get_client_ip(request)
             fingerprint = request.data.get('fingerprint')
             user.last_login_ip = ip
             if fingerprint:
@@ -124,20 +131,16 @@ class UserStatsView(generics.GenericAPIView):
         else:
             analyses_today = user.daily_analysis_count
 
-        # Determinar assinatura ativa e limite diário a partir dela
-        active_subscriptions = user.subscriptions.filter(status='active').filter(
+        active_sub = user.subscriptions.filter(status='active').filter(
             Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
         )
         active_sub = (
-            active_subscriptions.filter(end_date__isnull=True).first()
-            or active_subscriptions.order_by('-end_date').first()
+            active_sub.filter(end_date__isnull=True).first()
+            or active_sub.order_by('-end_date').first()
         )
-        if active_sub and active_sub.plan_slug:
-            daily_limit = get_plan_limit(active_sub.plan_slug)
-        else:
-            # Sem assinatura ativa: considerar freemium (ignorar flag premium legado)
-            daily_limit = get_plan_limit('freemium')
+        daily_limit = user.get_daily_analysis_limit()
         remaining = max(daily_limit - analyses_today, 0)
+        remaining += user.bonus_analysis_credits
 
         return Response({
             'total_analyses': user.total_analyses,
@@ -147,6 +150,7 @@ class UserStatsView(generics.GenericAPIView):
             'analyses_count_today': analyses_today,
             'daily_limit': daily_limit,
             'remaining': remaining,
+            'bonus_analysis_credits': user.bonus_analysis_credits,
             'can_analyze': user.can_analyze(),
             'is_premium': bool(active_sub),
             'premium_until': active_sub.end_date if active_sub else None,
