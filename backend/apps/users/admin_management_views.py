@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 from rest_framework import status
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from datetime import datetime
 from .models import User
@@ -160,9 +161,21 @@ def admin_update_user(request, user_id):
                 {'error': 'Email já está em uso'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-    
+
+    remove_premium = request.data.get('is_premium') is False
+    if remove_premium and 'premium_until' not in updated_fields:
+        user.premium_until = None
+        updated_fields.append('premium_until')
+
     try:
-        user.save()
+        with transaction.atomic():
+            user.save()
+            if remove_premium:
+                active_subscriptions = user.subscriptions.filter(status='active').filter(
+                    Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
+                )
+                for subscription in active_subscriptions:
+                    subscription.cancel()
     except Exception as e:
         import traceback
         error_detail = traceback.format_exc()

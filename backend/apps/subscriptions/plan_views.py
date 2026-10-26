@@ -13,6 +13,14 @@ from django.db.models import Q
 from datetime import timedelta
 
 
+def _cancel_active_subscriptions(user):
+    active_subscriptions = user.subscriptions.filter(status='active').filter(
+        Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
+    )
+    for subscription in active_subscriptions:
+        subscription.cancel()
+
+
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def admin_assign_subscription(request):
@@ -50,11 +58,10 @@ def admin_assign_subscription(request):
     # Se o destino for freemium, apenas cancelar e retornar stub
     if plan_slug == 'freemium':
         with transaction.atomic():
-            current = user.subscriptions.filter(status='active').filter(
-                Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
-            ).first()
-            if current:
-                current.cancel()
+            _cancel_active_subscriptions(user)
+            user.is_premium = False
+            user.premium_until = None
+            user.save(update_fields=['is_premium', 'premium_until'])
         # Retornar um stub compatível com frontend
         free = get_plan('freemium')
         return Response({
@@ -77,11 +84,7 @@ def admin_assign_subscription(request):
 
     # Para planos pagos, criar assinatura com end_date explícita
     with transaction.atomic():
-        current = user.subscriptions.filter(status='active').filter(
-            Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
-        ).first()
-        if current:
-            current.cancel()
+        _cancel_active_subscriptions(user)
 
         start = timezone.now()
         # Determinar duração
@@ -136,18 +139,39 @@ def admin_remove_subscription(request):
     except User.DoesNotExist:
         return Response({'error': 'Usuário não encontrado'}, status=status.HTTP_404_NOT_FOUND)
 
-    current = user.subscriptions.filter(status='active').filter(
-        Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
-    ).first()
-    if not current:
-        return Response({'message': 'Usuário não possui assinatura ativa'}, status=status.HTTP_200_OK)
-
-    current.cancel()
+    with transaction.atomic():
+        _cancel_active_subscriptions(user)
+        user.is_premium = False
+        user.premium_until = None
+        user.save(update_fields=['is_premium', 'premium_until'])
 
     return Response({
-        'message': 'Assinatura removida com sucesso',
-        'subscription': SubscriptionSerializer(current).data
+        'message': 'Assinaturas removidas com sucesso',
     })
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def admin_user_subscription(request, user_id):
+    """Retorna a assinatura ativa do usuário selecionado no painel admin."""
+    from apps.users.models import User
+
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return Response({'error': 'Usuário não encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    active_subscriptions = user.subscriptions.filter(status='active').filter(
+        Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
+    )
+    subscription = (
+        active_subscriptions.filter(end_date__isnull=True).first()
+        or active_subscriptions.order_by('-end_date').first()
+    )
+    if not subscription:
+        return Response(None)
+
+    return Response(SubscriptionSerializer(subscription).data)
 
 
 @api_view(['GET'])

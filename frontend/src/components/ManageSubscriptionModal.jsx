@@ -32,12 +32,11 @@ export default function ManageSubscriptionModal({ user, isOpen, onClose, onSucce
 
   const loadCurrentSubscription = async () => {
     try {
-      // Tentar buscar assinatura atual do usuário
-      const response = await api.get(`/subscriptions/my-subscription/`);
+      const response = await api.get(`/subscriptions/admin/users/${user.id}/subscription/`);
       setCurrentSubscription(response.data);
     } catch (err) {
-      // Usuário pode não ter assinatura ativa
-      setCurrentSubscription(null);
+      console.error('Erro ao carregar assinatura do usuário:', err);
+      setError(err.response?.data?.error || 'Erro ao carregar assinatura do usuário');
     }
   };
 
@@ -125,7 +124,7 @@ export default function ManageSubscriptionModal({ user, isOpen, onClose, onSucce
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
       <div className="bg-white dark:bg-gray-800 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20">

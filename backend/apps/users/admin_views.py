@@ -2,6 +2,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser
+from django.db import transaction
 from django.db.models import Count, Q, Sum
 from django.utils import timezone
 from datetime import timedelta
@@ -44,9 +45,15 @@ class AdminUserViewSet(viewsets.ModelViewSet):
         user = self.get_object()
         
         if user.is_premium:
-            # Remover premium
-            user.is_premium = False
-            user.premium_until = None
+            with transaction.atomic():
+                active_subscriptions = user.subscriptions.filter(status='active').filter(
+                    Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
+                )
+                for subscription in active_subscriptions:
+                    subscription.cancel()
+                user.is_premium = False
+                user.premium_until = None
+                user.save(update_fields=['is_premium', 'premium_until'])
         else:
             # Adicionar premium por 30 dias
             user.is_premium = True

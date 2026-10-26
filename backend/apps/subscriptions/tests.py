@@ -513,3 +513,124 @@ class VPayCheckStatusTests(TestCase):
         payment.refresh_from_db()
         self.assertEqual(payment.status, 'completed')
         self.assertEqual(response.json()['status'], 'completed')
+
+
+class AdminSubscriptionManagementTests(TestCase):
+    def setUp(self):
+        self.admin = make_user(
+            username='subscription_admin',
+            email='subscription_admin@example.com',
+            is_staff=True,
+        )
+        self.user = make_user(
+            username='subscription_target',
+            email='subscription_target@example.com',
+            is_premium=True,
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(self.admin)
+
+    def create_active_subscriptions(self):
+        from datetime import timedelta
+        from django.utils import timezone
+
+        return [
+            Subscription.objects.create(
+                user=self.user,
+                plan='monthly',
+                plan_slug=slug,
+                status='active',
+                end_date=timezone.now() + timedelta(days=days),
+                amount_paid=599,
+            )
+            for slug, days in (('pro', 10), ('starter', 20))
+        ]
+
+    def test_admin_removal_cancels_all_active_plans_and_clears_premium(self):
+        self.create_active_subscriptions()
+
+        response = self.client.post(
+            '/api/subscriptions/admin/remove-subscription/',
+            {'user_id': self.user.id},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            set(self.user.subscriptions.values_list('status', flat=True)),
+            {'cancelled'},
+        )
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.is_premium)
+        self.assertIsNone(self.user.premium_until)
+
+    def test_admin_subscription_lookup_returns_selected_users_plan(self):
+        Subscription.objects.create(
+            user=self.admin,
+            plan='monthly',
+            plan_slug='premium_vitalicio',
+            status='active',
+            end_date=None,
+            amount_paid=250,
+        )
+        target_subscriptions = self.create_active_subscriptions()
+
+        response = self.client.get(
+            f'/api/subscriptions/admin/users/{self.user.id}/subscription/'
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.data['id'], [subscription.id for subscription in target_subscriptions])
+        self.assertIn(response.data['plan_slug'], ('pro', 'starter'))
+
+    def test_assigning_freemium_cancels_all_active_plans(self):
+        self.create_active_subscriptions()
+
+        response = self.client.post(
+            '/api/subscriptions/admin/assign-subscription/',
+            {'user_id': self.user.id, 'plan_slug': 'freemium'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            set(self.user.subscriptions.values_list('status', flat=True)),
+            {'cancelled'},
+        )
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.is_premium)
+
+    def test_turning_off_premium_in_user_editor_cancels_active_plans(self):
+        self.create_active_subscriptions()
+
+        response = self.client.put(
+            f'/api/users/admin/users/{self.user.id}/update/',
+            {'is_premium': False},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            set(self.user.subscriptions.values_list('status', flat=True)),
+            {'cancelled'},
+        )
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.is_premium)
+        self.assertIsNone(self.user.premium_until)
+
+    def test_toggling_off_premium_cancels_all_active_plans(self):
+        self.create_active_subscriptions()
+
+        response = self.client.post(
+            f'/api/users/admin/users/{self.user.id}/toggle_premium/',
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            set(self.user.subscriptions.values_list('status', flat=True)),
+            {'cancelled'},
+        )
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.is_premium)
+        self.assertIsNone(self.user.premium_until)
