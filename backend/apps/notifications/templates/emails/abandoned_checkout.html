@@ -1,0 +1,30 @@
+{% extends "emails/base.html" %}
+{% block preheader %}O seu pedido de compra continua pendente. Pode retomar o checkout em segurança.{% endblock %}
+{% block content %}
+<p style="font-size:12px;font-weight:700;color:#b45309;letter-spacing:0.12em;text-transform:uppercase;margin:0 0 10px;">Checkout pendente</p>
+<h1 style="font-size:26px;font-weight:800;color:#111827;letter-spacing:-0.02em;line-height:1.2;margin:0 0 14px;">Quer concluir a sua compra?</h1>
+<p style="font-size:15px;color:#4b5563;line-height:1.65;margin:0 0 24px;">
+  Olá, {{ user_name }}. O pedido do plano {{ plan_name }} ainda está pendente. Se continua interessado, pode retomar o pagamento pelo botão abaixo.
+</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;margin:0 0 24px;">
+  <tr>
+    <td style="padding:18px 22px;">
+      <p style="font-size:14px;color:#374151;line-height:1.7;margin:0;">
+        <strong>Plano:</strong> {{ plan_name }}<br>
+        <strong>Valor:</strong> {{ amount }} {{ currency }}<br>
+        <strong>Referência:</strong> {{ transaction_id }}
+      </p>
+    </td>
+  </tr>
+</table>
+<p style="font-size:13px;color:#6b7280;line-height:1.65;margin:0 0 24px;">
+  Se já pagou, ignore esta mensagem. A confirmação pode demorar alguns instantes.
+</p>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0;">
+  <tr>
+    <td align="left" style="border-radius:10px;background-color:#16a34a;">
+      <a href="{{ checkout_url }}" style="display:inline-block;padding:14px 34px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px;">Retomar pagamento</a>
+    </td>
+  </tr>
+</table>
+{% endblock %}

@@ -1,5 +1,5 @@
 from django.urls import path
-from . import plan_views, payment_views, vpay_views
+from . import admin_views, plan_views, payment_views, vpay_views
 
 app_name = 'subscriptions'
 
@@ -18,6 +18,7 @@ urlpatterns = [
     path('admin/assign-subscription/', plan_views.admin_assign_subscription, name='admin-assign-subscription'),
     path('admin/remove-subscription/', plan_views.admin_remove_subscription, name='admin-remove-subscription'),
     path('admin/users/<int:user_id>/subscription/', plan_views.admin_user_subscription, name='admin-user-subscription'),
+    path('admin/abandoned-checkouts/', admin_views.admin_abandoned_checkouts, name='admin-abandoned-checkouts'),
     
     # Pagamentos
     path('payments/check/<str:transaction_id>/', payment_views.check_payment_status, name='check-payment'),

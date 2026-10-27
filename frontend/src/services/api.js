@@ -108,6 +108,7 @@ export const adminAPI = {
   togglePremium: (id) => api.post(`/users/admin/users/${id}/toggle_premium/`),
   resetDailyLimit: (id) => api.post(`/users/admin/users/${id}/reset_daily_limit/`),
   getAnalysesStats: () => api.get('/users/admin/analyses-stats/'),
+  getAbandonedCheckouts: () => api.get('/subscriptions/admin/abandoned-checkouts/'),
   assignSubscription: (userId, planSlug, durationDays) =>
     api.post('/subscriptions/admin/assign-subscription/', {
       user_id: userId,

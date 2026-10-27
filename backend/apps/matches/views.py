@@ -29,6 +29,79 @@ HOME_SECONDARY_LEAGUES = {
 HOME_MAX_ODDS_CHECKS = 120
 
 
+def _save_quick_analysis_to_history(user, data, result):
+    if not user.is_authenticated or not data.get('save_to_history'):
+        return None
+
+    api_id = data.get('api_id') or None
+    football_data_id = data.get('football_data_id') or None
+    db_match = None
+    if api_id:
+        db_match = Match.objects.filter(api_football_id=api_id).first()
+    if db_match is None and football_data_id:
+        db_match = Match.objects.filter(football_data_id=football_data_id).first()
+
+    if db_match and Analysis.objects.filter(user=user, match=db_match).exists():
+        return None
+    if not user.can_analyze():
+        return None
+
+    if db_match is None:
+        league_name = data.get('league') or 'Liga Desconhecida'
+        home_name = data.get('home_team') or 'Time Casa'
+        away_name = data.get('away_team') or 'Time Visitante'
+        match_date_str = data.get('date')
+        try:
+            match_date = (
+                datetime.fromisoformat(str(match_date_str).replace('Z', '+00:00'))
+                if match_date_str else timezone.now()
+            )
+        except (TypeError, ValueError):
+            match_date = timezone.now()
+
+        league_obj, _ = League.objects.get_or_create(
+            name=league_name,
+            defaults={'country': '', 'logo': '', 'is_active': True},
+        )
+        home_team_obj, _ = Team.objects.get_or_create(
+            name=home_name,
+            defaults={'country': '', 'logo': ''},
+        )
+        away_team_obj, _ = Team.objects.get_or_create(
+            name=away_name,
+            defaults={'country': '', 'logo': ''},
+        )
+        db_match = Match.objects.create(
+            league=league_obj,
+            home_team=home_team_obj,
+            away_team=away_team_obj,
+            match_date=match_date,
+            status=data.get('status') or 'scheduled',
+            api_football_id=api_id,
+            football_data_id=football_data_id,
+            is_analysis_available=True,
+        )
+
+    saved_analysis = Analysis.objects.create(
+        user=user,
+        match=db_match,
+        prediction='home',
+        confidence=int(result.get('confidence', 3) or 3),
+        home_probability=40.0,
+        draw_probability=30.0,
+        away_probability=30.0,
+        home_xg=1.5,
+        away_xg=1.3,
+        reasoning=result.get('analysis') or 'Análise estatística disponível no resultado.',
+        key_factors=['Análise estatística', 'Dados históricos'],
+        analysis_data={'source': 'quick_analyze', 'fallback': True},
+    )
+    user.increment_analysis_count()
+    from apps.affiliates.services import reward_member_referral_for_first_analysis
+    reward_member_referral_for_first_analysis(user)
+    return saved_analysis
+
+
 def _filter_home_matches(matches):
     now = timezone.now()
     candidates = []
@@ -275,6 +348,10 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 changed_fields.append(field)
         if changed_fields:
             match.save(update_fields=changed_fields)
+
+        if match.status == 'finished':
+            from apps.analysis.services.match_result_sync import validate_match_analyses
+            validate_match_analyses(match)
 
         response_data = {
             'fixture_id': match.api_football_id,
@@ -1442,122 +1519,20 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             'has_football_data': bool(match_data.get('football_data_match'))
         }
         
-        # Opcional: salvar no histórico se usuário autenticado e houver match mapeado
+        # Salvar no histórico para utilizadores autenticados, mesmo sem ID externo.
         saved = False
         saved_info = None
         try:
-            if request.user.is_authenticated and request.data.get('save_to_history'):
-                api_id_val = request.data.get('api_id')
-                if api_id_val:
-                    # Tentar mapear para uma partida existente no banco
-                    db_match = Match.objects.filter(api_football_id=api_id_val).first()
-                    if db_match:
-                        # Evitar duplicar análises
-                        existing = Analysis.objects.filter(user=request.user, match=db_match).first()
-                        if not existing:
-                            # Checar limite diário
-                            if request.user.can_analyze():
-                                home_p, draw_p, away_p = 40.0, 30.0, 30.0
-                                home_xg, away_xg = 1.5, 1.3
-                                prediction = 'home'
-                                confidence = int(result.get('confidence', 3) or 3)
-                                reasoning = result.get('analysis') or 'Análise gerada pela IA.'
-                                key_factors = ['Mando de campo', 'Forma recente']
-                                saved_analysis = Analysis.objects.create(
-                                    user=request.user,
-                                    match=db_match,
-                                    prediction=prediction,
-                                    confidence=confidence,
-                                    home_probability=home_p,
-                                    draw_probability=draw_p,
-                                    away_probability=away_p,
-                                    home_xg=home_xg,
-                                    away_xg=away_xg,
-                                    reasoning=reasoning,
-                                    key_factors=key_factors,
-                                    analysis_data={'source': 'ai', 'fallback': True}
-                                )
-                                request.user.increment_analysis_count()
-                                from apps.affiliates.services import reward_member_referral_for_first_analysis
-                                reward_member_referral_for_first_analysis(request.user)
-                                saved = True
-                                saved_info = {'id': saved_analysis.id, 'created_at': saved_analysis.created_at}
-                    else:
-                        # Criar um registro mínimo da partida e salvar análise
-                        if request.user.can_analyze():
-                            from django.utils import timezone
-                            league_name = request.data.get('league') or 'Liga Desconhecida'
-                            home_name = request.data.get('home_team') or 'Time Casa'
-                            away_name = request.data.get('away_team') or 'Time Visitante'
-                            match_date_str = request.data.get('date')
-                            try:
-                                match_date = datetime.fromisoformat(str(match_date_str).replace('Z', '+00:00')) if match_date_str else timezone.now()
-                            except Exception:
-                                match_date = timezone.now()
-
-                            league_obj = League.objects.filter(name=league_name).first()
-                            if not league_obj:
-                                league_obj = League.objects.create(
-                                    name=league_name,
-                                    country='',
-                                    logo='',
-                                    is_active=True
-                                )
-                            
-                            home_team_obj = Team.objects.filter(name=home_name).first()
-                            if not home_team_obj:
-                                home_team_obj = Team.objects.create(
-                                    name=home_name,
-                                    country='',
-                                    logo=''
-                                )
-                            
-                            away_team_obj = Team.objects.filter(name=away_name).first()
-                            if not away_team_obj:
-                                away_team_obj = Team.objects.create(
-                                    name=away_name,
-                                    country='',
-                                    logo=''
-                                )
-
-                            db_match = Match.objects.create(
-                                league=league_obj,
-                                home_team=home_team_obj,
-                                away_team=away_team_obj,
-                                match_date=match_date,
-                                status=request.data.get('status') or 'scheduled',
-                                api_football_id=api_id_val,
-                                football_data_id=request.data.get('football_data_id') or None,
-                                is_analysis_available=True,
-                            )
-
-                            home_p, draw_p, away_p = 40.0, 30.0, 30.0
-                            home_xg, away_xg = 1.5, 1.3
-                            prediction = 'home'
-                            confidence = int(result.get('confidence', 3) or 3)
-                            reasoning = result.get('analysis') or 'Análise gerada pela IA.'
-                            key_factors = ['Mando de campo', 'Forma recente']
-                            saved_analysis = Analysis.objects.create(
-                                user=request.user,
-                                match=db_match,
-                                prediction=prediction,
-                                confidence=confidence,
-                                home_probability=home_p,
-                                draw_probability=draw_p,
-                                away_probability=away_p,
-                                home_xg=home_xg,
-                                away_xg=away_xg,
-                                reasoning=reasoning,
-                                key_factors=key_factors,
-                                analysis_data={'source': 'ai', 'fallback': True}
-                            )
-                            request.user.increment_analysis_count()
-                            from apps.affiliates.services import reward_member_referral_for_first_analysis
-                            reward_member_referral_for_first_analysis(request.user)
-                            saved = True
-                            saved_info = {'id': saved_analysis.id, 'created_at': saved_analysis.created_at}
+            saved_analysis = _save_quick_analysis_to_history(
+                request.user,
+                request.data,
+                result,
+            )
+            if saved_analysis:
+                saved = True
+                saved_info = {'id': saved_analysis.id, 'created_at': saved_analysis.created_at}
         except Exception:
-            # Ignorar erros de persistência silenciosamente para não quebrar preview
+            logger.exception('Falha ao guardar a análise rápida no histórico.')
             saved = False
             saved_info = None
 
@@ -2251,6 +2226,9 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                             match.away_score = live_data['away_score']
                             match.save(update_fields=['home_score', 'away_score'])
                             logger.info(f"✅ Score atualizado: {match.home_score} x {match.away_score}")
+                            if match.status == 'finished':
+                                from apps.analysis.services.match_result_sync import validate_match_analyses
+                                validate_match_analyses(match)
                         
                 except Exception as e:
                     logger.warning(f"⚠️ Erro ao buscar dados ao vivo: {e}")

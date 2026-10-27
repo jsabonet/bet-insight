@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models import Count, Q
 from django.utils import timezone
 from datetime import date
 from dateutil.relativedelta import relativedelta
@@ -149,7 +150,7 @@ class User(AbstractUser):
             self.bonus_analysis_credits -= 1
 
         self.daily_analysis_count += 1
-        self.total_analyses += 1
+        self.total_analyses = self.analyses.count()
         self.last_analysis_date = today
         self.save(update_fields=[
             'daily_analysis_count',
@@ -159,7 +160,16 @@ class User(AbstractUser):
         ])
     
     def get_success_rate(self):
-        """Calcula taxa de acerto"""
-        if self.total_analyses == 0:
+        """Calcula a taxa apenas sobre análises com resultado validado."""
+        metrics = self.get_analysis_metrics()
+        if not metrics['resolved']:
             return 0
-        return round((self.successful_predictions / self.total_analyses) * 100, 1)
+        return round((metrics['correct'] / metrics['resolved']) * 100, 1)
+
+    def get_analysis_metrics(self):
+        """Devolve contagens a partir das análises persistidas, não de caches."""
+        return self.analyses.aggregate(
+            total=Count('id'),
+            resolved=Count('id', filter=Q(is_correct__isnull=False)),
+            correct=Count('id', filter=Q(is_correct=True)),
+        )

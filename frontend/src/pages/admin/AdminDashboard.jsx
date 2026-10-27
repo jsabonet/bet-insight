@@ -12,7 +12,8 @@ import {
   BarChart3,
   Crown,
   Camera,
-  Gift
+  Gift,
+  ShoppingCart
 } from 'lucide-react';
 import Header from '../../components/Header';
 import BottomNav from '../../components/BottomNav';
@@ -139,6 +140,13 @@ export default function AdminDashboard() {
       icon: Gift,
       path: '/admin/affiliates',
       color: 'blue',
+    },
+    {
+      title: 'Checkouts abandonados',
+      description: 'Ver pedidos pendentes, contactar clientes e acompanhar emails de recuperação',
+      icon: ShoppingCart,
+      path: '/admin/abandoned-checkouts',
+      color: 'amber',
     },
   ];
 

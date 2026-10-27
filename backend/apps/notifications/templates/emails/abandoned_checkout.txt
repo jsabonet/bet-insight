@@ -1,0 +1,12 @@
+Checkout pendente
+
+Olá, {{ user_name }}. O pedido do plano {{ plan_name }} ainda está pendente. Se continua interessado, pode retomar o pagamento:
+
+Plano: {{ plan_name }}
+Valor: {{ amount }} {{ currency }}
+Referência: {{ transaction_id }}
+
+Retomar pagamento: {{ checkout_url }}
+
+Se já pagou, ignore esta mensagem. A confirmação pode demorar alguns instantes.
+Análise estatística e educativa de futebol. Não promovemos apostas nem jogos de azar.

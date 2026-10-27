@@ -5,6 +5,7 @@ testes) mas delega o envio para o serviço central de notificações com templat
 HTML. As funções são idempotentes e nunca lançam exceções para o chamador.
 """
 import logging
+from decimal import Decimal
 
 from apps.notifications.service import send_template_email
 
@@ -139,4 +140,42 @@ def send_payment_failed_email(user, payment):
         return True
     except Exception as exc:
         logger.error("Erro ao enviar email de falha de pagamento: %s", exc)
+        return False
+
+
+def send_abandoned_checkout_email(payment):
+    """Envia um único lembrete transacional para retomar um checkout pendente."""
+    user = payment.user
+    if not user.email:
+        return False
+
+    metadata = payment.metadata or {}
+    checkout_url = metadata.get('checkout_url')
+    if not checkout_url:
+        from django.conf import settings
+        checkout_url = f"{settings.FRONTEND_URL.rstrip('/')}/premium"
+
+    try:
+        from .plan_config import get_plan
+
+        plan = get_plan(metadata.get('plan'))
+        plan_name = metadata.get('plan_name') or (plan or {}).get('name') or 'Plano Premium'
+        sent = send_template_email(
+            to=user.email,
+            subject='O seu checkout PlacarCerto continua pendente',
+            template_name='abandoned_checkout',
+            context={
+                'user_name': user.get_full_name().strip() or user.username,
+                'plan_name': plan_name,
+                'amount': f'{Decimal(str(payment.amount)):g}',
+                'currency': payment.currency or 'MZN',
+                'transaction_id': payment.transaction_id,
+                'checkout_url': checkout_url,
+            },
+            tags=['payment', 'checkout-recovery'],
+            fail_silently=False,
+        )
+        return sent > 0
+    except Exception as exc:
+        logger.exception('Erro ao enviar email de recuperação do checkout %s: %s', payment.pk, exc)
         return False

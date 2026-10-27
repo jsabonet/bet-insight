@@ -2,7 +2,7 @@ import hashlib
 import json
 import re
 
-from django.db import models
+from django.db import models, transaction
 from django.conf import settings
 from apps.matches.models import Match
 
@@ -69,18 +69,26 @@ class Analysis(models.Model):
     def __str__(self):
         return f"Análise de {self.user.email} - {self.match}"
     
+    @transaction.atomic
     def validate_result(self):
         """Valida o resultado após a partida terminar"""
-        if self.match.status == 'finished':
+        if self.match.get_result() is not None:
             actual = self.match.get_result()
             self.actual_result = actual
             self.is_correct = (self.prediction == actual)
             self.save()
             
             # Atualizar estatísticas do usuário
-            if self.is_correct:
-                self.user.successful_predictions += 1
-                self.user.save()
+            from django.contrib.auth import get_user_model
+
+            User = get_user_model()
+            user = User.objects.select_for_update().get(pk=self.user_id)
+            user.successful_predictions = type(self).objects.filter(
+                user_id=self.user_id,
+                is_correct=True,
+            ).count()
+            user.save(update_fields=['successful_predictions'])
+            self.user.successful_predictions = user.successful_predictions
     
     def get_confidence_stars(self):
         """Retorna estrelas visuais de confiança"""

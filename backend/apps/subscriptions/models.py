@@ -162,6 +162,11 @@ class Payment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Criado Em")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Atualizado Em")
     completed_at = models.DateTimeField(null=True, blank=True, verbose_name="Completado Em")
+    recovery_email_sent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Email de recuperação enviado em",
+    )
     
     class Meta:
         verbose_name = "Pagamento"

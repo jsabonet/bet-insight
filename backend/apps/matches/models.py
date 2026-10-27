@@ -121,7 +121,11 @@ class Match(models.Model):
     
     def get_result(self):
         """Retorna resultado da partida"""
-        if self.status != 'finished' or self.home_score is None:
+        if (
+            self.status != 'finished'
+            or self.home_score is None
+            or self.away_score is None
+        ):
             return None
         
         if self.home_score > self.away_score:

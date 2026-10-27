@@ -256,6 +256,15 @@ def _result_from_fixture(fixture: dict) -> dict | None:
     }
 
 
+def validate_match_analyses(match: Match) -> None:
+    """Persist result evaluations for every analysis of a completed match."""
+    if match.get_result() is None:
+        return
+
+    for analysis in match.analyses.all():
+        analysis.validate_result()
+
+
 def sync_results_for_date(target_date) -> dict[str, dict]:
     """
     Busca os fixtures de uma data e atualiza os Match existentes.
@@ -298,6 +307,13 @@ def sync_results_for_date(target_date) -> dict[str, dict]:
         if fields:
             match.save(update_fields=fields)
             updated += 1
+
+        if (
+            info['status'] == 'finished'
+            and info['home_score'] is not None
+            and info['away_score'] is not None
+        ):
+            validate_match_analyses(match)
 
     logger.info(
         "Sincronização %s: %s fixtures, %s partidas locais atualizadas",

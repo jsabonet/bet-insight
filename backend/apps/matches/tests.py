@@ -3,12 +3,64 @@ from datetime import timedelta
 from types import SimpleNamespace
 
 from django.core.cache import cache
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase
 from django.utils import timezone
 from rest_framework.permissions import AllowAny
 from rest_framework.test import APIRequestFactory
 
-from .views import HOME_MAX_ODDS_CHECKS, MatchViewSet, _filter_home_matches
+from apps.affiliates.models import MemberReferral
+from apps.affiliates.services import assign_member_referral
+from apps.analysis.models import Analysis
+from apps.users.models import User
+from .models import League, Match, Team
+from .views import (
+	HOME_MAX_ODDS_CHECKS,
+	MatchViewSet,
+	_filter_home_matches,
+	_save_quick_analysis_to_history,
+)
+
+
+class QuickAnalyzeHistoryTests(TestCase):
+	def test_saves_analysis_without_external_match_id_and_rewards_referral(self):
+		inviter = User.objects.create_user(
+			username='history-inviter',
+			email='history-inviter@example.com',
+			password='x',
+			signup_ip='192.0.2.30',
+		)
+		invitee = User.objects.create_user(
+			username='history-invitee',
+			email='history-invitee@example.com',
+			password='x',
+			signup_ip='192.0.2.31',
+		)
+		referral = assign_member_referral(invitee, inviter.member_referral_code)
+
+		saved_analysis = _save_quick_analysis_to_history(
+			invitee,
+			{
+				'save_to_history': True,
+				'home_team': 'Team Casa',
+				'away_team': 'Team Visitante',
+				'league': 'Liga Teste',
+				'date': timezone.now().isoformat(),
+			},
+			{'confidence': 4, 'analysis': 'Análise estatística'},
+		)
+
+		self.assertIsNotNone(saved_analysis)
+		self.assertEqual(Analysis.objects.filter(user=invitee).count(), 1)
+		self.assertEqual(Match.objects.count(), 1)
+		self.assertEqual(League.objects.count(), 1)
+		self.assertEqual(Team.objects.count(), 2)
+		invitee.refresh_from_db()
+		inviter.refresh_from_db()
+		referral.refresh_from_db()
+		self.assertEqual(invitee.total_analyses, 1)
+		self.assertEqual(invitee.bonus_analysis_credits, 5)
+		self.assertEqual(inviter.bonus_analysis_credits, 5)
+		self.assertEqual(referral.reward_status, 'rewarded')
 
 
 class MatchDetailPerformanceTests(SimpleTestCase):

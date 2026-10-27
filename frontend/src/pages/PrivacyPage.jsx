@@ -71,7 +71,7 @@ export default function PrivacyPage() {
               <ul className="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
                 <li>Nome de usuário</li>
                 <li>Endereço de e-mail</li>
-                <li>Número de telefone (opcional, para notificações)</li>
+                <li>Número de telefone (opcional, para suporte e contacto sobre compras)</li>
                 <li>Senha (criptografada)</li>
               </ul>
 
@@ -111,7 +111,7 @@ export default function PrivacyPage() {
                 <li><strong>Prestação de Serviços:</strong> Fornecer análises de futebol, estatísticas e previsões</li>
                 <li><strong>Autenticação:</strong> Gerenciar sua conta e login</li>
                 <li><strong>Personalização:</strong> Adaptar a experiência às suas preferências</li>
-                <li><strong>Comunicação:</strong> Enviar notificações sobre análises, atualizações e novidades</li>
+                <li><strong>Comunicação:</strong> Enviar notificações sobre análises e atualizações, e lembretes de pedidos de compra que permanecerem pendentes</li>
                 <li><strong>Processamento de Pagamentos:</strong> Gerenciar assinaturas premium</li>
                 <li><strong>Melhoria do Serviço:</strong> Analisar uso para melhorar funcionalidades</li>
                 <li><strong>Segurança:</strong> Detectar e prevenir fraudes e abusos</li>

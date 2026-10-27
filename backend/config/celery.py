@@ -107,6 +107,11 @@ app.conf.beat_schedule = {
             'expires': 1800,
         }
     },
+    'send-abandoned-checkout-emails': {
+        'task': 'subscriptions.send_abandoned_checkout_emails',
+        'schedule': crontab(minute='*/5'),
+        'options': {'expires': 300},
+    },
 }
 
 # Configurações adicionais

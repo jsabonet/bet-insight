@@ -39,15 +39,12 @@ export default function ProfilePage() {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
-  const [stats, setStats] = useState({
-    total_analyses: 0,
-    success_rate: 0,
-    analyses_count_today: 0,
-  });
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState('');
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    loadStats();
     pushAPI.getStatus()
       .then(({ data }) => {
         setPushStatus({ ...data, loading: false });
@@ -83,11 +80,16 @@ export default function ProfilePage() {
   };
 
   const loadStats = async () => {
+    setStatsLoading(true);
+    setStatsError('');
     try {
       const response = await authAPI.getStats();
       setStats(response.data);
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
+      setStatsError('Não foi possível carregar as métricas. Tente novamente.');
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -283,26 +285,42 @@ export default function ProfilePage() {
           </div>
 
           {/* Member Stats Quick View */}
-          <div className="grid grid-cols-3 gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
-                {stats.total_analyses || 0}
-              </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Análises</p>
+          {statsLoading && !stats ? (
+            <p className="mt-6 border-t border-gray-200 pt-6 text-center text-sm text-gray-500 dark:border-gray-700 dark:text-gray-400">
+              A carregar métricas...
+            </p>
+          ) : statsError && !stats ? (
+            <div className="mt-6 border-t border-gray-200 pt-6 text-center dark:border-gray-700">
+              <p role="alert" className="text-sm text-rose-600 dark:text-rose-400">{statsError}</p>
+              <button type="button" onClick={loadStats} className="btn-secondary mt-3">
+                Tentar novamente
+              </button>
             </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {stats.success_rate || 0}%
-              </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Sucesso</p>
+          ) : stats ? (
+            <div className="grid grid-cols-3 gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-primary-600 dark:text-primary-400">
+                  {stats.total_analyses}
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Análises</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {stats.success_rate}%
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Taxa de acerto</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-400">
+                  {stats.successful_predictions}/{stats.resolved_analyses} concluídas
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {stats.analyses_count_today}/{stats.daily_limit}
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Hoje</p>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {stats.analyses_count_today || 0}/{stats.daily_limit ?? 3}
-              </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">Hoje</p>
-            </div>
-          </div>
+          ) : null}
         </div>
 
         {/* Affiliate Program CTA */}

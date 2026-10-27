@@ -131,6 +131,7 @@ class UserStatsView(generics.GenericAPIView):
         else:
             analyses_today = user.daily_analysis_count
 
+        analysis_metrics = user.get_analysis_metrics()
         active_sub = user.subscriptions.filter(status='active').filter(
             Q(end_date__isnull=True) | Q(end_date__gt=timezone.now())
         )
@@ -141,17 +142,25 @@ class UserStatsView(generics.GenericAPIView):
         daily_limit = user.get_daily_analysis_limit()
         remaining = max(daily_limit - analyses_today, 0)
         remaining += user.bonus_analysis_credits
+        success_rate = (
+            round(analysis_metrics['correct'] / analysis_metrics['resolved'] * 100, 1)
+            if analysis_metrics['resolved'] else 0
+        )
+        can_analyze = (
+            analyses_today < daily_limit or user.bonus_analysis_credits > 0
+        )
 
         return Response({
-            'total_analyses': user.total_analyses,
-            'successful_predictions': user.successful_predictions,
-            'success_rate': user.get_success_rate(),
+            'total_analyses': analysis_metrics['total'],
+            'successful_predictions': analysis_metrics['correct'],
+            'resolved_analyses': analysis_metrics['resolved'],
+            'success_rate': success_rate,
             'daily_analysis_count': user.daily_analysis_count,
             'analyses_count_today': analyses_today,
             'daily_limit': daily_limit,
             'remaining': remaining,
             'bonus_analysis_credits': user.bonus_analysis_credits,
-            'can_analyze': user.can_analyze(),
+            'can_analyze': can_analyze,
             'is_premium': bool(active_sub),
             'premium_until': active_sub.end_date if active_sub else None,
         })

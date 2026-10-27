@@ -35,6 +35,7 @@ import AdminDailyBets from './pages/admin/AdminDailyBets';
 import AdminExecutionDetail from './pages/admin/AdminExecutionDetail';
 import AdminSocialProof from './pages/admin/AdminSocialProof';
 import AdminAffiliates from './pages/admin/AdminAffiliates';
+import AdminAbandonedCheckouts from './pages/admin/AdminAbandonedCheckouts';
 
 import { captureAffiliateRef } from './utils/affiliate';
 
@@ -287,6 +288,15 @@ function App() {
             element={
               <AdminRoute>
                 <AdminAffiliates />
+              </AdminRoute>
+            }
+          />
+
+          <Route
+            path="/admin/abandoned-checkouts"
+            element={
+              <AdminRoute>
+                <AdminAbandonedCheckouts />
               </AdminRoute>
             }
           />
