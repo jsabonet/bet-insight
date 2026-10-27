@@ -1,5 +1,5 @@
 """
-Comando Django para gerar bilhetes diários manualmente
+Comando Django para gerar bilhetes múltiplos diários manualmente
 
 Uso:
     python manage.py generate_daily_bets
@@ -13,7 +13,7 @@ from apps.analysis.services.daily_bet_generator import DailyBetGenerator
 
 
 class Command(BaseCommand):
-    help = 'Gera bilhetes automáticos e value bets para as partidas de hoje'
+    help = 'Gera bilhetes múltiplos para as partidas de hoje'
 
     def handle(self, *args, **options):
         self.stdout.write("=" * 100)

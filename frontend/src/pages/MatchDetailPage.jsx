@@ -1166,12 +1166,12 @@ export default function MatchDetailPage() {
                 <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-200">
-                    <strong className="font-semibold">Aposte com responsabilidade.</strong> Análises baseadas em dados estatísticos não garantem resultados.
+                    As análises são informativas e baseiam-se em dados estatísticos; não garantem resultados.
                     <button 
                       onClick={() => setShowDisclaimerFull(true)}
                       className="ml-1 sm:ml-2 underline font-semibold hover:text-amber-900 dark:hover:text-amber-100 transition-colors"
                     >
-                      Saiba mais
+                      Sobre esta análise
                     </button>
                   </p>
                 </div>
@@ -1494,7 +1494,7 @@ export default function MatchDetailPage() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
                 <AlertCircle className="w-5 h-5 text-amber-600" />
-                Aposte com Responsabilidade
+                Sobre as análises
               </h3>
               <button 
                 onClick={() => setShowDisclaimerFull(false)}
@@ -1507,46 +1507,37 @@ export default function MatchDetailPage() {
             <div className="space-y-4">
               <div>
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  ⚠️ Aviso Importante
+                  Como interpretar
                 </h4>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Esta análise é baseada em dados estatísticos e modelos matemáticos,
-                  mas <strong>NÃO garante resultados</strong>. Apostas esportivas envolvem risco financeiro.
+                  Esta análise utiliza dados estatísticos e modelos matemáticos para apresentar indicadores sobre a partida.
+                  Os dados podem estar incompletos ou desatualizados, e as estimativas não garantem resultados.
                 </p>
               </div>
 
               <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800">
                 <h4 className="font-semibold text-amber-900 dark:text-amber-100 mb-2">
-                  Regras de Ouro:
+                  Importante:
                 </h4>
                 <ul className="text-sm text-amber-800 dark:text-amber-200 space-y-2">
                   <li className="flex items-start gap-2">
                     <span className="text-amber-600 dark:text-amber-400 flex-shrink-0">•</span>
-                    <span>Aposte apenas o que <strong>pode perder</strong></span>
+                    <span>As estimativas são informativas e não representam certezas.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-amber-600 dark:text-amber-400 flex-shrink-0">•</span>
-                    <span>Nunca use dinheiro essencial (renda, contas, alimentação)</span>
+                    <span>Os resultados podem diferir das estimativas apresentadas.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-amber-600 dark:text-amber-400 flex-shrink-0">•</span>
-                    <span>As previsões são uma <strong>ferramenta de apoio</strong>, não uma garantia</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-600 dark:text-amber-400 flex-shrink-0">•</span>
-                    <span>Defina um limite diário/mensal e respeite-o</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-amber-600 dark:text-amber-400 flex-shrink-0">•</span>
-                    <span>Se perder o controle, procure ajuda profissional</span>
+                    <span>As análises dependem da qualidade e disponibilidade dos dados.</span>
                   </li>
                 </ul>
               </div>
 
               <div className="text-xs text-gray-500 dark:text-gray-400">
                 <p>
-                  <strong>Lembre-se:</strong> Apostas esportivas devem ser encaradas como entretenimento, 
-                  nunca como fonte de renda principal.
+                  Utilize estas informações como referência estatística, considerando sempre o contexto da partida.
                 </p>
               </div>
             </div>

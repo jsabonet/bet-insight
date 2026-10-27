@@ -31,13 +31,10 @@ app.autodiscover_tasks()
 
 # Configurar schedule para tasks periódicas (Celery Beat)
 app.conf.beat_schedule = {
-    # Gerar bilhetes diários - 06:00 UTC (09:00 Maputo) todos os dias
     'generate-daily-bets': {
         'task': 'analysis.generate_daily_bets',
-        'schedule': crontab(hour=6, minute=0),  # 06:00 UTC
-        'options': {
-            'expires': 3600,  # Expirar após 1h se não executar
-        }
+        'schedule': crontab(hour=6, minute=0),
+        'options': {'expires': 3600},
     },
 
     # Aquecer uma amostra das próximas partidas antes do pico diário de acessos.

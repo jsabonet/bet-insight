@@ -2,7 +2,7 @@
 Celery Tasks para Geração e Validação de Bilhetes Diários
 
 Tasks:
-1. generate_daily_bets: Gera bilhetes e value bets automaticamente (diário às 06:00 UTC)
+1. generate_daily_bets: Gera bilhetes múltiplos diariamente às 06:00 UTC
 2. validate_daily_bets: Valida resultados de apostas pendentes (a cada 1 hora)
 """
 
@@ -18,20 +18,18 @@ logger = logging.getLogger(__name__)
 @shared_task(bind=True, name='analysis.generate_daily_bets')
 def generate_daily_bets(self, triggered_by='celery', user_id=None):
     """
-    Task executada diariamente para gerar bilhetes e value bets automáticos
+    Task executada diariamente para gerar bilhetes múltiplos automáticos
     
     Agenda sugerida: 06:00 UTC (horário com poucas requisições de usuários)
     
     Esta task:
     - Analisa todas as partidas do dia
     - Gera bilhetes múltiplos (3x, 5x, 7x)
-    - Gera value bets individuais
     - Usa HybridAnalysisOrchestrator existente
     """
     from apps.analysis.services.daily_bet_generator import DailyBetGenerator
     from apps.analysis.models import TaskExecution
     from django.contrib.auth import get_user_model
-    
     logger.info("=" * 100)
     logger.info("🎯 TASK: GENERATE DAILY BETS - INICIANDO")
     logger.info("=" * 100)
@@ -64,7 +62,7 @@ def generate_daily_bets(self, triggered_by='celery', user_id=None):
         logger.info("✅ TASK CONCLUÍDA COM SUCESSO")
         logger.info(f"{'=' * 100}")
         logger.info(f"📋 Bilhetes múltiplos: {results['multiple_count']}")
-        logger.info(f"⚡ Value bets: {results['value_count']}")
+        logger.info(f"⚡ Seleções de valor geradas: {results['value_count']}")
         logger.info(f"⚽ Partidas analisadas: {results['matches_analyzed']}")
         logger.info(f"🔌 Requisições API (estimado): {results['api_calls']}")
         logger.info(f"{'=' * 100}\n")

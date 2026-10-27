@@ -215,12 +215,12 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
         {
             "date": "2026-01-30",
             "multiple_tickets": [...],  # Bilhetes 3x, 5x, 7x
-            "value_bets": [...],         # Top 10 value bets
+            "value_bets": [],             # Mantido vazio por compatibilidade
             "stats": {
                 "total_matches": 45,
                 "total_bets": 13,
                 "avg_multiple_odd": 5.6,
-                "avg_value_ev": 12.3
+                "avg_multiple_prob": 0.6
             }
         }
         """
@@ -234,11 +234,10 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
                 target_date = timezone.localdate()
         
         # Buscar apostas da data alvo
-        today_bets = DailyBet.objects.filter(date=target_date)
+        today_bets = DailyBet.objects.filter(date=target_date, bet_type='multiple')
         
         # Separar por tipo
         multiple_tickets = today_bets.filter(bet_type='multiple').order_by('-combined_probability')
-        value_bets = today_bets.filter(bet_type='value').order_by('-expected_value')
         
         # Estatísticas
         total_matches = self._count_unique_matches(today_bets)
@@ -247,7 +246,6 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
             'total_matches': total_matches,
             'total_bets': today_bets.count(),
             'multiple_count': multiple_tickets.count(),
-            'value_count': value_bets.count(),
         }
         
         # Calcular médias se houver apostas
@@ -259,18 +257,10 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
                 multiple_tickets.aggregate(avg=Avg('combined_probability'))['avg'] or 0, 4
             )
         
-        if value_bets.exists():
-            stats['avg_value_ev'] = round(
-                value_bets.aggregate(avg=Avg('expected_value'))['avg'] or 0, 1
-            )
-            stats['avg_value_prob'] = round(
-                value_bets.aggregate(avg=Avg('combined_probability'))['avg'] or 0, 4
-            )
-        
         return Response({
             'date': target_date.isoformat(),
             'multiple_tickets': DailyBetSerializer(multiple_tickets, many=True).data,
-            'value_bets': DailyBetSerializer(value_bets, many=True).data,
+            'value_bets': [],
             'stats': stats
         })
     
@@ -293,7 +283,6 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
                 "roi": -5.2
             },
             "multiple_tickets": {...},
-            "value_bets": {...},
             "recent_bets": [...]  # Top 50 mais recentes
         }
         """
@@ -304,7 +293,8 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
         # Buscar apostas validadas no período
         bets = DailyBet.objects.filter(
             date__gte=cutoff_date,
-            is_validated=True
+            is_validated=True,
+            bet_type='multiple',
         ).order_by('-date', '-expected_value')
         
         # Estatísticas gerais
@@ -315,10 +305,6 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
             bets.filter(bet_type='multiple'), 
             'multiple'
         )
-        value_stats = self._calculate_stats(
-            bets.filter(bet_type='value'), 
-            'value'
-        )
         
         # Apostas recentes (top 50)
         recent_bets = bets[:50]
@@ -328,7 +314,6 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
             'cutoff_date': cutoff_date.isoformat(),
             'overall': overall_stats,
             'multiple_tickets': multiple_stats,
-            'value_bets': value_stats,
             'recent_bets': DailyBetListSerializer(recent_bets, many=True).data
         })
     
@@ -353,7 +338,10 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
         now = timezone.now().date()
         
         # Todos os tempos (validados)
-        all_bets = DailyBet.objects.filter(is_validated=True)
+        all_bets = DailyBet.objects.filter(
+            is_validated=True,
+            bet_type='multiple',
+        )
         
         # Períodos
         last_7_days = all_bets.filter(date__gte=now - timedelta(days=7))
@@ -364,6 +352,10 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
             'last_7_days': self._calculate_stats(last_7_days, '7_days'),
             'last_30_days': self._calculate_stats(last_30_days, '30_days'),
             'by_bet_type': {
+                'multiple': self._calculate_stats(
+                    all_bets.filter(bet_type='multiple'),
+                    'multiple'
+                ),
                 'multiple_3x': self._calculate_stats(
                     all_bets.filter(bet_type='multiple').annotate(
                         num_selections=Count('selections')
@@ -382,10 +374,6 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
                     ).filter(num_selections=7),
                     'multiple_7x'
                 ),
-                'value': self._calculate_stats(
-                    all_bets.filter(bet_type='value'),
-                    'value'
-                )
             }
         })
     
@@ -474,7 +462,7 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
         from apps.analysis.services.daily_bet_generator import DailyBetGenerator, GenerationCancelledException
         from apps.analysis.models import TaskExecution
         import uuid
-        
+
         # Executar de forma síncrona (sem Celery)
         try:
             task_id = str(uuid.uuid4())
@@ -512,7 +500,7 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
                 'status': 'success',
                 'task_id': task_id,
                 'execution_id': execution.id,
-                'message': f'Daily Bets gerados! {results.get("multiple_count", 0)} multiplos, {results.get("value_count", 0)} value bets',
+                'message': f'Daily Bets gerados! {results.get("multiple_count", 0)} múltiplos.',
                 'results': result_data
             }, status=http_status.HTTP_200_OK)
         
@@ -718,11 +706,80 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
         """
         from apps.analysis.models import TaskExecution
         from celery import current_app
+        from django.db.models import Q
+        from django.utils.dateparse import parse_date
+
+        task_name = request.query_params.get('task_name', '').strip()
+        execution_status = request.query_params.get('status', '').strip()
+        triggered_by = request.query_params.get('triggered_by', '').strip()
+        search = request.query_params.get('search', '').strip()
+        date_from = request.query_params.get('date_from', '').strip()
+        date_to = request.query_params.get('date_to', '').strip()
+
+        valid_task_names = {choice[0] for choice in TaskExecution.TASK_CHOICES}
+        valid_statuses = {choice[0] for choice in TaskExecution.STATUS_CHOICES}
+        valid_triggers = {'celery', 'manual'}
+        if task_name and task_name not in valid_task_names:
+            return Response(
+                {'error': 'Tipo de execução inválido.'},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+        if execution_status and execution_status not in valid_statuses:
+            return Response(
+                {'error': 'Estado de execução inválido.'},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+        if triggered_by and triggered_by not in valid_triggers:
+            return Response(
+                {'error': 'Origem da execução inválida.'},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+        parsed_date_from = parse_date(date_from) if date_from else None
+        parsed_date_to = parse_date(date_to) if date_to else None
+        if (date_from and parsed_date_from is None) or (date_to and parsed_date_to is None):
+            return Response(
+                {'error': 'Informe as datas no formato AAAA-MM-DD.'},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+        if parsed_date_from and parsed_date_to and parsed_date_from > parsed_date_to:
+            return Response(
+                {'error': 'A data inicial não pode ser posterior à data final.'},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            page = max(int(request.query_params.get('page', 1)), 1)
+            page_size = min(max(int(request.query_params.get('page_size', 20)), 1), 100)
+        except (TypeError, ValueError):
+            return Response(
+                {'error': 'Página e tamanho de página devem ser números inteiros.'},
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
         
-        limit = min(int(request.query_params.get('limit', 20)), 100)
-        
-        # Buscar últimas execuções
-        executions = TaskExecution.objects.all().order_by('-started_at')[:limit]
+        executions_queryset = TaskExecution.objects.select_related(
+            'triggered_by_user',
+        ).all()
+        if task_name:
+            executions_queryset = executions_queryset.filter(task_name=task_name)
+        if execution_status:
+            executions_queryset = executions_queryset.filter(status=execution_status)
+        if triggered_by:
+            executions_queryset = executions_queryset.filter(triggered_by=triggered_by)
+        if parsed_date_from:
+            executions_queryset = executions_queryset.filter(started_at__date__gte=parsed_date_from)
+        if parsed_date_to:
+            executions_queryset = executions_queryset.filter(started_at__date__lte=parsed_date_to)
+        if search:
+            executions_queryset = executions_queryset.filter(
+                Q(task_id__icontains=search)
+                | Q(task_name__icontains=search)
+                | Q(error_message__icontains=search)
+                | Q(triggered_by_user__username__icontains=search)
+            )
+
+        total_executions = executions_queryset.count()
+        start = (page - 1) * page_size
+        executions = executions_queryset.order_by('-started_at')[start:start + page_size]
         
         # Serializar execuções
         executions_data = []
@@ -777,9 +834,21 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
         
         return Response({
             'executions': executions_data,
+            'pagination': {
+                'page': page,
+                'page_size': page_size,
+                'total': total_executions,
+                'total_pages': (total_executions + page_size - 1) // page_size,
+            },
             'summary': {
-                'last_generation': last_generation.finished_at.isoformat() if last_generation else None,
-                'last_validation': last_validation.finished_at.isoformat() if last_validation else None,
+                'last_generation': (
+                    last_generation.finished_at.isoformat()
+                    if last_generation and last_generation.finished_at else None
+                ),
+                'last_validation': (
+                    last_validation.finished_at.isoformat()
+                    if last_validation and last_validation.finished_at else None
+                ),
                 'pending_bets_count': pending_bets,
                 'celery_status': celery_status,
                 'total_executions': TaskExecution.objects.count(),
@@ -1104,18 +1173,20 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
         today = timezone.now().date()
         
         # Hoje
-        today_bets = DailyBet.objects.filter(date=today)
+        today_bets = DailyBet.objects.filter(date=today, bet_type='multiple')
         today_stats = {
             'generated': today_bets.exists(),
             'multiple_count': today_bets.filter(bet_type='multiple').count(),
-            'value_count': today_bets.filter(bet_type='value').count(),
             'matches_analyzed': self._count_unique_matches(today_bets),
             'generated_at': today_bets.first().created_at.isoformat() if today_bets.exists() else None
         }
         
         # Últimos 7 dias
         last_7_days = today - timedelta(days=7)
-        recent_bets = DailyBet.objects.filter(date__gte=last_7_days)
+        recent_bets = DailyBet.objects.filter(
+            date__gte=last_7_days,
+            bet_type='multiple',
+        )
         
         days_with_bets = recent_bets.values('date').distinct().count()
         
@@ -1123,9 +1194,6 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
             'days_generated': days_with_bets,
             'avg_multiple_per_day': round(
                 recent_bets.filter(bet_type='multiple').count() / max(days_with_bets, 1), 1
-            ),
-            'avg_value_per_day': round(
-                recent_bets.filter(bet_type='value').count() / max(days_with_bets, 1), 1
             ),
             'total_matches_analyzed': self._count_unique_matches(recent_bets),
         }
@@ -1141,14 +1209,8 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
             'win_rate_multiple': self._calculate_stats(
                 validated_bets.filter(bet_type='multiple'), 'multiple'
             )['win_rate'],
-            'win_rate_value': self._calculate_stats(
-                validated_bets.filter(bet_type='value'), 'value'
-            )['win_rate'],
             'roi_multiple': self._calculate_stats(
                 validated_bets.filter(bet_type='multiple'), 'multiple'
-            )['roi'],
-            'roi_value': self._calculate_stats(
-                validated_bets.filter(bet_type='value'), 'value'
             )['roi'],
         }
         

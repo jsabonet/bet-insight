@@ -1,9 +1,9 @@
 """
-Gerador de Bilhetes Diários e Value Bets Automáticos
+Gerador de Bilhetes Múltiplos Diários
 
 Este service analisa todas as partidas do dia e gera:
 1. Bilhetes múltiplos (3x, 5x, 7x) com alta probabilidade
-2. Value bets individuais com EV positivo
+2. Análise auxiliar de partidas usada na seleção dos múltiplos
 
 Integração com HybridAnalysisOrchestrator existente.
 """
@@ -14,6 +14,7 @@ from datetime import timedelta
 from decimal import Decimal
 from django.utils import timezone
 from django.db import transaction
+from django.conf import settings
 
 from apps.matches.models import Match
 from apps.analysis.models import DailyBet
@@ -36,7 +37,7 @@ class GenerationCancelledException(Exception):
 
 
 class DailyBetGenerator:
-    """Gera bilhetes múltiplos e value bets diários automaticamente"""
+    """Gera bilhetes múltiplos diariamente; value bets são opcionais."""
     
     # Configurações de filtros
     MIN_VALUE_EV = 5.0  # EV mínimo para value bets (+5%)
@@ -666,7 +667,7 @@ class DailyBetGenerator:
                     protected_ids.add(bet.id)
                     break
 
-        stale = DailyBet.objects.filter(date=target_date)
+        stale = DailyBet.objects.filter(date=target_date, bet_type='multiple')
         if protected_ids:
             stale = stale.exclude(id__in=protected_ids)
 
@@ -970,7 +971,7 @@ class DailyBetGenerator:
                     'match_date': fixture_data.get('date'),
                 })()
                 
-                # Análise com estratégia VALUE (para value bets)
+                # Esta análise também alimenta os mercados usados nos bilhetes múltiplos.
                 logger.info("    🔍 Executando análise VALUE...")
                 try:
                     result_value = self.orchestrator.run(match_data, strategy='value')
@@ -1067,8 +1068,13 @@ class DailyBetGenerator:
             # Gerar bilhetes múltiplos
             multiple_bets = self._generate_multiple_tickets(analyses, today)
             
-            # Value bets com threshold fixo (MIN_VALUE_EV) — não ajustado por regime
-            value_bets = self._generate_value_bets(analyses, today)
+            # A análise auxiliar continua necessária para os bilhetes; apenas a criação
+            # de apostas individuais de valor fica pausada.
+            value_bets = (
+                self._generate_value_bets(analyses, today)
+                if settings.DAILY_BETS_VALUE_ENABLED
+                else []
+            )
             
             # Atualizar progresso: bilhetes criados
             if self.execution:

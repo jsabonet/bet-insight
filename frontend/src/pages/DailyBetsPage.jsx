@@ -2,11 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { dailyBetsAPI } from '../services/dailyBetsAPI';
 import { useAuth } from '../context/AuthContext';
-import { Target, Zap, TrendingUp, RefreshCw, ArrowLeft, CalendarDays, X, Crown, LockKeyhole, CheckCircle2, BarChart3 } from 'lucide-react';
+import { Target, TrendingUp, RefreshCw, ArrowLeft, CalendarDays, X, Crown, LockKeyhole, CheckCircle2, BarChart3 } from 'lucide-react';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
 import MultipleTicketCard from '../components/MultipleTicketCard';
-import ValueBetCard from '../components/ValueBetCard';
 import AccuracyStats from '../components/AccuracyStats';
 import EmptyState from '../components/EmptyState';
 import { Skeleton } from '../components/Skeleton';
@@ -21,7 +20,6 @@ export default function DailyBetsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [multipleTickets, setMultipleTickets] = useState([]);
-  const [valueBets, setValueBets] = useState([]);
   const [stats, setStats] = useState({});
   const [activeTab, setActiveTab] = useState('today'); // 'today', 'stats'
   const [error, setError] = useState(null);
@@ -38,7 +36,6 @@ export default function DailyBetsPage() {
     } else {
       setLoading(false);
       setMultipleTickets([]);
-      setValueBets([]);
       setDisplayedDate('');
     }
     loadStats();
@@ -63,7 +60,6 @@ export default function DailyBetsPage() {
           !currentUser.is_superuser
         ) {
           setMultipleTickets([]);
-          setValueBets([]);
           setDisplayedDate('');
           setError(null);
         }
@@ -92,15 +88,11 @@ export default function DailyBetsPage() {
       setMultipleTickets((data.multiple_tickets || []).filter(
         (ticket) => !(ticket.selections || []).some(isUnsupportedAsianGoalMarket)
       ));
-      setValueBets((data.value_bets || []).filter(
-        (bet) => !(bet.selections || []).some(isUnsupportedAsianGoalMarket)
-      ));
       setDisplayedDate(data.date || '');
     } catch (err) {
       console.error('Erro ao carregar seleções:', err);
       if (err.response?.status === 403) {
         setMultipleTickets([]);
-        setValueBets([]);
         setDisplayedDate('');
         setError(null);
         await refreshProfile();
@@ -134,7 +126,7 @@ export default function DailyBetsPage() {
     { id: 'stats', label: 'Performance', icon: TrendingUp }
   ];
 
-  const totalBets = multipleTickets.length + valueBets.length;
+  const totalBets = multipleTickets.length;
 
   return (
     <div className="page-container">
@@ -170,15 +162,6 @@ export default function DailyBetsPage() {
                 <h2 className="mt-3 text-sm font-bold text-gray-900 dark:text-white">Múltiplos do dia</h2>
                 <p className="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-400">
                   Consulte bilhetes 3x, 5x e 7x com as seleções reunidas num só lugar.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-amber-100 bg-white/80 p-4 dark:border-gray-700 dark:bg-gray-800/70">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300">
-                  <Zap className="h-5 w-5" />
-                </div>
-                <h2 className="mt-3 text-sm font-bold text-gray-900 dark:text-white">Análises de valor</h2>
-                <p className="mt-1 text-xs leading-5 text-gray-600 dark:text-gray-400">
-                  Veja seleções individuais acompanhadas por probabilidades, odds e valor esperado.
                 </p>
               </div>
               <div className="rounded-2xl border border-amber-100 bg-white/80 p-4 dark:border-gray-700 dark:bg-gray-800/70">
@@ -376,40 +359,6 @@ export default function DailyBetsPage() {
                   </div>
                 )}
 
-                {/* Value Bets */}
-                {valueBets.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
-                          <Zap className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                          Análises de Valor
-                        </h2>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
-                          ({valueBets.length})
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                      Seleções com valor esperado (EV) positivo
-                    </p>
-                    <div className="space-y-4">
-                      {valueBets.map((bet, index) => (
-                        <ValueBetCard 
-                          key={index} 
-                          bet={bet}
-                          onViewAnalysis={(selection) => {
-                            if (selection.match_id) {
-                              navigate(`/match/${selection.match_id}`);
-                            }
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </>

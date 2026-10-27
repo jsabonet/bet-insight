@@ -132,7 +132,7 @@ export default function AccuracyStats({ stats }) {
       </div>
 
       {/* Performance por Tipo */}
-      {by_bet_type && (by_bet_type.multiple || by_bet_type.value) && (
+      {by_bet_type?.multiple && (
         <div>
           <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
             Performance por Tipo
@@ -183,49 +183,6 @@ export default function AccuracyStats({ stats }) {
               </div>
             )}
 
-            {/* Value Bets */}
-            {by_bet_type.value && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
-                      <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <h4 className="font-bold text-gray-900 dark:text-gray-100">
-                      Análises de Valor
-                    </h4>
-                  </div>
-                  <span className="text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded-lg font-medium">
-                    {by_bet_type.value.total || 0} análises
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Acertos</p>
-                    <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                      {by_bet_type.value.win_rate || '0%'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">ROI</p>
-                    <p className={`text-lg font-bold ${
-                      parseFloat(by_bet_type.value.roi) > 0 
-                        ? 'text-emerald-600 dark:text-emerald-400' 
-                        : 'text-red-600 dark:text-red-400'
-                    }`}>
-                      {by_bet_type.value.roi || '0%'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Resultado</p>
-                    <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                      {by_bet_type.value.won || 0}/{by_bet_type.value.total || 0}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}

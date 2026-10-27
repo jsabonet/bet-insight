@@ -31,6 +31,10 @@ SECRET_KEY = os.getenv('SECRET_KEY', "django-insecure-moeky7@v_l&bck(9b!6-o4o@!o
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
+DAILY_BETS_VALUE_ENABLED = os.getenv(
+    'DAILY_BETS_VALUE_ENABLED',
+    'False',
+).lower() == 'true'
 
 ALLOWED_HOSTS = [
     host.strip()

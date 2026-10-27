@@ -14,17 +14,40 @@ import {
   Zap,
   AlertCircle,
   StopCircle,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
 } from 'lucide-react';
 import Header from '../../components/Header';
 import BottomNav from '../../components/BottomNav';
 import { adminAPI } from '../../services/api';
 
+const EMPTY_EXECUTION_FILTERS = {
+  search: '',
+  task_name: '',
+  status: '',
+  triggered_by: '',
+  date_from: '',
+  date_to: '',
+};
+const EXECUTIONS_PAGE_SIZE = 20;
 export default function AdminDailyBets() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [generatorStats, setGeneratorStats] = useState(null);
   const [executions, setExecutions] = useState([]);
+  const [executionFilters, setExecutionFilters] = useState(EMPTY_EXECUTION_FILTERS);
+  const [appliedExecutionFilters, setAppliedExecutionFilters] = useState(EMPTY_EXECUTION_FILTERS);
+  const [executionPage, setExecutionPage] = useState(1);
+  const [executionPagination, setExecutionPagination] = useState({
+    page: 1,
+    page_size: EXECUTIONS_PAGE_SIZE,
+    total: 0,
+    total_pages: 0,
+  });
+  const [loadingExecutions, setLoadingExecutions] = useState(false);
   const [summary, setSummary] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [validating, setValidating] = useState(false);
@@ -42,7 +65,7 @@ export default function AdminDailyBets() {
       return;
     }
     loadData();
-    checkActiveGeneration(); // Verificar se há geração ativa ao montar
+    checkActiveGeneration();
   }, [user, navigate]);
   
   // ✅ NOVO: Polling resiliente - retoma após refresh
@@ -109,23 +132,62 @@ export default function AdminDailyBets() {
     }
   };
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (filters = appliedExecutionFilters, page = executionPage) => {
+    setLoadingExecutions(true);
     try {
+      const executionParams = Object.fromEntries(
+        Object.entries(filters).filter(([, value]) => value),
+      );
       const [statsResponse, statusResponse] = await Promise.all([
         adminAPI.getGeneratorStats(),
-        adminAPI.getExecutionStatus(10),
+        adminAPI.getExecutionStatus({
+          ...executionParams,
+          page,
+          page_size: EXECUTIONS_PAGE_SIZE,
+        }),
       ]);
 
       setGeneratorStats(statsResponse.data);
       setExecutions(statusResponse.data.executions);
       setSummary(statusResponse.data.summary);
+      setExecutionPagination(statusResponse.data.pagination || {
+        page,
+        page_size: EXECUTIONS_PAGE_SIZE,
+        total: statusResponse.data.executions.length,
+        total_pages: 1,
+      });
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       alert('Erro ao carregar dados. Verifique o console para mais detalhes.');
     } finally {
       setLoading(false);
+      setLoadingExecutions(false);
     }
+  };
+
+  const handleExecutionFilterChange = (event) => {
+    const { name, value } = event.target;
+    setExecutionFilters((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleExecutionFilterSubmit = (event) => {
+    event.preventDefault();
+    setAppliedExecutionFilters({ ...executionFilters });
+    setExecutionPage(1);
+    loadData(executionFilters, 1);
+  };
+
+  const clearExecutionFilters = () => {
+    setExecutionFilters(EMPTY_EXECUTION_FILTERS);
+    setAppliedExecutionFilters(EMPTY_EXECUTION_FILTERS);
+    setExecutionPage(1);
+    loadData(EMPTY_EXECUTION_FILTERS, 1);
+  };
+
+  const changeExecutionPage = (page) => {
+    if (page < 1 || page > executionPagination.total_pages) return;
+    setExecutionPage(page);
+    loadData(appliedExecutionFilters, page);
   };
 
   const handleGenerateNow = async () => {
@@ -211,6 +273,7 @@ export default function AdminDailyBets() {
       success: { icon: CheckCircle, color: 'green', label: 'Sucesso' },
       running: { icon: Clock, color: 'yellow', label: 'Em Execução' },
       failed: { icon: XCircle, color: 'red', label: 'Falhou' },
+      cancelled: { icon: XCircle, color: 'gray', label: 'Cancelado' },
       pending: { icon: Clock, color: 'gray', label: 'Pendente' },
     };
 
@@ -272,6 +335,15 @@ export default function AdminDailyBets() {
       'starting': '⏳ Iniciando...',
     };
     return labels[stage] || stage;
+  };
+
+  const getTaskLabel = (taskName) => {
+    const labels = {
+      generate_daily_bets: '🎯 Geração de bilhetes',
+      validate_daily_bets: '✅ Validação de bilhetes',
+      sync_match_results: '🔄 Sincronização de resultados',
+    };
+    return labels[taskName] || 'Execução';
   };
 
   if (loading) {
@@ -453,12 +525,6 @@ export default function AdminDailyBets() {
                 </p>
               </div>
               <div className="card-flat">
-                <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Value Bets</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                  {generatorStats.today.value_count}
-                </p>
-              </div>
-              <div className="card-flat">
                 <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Partidas Analisadas</p>
                 <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
                   {generatorStats.today.matches_analyzed}
@@ -488,18 +554,6 @@ export default function AdminDailyBets() {
                   <p className="text-gray-600 dark:text-gray-400">ROI Múltiplos</p>
                   <p className={`font-medium ${generatorStats.performance.roi_multiple >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                     {generatorStats.performance.roi_multiple > 0 ? '+' : ''}{generatorStats.performance.roi_multiple.toFixed(1)}%
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-600 dark:text-gray-400">Win Rate Value</p>
-                  <p className="font-medium text-gray-900 dark:text-gray-100">
-                    {generatorStats.performance.win_rate_value.toFixed(1)}%
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-600 dark:text-gray-400">ROI Value</p>
-                  <p className={`font-medium ${generatorStats.performance.roi_value >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                    {generatorStats.performance.roi_value > 0 ? '+' : ''}{generatorStats.performance.roi_value.toFixed(1)}%
                   </p>
                 </div>
               </div>
@@ -548,23 +602,145 @@ export default function AdminDailyBets() {
 
         {/* Histórico de Execuções */}
         <div className="card">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-              Últimas Execuções
-            </h3>
+          <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                Histórico de Análises e Validações
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {executionPagination.total} execuções encontradas
+              </p>
+            </div>
             <button
-              onClick={loadData}
+              onClick={() => loadData(appliedExecutionFilters, executionPage)}
               className="btn-ghost p-2"
-              title="Atualizar"
+              title="Atualizar histórico"
+              aria-label="Atualizar histórico"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
           </div>
 
+          <form
+            onSubmit={handleExecutionFilterSubmit}
+            className="mb-5 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50"
+          >
+            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
+              <Filter className="h-4 w-4" />
+              Filtrar histórico
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <label className="relative">
+                <span className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Pesquisa (utilizador, tarefa ou erro)
+                </span>
+                <Search className="absolute left-3 top-9 h-4 w-4 text-gray-400" />
+                <input
+                  type="search"
+                  name="search"
+                  value={executionFilters.search}
+                  onChange={handleExecutionFilterChange}
+                  placeholder="Introduza um termo..."
+                  className="input-field pl-9"
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Tipo de execução
+                </span>
+                <select
+                  name="task_name"
+                  value={executionFilters.task_name}
+                  onChange={handleExecutionFilterChange}
+                  className="input-field"
+                >
+                  <option value="">Todas as tarefas</option>
+                  <option value="generate_daily_bets">Geração de bilhetes</option>
+                  <option value="validate_daily_bets">Validação de bilhetes</option>
+                  <option value="sync_match_results">Sincronização de resultados</option>
+                </select>
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Estado
+                </span>
+                <select
+                  name="status"
+                  value={executionFilters.status}
+                  onChange={handleExecutionFilterChange}
+                  className="input-field"
+                >
+                  <option value="">Todos os estados</option>
+                  <option value="success">Concluída</option>
+                  <option value="running">Em execução</option>
+                  <option value="failed">Falhou</option>
+                  <option value="cancelled">Cancelada</option>
+                </select>
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Iniciada por
+                </span>
+                <select
+                  name="triggered_by"
+                  value={executionFilters.triggered_by}
+                  onChange={handleExecutionFilterChange}
+                  className="input-field"
+                >
+                  <option value="">Qualquer origem</option>
+                  <option value="manual">Manual</option>
+                  <option value="celery">Automática (Celery)</option>
+                </select>
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Data inicial
+                </span>
+                <input
+                  type="date"
+                  name="date_from"
+                  value={executionFilters.date_from}
+                  onChange={handleExecutionFilterChange}
+                  className="input-field"
+                />
+              </label>
+              <label>
+                <span className="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Data final
+                </span>
+                <input
+                  type="date"
+                  name="date_to"
+                  value={executionFilters.date_to}
+                  onChange={handleExecutionFilterChange}
+                  className="input-field"
+                />
+              </label>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="submit"
+                disabled={loadingExecutions}
+                className="btn-primary inline-flex items-center gap-2"
+              >
+                {loadingExecutions && <RefreshCw className="h-4 w-4 animate-spin" />}
+                Aplicar filtros
+              </button>
+              <button
+                type="button"
+                onClick={clearExecutionFilters}
+                disabled={loadingExecutions}
+                className="btn-secondary"
+              >
+                Limpar filtros
+              </button>
+            </div>
+          </form>
+
           <div className="space-y-3">
             {executions.length === 0 ? (
               <p className="text-center text-gray-600 dark:text-gray-400 py-8">
-                Nenhuma execução encontrada
+                {loadingExecutions ? 'A carregar histórico...' : 'Nenhuma execução corresponde aos filtros.'}
               </p>
             ) : (
               executions.map((execution) => (
@@ -576,9 +752,7 @@ export default function AdminDailyBets() {
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                        {execution.task_name === 'generate_daily_bets'
-                          ? '🎯 Geração Daily Bets'
-                          : '✅ Validação Apostas'}
+                        {getTaskLabel(execution.task_name)}
                       </p>
                       <p className="text-xs text-gray-600 dark:text-gray-400">
                         {formatDate(execution.started_at)}
@@ -628,6 +802,35 @@ export default function AdminDailyBets() {
               ))
             )}
           </div>
+          {executionPagination.total_pages > 1 && (
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-4 dark:border-gray-700">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Página {executionPagination.page} de {executionPagination.total_pages}
+                {' · '}
+                {executionPagination.total} registos
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => changeExecutionPage(executionPage - 1)}
+                  disabled={executionPage <= 1 || loadingExecutions}
+                  className="btn-secondary inline-flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={() => changeExecutionPage(executionPage + 1)}
+                  disabled={executionPage >= executionPagination.total_pages || loadingExecutions}
+                  className="btn-secondary inline-flex items-center gap-1 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Seguinte
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
