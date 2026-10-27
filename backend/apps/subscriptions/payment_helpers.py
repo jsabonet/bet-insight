@@ -1,10 +1,23 @@
 """Helpers for applying VPay payment results and activating subscriptions."""
 import logging
+from django.db import transaction
 from django.utils import timezone
 
 from .models import Subscription
 
 logger = logging.getLogger(__name__)
+
+
+def _enqueue_admin_sale_notification(payment_id):
+    try:
+        from .tasks import send_admin_payment_notification
+        send_admin_payment_notification.delay(payment_id, 'sale')
+    except Exception:
+        logger.exception(
+            'Não foi possível agendar a notificação administrativa da venda %s',
+            payment_id,
+        )
+
 
 # Status VPay -> status local do Payment.
 VPAY_STATUS_MAP = {
@@ -105,6 +118,9 @@ def apply_vpay_status(payment, vpay_status, *, activate=False):
                 subscription = activate_subscription_for_payment(payment)
                 send_payment_confirmed_email(payment.user, payment, subscription)
                 send_subscription_activated_email(payment.user, subscription)
+                transaction.on_commit(
+                    lambda payment_id=payment.pk: _enqueue_admin_sale_notification(payment_id)
+                )
                 # Disparar comissão de afiliado (idempotente).
                 try:
                     from apps.affiliates.services import create_commission_if_applicable

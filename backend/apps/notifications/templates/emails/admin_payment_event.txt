@@ -1,0 +1,11 @@
+{{ event_title }}
+
+{{ event_description }}
+
+Cliente: {{ customer_name }} ({{ customer_email }})
+Plano: {{ plan_name }}
+Valor: {{ amount }} {{ currency }}
+Referência: {{ transaction_id }}
+Data do pedido: {{ created_at|date:"d/m/Y H:i" }}
+
+Painel administrativo: {{ admin_url }}

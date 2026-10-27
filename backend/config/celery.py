@@ -112,6 +112,11 @@ app.conf.beat_schedule = {
         'schedule': crontab(minute='*/5'),
         'options': {'expires': 300},
     },
+    'reconcile-admin-payment-notifications': {
+        'task': 'subscriptions.reconcile_admin_payment_notifications',
+        'schedule': crontab(minute='*/5'),
+        'options': {'expires': 300},
+    },
 }
 
 # Configurações adicionais

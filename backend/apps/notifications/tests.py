@@ -46,6 +46,7 @@ TEMPLATES = [
     "affiliate_commission_available",
     "affiliate_commission_paid",
     "affiliate_withdrawal_requested",
+    "admin_payment_event",
 ]
 
 SAMPLE_CONTEXT = {

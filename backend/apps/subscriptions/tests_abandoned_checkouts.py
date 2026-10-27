@@ -6,11 +6,17 @@ from django.test import TestCase, override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from apps.notifications.models import Notification, PushSubscription
 from apps.users.models import User
 
 from .models import Payment
 from .emails import send_abandoned_checkout_email
-from .tasks import send_abandoned_checkout_emails
+from .tasks import (
+    reconcile_admin_payment_notifications,
+    send_abandoned_checkout_emails,
+    send_admin_payment_notification,
+)
+from .payment_helpers import apply_vpay_status
 
 
 class AbandonedCheckoutAdminTests(TestCase):
@@ -162,3 +168,115 @@ class AbandonedCheckoutEmailTaskTests(TestCase):
 
         self.assertEqual(result, {'sent': 0, 'failed': 0})
         send_email.assert_not_called()
+
+
+class AdminPaymentNotificationTests(TestCase):
+    def setUp(self):
+        self.customer = User.objects.create_user(
+            username='admin-notification-customer',
+            email='customer@example.com',
+            password='test-password',
+        )
+        self.admin = User.objects.create_user(
+            username='payment-admin',
+            email='admin@example.com',
+            password='test-password',
+            is_staff=True,
+            push_enabled=True,
+        )
+        self.push_subscription = PushSubscription.objects.create(
+            user=self.admin,
+            endpoint='https://fcm.googleapis.com/admin-device',
+            p256dh_key='public-key',
+            auth_key='auth-key',
+        )
+        self.payment = Payment.objects.create(
+            user=self.customer,
+            amount='250.00',
+            currency='MZN',
+            phone_number='',
+            gateway='vpay',
+            transaction_id='BET-ADMIN-NOTIFICATION-1',
+            vpay_order_id='admin-notification-order',
+            status='completed',
+            metadata={'plan_name': 'Premium Vitalício'},
+        )
+
+    @override_settings(WEBPUSH_VAPID_PUBLIC_KEY='public', WEBPUSH_VAPID_PRIVATE_KEY='private')
+    @patch('apps.subscriptions.tasks.deliver_push_once', return_value=True)
+    @patch('apps.subscriptions.tasks.send_template_email', return_value=1)
+    def test_confirmed_sale_notifies_admin_once_by_email_and_push(self, send_email, send_push):
+        result = send_admin_payment_notification.run(self.payment.pk, 'sale')
+        repeated_result = send_admin_payment_notification.run(self.payment.pk, 'sale')
+
+        self.payment.refresh_from_db()
+        self.assertEqual(result, {'email_sent': True, 'push_sent': True})
+        self.assertEqual(repeated_result, {'email_sent': True, 'push_sent': True})
+        self.assertIsNotNone(self.payment.admin_sale_email_sent_at)
+        self.assertIsNotNone(self.payment.admin_sale_push_sent_at)
+        send_email.assert_called_once()
+        self.assertEqual(send_email.call_args.kwargs['to'], ['admin@example.com'])
+        send_push.assert_called_once()
+        self.assertEqual(
+            send_push.call_args.args[1],
+            f'admin-payment-sale:{self.payment.pk}',
+        )
+        self.assertTrue(
+            Notification.objects.filter(
+                user=self.admin,
+                event_key=f'admin-payment-sale:{self.payment.pk}',
+            ).exists()
+        )
+
+    @override_settings(WEBPUSH_VAPID_PUBLIC_KEY='public', WEBPUSH_VAPID_PRIVATE_KEY='private')
+    @patch('apps.subscriptions.tasks.deliver_push_once', side_effect=[False, True])
+    @patch('apps.subscriptions.tasks.send_template_email', return_value=1)
+    def test_failed_push_retries_without_resending_successful_email(self, send_email, send_push):
+        first_result = reconcile_admin_payment_notifications.run()
+        second_result = reconcile_admin_payment_notifications.run()
+
+        self.payment.refresh_from_db()
+        self.assertEqual(first_result, {'sales': 1, 'abandoned': 0, 'incomplete': 1})
+        self.assertEqual(second_result, {'sales': 1, 'abandoned': 0, 'incomplete': 0})
+        self.assertIsNotNone(self.payment.admin_sale_email_sent_at)
+        self.assertIsNotNone(self.payment.admin_sale_push_sent_at)
+        send_email.assert_called_once()
+        self.assertEqual(send_push.call_count, 2)
+
+    @patch('apps.subscriptions.tasks.send_admin_payment_notification.delay')
+    @patch('apps.subscriptions.emails.send_subscription_activated_email')
+    @patch('apps.subscriptions.emails.send_payment_confirmed_email')
+    def test_confirming_payment_enqueues_admin_sale_notification(
+        self,
+        send_payment_email,
+        send_activation_email,
+        enqueue_notification,
+    ):
+        self.payment.status = 'pending'
+        self.payment.save(update_fields=['status'])
+
+        with self.captureOnCommitCallbacks(execute=True):
+            apply_vpay_status(self.payment, 'paid', activate=True)
+
+        enqueue_notification.assert_called_once_with(self.payment.pk, 'sale')
+
+    @override_settings(WEBPUSH_VAPID_PUBLIC_KEY='public', WEBPUSH_VAPID_PRIVATE_KEY='private')
+    @patch('apps.subscriptions.tasks.deliver_push_once', return_value=True)
+    @patch('apps.subscriptions.tasks.send_template_email', return_value=1)
+    def test_reconciliation_notifies_for_abandoned_checkout(self, send_email, send_push):
+        Payment.objects.filter(pk=self.payment.pk).update(
+            status='pending',
+            created_at=timezone.now() - timedelta(hours=2),
+        )
+
+        result = reconcile_admin_payment_notifications.run()
+
+        self.payment.refresh_from_db()
+        self.assertEqual(result, {'sales': 0, 'abandoned': 1, 'incomplete': 0})
+        self.assertIsNotNone(self.payment.admin_abandoned_email_sent_at)
+        self.assertIsNotNone(self.payment.admin_abandoned_push_sent_at)
+        self.assertEqual(send_email.call_args.kwargs['subject'], 'Carrinho abandonado - PlacarCerto')
+        self.assertEqual(
+            send_push.call_args.args[1],
+            f'admin-payment-abandoned:{self.payment.pk}',
+        )

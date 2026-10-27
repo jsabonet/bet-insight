@@ -167,6 +167,10 @@ class Payment(models.Model):
         blank=True,
         verbose_name="Email de recuperação enviado em",
     )
+    admin_sale_email_sent_at = models.DateTimeField(null=True, blank=True)
+    admin_sale_push_sent_at = models.DateTimeField(null=True, blank=True)
+    admin_abandoned_email_sent_at = models.DateTimeField(null=True, blank=True)
+    admin_abandoned_push_sent_at = models.DateTimeField(null=True, blank=True)
     
     class Meta:
         verbose_name = "Pagamento"

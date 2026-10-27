@@ -11,7 +11,7 @@ Arquitetura de emails transacionais do **PlacarCerto**, integrada com a
 apps/notifications/
 ├── backends.py   # ResendBackend (implementa BaseEmailBackend, usa `requests`)
 ├── service.py    # send_template_email() + render_template()
-├── templates/emails/*.html + *.txt   # Templates HTML (base + 14 emails)
+├── templates/emails/*.html + *.txt   # Templates HTML e texto
 └── tests.py      # Testes de renderização + envio
 
 apps/users/emails.py           # welcome, verification, password_reset, password_changed
@@ -46,6 +46,13 @@ apps/affiliates/emails.py      # approved, commission_earned/available/paid, wit
 | 12 | `affiliates.release_pending_commissions` (celery) | Comissão disponível | `affiliate_commission_available` |
 | 13 | `admin_mark_paid` | Comissão paga | `affiliate_commission_paid` |
 | 14 | `POST /api/affiliates/me/withdraw/` | Confirmação ao afiliado e aviso por email aos administradores ativos | `affiliate_withdrawal_requested` + email administrativo |
+| 15 | Pagamento VPay confirmado | Email de nova venda às contas administrativas ativas | `admin_payment_event` |
+| 16 | Checkout VPay pendente há pelo menos uma hora | Email de carrinho abandonado às contas administrativas ativas | `admin_payment_event` |
+
+As contas administrativas são usuários ativos com `is_staff` ou `is_superuser`
+e endereço de email. Os avisos de venda e checkout são reconciliados pelo
+Celery Beat a cada cinco minutos; o email e o push têm estado de entrega
+independente para permitir repetir apenas o canal que falhou.
 
 ---
 
@@ -96,6 +103,8 @@ Novo campo no modelo `User`:
 python manage.py migrate apps.users
 ```
 - `0004_user_email_verified.py` — adiciona `email_verified`.
+- `0012_admin_payment_notifications.py` (app `subscriptions`) — controla a
+  entrega de avisos de vendas e checkouts abandonados a administradores.
 
 ---
 
