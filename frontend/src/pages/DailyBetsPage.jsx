@@ -140,7 +140,7 @@ export default function DailyBetsPage() {
     <div className="page-container">
       <SEOHead
         title="Seleções do Dia - PlacerCerto | Análise Estatística de Futebol"
-        description="Análise estatística completa de todas as partidas do dia, com probabilidades calculadas por modelos matemáticos usando 109 variáveis. Seleções individuais e múltiplas com desempenho transparente e verificável."
+        description="Consulte seleções e múltiplas baseadas em probabilidades estimadas por modelos estatísticos. Os resultados variam e não há garantia de acerto."
         keywords="análise de futebol, seleções do dia, estatísticas de futebol, probabilidades, modelos matemáticos, placarcerto"
       />
 

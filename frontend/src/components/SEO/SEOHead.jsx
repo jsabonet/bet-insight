@@ -6,10 +6,10 @@ import PropTypes from 'prop-types';
  * Inclui: Meta tags, Open Graph, Twitter Cards, JSON-LD, Canonical URLs
  */
 const SEOHead = ({
-  title = 'PlacerCerto - Análise Estatística Avançada de Futebol',
-  description = 'Previsões de futebol com modelos estatísticos avançados (Poisson + Regressão Logística). Análise quantitativa de partidas, probabilidades e estatísticas detalhadas. Ligas de Moçambique, África e Europa. Informação educativa, não um serviço de apostas.',
+  title = 'PlacerCerto - Análise Estatística de Futebol',
+  description = 'Análises estatísticas e probabilidades estimadas de futebol com dados de partidas em Moçambique, África e Europa. Informação educativa, não um serviço de apostas.',
   keywords = 'previsões futebol, análise estatística futebol, modelos matemáticos futebol, probabilidades futebol, estatísticas futebol, Moçambique futebol, PlacerCerto, análise quantitativa, poisson futebol, regressão logística',
-  ogImage = 'https://placarcerto.digital/og-image.jpg',
+  ogImage = 'https://placarcerto.digital/og-image.png',
   ogType = 'website',
   canonicalUrl,
   publishedTime,
@@ -20,7 +20,7 @@ const SEOHead = ({
   nofollow = false,
 }) => {
   const siteUrl = 'https://placarcerto.digital';
-  const currentUrl = canonicalUrl || window.location.href;
+  const currentUrl = canonicalUrl || new URL(window.location.pathname, siteUrl).href;
   const fullTitle = title.includes('PlacerCerto') ? title : `${title} | PlacerCerto`;
 
   // Structured Data padrão (Organization)
@@ -29,18 +29,13 @@ const SEOHead = ({
     '@type': 'Organization',
     name: 'PlacerCerto',
     url: siteUrl,
-    logo: `${siteUrl}/logo-512x512.png`,
+    logo: `${siteUrl}/logo-email.png`,
     description: 'Plataforma de análise estatística de futebol com modelos matemáticos',
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'Customer Service',
       availableLanguage: ['Portuguese', 'English']
-    },
-    sameAs: [
-      'https://www.facebook.com/placarcerto',
-      'https://twitter.com/placarcerto',
-      'https://www.instagram.com/placarcerto'
-    ]
+    }
   };
 
   return (
@@ -69,17 +64,17 @@ const SEOHead = ({
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
       <meta property="og:site_name" content="PlacerCerto" />
-      <meta property="og:locale" content="pt_PT" />
+      <meta property="og:locale" content="pt_MZ" />
       
       {publishedTime && <meta property="article:published_time" content={publishedTime} />}
       {modifiedTime && <meta property="article:modified_time" content={modifiedTime} />}
       
       {/* Twitter */}
-      <meta property="twitter:card" content="summary_large_image" />
-      <meta property="twitter:url" content={currentUrl} />
-      <meta property="twitter:title" content={fullTitle} />
-      <meta property="twitter:description" content={description} />
-      <meta property="twitter:image" content={ogImage} />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:url" content={currentUrl} />
+      <meta name="twitter:title" content={fullTitle} />
+      <meta name="twitter:description" content={description} />
+      <meta name="twitter:image" content={ogImage} />
       <meta name="twitter:creator" content="@placarcerto" />
       
       {/* Mobile Optimization */}
@@ -89,7 +84,7 @@ const SEOHead = ({
       <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       
       {/* Language and Region */}
-      <meta httpEquiv="content-language" content="pt-PT" />
+      <meta httpEquiv="content-language" content="pt-MZ" />
       <meta name="language" content="Portuguese" />
       <meta name="geo.region" content="MZ" />
       <meta name="geo.placename" content="Moçambique" />

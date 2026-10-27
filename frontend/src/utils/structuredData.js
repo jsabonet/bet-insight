@@ -66,7 +66,7 @@ export const generateMatchListStructuredData = (matches) => {
         '@type': 'SportsEvent',
         name: `${match.home_team?.name || 'Home'} vs ${match.away_team?.name || 'Away'}`,
         startDate: match.match_date || match.matchDate,
-        url: `https://placarcerto.digital/matches/${match.id}`
+        url: `https://placarcerto.digital/match/${match.id}`
       }
     }))
   };
@@ -90,7 +90,7 @@ export const generateAnalysisStructuredData = (analysis, match) => {
       name: 'PlacerCerto',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://placarcerto.digital/logo-512x512.png'
+        url: 'https://placarcerto.digital/logo-email.png'
       }
     },
     datePublished: analysis.created_at || new Date().toISOString(),
@@ -119,7 +119,7 @@ export const generateBreadcrumbStructuredData = (items) => {
 };
 
 /**
- * Structured data para WebSite com SearchAction
+ * Structured data para WebSite
  */
 export const generateWebsiteStructuredData = () => {
   return {
@@ -128,18 +128,10 @@ export const generateWebsiteStructuredData = () => {
     name: 'PlacerCerto',
     url: 'https://placarcerto.digital',
     description: 'Plataforma de análise estatística avançada de futebol com modelos matemáticos preditivos',
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: {
-        '@type': 'EntryPoint',
-        urlTemplate: 'https://placarcerto.digital/search?q={search_term_string}'
-      },
-      'query-input': 'required name=search_term_string'
-    },
     publisher: {
       '@type': 'Organization',
       name: 'PlacerCerto',
-      logo: 'https://placarcerto.digital/logo-512x512.png'
+      logo: 'https://placarcerto.digital/logo-email.png'
     }
   };
 };

@@ -14,6 +14,7 @@ export default function Footer() {
     legal: [
       { name: 'Termos de Serviço', href: '/terms' },
       { name: 'Política de Privacidade', href: '/privacy' },
+      { name: 'Termos do Programa de Afiliados', href: '/affiliate/terms' },
       { name: 'Sobre Nós', href: '/about' }
     ],
     support: [

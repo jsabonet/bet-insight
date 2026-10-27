@@ -18,7 +18,7 @@ export default function LandingPage() {
     {
       icon: BarChart3,
       title: 'Análise Estatística Avançada',
-      description: 'Modelos matemáticos comprovados (Poisson + Regressão) processam estatísticas para previsões precisas.'
+      description: 'Modelos estatísticos como Poisson e regressão ajudam a interpretar dados e estimar probabilidades.'
     },
     {
       icon: TrendingUp,
@@ -42,23 +42,23 @@ export default function LandingPage() {
     },
     {
       icon: Target,
-      title: 'Previsões Precisas',
-      description: 'Modelos estatísticos refinados com 109 variáveis de análise.'
+      title: 'Probabilidades Estimadas',
+      description: 'Estimativas estatísticas para apoiar uma leitura mais informada das partidas.'
     }
   ];
 
   const stats = [
-    { value: '10K+', label: 'Usuários Ativos' },
-    { value: '50K+', label: 'Análises Geradas' },
-    { value: '85%', label: 'Taxa de Precisão' },
-    { value: '24/7', label: 'Disponibilidade' }
+    { value: 'Poisson', label: 'Modelo probabilístico' },
+    { value: 'Regressão', label: 'Modelo estatístico' },
+    { value: 'Moçambique', label: 'Foco local' },
+    { value: 'África e Europa', label: 'Competições acompanhadas' }
   ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <SEOHead
-        title="PlacerCerto - Análise Estatística Avançada de Futebol | Previsões Precisas"
-        description="Plataforma de análise estatística de futebol com modelos matemáticos avançados (Poisson Bivariado + Regressão Logística). Previsões precisas baseadas em 109 variáveis. Ligas de Moçambique, África e Europa."
+        title="PlacerCerto - Análise Estatística de Futebol em Moçambique"
+        description="Explore análises estatísticas de futebol, probabilidades estimadas com modelos como Poisson e regressão, e dados de partidas em Moçambique, África e Europa. Informação educativa, não um serviço de apostas."
         keywords="previsões futebol, análise estatística, modelos poisson, regressão logística, estatísticas futebol moçambique, probabilidades futebol, PlacerCerto"
         canonicalUrl="https://placarcerto.digital/"
         structuredData={generateWebsiteStructuredData()}
@@ -97,14 +97,14 @@ export default function LandingPage() {
             </div>
             
             <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white leading-tight">
-              Previsões de Futebol
+              Análise Estatística de Futebol
               <span className="block text-primary-600 dark:text-primary-400">
                 Com Modelos Estatísticos
               </span>
             </h1>
             
             <p className="text-xl text-gray-600 dark:text-gray-300 leading-relaxed">
-              Tome decisões informadas com análises estatísticas avançadas, histórico de confrontos e previsões precisas baseadas em modelos matemáticos (Poisson + Regressão).
+              Consulte análises estatísticas, histórico de confrontos e probabilidades estimadas por modelos matemáticos, incluindo Poisson e regressão.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
@@ -168,8 +168,8 @@ export default function LandingPage() {
                   <TrendingUp className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">85%</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Precisão</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">Dados</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Forma e histórico</p>
                 </div>
               </div>
             </div>
@@ -214,7 +214,7 @@ export default function LandingPage() {
             Recursos Poderosos
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Tudo que você precisa para fazer análises precisas e tomar decisões informadas
+            Ferramentas estatísticas para compreender melhor os dados das partidas
           </p>
         </div>
 
@@ -245,7 +245,7 @@ export default function LandingPage() {
             Pronto Para Começar?
           </h2>
           <p className="text-xl text-primary-100 mb-8 max-w-2xl mx-auto">
-            Junte-se a milhares de usuários que já estão fazendo análises inteligentes de futebol
+            Explore análises de futebol e consulte os dados disponíveis para cada partida
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link

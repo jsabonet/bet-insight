@@ -1,6 +1,7 @@
 """
 Views para SEO - robots.txt e outras configurações
 """
+from django.conf import settings
 from django.http import HttpResponse
 from django.views.decorators.http import require_GET
 
@@ -15,34 +16,14 @@ def robots_txt(request):
         "Allow: /",
         "Disallow: /api/",
         "Disallow: /admin/",
-        "Disallow: /my-analyses/",
-        "Disallow: /profile/",
+        "Disallow: /home",
+        "Disallow: /daily-bets",
+        "Disallow: /match/",
+        "Disallow: /my-analyses",
+        "Disallow: /profile",
         "",
         "# Sitemaps",
-        f"Sitemap: https://{request.get_host()}/sitemap.xml",
-        "",
-        "# Crawl-delay para bots agressivos",
-        "User-agent: *",
-        "Crawl-delay: 1",
-        "",
-        "# Bots específicos otimizados",
-        "User-agent: Googlebot",
-        "Allow: /",
-        "Crawl-delay: 0",
-        "",
-        "User-agent: Bingbot",
-        "Allow: /",
-        "Crawl-delay: 0",
-        "",
-        "# Bloquear bots indesejados",
-        "User-agent: AhrefsBot",
-        "Disallow: /",
-        "",
-        "User-agent: SemrushBot",
-        "Disallow: /",
-        "",
-        "User-agent: MJ12bot",
-        "Disallow: /",
+        f"Sitemap: {settings.FRONTEND_URL.rstrip('/')}/sitemap.xml",
     ]
     
     return HttpResponse("\n".join(lines), content_type="text/plain")

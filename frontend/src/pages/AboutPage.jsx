@@ -118,20 +118,20 @@ export default function AboutPage() {
               <Logo variant="default" size="2xl" showText={false} className="mx-auto mb-8" />
               <div className="grid grid-cols-2 gap-6">
                 <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 text-center">
-                  <p className="text-4xl font-bold text-white mb-2">10K+</p>
-                  <p className="text-primary-100">Usuários</p>
+                  <p className="text-2xl font-bold text-white mb-2">Poisson</p>
+                  <p className="text-primary-100">Modelo probabilístico</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 text-center">
-                  <p className="text-4xl font-bold text-white mb-2">50K+</p>
-                  <p className="text-primary-100">Análises</p>
+                  <p className="text-2xl font-bold text-white mb-2">Regressão</p>
+                  <p className="text-primary-100">Modelo estatístico</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 text-center">
-                  <p className="text-4xl font-bold text-white mb-2">85%</p>
-                  <p className="text-primary-100">Precisão</p>
+                  <p className="text-2xl font-bold text-white mb-2">Moçambique</p>
+                  <p className="text-primary-100">Foco local</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 text-center">
-                  <p className="text-4xl font-bold text-white mb-2">24/7</p>
-                  <p className="text-primary-100">Disponível</p>
+                  <p className="text-2xl font-bold text-white mb-2">África e Europa</p>
+                  <p className="text-primary-100">Competições acompanhadas</p>
                 </div>
               </div>
             </div>

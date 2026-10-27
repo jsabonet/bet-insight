@@ -43,7 +43,7 @@ const FAQSection = ({ faqs }) => {
 export const defaultFAQs = [
   {
     question: "Como funcionam as análises estatísticas do PlacerCerto?",
-    answer: "Utilizamos modelos matemáticos avançados (Poisson Bivariado + Regressão Logística) que processam 109 variáveis por partida, incluindo forma recente, confrontos diretos, estatísticas de gols, motivação das equipas e muito mais. O ensemble combina 50% Poisson, 35% Regressão Logística e 15% market priors."
+    answer: "Utilizamos modelos estatísticos, incluindo Poisson e regressão, juntamente com dados de forma recente, confrontos diretos e estatísticas das equipas para estimar probabilidades."
   },
   {
     question: "Como são calculadas as previsões?",
@@ -51,7 +51,7 @@ export const defaultFAQs = [
   },
   {
     question: "Quantas análises posso fazer gratuitamente?",
-    answer: "Usuários gratuitos têm 3 análises por dia. Com o plano Premium Semanal (49 MZN) ou Mensal (149 MZN), você tem análises ilimitadas."
+    answer: "O plano gratuito permite até 3 análises por dia. O Premium Vitalício custa 250 MZN, é pago uma vez e permite até 150 análises por dia."
   },
   {
     question: "Quais ligas estão disponíveis?",
@@ -63,7 +63,7 @@ export const defaultFAQs = [
   },
   {
     question: "Posso confiar nas previsões?",
-    answer: "Nossas previsões são baseadas em modelos matemáticos comprovados e dados históricos reais. No entanto, o futebol é imprevisível e nenhum modelo garante 100% de acerto. Use as análises como uma ferramenta de apoio à decisão, não como garantia."
+    answer: "As análises são estimativas baseadas em dados estatísticos e não garantem o resultado de uma partida. O futebol é imprevisível; use as informações apenas como apoio para compreender os dados."
   },
   {
     question: "Como cancelo minha assinatura Premium?",

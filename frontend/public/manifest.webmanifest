@@ -1,7 +1,7 @@
 {
-  "name": "PlacerCerto - Análise Estatística Avançada de Futebol",
+  "name": "PlacerCerto - Análise Estatística de Futebol",
   "short_name": "PlacerCerto",
-  "description": "Previsões precisas de futebol com modelos estatísticos avançados (Poisson + Regressão). Análise quantitativa de partidas, estatísticas em tempo real e apostas inteligentes.",
+  "description": "Análises estatísticas e probabilidades estimadas de futebol com dados de partidas em Moçambique, África e Europa.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -9,7 +9,7 @@
   "background_color": "#ffffff",
   "theme_color": "#16a34a",
   "categories": ["sports", "lifestyle", "entertainment"],
-  "lang": "pt-PT",
+  "lang": "pt-MZ",
   "dir": "ltr",
   "icons": [
     {
@@ -23,26 +23,6 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable"
-    },
-    {
-      "src": "/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshot-1.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow"
     }
   ],
   "shortcuts": [
