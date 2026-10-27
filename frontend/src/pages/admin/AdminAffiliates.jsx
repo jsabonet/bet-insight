@@ -223,7 +223,10 @@ export default function AdminAffiliates() {
                 </div>
 
                 <div className="card">
-                  <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4">Top Afiliados</h3>
+                  <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-1">Top Afiliados</h3>
+                  <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">
+                    Comissão fixa de 100 MZN por primeira compra elegível; níveis internos não alteram a comissão.
+                  </p>
                   <div className="space-y-2">
                     {(overview?.top_affiliates || []).map((a) => (
                       <div key={a.id} className="flex items-center justify-between">
@@ -267,7 +270,7 @@ export default function AdminAffiliates() {
                         onClick={() => setTier(a.id, a.tier === 'vip' ? 'standard' : 'vip')}
                         className="flex-1 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-300"
                       >
-                        {a.tier === 'vip' ? 'Rebaixar para Padrão' : 'Promover a VIP'}
+                        {a.tier === 'vip' ? 'Nível interno: VIP' : 'Nível interno: Padrão'}
                       </button>
                       <button
                         onClick={() => toggleSuspend(a.id)}

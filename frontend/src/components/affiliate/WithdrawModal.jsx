@@ -64,7 +64,9 @@ export default function WithdrawModal({ availableBalance, onClose, onDone }) {
                   placeholder="Ex: 200"
                   required
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Valor mínimo: 200 MZN</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Mínimo: 200 MZN. Pedidos válidos são processados em até 5 dias úteis.
+                </p>
                 {grossAmount > 0 && (
                   <div className="mt-3 rounded-lg bg-gray-50 p-3 text-sm dark:bg-gray-700/50">
                     <p className="flex justify-between">

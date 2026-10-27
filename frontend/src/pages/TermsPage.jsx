@@ -40,7 +40,7 @@ export default function TermsPage() {
                 Termos de Serviço
               </h1>
               <p className="text-gray-600 dark:text-gray-400 mt-2">
-                Última atualização: 1 de Janeiro de 2026
+                Última atualização: 27 de outubro de 2026
               </p>
             </div>
           </div>
@@ -81,7 +81,7 @@ export default function TermsPage() {
                   Isenção de Responsabilidade Importante:
                 </p>
                 <p className="text-gray-700 dark:text-gray-300 mt-2">
-                  Nossos Serviços são exclusivamente informativos e educacionais. NÃO promovemos, facilitamos ou encorajamos apostas. As análises fornecidas não constituem conselhos de apostas e não devem ser interpretadas como garantias de resultados.
+                  O PlacarCerto é uma plataforma SaaS informativa e educativa de análise estatística de futebol. Não é uma casa de apostas, não aceita nem intermedeia apostas e não promove, facilita ou incentiva apostas. As análises não são conselho de apostas nem garantia de resultados.
                 </p>
               </div>
             </section>
@@ -147,20 +147,20 @@ export default function TermsPage() {
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-6 mb-3">5.1. Planos Disponíveis</h3>
               <ul className="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
                 <li><strong>Freemium:</strong> Plano gratuito com 3 análises por dia</li>
-                <li><strong>Planos Premium:</strong> Assinaturas pagas com análises ilimitadas e recursos avançados</li>
+                <li><strong>Plano Premium Vitalício:</strong> pagamento único com os limites e funcionalidades apresentados na página de planos</li>
               </ul>
 
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-6 mb-3">5.2. Pagamentos</h3>
               <ul className="list-disc pl-6 space-y-2 text-gray-700 dark:text-gray-300">
                 <li>Pagamentos são processados através da VPay, que disponibiliza os métodos ativos na sua conta</li>
                 <li>Os preços são exibidos em Meticais (MZN)</li>
-                <li>Você autoriza cobranças recorrentes para assinaturas</li>
+                <li>O plano Premium atualmente disponível é pago uma única vez e não tem renovação automática</li>
                 <li>Você é responsável por todos os impostos aplicáveis</li>
               </ul>
 
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-6 mb-3">5.3. Reembolsos e Cancelamentos</h3>
               <p className="text-gray-700 dark:text-gray-300">
-                Você pode cancelar sua assinatura a qualquer momento através das configurações da sua conta. O cancelamento entra em vigor no final do período de cobrança atual. Não oferecemos reembolsos proporcionais para cancelamentos no meio do ciclo, exceto quando exigido por lei.
+                As condições de cancelamento e reembolso aplicáveis serão apresentadas no checkout. O plano vitalício atualmente disponível não é uma assinatura recorrente. Os direitos previstos na legislação aplicável permanecem salvaguardados.
               </p>
             </section>
 
@@ -183,7 +183,20 @@ export default function TermsPage() {
 
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mt-6 mb-3">6.3. Licença de Uso</h3>
               <p className="text-gray-700 dark:text-gray-300">
-                Concedemos a você uma licença limitada, não exclusiva, intransferível e revogável para acessar e usar os Serviços para fins pessoais e não comerciais.
+                Concedemos uma licença limitada, não exclusiva, intransferível e revogável para uso pessoal. A divulgação remunerada só é permitida através do Programa de Afiliados e nos termos próprios desse programa.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="flex items-center gap-3 text-2xl font-bold text-gray-900 dark:text-white mb-4">
+                <Shield className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                6.4. Programa de Afiliados
+              </h2>
+              <p className="text-gray-700 dark:text-gray-300">
+                O Programa de Afiliados remunera a divulgação do acesso ao nosso SaaS educativo; não
+                envolve apostas nem remunera resultados desportivos. A participação está sujeita aos
+                <Link to="/affiliate/terms" className="ml-1 text-primary-600 hover:underline">Termos do Programa de Afiliados</Link>,
+                que devem ser aceites separadamente.
               </p>
             </section>
 

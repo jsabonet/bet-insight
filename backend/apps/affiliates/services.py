@@ -15,6 +15,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from .models import Affiliate, AffiliateReferral, AffiliateCommission, MemberReferral
+from .terms import AFFILIATE_TERMS_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,11 @@ def resolve_affiliate_by_code(code):
     """Devolve um Affiliate ativo para um código, ou None."""
     if not code:
         return None
-    return Affiliate.objects.filter(code__iexact=code, status='active').first()
+    return Affiliate.objects.filter(
+        code__iexact=code,
+        status='active',
+        accepted_terms_version=AFFILIATE_TERMS_VERSION,
+    ).first()
 
 
 def code_to_string(code):
@@ -250,7 +255,7 @@ def get_payment_affiliate(payment):
 
 
 def create_commission_if_applicable(payment):
-    """Cria a comissão para um pagamento concluído (idempotente).
+    """Cria a comissão da primeira compra elegível por utilizador indicado.
 
     Deve ser chamada após `mark_payment_completed(payment)`. Só gera comissão
     na primeira venda do plano (excluindo planos como 'teste') e quando o
@@ -263,12 +268,16 @@ def create_commission_if_applicable(payment):
     if hasattr(payment, 'affiliate_commission'):
         return payment.affiliate_commission
 
-    affiliate_code, affiliate_id, source = get_payment_affiliate(payment)
+    affiliate_code, affiliate_id, _source = get_payment_affiliate(payment)
     code = code_to_string(affiliate_code)
 
     affiliate = None
     if affiliate_id:
-        affiliate = Affiliate.objects.filter(id=affiliate_id, status='active').first()
+        affiliate = Affiliate.objects.filter(
+            id=affiliate_id,
+            status='active',
+            accepted_terms_version=AFFILIATE_TERMS_VERSION,
+        ).first()
     if affiliate is None and code:
         affiliate = resolve_affiliate_by_code(code)
     if affiliate is None:
@@ -287,10 +296,6 @@ def create_commission_if_applicable(payment):
     if plan_price <= 0:
         return None
 
-    referral = None
-    if payment.user_id:
-        referral = AffiliateReferral.objects.filter(user_id=payment.user_id).first()
-
     amount = Decimal(str(get_setting('AFFILIATE_FIXED_COMMISSION', 100))).quantize(
         Decimal('0.01')
     )
@@ -299,11 +304,20 @@ def create_commission_if_applicable(payment):
     if amount <= 0:
         return None
 
-    if referral and referral.converted_at is None:
-        referral.converted_at = timezone.now()
-        referral.save(update_fields=['converted_at'])
-
     with transaction.atomic():
+        if payment.user_id:
+            payment.user.__class__.objects.select_for_update().get(pk=payment.user_id)
+            existing_commission = AffiliateCommission.objects.filter(payment=payment).first()
+            if existing_commission:
+                return existing_commission
+            if AffiliateCommission.objects.filter(payment__user_id=payment.user_id).exists():
+                return None
+        referral = None
+        if payment.user_id:
+            referral = AffiliateReferral.objects.filter(user_id=payment.user_id).first()
+            if referral and referral.converted_at is not None:
+                return None
+
         commission, created = AffiliateCommission.objects.get_or_create(
             payment=payment,
             defaults={
@@ -318,6 +332,9 @@ def create_commission_if_applicable(payment):
                 ),
             },
         )
+        if created and referral:
+            referral.converted_at = timezone.now()
+            referral.save(update_fields=['converted_at'])
 
     if created:
         _update_affiliate_balances(affiliate)

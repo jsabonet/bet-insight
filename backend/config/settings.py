@@ -422,18 +422,14 @@ FREE_ANALYSIS_LIMIT = int(os.getenv('FREE_ANALYSIS_LIMIT', '3'))
 PREMIUM_ANALYSIS_LIMIT = int(os.getenv('PREMIUM_ANALYSIS_LIMIT', '100'))
 
 # Programa de Afiliados
-# Taxas em decimal (0.40 = 40%).
-AFFILIATE_DEFAULT_RATE = float(os.getenv('AFFILIATE_DEFAULT_RATE', '0.40'))
-AFFILIATE_VIP_RATE = float(os.getenv('AFFILIATE_VIP_RATE', '0.50'))
-AFFILIATE_RENEWAL_RATE = float(os.getenv('AFFILIATE_RENEWAL_RATE', '0.10'))
 # Janela (dias) em que um cookie de afiliado é válido.
-AFFILIATE_COOKIE_DAYS = int(os.getenv('AFFILIATE_COOKIE_DAYS', '30'))
+AFFILIATE_COOKIE_DAYS = 30
 # Dias até uma comissão pending ficar available (janela de chargeback/refund).
-AFFILIATE_PENDING_DAYS = int(os.getenv('AFFILIATE_PENDING_DAYS', '14'))
+AFFILIATE_PENDING_DAYS = 14
 # Valor mínimo (MZN) para levantamento.
-AFFILIATE_MIN_WITHDRAWAL = int(os.getenv('AFFILIATE_MIN_WITHDRAWAL', '200'))
-AFFILIATE_FIXED_COMMISSION = os.getenv('AFFILIATE_FIXED_COMMISSION', '100')
-AFFILIATE_WITHDRAWAL_FEE_RATE = os.getenv('AFFILIATE_WITHDRAWAL_FEE_RATE', '6')
+AFFILIATE_MIN_WITHDRAWAL = 200
+AFFILIATE_FIXED_COMMISSION = '100'
+AFFILIATE_WITHDRAWAL_FEE_RATE = '6'
 # Planos que não geram comissão (separados por vírgula).
 AFFILIATE_EXCLUDED_PLANS = [
     p.strip()

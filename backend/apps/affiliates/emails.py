@@ -28,14 +28,13 @@ def send_affiliate_approved_email(affiliate):
         user = affiliate.user
         send_template_email(
             to=user.email,
-            subject="Conta de afiliado aprovada 🎉 - PlacarCerto",
+            subject="Conta de afiliado ativa - PlacarCerto",
             template_name="affiliate_approved",
             context={
                 "user_name": user.username,
                 "affiliate_code": affiliate.code,
-                "commission_rate": f"{affiliate.commission_rate:g}",
-                "renewal_rate": f"{affiliate.renewal_rate:g}",
                 "affiliate_link": _affiliate_link(affiliate),
+                "affiliate_terms_url": _frontend_url("affiliate/terms"),
             },
             tags=["affiliate", "approved"],
         )

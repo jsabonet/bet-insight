@@ -9,7 +9,7 @@ from rest_framework.test import APIClient
 
 from apps.notifications.models import Notification
 from .models import (
-    Affiliate, AffiliateReferral, AffiliateCommission, AffiliateWithdrawal,
+    Affiliate, AffiliateTermsAcceptance, AffiliateReferral, AffiliateCommission, AffiliateWithdrawal,
 )
 from .services import assign_referral, create_commission_if_applicable
 from .services import (
@@ -17,6 +17,7 @@ from .services import (
     assign_member_referral,
     reward_member_referral_for_first_analysis,
 )
+from .terms import AFFILIATE_TERMS_VERSION
 from apps.subscriptions.models import Payment
 
 User = get_user_model()
@@ -34,7 +35,68 @@ def make_affiliate(user, code='AFFTEST', rate='0.40'):
         tier='standard',
         commission_rate=Decimal(rate),
         renewal_rate=Decimal('0.10'),
+        accepted_terms_version=AFFILIATE_TERMS_VERSION,
+        terms_accepted_at=timezone.now(),
     )
+
+
+class AffiliateTermsAcceptanceTests(TestCase):
+    def setUp(self):
+        self.user = make_user('affiliate-applicant', 'affiliate-applicant@example.com')
+        self.client = APIClient()
+        self.client.force_authenticate(self.user)
+
+    def test_application_requires_explicit_current_terms_acceptance(self):
+        response = self.client.post(
+            '/api/affiliates/apply/',
+            {'payout_method': 'mpesa', 'payout_account': '841234567'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(Affiliate.objects.filter(user=self.user).exists())
+
+    @patch('apps.affiliates.emails.send_template_email')
+    def test_application_records_accepted_terms_version_and_timestamp(self, _send_email):
+        response = self.client.post(
+            '/api/affiliates/apply/',
+            {
+                'payout_method': 'mpesa',
+                'payout_account': '841234567',
+                'terms_version': AFFILIATE_TERMS_VERSION,
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        affiliate = Affiliate.objects.get(user=self.user)
+        self.assertEqual(affiliate.accepted_terms_version, AFFILIATE_TERMS_VERSION)
+        self.assertIsNotNone(affiliate.terms_accepted_at)
+        self.assertTrue(AffiliateTermsAcceptance.objects.filter(
+            affiliate=affiliate,
+            terms_version=AFFILIATE_TERMS_VERSION,
+            accepted_at=affiliate.terms_accepted_at,
+        ).exists())
+
+    def test_existing_affiliate_must_accept_current_terms_before_using_program(self):
+        affiliate = make_affiliate(self.user)
+        affiliate.accepted_terms_version = ''
+        affiliate.terms_accepted_at = None
+        affiliate.save(update_fields=['accepted_terms_version', 'terms_accepted_at'])
+
+        blocked = self.client.get('/api/affiliates/me/stats/')
+        self.assertEqual(blocked.status_code, 403)
+        self.assertEqual(blocked.data['code'], 'affiliate_terms_required')
+
+        accepted = self.client.post(
+            '/api/affiliates/apply/',
+            {'terms_version': AFFILIATE_TERMS_VERSION},
+            format='json',
+        )
+        self.assertEqual(accepted.status_code, 200)
+        affiliate.refresh_from_db()
+        self.assertEqual(affiliate.accepted_terms_version, AFFILIATE_TERMS_VERSION)
+        self.assertIsNotNone(affiliate.terms_accepted_at)
 
 
 def make_payment(user, amount='599.00', plan='pro', metadata=None):
@@ -265,7 +327,7 @@ class CommissionTests(TestCase):
         commission = create_commission_if_applicable(payment)
         self.assertIsNone(commission)
 
-    def test_renewal_also_receives_fixed_commission(self):
+    def test_previously_converted_referral_does_not_receive_renewal_commission(self):
         affiliate_user = make_user('aff5', 'aff5@example.com')
         affiliate = make_affiliate(affiliate_user, code='AFF5')
         buyer = make_user('buyer5', 'buyer5@example.com')
@@ -282,9 +344,31 @@ class CommissionTests(TestCase):
         payment = make_payment(buyer, metadata={'affiliate_code': 'AFF5', 'affiliate_id': affiliate.id})
         commission = create_commission_if_applicable(payment)
 
-        self.assertIsNotNone(commission)
-        self.assertEqual(commission.amount, Decimal('100.00'))
-        self.assertEqual(commission.commission_type, 'fixed')
+        self.assertIsNone(commission)
+
+    def test_only_first_referred_purchase_receives_a_commission(self):
+        affiliate_user = make_user('first-sale-affiliate', 'first-sale-affiliate@example.com')
+        affiliate = make_affiliate(affiliate_user, code='FIRSTSALE')
+        buyer = make_user('first-sale-buyer', 'first-sale-buyer@example.com')
+        metadata = {'affiliate_code': 'FIRSTSALE', 'affiliate_id': affiliate.id}
+        first_payment = make_payment(buyer, metadata=metadata)
+        second_payment = Payment.objects.create(
+            user=buyer,
+            amount=Decimal('250.00'),
+            currency='MZN',
+            phone_number='',
+            transaction_id='TX-SECOND-PURCHASE',
+            gateway='vpay',
+            payment_method='vpay',
+            status='completed',
+            metadata={'plan': 'premium_vitalicio', **metadata},
+        )
+
+        first_commission = create_commission_if_applicable(first_payment)
+        second_commission = create_commission_if_applicable(second_payment)
+
+        self.assertIsNotNone(first_commission)
+        self.assertIsNone(second_commission)
 
 
 class AffiliateWithdrawalTests(TestCase):

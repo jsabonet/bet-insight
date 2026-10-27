@@ -17,6 +17,7 @@ import ProfilePage from './pages/ProfilePage';
 import PremiumPage from './pages/PremiumPage';
 import AffiliateDashboardPage from './pages/AffiliateDashboardPage';
 import AffiliateApplyPage from './pages/AffiliateApplyPage';
+import AffiliateTermsPage from './pages/AffiliateTermsPage';
 import PaymentConfirmation from './pages/PaymentConfirmation';
 import TermsPage from './pages/TermsPage';
 import PrivacyPage from './pages/PrivacyPage';
@@ -159,6 +160,7 @@ function App() {
           
           {/* Legal Pages - accessible to everyone */}
           <Route path="/terms" element={<TermsPage />} />
+          <Route path="/affiliate/terms" element={<AffiliateTermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/faq" element={<FAQPage />} />

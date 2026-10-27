@@ -1,14 +1,15 @@
-Conta de afiliado aprovada 🎉
+Conta de afiliado ativa
 
-Olá, {{ user_name }}! A sua candidatura ao programa de afiliados do {{ site_name }} foi aprovada.
+Olá, {{ user_name }}! A sua conta no programa de afiliados do {{ site_name }} está ativa.
 
 - Código de indicação: {{ affiliate_code }}
-- Comissão por venda: {{ commission_rate }}%
-- Comissão por renovação: {{ renewal_rate }}%
+- Comissão por primeira compra elegível: 100 MZN (sem comissões por renovação)
+- Disponível após 14 dias, se o pagamento não for reembolsado ou contestado
 
 O seu link de indicação:
 {{ affiliate_link }}
 
 Abrir painel: {{ site_url }}/affiliate
 
-Análise estatística e educativa de futebol. Não promovemos apostas.
+O PlacarCerto é uma plataforma SaaS educativa de análise estatística de futebol. Não é uma casa de apostas e não promovemos nem facilitamos apostas.
+Termos do programa: {{ affiliate_terms_url }}

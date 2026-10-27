@@ -14,7 +14,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from .models import (
-    Affiliate, AffiliateReferral, AffiliateCommission, AffiliateClick,
+    Affiliate, AffiliateTermsAcceptance, AffiliateReferral, AffiliateCommission, AffiliateClick,
     AffiliateWithdrawal, AffiliateWithdrawalAllocation,
 )
 from .serializers import (
@@ -25,6 +25,7 @@ from .serializers import (
     WithdrawRequestSerializer,
 )
 from .services import resolve_affiliate_by_code, generate_unique_code, code_to_string
+from .terms import AFFILIATE_TERMS_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,28 @@ def _get_or_404_affiliate(user):
         return user.affiliate_profile
     except Affiliate.DoesNotExist:
         return None
+
+
+def _affiliate_access_error(affiliate):
+    if affiliate.accepted_terms_version != AFFILIATE_TERMS_VERSION:
+        return Response(
+            {
+                'error': 'Aceite os termos atuais do programa para continuar.',
+                'code': 'affiliate_terms_required',
+                'terms_version': AFFILIATE_TERMS_VERSION,
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    return None
+
+
+def _record_terms_acceptance(affiliate):
+    acceptance, _ = AffiliateTermsAcceptance.objects.get_or_create(
+        affiliate=affiliate,
+        terms_version=AFFILIATE_TERMS_VERSION,
+    )
+    affiliate.terms_accepted_at = acceptance.accepted_at
+    affiliate.save(update_fields=['terms_accepted_at', 'updated_at'])
 
 
 @api_view(['GET'])
@@ -59,11 +82,27 @@ def member_referral_summary(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def apply_affiliate(request):
-    """Candidata o utilizador a afiliado (gera código se ainda não existe)."""
+    """Cria o perfil de afiliado ou regista a aceitação dos termos atuais."""
+    if request.data.get('terms_version') != AFFILIATE_TERMS_VERSION:
+        return Response(
+            {
+                'error': 'Leia e aceite a versão atual dos termos do programa.',
+                'code': 'affiliate_terms_version_mismatch',
+                'terms_version': AFFILIATE_TERMS_VERSION,
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
     existing = _get_or_404_affiliate(request.user)
     if existing:
+        serializer = AffiliateApplySerializer(existing, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(
+            accepted_terms_version=AFFILIATE_TERMS_VERSION,
+        )
+        _record_terms_acceptance(existing)
         return Response({
-            'message': 'Já é afiliado.',
+            'message': 'Termos do programa aceites.',
             'affiliate': AffiliateSerializer(existing, context={'request': request}).data,
         })
 
@@ -76,11 +115,11 @@ def apply_affiliate(request):
         code=code,
         status='active',
         tier='standard',
-        commission_rate=getattr(settings, 'AFFILIATE_DEFAULT_RATE', 0.40),
-        renewal_rate=getattr(settings, 'AFFILIATE_RENEWAL_RATE', 0.10),
         payout_method=serializer.validated_data.get('payout_method', 'mpesa'),
         payout_account=serializer.validated_data.get('payout_account', ''),
+        accepted_terms_version=AFFILIATE_TERMS_VERSION,
     )
+    _record_terms_acceptance(affiliate)
 
     # Notificar o afiliado por email (não bloqueia a criação).
     try:
@@ -122,6 +161,9 @@ def my_affiliate_stats(request):
     affiliate = _get_or_404_affiliate(request.user)
     if affiliate is None:
         return Response({'error': 'Ainda não é afiliado.'}, status=status.HTTP_404_NOT_FOUND)
+    access_error = _affiliate_access_error(affiliate)
+    if access_error:
+        return access_error
 
     now = timezone.now()
     thirty_days_ago = now - timezone.timedelta(days=30)
@@ -169,6 +211,9 @@ def my_commissions(request):
     affiliate = _get_or_404_affiliate(request.user)
     if affiliate is None:
         return Response({'error': 'Ainda não é afiliado.'}, status=status.HTTP_404_NOT_FOUND)
+    access_error = _affiliate_access_error(affiliate)
+    if access_error:
+        return access_error
 
     status_filter = request.query_params.get('status')
     qs = affiliate.commissions.all().select_related('payment', 'payment__user')
@@ -184,6 +229,9 @@ def my_referrals(request):
     affiliate = _get_or_404_affiliate(request.user)
     if affiliate is None:
         return Response({'error': 'Ainda não é afiliado.'}, status=status.HTTP_404_NOT_FOUND)
+    access_error = _affiliate_access_error(affiliate)
+    if access_error:
+        return access_error
 
     qs = affiliate.referrals.select_related('user').all()[:50]
     return Response(AffiliateReferralSerializer(qs, many=True).data)
@@ -196,6 +244,14 @@ def withdraw(request):
     affiliate = _get_or_404_affiliate(request.user)
     if affiliate is None:
         return Response({'error': 'Ainda não é afiliado.'}, status=status.HTTP_404_NOT_FOUND)
+    access_error = _affiliate_access_error(affiliate)
+    if access_error:
+        return access_error
+    if affiliate.status != 'active':
+        return Response(
+            {'error': 'A conta de afiliado está suspensa.', 'code': 'affiliate_suspended'},
+            status=status.HTTP_403_FORBIDDEN,
+        )
 
     serializer = WithdrawRequestSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -299,6 +355,9 @@ def my_withdrawals(request):
     affiliate = _get_or_404_affiliate(request.user)
     if affiliate is None:
         return Response({'error': 'Ainda não é afiliado.'}, status=status.HTTP_404_NOT_FOUND)
+    access_error = _affiliate_access_error(affiliate)
+    if access_error:
+        return access_error
 
     withdrawals = affiliate.withdrawals.all()[:100]
     return Response([{

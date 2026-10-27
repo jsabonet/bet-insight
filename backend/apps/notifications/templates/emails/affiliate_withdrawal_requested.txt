@@ -7,6 +7,6 @@ Olá, {{ user_name }}! Recebemos o seu pedido de levantamento.
 - Valor líquido a receber: {{ payout_amount }} {{ currency }}
 - Método: {{ payout_method }}
 
-A nossa equipa irá processar o pagamento em breve.
+O pedido válido será processado em até 5 dias úteis.
 
 Análise estatística e educativa de futebol. Não promovemos apostas.

@@ -11,6 +11,7 @@ import CommissionsList from '../components/affiliate/CommissionsList';
 import ReferralsList from '../components/affiliate/ReferralsList';
 import WithdrawModal from '../components/affiliate/WithdrawModal';
 import { affiliateAPI } from '../services/api';
+import { AFFILIATE_TERMS_VERSION } from '../utils/affiliateTerms';
 
 export default function AffiliateDashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -25,8 +26,12 @@ export default function AffiliateDashboardPage() {
   const load = async () => {
     setLoading(true);
     try {
-      const [meRes, statsRes, commissionsRes, referralsRes, withdrawalsRes] = await Promise.all([
-        affiliateAPI.getMe(),
+      const meRes = await affiliateAPI.getMe();
+      if (meRes.data.accepted_terms_version !== AFFILIATE_TERMS_VERSION) {
+        window.location.replace('/affiliate/apply');
+        return;
+      }
+      const [statsRes, commissionsRes, referralsRes, withdrawalsRes] = await Promise.all([
         affiliateAPI.getStats(),
         affiliateAPI.getCommissions(),
         affiliateAPI.getReferrals(),
@@ -41,6 +46,8 @@ export default function AffiliateDashboardPage() {
     } catch (err) {
       if (err.response?.status === 404) {
         setNotAffiliate(true);
+      } else if (err.response?.status === 403 && err.response?.data?.code === 'affiliate_terms_required') {
+        window.location.replace('/affiliate/apply');
       }
     } finally {
       setLoading(false);
@@ -116,6 +123,11 @@ export default function AffiliateDashboardPage() {
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         {item.payout_method_display} · {new Date(item.requested_at).toLocaleDateString('pt-PT')}
                       </p>
+                      {['requested', 'processing'].includes(item.status) && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Processamento previsto em até 5 dias úteis após pedido válido.
+                        </p>
+                      )}
                       {item.transaction_reference && (
                         <p className="text-xs text-gray-500 dark:text-gray-400">Referência: {item.transaction_reference}</p>
                       )}

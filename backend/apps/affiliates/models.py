@@ -78,11 +78,13 @@ class Affiliate(models.Model):
         max_length=20, choices=STATUS_CHOICES, default='active',
         verbose_name="Status",
     )
+    accepted_terms_version = models.CharField(max_length=20, blank=True, default='')
+    terms_accepted_at = models.DateTimeField(null=True, blank=True)
     tier = models.CharField(
         max_length=20, choices=TIER_CHOICES, default='standard',
         verbose_name="Nível",
     )
-    # Taxas configuráveis por afiliado (padrão vem de settings).
+    # Campos históricos mantidos por compatibilidade; as comissões atuais são fixas.
     commission_rate = models.DecimalField(
         max_digits=5, decimal_places=2, default=0.40, verbose_name="Comissão (1ª venda)",
     )
@@ -123,6 +125,25 @@ class Affiliate(models.Model):
     @property
     def is_active(self):
         return self.status == 'active'
+
+
+class AffiliateTermsAcceptance(models.Model):
+    affiliate = models.ForeignKey(
+        Affiliate,
+        on_delete=models.CASCADE,
+        related_name='terms_acceptances',
+    )
+    terms_version = models.CharField(max_length=20)
+    accepted_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-accepted_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['affiliate', 'terms_version'],
+                name='unique_affiliate_terms_acceptance',
+            ),
+        ]
 
 
 class AffiliateReferral(models.Model):

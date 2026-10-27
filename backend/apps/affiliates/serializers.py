@@ -17,13 +17,14 @@ class AffiliateSerializer(serializers.ModelSerializer):
         model = Affiliate
         fields = [
             'id', 'code', 'status', 'tier', 'tier_display',
-            'commission_rate', 'renewal_rate',
             'total_earned', 'available_balance', 'pending_balance',
             'payout_method', 'payout_account', 'referral_link', 'created_at',
+            'accepted_terms_version', 'terms_accepted_at',
         ]
         read_only_fields = [
-            'id', 'code', 'status', 'tier', 'commission_rate', 'renewal_rate',
+            'id', 'code', 'status', 'tier',
             'total_earned', 'available_balance', 'pending_balance', 'created_at',
+            'accepted_terms_version', 'terms_accepted_at',
         ]
 
     def get_referral_link(self, obj):

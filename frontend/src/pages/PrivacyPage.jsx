@@ -116,6 +116,7 @@ export default function PrivacyPage() {
                 <li><strong>Melhoria do Serviço:</strong> Analisar uso para melhorar funcionalidades</li>
                 <li><strong>Segurança:</strong> Detectar e prevenir fraudes e abusos</li>
                 <li><strong>Convites:</strong> Comparar IP e identificador do dispositivo para limitar recompensas duplicadas; esses sinais não impedem o cadastro de contas na mesma rede</li>
+                <li><strong>Programa de Afiliados:</strong> Guardar a versão e a data/hora dos termos aceites, gerir comissões e processar levantamentos.</li>
                 <li><strong>Conformidade Legal:</strong> Cumprir obrigações legais e regulatórias</li>
               </ul>
             </section>
@@ -133,6 +134,7 @@ export default function PrivacyPage() {
                 <li><strong>Processadores de Pagamento:</strong> VPay para processar transações</li>
                 <li><strong>Provedores de Serviço:</strong> Empresas que nos ajudam a operar a plataforma (hospedagem, análise, etc.)</li>
                 <li><strong>APIs de Dados:</strong> Football-Data.org e API-Football para estatísticas de partidas</li>
+                <li><strong>Programa de Afiliados:</strong> O afiliado responsável por uma indicação pode ver o nome de utilizador e o email associados à conta indicada, além do estado da conversão, para acompanhar indicações e comissões.</li>
                 <li><strong>Obrigações Legais:</strong> Quando exigido por lei ou ordem judicial</li>
                 <li><strong>Proteção de Direitos:</strong> Para proteger nossos direitos, segurança ou propriedade</li>
               </ul>

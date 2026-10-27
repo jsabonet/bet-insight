@@ -2,7 +2,6 @@
 import csv
 import logging
 
-from django.conf import settings
 from django.db import transaction
 from django.db.models import Sum, Count, Q, Exists, OuterRef
 from django.http import HttpResponse
@@ -74,8 +73,8 @@ def admin_affiliates_list(request):
         'email': a.user.email,
         'status': a.status,
         'tier': a.tier,
-        'commission_rate': str(a.commission_rate),
-        'renewal_rate': str(a.renewal_rate),
+        'accepted_terms_version': a.accepted_terms_version,
+        'terms_accepted_at': a.terms_accepted_at,
         'total_earned': str(a.total_earned),
         'available_balance': str(a.available_balance),
         'pending_balance': str(a.pending_balance),
@@ -355,7 +354,7 @@ def admin_reject_withdrawal(request, withdrawal_id):
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def admin_set_tier(request, affiliate_id):
-    """Atualiza o nível (tier) e as taxas de um afiliado."""
+    """Atualiza o nível interno do afiliado sem alterar a comissão fixa."""
     try:
         affiliate = Affiliate.objects.get(id=affiliate_id)
     except Affiliate.DoesNotExist:
@@ -366,9 +365,7 @@ def admin_set_tier(request, affiliate_id):
         return Response({'error': 'Nível inválido (standard|vip).'}, status=status.HTTP_400_BAD_REQUEST)
 
     affiliate.tier = tier
-    default_rate = getattr(settings, 'AFFILIATE_VIP_RATE', 0.50) if tier == 'vip' else getattr(settings, 'AFFILIATE_DEFAULT_RATE', 0.40)
-    affiliate.commission_rate = request.data.get('commission_rate', default_rate)
-    affiliate.save(update_fields=['tier', 'commission_rate', 'updated_at'])
+    affiliate.save(update_fields=['tier', 'updated_at'])
     return Response({'message': 'Nível atualizado.'})
 
 
