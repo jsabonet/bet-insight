@@ -48,7 +48,7 @@ def send_subscription_activated_email(user, subscription):
             context={
                 "user_name": user.username,
                 "plan_name": _plan_name(subscription),
-                "daily_limit": _daily_limit(subscription) or "ilimitadas",
+                "daily_limit": _daily_limit(subscription) or "verifique os detalhes do plano",
                 "end_date": end_date,
             },
             tags=["subscription", "activated"],

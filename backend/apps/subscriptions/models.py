@@ -15,9 +15,9 @@ class Subscription(models.Model):
     ]
 
     PLAN_CHOICES = [
-        ('monthly', 'Mensal - 499 MZN'),
-        ('quarterly', 'Trimestral - 1299 MZN'),
-        ('yearly', 'Anual - 4499 MZN'),
+        ('monthly', 'Mensal (legado)'),
+        ('quarterly', 'Trimestral (legado)'),
+        ('yearly', 'Anual (legado)'),
     ]
 
     # Relacionamento

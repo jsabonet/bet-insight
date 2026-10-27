@@ -51,7 +51,7 @@ export const defaultFAQs = [
   },
   {
     question: "Quantas análises posso fazer gratuitamente?",
-    answer: "O plano gratuito permite até 3 análises por dia. O Premium Vitalício custa 250 MZN, é pago uma vez e permite até 150 análises por dia."
+    answer: "O plano gratuito permite até 3 análises por dia. O Premium Vitalício custa 250 MZN, é pago uma vez e permite até 60 análises por dia."
   },
   {
     question: "Quais ligas estão disponíveis?",

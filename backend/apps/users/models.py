@@ -106,11 +106,14 @@ class User(AbstractUser):
         if active_sub and active_sub.plan_slug:
             limit = get_plan_limit(active_sub.plan_slug)
             if limit is not None:
-                return limit
+                return min(limit, get_plan_limit('premium_vitalicio'))
 
         if self.is_premium_active():
             from django.conf import settings
-            return settings.PREMIUM_ANALYSIS_LIMIT
+            return min(
+                settings.PREMIUM_ANALYSIS_LIMIT,
+                get_plan_limit('premium_vitalicio'),
+            )
         return get_plan_limit('freemium')
     
     def is_premium_active(self):

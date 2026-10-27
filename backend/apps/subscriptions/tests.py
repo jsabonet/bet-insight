@@ -6,15 +6,18 @@ Todos os testes usam mocks: nunca chamam a API real nem usam credenciais reais.
 import hashlib
 import hmac
 import json
+from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.users.models import User
 
 from .models import Payment, Subscription
 from .payment_helpers import apply_vpay_status
+from .plan_config import get_plan_limit
 from .vpay_service import VPayService, VPayServiceError, vpay_service
 
 
@@ -39,6 +42,49 @@ def make_user(**kwargs):
     }
     defaults.update(kwargs)
     return User.objects.create_user(**defaults)
+
+
+class PremiumPlanLimitTests(TestCase):
+    def test_lifetime_plans_are_capped_at_60_analyses_per_day(self):
+        self.assertEqual(get_plan_limit('premium_vitalicio'), 60)
+        self.assertEqual(get_plan_limit('premium_vitalicio_teste'), 60)
+
+    def test_active_lifetime_subscription_enforces_60_analysis_limit(self):
+        user = make_user(username='lifetime-limit-user', email='lifetime-limit@example.com')
+        Subscription.objects.create(
+            user=user,
+            plan='monthly',
+            plan_slug='premium_vitalicio',
+            status='active',
+            end_date=None,
+            amount_paid=250,
+        )
+
+        self.assertEqual(user.get_daily_analysis_limit(), 60)
+
+    def test_existing_paid_plans_cannot_exceed_current_daily_cap(self):
+        user = make_user(username='legacy-limit-user', email='legacy-limit@example.com')
+        Subscription.objects.create(
+            user=user,
+            plan='yearly',
+            plan_slug='vip',
+            status='active',
+            end_date=timezone.now() + timedelta(days=30),
+            amount_paid=1499,
+        )
+
+        self.assertEqual(user.get_daily_analysis_limit(), 60)
+
+    @override_settings(PREMIUM_ANALYSIS_LIMIT=150)
+    def test_legacy_premium_fallback_setting_is_capped_at_60(self):
+        user = make_user(
+            username='premium-fallback-user',
+            email='premium-fallback@example.com',
+            is_premium=True,
+            premium_until=timezone.now() + timedelta(days=30),
+        )
+
+        self.assertEqual(user.get_daily_analysis_limit(), 60)
 
 
 class VPayServiceAuthTests(TestCase):

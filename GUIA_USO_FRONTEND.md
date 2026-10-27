@@ -124,8 +124,8 @@ export const matchesAPI = {
 4. Modal abre com análise completa
 5. Veja contador: "X análises restantes"
 6. Cada análise consome 1 do limite diário
-7. Usuários gratuitos: 5 análises/dia
-8. Usuários premium: ilimitadas
+7. Usuários Freemium: até 3 análises/dia
+8. Usuários Premium Vitalício: até 60 análises/dia
 ```
 
 ### Teste 4: Limite de Análises (Usuário Gratuito)
@@ -133,17 +133,17 @@ export const matchesAPI = {
 1. Faça logout e crie nova conta gratuita
 2. Analise 5 partidas
 3. Na 6ª tentativa, verá erro:
-   "Limite diário atingido. Assine Premium para análises ilimitadas."
+   "Limite diário atingido. Assine o Premium Vitalício para até 60 análises por dia."
 4. No modal, contador mostra "0 análises restantes"
 5. Botão "Assinar Premium" aparece
 ```
 
-### Teste 5: Usuário Premium (Ilimitado)
+### Teste 5: Usuário Premium Vitalício
 ```bash
 1. Login como maria/senha123 (premium)
-2. Analise quantas partidas quiser
-3. Nenhum limite é aplicado
-4. Contador não é exibido no modal
+2. Faça até 60 análises no dia
+3. Na 61ª tentativa, o limite diário será aplicado
+4. O contador mostra as análises restantes
 ```
 
 ---
@@ -212,7 +212,7 @@ Authorization: Bearer {token}
 **Response (Limite Atingido):**
 ```json
 {
-  "error": "Limite diário atingido. Assine Premium para análises ilimitadas."
+  "error": "Limite diário atingido. Assine o Premium Vitalício para até 60 análises por dia."
 }
 ```
 
@@ -267,11 +267,8 @@ Content-Type: application/json
 
 ### Limites de Análise (config/settings.py)
 ```python
-# Análises por tipo de usuário
-ANALYSIS_LIMITS = {
-    'free': 5,      # 5 análises/dia
-    'premium': -1,  # Ilimitado
-}
+# Limites atuais definidos em backend/apps/subscriptions/plan_config.py:
+# Freemium: 3 análises/dia; Premium Vitalício: 60 análises/dia.
 ```
 
 ### Timeout da IA (apps/analysis/services/ai_analyzer.py)
@@ -450,7 +447,7 @@ exit()
 - ✅ Gerar análises com IA em português
 - ✅ Visualizar recomendações detalhadas
 - ✅ Respeitar limites diários (gratuitos)
-- ✅ Ter análises ilimitadas (premium)
+- ✅ Ter até 60 análises por dia com o Premium Vitalício
 
 **Próximo passo:** Implementar histórico de análises e sistema de pagamentos.
 

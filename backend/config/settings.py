@@ -419,7 +419,7 @@ SUPPORT_EMAIL = os.getenv('SUPPORT_EMAIL', 'suporte@placarcerto.digital')
 
 # Application Settings
 FREE_ANALYSIS_LIMIT = int(os.getenv('FREE_ANALYSIS_LIMIT', '3'))
-PREMIUM_ANALYSIS_LIMIT = int(os.getenv('PREMIUM_ANALYSIS_LIMIT', '100'))
+PREMIUM_ANALYSIS_LIMIT = int(os.getenv('PREMIUM_ANALYSIS_LIMIT', '60'))
 
 # Programa de Afiliados
 # Janela (dias) em que um cookie de afiliado é válido.

@@ -105,8 +105,8 @@ export default function PremiumPage() {
       icon: TrendingUp,
       title: 'Análises Diárias',
       description: 'Análises estatísticas para suas partidas favoritas',
-      free: '5 por dia',
-      premium: 'Até 150 por dia',
+      free: 'Até 3 por dia',
+      premium: 'Até 60 por dia',
     },
     {
       icon: Bell,
@@ -206,13 +206,13 @@ export default function PremiumPage() {
   return (
     <div className="page-container">
       <SEOHead
-        title="Planos Premium - Análises Ilimitadas | PlacerCerto"
-        description="Conheça o Premium Vitalício do PlacerCerto: pagamento único de 250 MZN e até 150 análises por dia, com ferramentas estatísticas avançadas."
-        keywords="planos premium, assinatura futebol, análises ilimitadas, estatísticas futebol moçambique"
+        title="Premium Vitalício - Análise Estatística de Futebol | PlacerCerto"
+        description="Conheça o Premium Vitalício do PlacerCerto: pagamento único de 250 MZN e até 60 análises por dia, com ferramentas estatísticas avançadas."
+        keywords="Premium Vitalício, análise estatística futebol, futebol Moçambique"
         canonicalUrl="https://placarcerto.digital/premium"
       />
       
-      <Header title="Seja Premium" subtitle="Análises ilimitadas e recursos exclusivos" />
+      <Header title="Premium Vitalício" subtitle="Até 60 análises por dia, num pagamento único" />
 
       <div className="page-content">
         {/* Premium Mascot */}
