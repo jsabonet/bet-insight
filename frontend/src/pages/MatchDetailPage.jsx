@@ -977,17 +977,17 @@ export default function MatchDetailPage() {
               </span>
               {livePossession && (
                 <div
-                  className="mt-1 w-full max-w-[220px] rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800/70"
+                  className="mt-2 w-full max-w-[240px] rounded-lg bg-gray-50 px-3 py-2.5 dark:bg-gray-800/70"
                   aria-label={`Posse de bola: casa ${livePossession.home}, fora ${livePossession.away}`}
                 >
-                  <div className="flex items-center justify-between text-xs font-semibold text-gray-600 dark:text-gray-300">
+                  <p className="mb-2 text-center text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                    Posse de bola
+                  </p>
+                  <div className="mb-2 flex items-center justify-between text-sm font-bold text-gray-700 dark:text-gray-200">
                     <span>{livePossession.home}</span>
-                    <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      Posse de bola
-                    </span>
                     <span>{livePossession.away}</span>
                   </div>
-                  <div className="mt-1.5 flex h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                  <div className="flex h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
                     <span
                       className="bg-primary-500"
                       style={{ width: livePossession.home }}
