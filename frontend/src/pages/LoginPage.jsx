@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogIn } from 'lucide-react';
 import Logo from '../components/Logo';
@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   
   const { login } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -21,7 +22,14 @@ export default function LoginPage() {
 
     try {
       await login(username, password);
-      navigate('/');
+      const statePath = location.state?.from;
+      const requestedPath = statePath || new URLSearchParams(location.search).get('next');
+      const safePath = requestedPath?.startsWith('/')
+        && !requestedPath.startsWith('//')
+        && !requestedPath.includes('\\')
+        ? requestedPath
+        : '/home';
+      navigate(safePath, { replace: true });
     } catch (err) {
       setError(err.response?.data?.detail || 'Erro ao fazer login. Verifique suas credenciais.');
     } finally {

@@ -2,6 +2,8 @@
 Configuração personalizada do Django Admin para PlacerCerto
 """
 from django.contrib import admin
+from django.http import HttpResponseRedirect
+from urllib.parse import urlencode
 
 
 class PlacerCertoAdminSite(admin.AdminSite):
@@ -12,6 +14,16 @@ class PlacerCertoAdminSite(admin.AdminSite):
     site_title = "PlacerCerto"
     index_title = "Painel Administrativo"
     site_url = "https://placarcerto.digital"
+
+    def login(self, request, extra_context=None):
+        next_path = request.GET.get('next') or request.POST.get('next', '')
+        if (
+            not next_path.startswith('/admin/')
+            or next_path.startswith('//')
+            or '\\' in next_path
+        ):
+            next_path = '/admin/'
+        return HttpResponseRedirect(f'/login?{urlencode({"next": next_path})}')
     
     def each_context(self, request):
         """

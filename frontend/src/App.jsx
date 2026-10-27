@@ -1,5 +1,12 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -46,6 +53,7 @@ captureAffiliateRef();
 // AdminRoute component - Staff e superusuários
 function AdminRoute({ children }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   
   if (loading) {
     return (
@@ -55,7 +63,9 @@ function AdminRoute({ children }) {
     );
   }
   
-  if (!user) return <Navigate to="/login" />;
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  }
   if (!user.is_staff && !user.is_superuser) return <Navigate to="/" />;
   
   return (
@@ -110,6 +120,7 @@ function VPayReturnHandler() {
 // PublicRoute - redirects authenticated users to home
 function PublicRoute({ children }) {
   const { user, loading } = useAuth();
+  const location = useLocation();
   
   if (loading) {
     return (
@@ -119,7 +130,32 @@ function PublicRoute({ children }) {
     );
   }
   
-  return !user ? children : <Navigate to="/home" />;
+  if (!user) return children;
+
+  const requestedPath = new URLSearchParams(location.search).get('next');
+  const safePath = requestedPath?.startsWith('/')
+    && !requestedPath.startsWith('//')
+    && !requestedPath.includes('\\')
+    ? requestedPath
+    : '/home';
+  return <Navigate to={safePath} replace />;
+}
+
+function AdminLoginRedirect() {
+  const location = useLocation();
+  const requestedPath = new URLSearchParams(location.search).get('next');
+  const safePath = requestedPath?.startsWith('/admin/')
+    && !requestedPath.startsWith('//')
+    && !requestedPath.includes('\\')
+    ? requestedPath
+    : '/admin/';
+
+  return (
+    <Navigate
+      to={`/login?${new URLSearchParams({ next: safePath })}`}
+      replace
+    />
+  );
 }
 
 function App() {
@@ -149,6 +185,7 @@ function App() {
               </PublicRoute>
             }
           />
+          <Route path="/admin/login" element={<AdminLoginRedirect />} />
           <Route
             path="/register"
             element={
