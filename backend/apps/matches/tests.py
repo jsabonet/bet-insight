@@ -100,9 +100,19 @@ class MatchDetailPerformanceTests(SimpleTestCase):
 			save=lambda **_kwargs: None,
 		)
 		fixture = {
-			'fixture': {'status': {'short': '1H', 'elapsed': 24}},
+			'fixture': {'status': {'short': '1H', 'elapsed': 45, 'extra': 3}},
 			'goals': {'home': 1, 'away': 0},
 		}
+		statistics = [
+			{
+				'team': {'name': 'Home FC'},
+				'statistics': [{'type': 'Ball Possession', 'value': '61%'}],
+			},
+			{
+				'team': {'name': 'Away FC'},
+				'statistics': [{'type': 'Ball Possession', 'value': '39%'}],
+			},
+		]
 		events = [{
 			'type': 'Goal',
 			'team': {'name': 'Home FC'},
@@ -112,6 +122,8 @@ class MatchDetailPerformanceTests(SimpleTestCase):
 		def cached_live_data(key, _timeout, _fetch, force_refresh=False):
 			if 'events' in key:
 				return {'success': True, 'events': events}
+			if 'statistics' in key:
+				return {'success': True, 'statistics': statistics}
 			return {'success': True, 'fixture': fixture}
 
 		with (
@@ -130,13 +142,19 @@ class MatchDetailPerformanceTests(SimpleTestCase):
 		self.assertEqual(response.data['home_score'], 1)
 		self.assertEqual(response.data['away_score'], 0)
 		self.assertEqual(response.data['status'], '1H')
-		self.assertEqual(response.data['elapsed'], 24)
+		self.assertEqual(response.data['elapsed'], 45)
+		self.assertEqual(response.data['extra'], 3)
 		self.assertEqual(response.data['events'], events)
+		self.assertEqual(response.data['statistics'], statistics)
 		self.assertEqual(match.status, 'live')
-		self.assertEqual(cached_result.call_count, 2)
+		self.assertEqual(cached_result.call_count, 3)
 		self.assertEqual(
 			{call.args[:2] for call in cached_result.call_args_list},
-			{('match_live_score:v1:77', 4), ('match_live_events:v1:77', 4)},
+			{
+				('match_live_score:v1:77', 4),
+				('match_live_events:v1:77', 4),
+				('match_live_statistics:v1:77', 60),
+			},
 		)
 		self.assertTrue(all(call.kwargs['force_refresh'] for call in cached_result.call_args_list))
 

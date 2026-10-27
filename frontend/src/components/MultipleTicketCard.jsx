@@ -1,52 +1,6 @@
 import { Target, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-// Função para formatar nomes de mercados
-const formatMarket = (market) => {
-  const marketLabels = {
-    'home_win': 'Vitória do Time da Casa',
-    'draw': 'Empate',
-    'away_win': 'Vitória do Time Visitante',
-    'double_chance_12': 'Casa ou Fora (Sem Empate)',
-    'double_chance_1x': 'Casa Vence ou Empata',
-    'double_chance_x2': 'Empate ou Fora Vence',
-    '1x': 'Casa ou Empate',
-    'x2': 'X2',
-    '12': 'Casa ou Fora',
-    'over_0_5': 'Pelo Menos 1 Gol no Jogo',
-    'over_1_5': 'Pelo Menos 2 Gols no Jogo',
-    'over_2_5': 'Pelo Menos 3 Gols no Jogo',
-    'over_3_5': 'Pelo Menos 4 Gols no Jogo',
-    'over_4_5': 'Over 4.5',
-    'under_0_5': 'Sem Gols (0-0)',
-    'under_1_5': 'No Máximo 1 Gol',
-    'under_2_5': 'No Máximo 2 Gols',
-    'under_3_5': 'No Máximo 3 Gols',
-    'under_4_5': 'Under 4.5',
-    'btts_yes': 'Ambos Times Marcam',
-    'btts_no': 'Pelo Menos 1 Time Não Marca',
-    'home_over_05': 'Casa Marca Pelo Menos 1 Gol',
-    'home_over_0.5': 'Home Over 0.5',
-    'home_over_15': 'Casa Marca Pelo Menos 2 Gols',
-    'home_over_1.5': 'Home Over 1.5',
-    'home_over_25': 'Casa Marca Pelo Menos 3 Gols',
-    'home_over_2.5': 'Home Over 2.5',
-    'away_over_05': 'Fora Marca Pelo Menos 1 Gol',
-    'away_over_0.5': 'Away Over 0.5',
-    'away_over_15': 'Fora Marca Pelo Menos 2 Gols',
-    'away_over_1.5': 'Away Over 1.5',
-    'away_over_25': 'Fora Marca Pelo Menos 3 Gols',
-    'away_over_2.5': 'Away Over 2.5',
-    'away_under_0.5': 'Away Under 0.5',
-    'away_under_1.5': 'Away Under 1.5',
-    'away_under_2.5': 'Away Under 2.5',
-    'home_under_0.5': 'Home Under 0.5',
-    'home_under_1.5': 'Home Under 1.5',
-    'home_under_2.5': 'Home Under 2.5',
-  };
-  
-  return marketLabels[market] || market.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-};
+import { formatMarketLabel } from '../utils/marketLabels';
 
 export default function MultipleTicketCard({ ticket, onViewDetails }) {
   const navigate = useNavigate();
@@ -135,11 +89,11 @@ export default function MultipleTicketCard({ ticket, onViewDetails }) {
                   {selection.match || `${selection.home_team?.name || selection.home_team || ''} vs ${selection.away_team?.name || selection.away_team || ''}`}
                 </p>
                 <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
-                  {formatMarket(selection.market_label || selection.market || 'Mercado')}
+                  {formatMarketLabel(selection.market, selection.market_label)}
                 </p>
                 {selection.original_market && selection.line_adjustment && (
                   <p className="text-[10px] text-amber-700 dark:text-amber-400">
-                    Linha ajustada: {formatMarket(selection.original_market)} → {formatMarket(selection.market)}
+                    Linha ajustada: {formatMarketLabel(selection.original_market)} → {formatMarketLabel(selection.market)}
                   </p>
                 )}
               </div>

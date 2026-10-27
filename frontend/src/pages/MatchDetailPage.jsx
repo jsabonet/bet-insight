@@ -20,6 +20,28 @@ const LIVE_SCORE_POLL_INTERVAL = 5000;
 
 const isLiveMatch = (status) => LIVE_MATCH_STATUSES.has(String(status || '').toUpperCase());
 
+function getPossession(statistics, homeTeam, awayTeam) {
+  if (!Array.isArray(statistics) || statistics.length < 2) return null;
+
+  const findTeamStats = (teamName, fallbackIndex) => (
+    statistics.find((item) => item.team?.name === teamName) || statistics[fallbackIndex]
+  );
+  const homeStats = findTeamStats(homeTeam, 0);
+  const awayStats = findTeamStats(awayTeam, 1);
+  const readPossession = (teamStats) => {
+    const value = teamStats?.statistics?.find(
+      (item) => item.type === 'Ball Possession',
+    )?.value;
+    if (value == null || value === '') return null;
+    const numericValue = Number(String(value).replace('%', '').trim());
+    return Number.isFinite(numericValue) ? `${numericValue}%` : null;
+  };
+  const home = readPossession(homeStats);
+  const away = readPossession(awayStats);
+
+  return home && away ? { home, away } : null;
+}
+
 // Lazy load componentes pesados
 const AtAGlance = lazy(() => import('../components/match-detail/AtAGlance'));
 const GoalsAndPoisson = lazy(() => import('../components/match-detail/GoalsAndPoisson'));
@@ -174,6 +196,7 @@ export default function MatchDetailPage() {
 
     let active = true;
     let intervalId;
+    let intervalMs;
     let requestInFlight = false;
     const refreshLiveScore = async (forceRefresh = false) => {
       if (requestInFlight) return;
@@ -187,14 +210,25 @@ export default function MatchDetailPage() {
               home_score: data.home_score ?? current.home_score,
               away_score: data.away_score ?? current.away_score,
               status: data.status || current.status,
-              elapsed: data.elapsed,
+              elapsed: data.elapsed ?? current.elapsed,
+              extra: data.extra ?? current.extra,
               events: data.events ?? current.events,
+              statistics: data.statistics?.length ? data.statistics : current.statistics,
             }
           : current);
 
-        if (isLiveMatch(data.status)) {
-          if (!intervalId) intervalId = setInterval(refreshLiveScore, LIVE_SCORE_POLL_INTERVAL);
-        } else if (intervalId) {
+        const status = String(data.status || '').toUpperCase();
+        const nextIntervalMs = isLiveMatch(status)
+          ? LIVE_SCORE_POLL_INTERVAL
+          : ['NS', 'TBD', 'SCHEDULED'].includes(status) ? 60000 : null;
+        if (nextIntervalMs !== intervalMs) {
+          if (intervalId) clearInterval(intervalId);
+          intervalId = nextIntervalMs
+            ? setInterval(refreshLiveScore, nextIntervalMs)
+            : undefined;
+          intervalMs = nextIntervalMs;
+        }
+        if (!nextIntervalMs && intervalId) {
           clearInterval(intervalId);
           intervalId = undefined;
         }
@@ -805,6 +839,14 @@ export default function MatchDetailPage() {
     );
   }
 
+  const livePossession = isLiveMatch(match?.status)
+    ? getPossession(
+        match.statistics,
+        match.home_team?.name || match.home_team,
+        match.away_team?.name || match.away_team,
+      )
+    : null;
+
   return (
     <div className="page-container">
       {match && (
@@ -917,15 +959,46 @@ export default function MatchDetailPage() {
                 </span>
               )}
               <span className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 font-semibold">
-                {match.elapsed != null && Number.isFinite(Number(match.elapsed)) ? `${match.elapsed}' · ` : ''}
+                {match.elapsed != null && Number.isFinite(Number(match.elapsed))
+                  ? `${match.elapsed}${Number(match.extra) > 0 ? `+${match.extra}` : ''}' · `
+                  : ''}
                 {match.status === 'NS' ? 'Não iniciado' : 
                  (match.status === 'FT' || match.status === 'AET' || match.status === 'PEN' || match.status === 'finished') ? 'Finalizado' :
                  match.status === '1H' ? '1º Tempo' :
                  match.status === 'HT' ? 'Intervalo' :
                  match.status === '2H' ? '2º Tempo' :
+                 match.status === 'ET' ? 'Prolongamento' :
+                 match.status === 'BT' ? 'Intervalo do prolongamento' :
+                 match.status === 'P' ? 'Penáltis' :
+                 match.status === 'INT' ? 'Partida interrompida' :
                  (isLiveMatch(match.status) || match.status === 'live') ? 'Ao vivo' :
                  match.status === 'scheduled' ? 'Não iniciado' : match.status}
+                {Number(match.extra) > 0 && ' · Acréscimos'}
               </span>
+              {livePossession && (
+                <div
+                  className="mt-1 w-full max-w-[220px] rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800/70"
+                  aria-label={`Posse de bola: casa ${livePossession.home}, fora ${livePossession.away}`}
+                >
+                  <div className="flex items-center justify-between text-xs font-semibold text-gray-600 dark:text-gray-300">
+                    <span>{livePossession.home}</span>
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      Posse de bola
+                    </span>
+                    <span>{livePossession.away}</span>
+                  </div>
+                  <div className="mt-1.5 flex h-1.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                    <span
+                      className="bg-primary-500"
+                      style={{ width: livePossession.home }}
+                    />
+                    <span
+                      className="bg-indigo-400"
+                      style={{ width: livePossession.away }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Time Visitante */}

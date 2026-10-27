@@ -272,7 +272,8 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
 
         fixture_id = match.api_football_id
         force_refresh = request.query_params.get('force_refresh') == 'true'
-        with ThreadPoolExecutor(max_workers=2) as executor:
+        statistics_future = None
+        with ThreadPoolExecutor(max_workers=3) as executor:
             score_future = executor.submit(
                 _cached_api_result,
                 f'match_live_score:v1:{fixture_id}',
@@ -288,7 +289,22 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 force_refresh=force_refresh,
             )
             result = score_future.result()
+            score_fixture = (result or {}).get('fixture') or {}
+            score_status = (
+                (score_fixture.get('fixture') or {}).get('status') or {}
+            ).get('short')
+            if str(score_status or '').upper() in {
+                'LIVE', '1H', '2H', 'HT', 'ET', 'BT', 'P', 'INT',
+            }:
+                statistics_future = executor.submit(
+                    _cached_api_result,
+                    f'match_live_statistics:v1:{fixture_id}',
+                    60,
+                    lambda: FootballAPIService().get_fixture_statistics(fixture_id),
+                    force_refresh=force_refresh,
+                )
             events_result = events_future.result()
+            statistics_result = statistics_future.result() if statistics_future else None
 
         if not result or not result.get('success'):
             return Response(
@@ -359,9 +375,18 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             'away_score': goals['away'],
             'status': status_code,
             'elapsed': fixture_status.get('elapsed'),
+            'extra': fixture_status.get('extra'),
         }
         if events_available:
             response_data['events'] = events
+        if statistics_result and statistics_result.get('success'):
+            response_data['statistics'] = statistics_result.get('statistics') or []
+        elif statistics_future:
+            logger.warning(
+                'Não foi possível atualizar estatísticas ao vivo da partida %s: %s',
+                fixture_id,
+                (statistics_result or {}).get('error', 'erro não especificado'),
+            )
         return Response(response_data)
     
     def _generate_mock_matches(self, date):

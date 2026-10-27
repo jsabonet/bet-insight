@@ -1,34 +1,5 @@
 import { Zap, ExternalLink } from 'lucide-react';
-
-// Função para formatar nomes de mercados
-const formatMarket = (market) => {
-  const marketLabels = {
-    'home_win': 'Vitória do Time da Casa',
-    'draw': 'Empate',
-    'away_win': 'Vitória do Time Visitante',
-    'double_chance_12': 'Casa ou Fora (Sem Empate)',
-    'double_chance_1x': 'Casa Vence ou Empata',
-    'double_chance_x2': 'Empate ou Fora Vence',
-    'over_0_5': 'Pelo Menos 1 Gol no Jogo',
-    'over_1_5': 'Pelo Menos 2 Gols no Jogo',
-    'over_2_5': 'Pelo Menos 3 Gols no Jogo',
-    'over_3_5': 'Pelo Menos 4 Gols no Jogo',
-    'under_0_5': 'Sem Gols (0-0)',
-    'under_1_5': 'No Máximo 1 Gol',
-    'under_2_5': 'No Máximo 2 Gols',
-    'under_3_5': 'No Máximo 3 Gols',
-    'btts_yes': 'Ambos Times Marcam',
-    'btts_no': 'Pelo Menos 1 Time Não Marca',
-    'home_over_05': 'Casa Marca Pelo Menos 1 Gol',
-    'home_over_15': 'Casa Marca Pelo Menos 2 Gols',
-    'home_over_25': 'Casa Marca Pelo Menos 3 Gols',
-    'away_over_05': 'Fora Marca Pelo Menos 1 Gol',
-    'away_over_15': 'Fora Marca Pelo Menos 2 Gols',
-    'away_over_25': 'Fora Marca Pelo Menos 3 Gols',
-  };
-  
-  return marketLabels[market] || market.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-};
+import { formatMarketLabel } from '../utils/marketLabels';
 
 export default function ValueBetCard({ bet, onViewAnalysis }) {
   const {
@@ -93,11 +64,11 @@ export default function ValueBetCard({ bet, onViewAnalysis }) {
         <div className="mb-3">
           <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Aposta</p>
           <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-            {formatMarket(selection.market_label || selection.market || 'Mercado')}
+            {formatMarketLabel(selection.market, selection.market_label)}
           </p>
           {selection.original_market && selection.line_adjustment && (
             <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
-              Linha ajustada: {formatMarket(selection.original_market)} → {formatMarket(selection.market)}
+              Linha ajustada: {formatMarketLabel(selection.original_market)} → {formatMarketLabel(selection.market)}
             </p>
           )}
         </div>
