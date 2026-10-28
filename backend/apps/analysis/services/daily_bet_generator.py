@@ -1192,18 +1192,12 @@ class DailyBetGenerator:
             league_name = analysis['league_name']
             match_date = analysis['match_date']
             supergiant_fixture = is_supergiant_match(match)
-            result = (
-                analysis.get('multiple_result')
-                if supergiant_fixture
-                else analysis.get('value_result')
-            )
+            result = analysis.get('multiple_result')
             
-            # Jogos com supergigante usam a análise MULTIPLE, já restringida
-            # pelo DecisionEngine aos mercados protetivos.
             if result is None:
                 logger.debug(
                     f"   ⏩ Pulando {home_team} vs {away_team}: "
-                    f"análise {'MULTIPLE' if supergiant_fixture else 'VALUE'} falhou"
+                    "análise MULTIPLE falhou; não usar análise VALUE como fallback"
                 )
                 continue
 
@@ -1236,7 +1230,8 @@ class DailyBetGenerator:
                 # Filtrar por critérios de bilhete:
                 # 1. Probabilidade dinâmica baseada no tamanho (será verificada depois)
                 # 2. Odd na faixa conservadora (1.30 - 1.50)
-                # 3. EV >= 5% (usando VALUE_RESULT com MIN_VALUE_EV)
+                # 3. A análise MULTIPLE prioriza probabilidade; filtros finais do bilhete
+                #    validam probabilidade combinada, odd total e EV do acumulador.
                 # 4. Confidence ≥ 4 estrelas
                 # 5. Risco baixo/médio
                 # 6. Empate < 35%
@@ -1288,10 +1283,9 @@ class DailyBetGenerator:
                         else self.MIN_ODD_MULTIPLE
                     )
                     
-                    # ✅ CORREÇÃO CRÍTICA 21/02: Usar VALUE_RESULT (EV >= 5%) com filtros de múltiplos
-                    # - VALUE_RESULT já filtra EV >= 5% (MIN_VALUE_EV)
-                    # Em jogos com supergigante, a análise MULTIPLE prioriza
-                    # cobertura protetiva e permite odd mínima de 1.15.
+                    # A seleção vem da análise MULTIPLE; os filtros do bilhete
+                    # aplicam o piso de probabilidade e a faixa de odds.
+                    # Jogos com supergigante permitem odd mínima protetiva de 1.15.
                     if (prob >= 0.65 and  # Mínimo 65% (pragmático)
                         odd >= min_odd and  # Odd mínima padrão 1.30 ou protetiva 1.15
                         odd <= self.MAX_ODD_MULTIPLE):  # Odd máxima 1.50

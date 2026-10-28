@@ -89,6 +89,8 @@ class HybridAnalysisOrchestrator:
         competition = features.get('competition', {})  # NOVO: features de competição
         home_strength = strength.get('home_goals_per_game', 1.2)
         away_strength = strength.get('away_goals_per_game', 1.2)
+        home_defense = strength.get('home_conceded_per_game')
+        away_defense = strength.get('away_conceded_per_game')
         weather_impact = weather.get('goal_impact', 0.0)
         
         # PROTEÇÃO: Garantir que ligas NUNCA sejam afetadas
@@ -111,6 +113,8 @@ class HybridAnalysisOrchestrator:
         logger.info(f"🔧 [Orchestrator] FEATURES CRÍTICAS PARA ENSEMBLE:")
         logger.info(f"   Home Strength: {home_strength:.2f} gols/jogo")
         logger.info(f"   Away Strength: {away_strength:.2f} gols/jogo")
+        logger.info(f"   Home Goals Conceded: {home_defense if home_defense is not None else 'N/A'} gols/jogo")
+        logger.info(f"   Away Goals Conceded: {away_defense if away_defense is not None else 'N/A'} gols/jogo")
         logger.info(f"   Weather Impact: {weather_impact:.2f}")
         logger.info(f"   League ID: {match.league.api_football_id if match.league else 'N/A'}")
         logger.info(f"   Tipo Competição: {'COPA' if is_cup else 'LIGA'}")
@@ -123,6 +127,7 @@ class HybridAnalysisOrchestrator:
         league_id = match.league.api_football_id if match.league else None
 
         ensemble_result = self.ensemble.predict(features, home_strength, away_strength, weather_impact, league_id,
+                                               home_defense=home_defense, away_defense=away_defense,
                                                knockout_adjustment=knockout_adjustment,
                                                context_analysis=context_analysis)  # NOVO: passar contexto
         

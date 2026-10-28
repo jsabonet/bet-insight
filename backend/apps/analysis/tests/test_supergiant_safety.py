@@ -117,7 +117,28 @@ class SupergiantSafetyTests(SimpleTestCase):
                         },
                     },
                 },
-                'multiple_result': None,
+                'multiple_result': {
+                    'analysis_data': {
+                        'top_bets': [{
+                            'market': 'under_3.5',
+                            'pick': 'Under 3.5',
+                            'probability': 0.90,
+                            'market_odd': 1.40,
+                            'score': 0.90,
+                        }],
+                        'consensus': {'draw': 0.10},
+                        'decision': {
+                            'confidence': {'stars': 5},
+                            'risk': 'low',
+                        },
+                    },
+                    'features': {
+                        'form': {
+                            'home_weighted_form': 2.0,
+                            'away_weighted_form': 2.0,
+                        },
+                    },
+                },
             })
 
         created = []
@@ -130,6 +151,11 @@ class SupergiantSafetyTests(SimpleTestCase):
             tickets = generator._generate_multiple_tickets(analyses, date(2026, 6, 1))
 
         self.assertEqual(len(tickets), 3)
+        self.assertTrue(all(
+            selection['market'] == 'under_3.5'
+            for ticket in created
+            for selection in ticket['selections']
+        ))
         fixture_sets = [
             {selection['fixture_id'] for selection in ticket['selections']}
             for ticket in created
@@ -138,3 +164,39 @@ class SupergiantSafetyTests(SimpleTestCase):
         self.assertFalse(fixture_sets[0] & fixture_sets[1])
         self.assertFalse(fixture_sets[0] & fixture_sets[2])
         self.assertFalse(fixture_sets[1] & fixture_sets[2])
+
+    def test_multiple_tickets_do_not_fall_back_to_value_analysis(self):
+        generator = DailyBetGenerator.__new__(DailyBetGenerator)
+        analyses = [{
+            'match': SimpleNamespace(
+                home_team=SimpleNamespace(id=100),
+                away_team=SimpleNamespace(id=101),
+            ),
+            'fixture_id': 12345,
+            'home_team': 'Home',
+            'away_team': 'Away',
+            'league_name': 'League',
+            'league_id': 1,
+            'match_date': '2026-06-01T12:00:00+00:00',
+            'value_result': {
+                'analysis_data': {
+                    'top_bets': [{
+                        'market': 'under_3.5',
+                        'pick': 'Under 3.5',
+                        'probability': 0.90,
+                        'market_odd': 1.40,
+                        'score': 0.90,
+                    }],
+                    'consensus': {'draw': 0.10},
+                    'decision': {
+                        'confidence': {'stars': 5},
+                        'risk': 'low',
+                    },
+                },
+            },
+            'multiple_result': None,
+        }]
+
+        tickets = generator._generate_multiple_tickets(analyses, date(2026, 6, 1))
+
+        self.assertEqual(tickets, [])
