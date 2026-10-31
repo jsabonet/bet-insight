@@ -442,94 +442,71 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['post'], url_path='admin/generate-now', permission_classes=[IsAdminUser])
     def admin_generate_now(self, request):
         """
-        🔐 ADMIN ONLY: Executa geração de daily bets manualmente (SINCRONO)
-        
-        Body (opcional):
-        {
-            "date": "2026-02-15",  // Data específica (padrão: hoje)
-            "mode": "hybrid"       // Modo: 'priority', 'all', 'hybrid' (padrão: hybrid)
-        }
-        
-        Response:
-        {
-            "status": "success",
-            "task_id": "abc-123-def",
-            "message": "Daily Bets gerados com sucesso",
-            "execution_id": 42,
-            "results": {...}
-        }
+        Executa a geração manual imediatamente e acompanha o progresso pelo registro.
         """
-        from apps.analysis.services.daily_bet_generator import DailyBetGenerator, GenerationCancelledException
+        from apps.analysis.services.daily_bet_generator import (
+            DailyBetGenerator,
+            GenerationCancelledException,
+        )
         from apps.analysis.models import TaskExecution
+        from django.utils import timezone
         import uuid
 
-        # Executar de forma síncrona (sem Celery)
+        task_id = str(uuid.uuid4())
+        mode = request.data.get('mode', 'hybrid')
+        execution = TaskExecution.objects.create(
+            task_name='generate_daily_bets',
+            task_id=task_id,
+            triggered_by='manual',
+            triggered_by_user=request.user,
+        )
+
         try:
-            task_id = str(uuid.uuid4())
-            
-            # Extrair parâmetros do body
-            mode = request.data.get('mode', 'hybrid')  # default: hybrid
-            
-            # Criar registro de execução
-            execution = TaskExecution.objects.create(
-                task_name='generate_daily_bets',
-                task_id=task_id,
-                triggered_by='admin_manual',
-                triggered_by_user=request.user
-            )
-            
-            # Executar geração com modo especificado
             generator = DailyBetGenerator()
             results = generator.generate_for_today(mode=mode, execution=execution)
+
             if results.get('total_bets', 0) > 0:
-                from apps.notifications.tasks import enqueue_premium_daily_bets_push
-                enqueue_premium_daily_bets_push(
-                    timezone.localdate(),
-                    results.get('multiple_count', 0),
-                    results.get('value_count', 0),
-                )
-            
-            # Atualizar execução com TODOS os dados (incluindo analyzed_matches)
-            result_data = {
-                'results': results  # Incluir resultado completo do generator
-            }
-            
+                try:
+                    from apps.notifications.tasks import enqueue_premium_daily_bets_push
+                    enqueue_premium_daily_bets_push(
+                        timezone.localdate(),
+                        results.get('multiple_count', 0),
+                        results.get('value_count', 0),
+                    )
+                except Exception:
+                    import logging
+                    logging.getLogger(__name__).exception(
+                        'Falha ao enfileirar notificações após geração manual'
+                    )
+
+            result_data = {'results': results}
             execution.mark_finished(status='success', result_data=result_data)
-            
             return Response({
                 'status': 'success',
                 'task_id': task_id,
                 'execution_id': execution.id,
                 'message': f'Daily Bets gerados! {results.get("multiple_count", 0)} múltiplos.',
-                'results': result_data
+                'results': result_data,
             }, status=http_status.HTTP_200_OK)
-        
-        except GenerationCancelledException as e:
-            # Geração foi cancelada pelo usuário - não é erro
-            if 'execution' in locals():
-                execution.mark_finished(status='cancelled', result_data={
-                    'message': str(e),
-                    'cancelled_by_user': request.user.username
-                })
-            
+        except GenerationCancelledException as exc:
+            execution.mark_finished(status='cancelled', result_data={
+                'message': str(exc),
+                'cancelled_by_user': request.user.username,
+            })
             return Response({
                 'status': 'cancelled',
-                'message': '🛑 Geração cancelada pelo usuário',
-                'execution_id': execution.id if 'execution' in locals() else None
+                'message': 'Geração cancelada pelo usuário.',
+                'execution_id': execution.id,
             }, status=http_status.HTTP_200_OK)
-            
-        except Exception as e:
-            import traceback
-            error_detail = traceback.format_exc()
-            
-            # Tentar marcar execução como falha se existir
-            if 'execution' in locals():
-                execution.mark_finished(status='failed', result_data={'error': str(e)})
-            
+        except Exception as exc:
+            execution.mark_finished(
+                status='failed',
+                error_message=str(exc),
+                result_data={'error': str(exc)},
+            )
             return Response({
                 'status': 'error',
-                'message': f'Erro ao gerar daily bets: {str(e)}',
-                'detail': error_detail
+                'message': f'Erro ao gerar daily bets: {str(exc)}',
             }, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     @action(detail=False, methods=['post'], url_path='admin/validate-now', permission_classes=[IsAdminUser])

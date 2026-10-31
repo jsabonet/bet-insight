@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.utils import timezone
 from rest_framework.test import APITestCase
@@ -76,3 +77,27 @@ class AdminExecutionHistoryTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+    @patch('apps.analysis.services.daily_bet_generator.DailyBetGenerator')
+    def test_admin_generate_now_runs_generation_immediately(self, generator_class):
+        generator = generator_class.return_value
+        generator.generate_for_today.return_value = {
+            'total_bets': 0,
+            'multiple_count': 0,
+            'value_count': 0,
+        }
+
+        response = self.client.post(
+            '/api/daily-bets/admin/generate-now/',
+            {'mode': 'hybrid'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['status'], 'success')
+        execution = TaskExecution.objects.get(task_id=response.data['task_id'])
+        self.assertEqual(execution.triggered_by, 'manual')
+        generator.generate_for_today.assert_called_once_with(
+            mode='hybrid',
+            execution=execution,
+        )

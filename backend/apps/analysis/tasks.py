@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @shared_task(bind=True, name='analysis.generate_daily_bets')
-def generate_daily_bets(self, triggered_by='celery', user_id=None):
+def generate_daily_bets(self, triggered_by='celery', user_id=None, mode='hybrid'):
     """
     Task executada diariamente para gerar bilhetes múltiplos automáticos
     
@@ -49,7 +49,7 @@ def generate_daily_bets(self, triggered_by='celery', user_id=None):
         generator = DailyBetGenerator()
         
         # Gerar bilhetes e value bets
-        results = generator.generate_for_today()
+        results = generator.generate_for_today(mode=mode, execution=execution)
         if results.get('total_bets', 0) > 0:
             from apps.notifications.tasks import enqueue_premium_daily_bets_push
             enqueue_premium_daily_bets_push(
