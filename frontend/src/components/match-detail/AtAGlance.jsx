@@ -189,7 +189,7 @@ export default function AtAGlance({ analysis, match }) {
               {mostLikelyScore}
             </div>
             <div className="text-sm font-medium text-white/90">
-              Baseado em análise estatística de {poisson?.total_scenarios || 81} cenários
+              Baseado em {poisson?.total_scenarios ?? '—'} cenários de placar analisados
             </div>
           </div>
         </div>

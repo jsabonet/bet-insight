@@ -8,9 +8,9 @@ from .feature_engineer import FeatureEngineer
 from .ml_integration import ModelEnsembleML
 from .decision_engine import DecisionEngine
 from .ai_analyzer import AIAnalyzer
-from .context_analyzer import ContextAnalyzer  # NOVO
 from .market_selector import MarketSelector    # NOVO
 from .hybrid_strategy import HybridStrategy    # ESTRATEGIA ADAPTATIVA
+from .context_pipeline import analyze_match_context
 
 logger = logging.getLogger(__name__)
 
@@ -21,15 +21,20 @@ class HybridAnalysisOrchestrator:
     def __init__(self, enable_cup_adjustment: bool = True):
         self.enricher = MatchDataEnricher()
         self.fe = FeatureEngineer()
-        self.context_analyzer = ContextAnalyzer()  # NOVO
         self.ensemble = ModelEnsembleML()  # 🤖 USANDO ML TREINADO
         self.market_selector = MarketSelector()    # NOVO
         self.hybrid_strategy = HybridStrategy()    # ESTRATEGIA HIBRIDA
         self.decision = DecisionEngine()
-        self.ai = AIAnalyzer()
+        self.ai = None
         self.enable_cup_adjustment = enable_cup_adjustment  # Flag global para ativar/desativar ajuste de copas
 
-    def run(self, match: Match, strategy: str = 'value') -> Dict:
+    def run(
+        self,
+        match: Match,
+        strategy: str = 'value',
+        enriched_data: Dict = None,
+        include_ai: bool = True,
+    ) -> Dict:
         """Executa a análise híbrida e retorna payload pronto para persistir/exibir.
         
         Args:
@@ -41,11 +46,14 @@ class HybridAnalysisOrchestrator:
 
         logger.info(f"🎯 [Orchestrator] Executando análise com estratégia: {strategy.upper()}")
 
-        # 1) Enriquecer dados
-        match_data = {
-            'api_id': match.api_football_id,
-        }
-        enriched = self.enricher.enrich(match_data)
+        if enriched_data is None:
+            enriched = self.enricher.enrich({'api_id': match.api_football_id})
+        else:
+            enriched = dict(enriched_data)
+        if not enriched.get('fixture_details'):
+            raise ValueError(
+                f"Fixture details unavailable for API Football ID {match.api_football_id}."
+            )
 
         # 2) Feature engineering
         features = self.fe.engineer_all_features(enriched)
@@ -56,6 +64,8 @@ class HybridAnalysisOrchestrator:
         logger.info(f"{'='*80}")
         total_features = 0
         for category, category_features in features.items():
+            if category.startswith('_'):
+                continue
             count = len(category_features)
             total_features += count
             logger.info(f"   {category.upper()}: {count} features")
@@ -68,20 +78,14 @@ class HybridAnalysisOrchestrator:
         logger.info(f"{'='*80}\n")
 
         # 2.5) NOVO: Análise contextual
-        context_analysis = self.context_analyzer.analyze(features)
+        context_analysis = analyze_match_context(
+            features,
+            hybrid_strategy=self.hybrid_strategy,
+        )
         logger.info(f"🔍 [Orchestrator] Padrões contextuais detectados: {len(context_analysis.get('patterns', []))}")
         for pattern in context_analysis.get('patterns', []):
             logger.info(f"   - {pattern['name']}: {pattern['confidence']:.0%}")
-        
-        # 2.6) ESTRATÉGIA HÍBRIDA: Decidir se usa contexto ou não
-        context_decision = self.hybrid_strategy.should_use_context(context_analysis, features)
-        
-        if not context_decision['use_context']:
-            # Contexto rejeitado - limpar para não influenciar modelos
-            logger.info(f"⚠️ [Orchestrator] Contexto REJEITADO - usando modelo base")
-            context_analysis = {'patterns': [], 'top_markets': []}
-        else:
-            logger.info(f"✅ [Orchestrator] Contexto APROVADO - padrões: {', '.join(context_decision['approved_patterns'])}")
+        context_decision = context_analysis['context_decision']
 
         # 3) Modelos estatísticos
         strength = features.get('strength', {})
@@ -241,7 +245,12 @@ class HybridAnalysisOrchestrator:
         logger.info(f"📦 [Orchestrator] Enriched data preparado para AI com {len(features)} categorias de features")
         
         # 6) IA explica (opcional) - agora com features completas
-        ai_result = self.ai.explain_decision(decision_result, enriched, strategy=strategy)
+        if include_ai:
+            if self.ai is None:
+                self.ai = AIAnalyzer()
+            ai_result = self.ai.explain_decision(decision_result, enriched, strategy=strategy)
+        else:
+            ai_result = {'success': False, 'analysis': None}
         
         # LOG: AI Analysis
         logger.info(f"\n{'='*80}")
@@ -282,7 +291,9 @@ class HybridAnalysisOrchestrator:
         confidence_int = int(confidence.get('stars', 3))
 
         # Texto de raciocínio
-        if ai_result.get('success'):
+        if not include_ai:
+            reasoning_text = None
+        elif ai_result.get('success'):
             reasoning_text = ai_result.get('analysis')
         else:
             reasoning_text = (
@@ -302,18 +313,24 @@ class HybridAnalysisOrchestrator:
         analysis_data = {
             'consensus': consensus,
             'poisson': poisson,
+            'model_predictions': ensemble_result,
             'fair_odds': fair_odds,
             'recommendation': recommendation,
             'confidence': confidence,
             'risk': risk,
+            'key_factors': key_factors,
             'value_bets': decision_result.get('value_bets', []),  # DEPRECATED: Mantido para compatibilidade
             'top_bets': decision_result.get('top_bets', []),  # NOVO: Top bets com estrutura completa
             'market_odds': market_odds,
             'publish_filter': decision_result.get('publish_filter', {}),  # NOVO: Filtro de confiança
             'features_summary': {
                 'strength': strength,
+                'form': features.get('form', {}),
                 'weather': weather,
+                'complete': features,
             },
+            'context_analysis': context_analysis,
+            'context_decision': context_decision,
         }
         
         # Flag para indicar se a previsão deve ser exibida (alta qualidade)
@@ -330,6 +347,9 @@ class HybridAnalysisOrchestrator:
             'away_xg': round(poisson.get('expected_goals', {}).get('away', 0), 2),
             'reasoning': reasoning_text,
             'key_factors': key_factors,
+            'context_analysis': context_analysis,
+            'context_decision': context_decision,
             'analysis_data': analysis_data,
+            'enriched_data': enriched,
             'should_publish': should_publish,  # NOVO: Flag de qualidade
         }

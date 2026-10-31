@@ -18,6 +18,7 @@ from django.conf import settings
 
 from apps.matches.models import Match
 from apps.analysis.models import DailyBet
+from apps.analysis.config.market_standards import normalize_market_name
 from apps.analysis.config.supergiants import (
     is_home_over_market,
     is_protective_supergiant_market,
@@ -37,7 +38,7 @@ class GenerationCancelledException(Exception):
 
 
 class DailyBetGenerator:
-    """Gera bilhetes múltiplos diariamente; value bets são opcionais."""
+    """Gera bilhetes múltiplos, permitindo até dois mercados distintos por partida."""
     
     # Configurações de filtros
     MIN_VALUE_EV = 5.0  # EV mínimo para value bets (+5%)
@@ -79,7 +80,9 @@ class DailyBetGenerator:
     MAX_DRAW_PROBABILITY = 0.35  # Empate máximo aceitável (35%)
     ALLOWED_RISK_LEVELS = ['low', 'medium']  # Apenas risco baixo/médio
     MIN_ABSOLUTE_FORM = 1.5  # Forma mínima absoluta (50% = 1.5/3.0 pontos) - previne apostas em times com má forma
-    
+
+    MAX_FIXTURE_TICKET_APPEARANCES = 2
+    MAX_DAILY_MULTIPLE_STAKE_UNITS = 10.0
     MAX_VALUE_BETS = 10  # Máximo de value bets por dia
     # ⚠️ LIMITAÇÃO: Com 50 partidas × 25 mercados = 1.250 candidatos, apenas 10 são selecionados (~0.8%)
     # Os modelos geram análises para TODOS os mercados, mas aqui limitamos o output final
@@ -414,8 +417,13 @@ class DailyBetGenerator:
         """
         selected = []
         used_league_ids = set()
+        used_fixture_ids = set()
         
         for bet in eligible_bets:
+            fixture_id = bet.get('fixture_id') or bet.get('api_fixture_id')
+            if fixture_id and fixture_id in used_fixture_ids:
+                continue
+
             # ✅ CORREÇÃO 21/02: Prioriza league_id (mais robusto)
             league_id = bet.get('league_id')
             league_name = bet.get('league', '')
@@ -426,6 +434,8 @@ class DailyBetGenerator:
                 continue
             
             selected.append(bet)
+            if fixture_id:
+                used_fixture_ids.add(fixture_id)
             if league_key:
                 used_league_ids.add(league_key)
             
@@ -971,10 +981,22 @@ class DailyBetGenerator:
                     'match_date': fixture_data.get('date'),
                 })()
                 
+                try:
+                    enriched_match_data = self.orchestrator.enricher.enrich({
+                        'api_id': fixture_id,
+                    })
+                except Exception as e:
+                    logger.error(f"    ❌ Erro ao enriquecer partida {fixture_id}: {e}")
+                    enriched_match_data = None
+
                 # Esta análise também alimenta os mercados usados nos bilhetes múltiplos.
                 logger.info("    🔍 Executando análise VALUE...")
                 try:
-                    result_value = self.orchestrator.run(match_data, strategy='value')
+                    result_value = self.orchestrator.run(
+                        match_data,
+                        strategy='value',
+                        enriched_data=enriched_match_data,
+                    )
                     logger.info(f"    ✅ VALUE analysis completed")
                 except Exception as e:
                     logger.error(f"    ❌ Erro na análise VALUE: {e}")
@@ -983,7 +1005,11 @@ class DailyBetGenerator:
                 # Análise com estratégia MULTIPLE (para bilhetes)
                 logger.info("    🔍 Executando análise MULTIPLE...")
                 try:
-                    result_multiple = self.orchestrator.run(match_data, strategy='multiple')
+                    result_multiple = self.orchestrator.run(
+                        match_data,
+                        strategy='multiple',
+                        enriched_data=enriched_match_data,
+                    )
                     logger.info(f"    ✅ MULTIPLE analysis completed")
                 except Exception as e:
                     logger.error(f"    ❌ Erro na análise MULTIPLE: {e}")
@@ -1168,13 +1194,12 @@ class DailyBetGenerator:
         """
         Gera bilhetes múltiplos com as melhores apostas (alta probabilidade)
         
-        Estratégia:
-        - Selecionar top apostas com maior probabilidade de cada partida
-        - Filtrar por contexto: confiança ≥4★, risco baixo/médio, empate <35%
-        - 🆕 NOVO: Rejeitar jogos onde AMBOS times têm má forma absoluta (<50%)
-        - Criar bilhetes de 3, 5 e 7 apostas
-        - Filtrar por probabilidade combinada mínima
-        - Odd total entre MIN_TICKET_ODD e MAX_TICKET_ODD
+        Estratégia de carteira:
+        - Priorizar partidas ainda não usadas e até dois mercados de grupos distintos
+          por partida, desde que passem pelos filtros individuais.
+        - Limitar a stake agregada dos múltiplos ao orçamento diário configurado.
+        - Tratar grupos de mercado como heurística de diversificação, não como
+          estimativa estatística de correlação entre resultados.
         """
         logger.info(f"\n{'─' * 80}")
         logger.info("📋 GERANDO BILHETES MÚLTIPLOS")
@@ -1222,7 +1247,7 @@ class DailyBetGenerator:
                 risk = decision_data.get('risk', 'high')
                 
                 # 🆕 NOVO 17/02/2026: Extrair forma absoluta dos times
-                features = result.get('features', {})
+                features = result.get('features') or analysis_data.get('features_summary', {})
                 form_features = features.get('form', {})
                 home_weighted_form = form_features.get('home_weighted_form', 1.5)
                 away_weighted_form = form_features.get('away_weighted_form', 1.5)
@@ -1295,43 +1320,66 @@ class DailyBetGenerator:
                     logger.debug(f"   ⏩ Pulando {home_team} vs {away_team}: nenhuma aposta atende critérios de bilhete")
                     continue
                 
-                # 🆕 NOVO 21/02: Selecionar aposta com MELHOR adequação contextual
-                # Ordenar por: 1) contextual_fit (se disponível), 2) score, 3) probabilidade
-                best_bet = max(eligible_bets, key=lambda b: (
-                    b.get('contextual_fit', 1.0),  # 1º: adequação contextual
-                    b.get('score', 0),              # 2º: score geral
-                    b.get('probability', 0)         # 3º: probabilidade
-                ))
+                # Uma partida pode cobrir até dois bilhetes, usando mercados distintos.
+                # A primeira opção é a principal; a segunda fica como alternativa.
+                eligible_bets.sort(key=lambda bet: (
+                    bet.get('contextual_fit', 1.0),
+                    bet.get('score', 0),
+                    bet.get('probability', 0),
+                ), reverse=True)
+                distinct_market_bets = []
+                seen_markets = set()
+                seen_market_groups = set()
+                for bet in eligible_bets:
+                    market = normalize_market_name(str(bet.get('market', '')))
+                    market_group = self._market_group(market)
+                    if (
+                        not market
+                        or market in seen_markets
+                        or market_group in seen_market_groups
+                    ):
+                        continue
+                    seen_markets.add(market)
+                    seen_market_groups.add(market_group)
+                    distinct_market_bets.append(bet)
+                    if len(distinct_market_bets) >= self.MAX_FIXTURE_TICKET_APPEARANCES:
+                        break
+
+                if not distinct_market_bets:
+                    continue
                 
+                best_bet = distinct_market_bets[0]
                 contextual_fit = best_bet.get('contextual_fit', 1.0)
                 if contextual_fit > 1.1:
                     logger.info(f"   🎯 Selecionado por CONTEXTO: {best_bet['market']} (fit={contextual_fit:.2f})")
-                elif len(eligible_bets) > 1:
-                    logger.info(f"   🎯 Melhor entre {len(eligible_bets)} elegíveis: {best_bet['market']}")
+                elif len(distinct_market_bets) > 1:
+                    logger.info(f"   🎯 Selecionado principal entre {len(eligible_bets)} elegíveis: {best_bet['market']}")
 
                 logger.info(f"   🎯 Seleção Bilhete: {best_bet['market']} ({best_bet['pick']}) - {best_bet['probability']*100:.0f}% @ {best_bet['market_odd']:.2f}")
                 if 'post_reason' in best_bet:
                     logger.info(f"      Razão: {best_bet['post_reason']}")
 
                 # ✅ CORREÇÃO 21/02: Incluir league_id para anti-correlação robusta
-                all_bets.append({
-                    'fixture_id': fixture_id,
-                    'api_fixture_id': fixture_id,
-                    'match': f"{home_team} vs {away_team}",
-                    'league': league_name,
-                    'league_id': analysis.get('league_id'),
-                    'date': match_date,
-                    'market': best_bet['market'],
-                    'original_market': best_bet.get('original_market'),
-                    'line_adjustment': best_bet.get('line_adjustment', ''),
-                    'pick': best_bet['pick'],
-                    'probability': best_bet['probability'],
-                    'odd': best_bet['market_odd'],
-                    'fair_odd': best_bet.get('fair_odd'),
-                    'ev_pct': best_bet.get('ev_pct', 0),
-                    'score': best_bet.get('post_score', best_bet['score']),
-                    'result': None  # Será preenchido após validação
-                })
+                for market_rank, bet_candidate in enumerate(distinct_market_bets):
+                    all_bets.append({
+                        'fixture_id': fixture_id,
+                        'api_fixture_id': fixture_id,
+                        'match': f"{home_team} vs {away_team}",
+                        'league': league_name,
+                        'league_id': analysis.get('league_id'),
+                        'date': match_date,
+                        'market': bet_candidate['market'],
+                        'original_market': bet_candidate.get('original_market'),
+                        'line_adjustment': bet_candidate.get('line_adjustment', ''),
+                        'pick': bet_candidate['pick'],
+                        'probability': bet_candidate['probability'],
+                        'odd': bet_candidate['market_odd'],
+                        'fair_odd': bet_candidate.get('fair_odd'),
+                        'ev_pct': bet_candidate.get('ev_pct', 0),
+                        'score': bet_candidate.get('post_score', bet_candidate['score']),
+                        'result': None,  # Será preenchido após validação
+                        '_candidate_rank': market_rank,
+                    })
                 seen_fixture_ids.add(fixture_id)
         
         logger.info(f"   📊 {len(all_bets)} apostas elegíveis para bilhetes")
@@ -1347,26 +1395,33 @@ class DailyBetGenerator:
             logger.info(f"      {group}: {count} apostas")
         
         # ✅ CORREÇÃO 21/02: Coverage correto (1 pick por jogo elegível, não 25 mercados)
-        coverage_pct = len(all_bets) / len(analyses) * 100 if analyses else 0
+        eligible_fixture_count = len({bet['fixture_id'] for bet in all_bets})
+        coverage_pct = eligible_fixture_count / len(analyses) * 100 if analyses else 0
         if coverage_pct < 30:
-            logger.warning(f"   ⚠️  COBERTURA BAIXA: {len(all_bets)}/{len(analyses)} jogos geraram pick elegível ({coverage_pct:.1f}%)")
+            logger.warning(f"   ⚠️  COBERTURA BAIXA: {eligible_fixture_count}/{len(analyses)} jogos geraram pick elegível ({coverage_pct:.1f}%)")
             logger.warning(f"       Filtros de retorno (prob ≥65%, odd ≥{self.MIN_ODD_MULTIPLE}, EV ≥{self.MIN_MULTIPLE_EV}%) descartam picks arriscados")
             logger.warning(f"       Mercados sistematicamente rejeitados: Away Win, Over 2.5, BTTS Yes, Dupla Chance")
         
         # ✅ CORRIGIDO 17/02/2026: Ordenar por SCORE (contexto) ao invés de apenas probabilidade
         # Score já inclui: probabilidade × contexto × EV × confiança × risco
-        all_bets.sort(key=lambda x: x['score'], reverse=True)
-        logger.info(f"   🎯 Ordenação por SCORE contextual (não apenas probabilidade)")
+        all_bets.sort(
+            key=lambda bet: (bet.get('_candidate_rank', 0) == 0, bet['score']),
+            reverse=True,
+        )
+        logger.info("   🎯 Ordenação por seleção principal primeiro; alternativas servem como cobertura")
         
-        # Cada bilhete consome partidas apenas depois de ser criado com sucesso.
-        # Assim, os bilhetes existentes nunca partilham o mesmo fixture.
+        # Alternativas permitem repetir o fixture em outro bilhete, nunca o mesmo mercado.
         tickets = []
         remaining_bets = list(all_bets)
+        fixture_appearances = {}
+        used_fixture_markets = set()
+        used_fixture_market_groups = {}
+        daily_stake_units = 0.0
         
         for size in [3, 5, 7]:
             if len(remaining_bets) < size:
                 logger.info(
-                    f"   ⚠️  Apostas insuficientes e sem reutilização para bilhete "
+                    f"   ⚠️  Apostas insuficientes para bilhete "
                     f"{size}x ({len(remaining_bets)} partidas disponíveis)"
                 )
                 continue
@@ -1386,19 +1441,27 @@ class DailyBetGenerator:
             eligible_bets = [
                 bet for bet in remaining_bets
                 if bet['probability'] >= min_individual_prob
+                and fixture_appearances.get(bet['fixture_id'], 0) < self.MAX_FIXTURE_TICKET_APPEARANCES
+                and (bet['fixture_id'], normalize_market_name(str(bet['market']))) not in used_fixture_markets
+                and self._market_group(str(bet['market']))
+                not in used_fixture_market_groups.get(bet['fixture_id'], set())
             ]
             
             if len(eligible_bets) < size:
                 logger.info(f"   ⏩ Bilhete {size}x: apenas {len(eligible_bets)} apostas ≥{min_individual_prob*100:.0f}% (precisa de {size})")
                 continue
             
-            # Diversifica por liga dentro de cada bilhete; o inventário restante
-            # mantém as partidas exclusivas entre bilhetes.
+            # Cada bilhete usa no máximo uma seleção por partida e por liga.
             selections = self._select_diversified_bets(eligible_bets, size)
             
             if not selections:
-                logger.info(f"   ⏩ Bilhete {size}x: não foi possível montar com diversificação (anti-correlação liga+mercado)")
+                logger.info(f"   ⏩ Bilhete {size}x: não foi possível montar com diversificação por liga e partida")
                 continue
+
+            selections = [
+                {key: value for key, value in selection.items() if not key.startswith('_')}
+                for selection in selections
+            ]
             
             # Calcular odd total e probabilidade combinada
             # ✅ CORREÇÃO 21/02: Sanity check contra overflow/underflow
@@ -1463,6 +1526,15 @@ class DailyBetGenerator:
             if ev_pct < self.MIN_MULTIPLE_EV:
                 logger.info(f"   ⏩ Bilhete {size}x: EV {ev_pct:+.1f}% < {self.MIN_MULTIPLE_EV:+.0f}% (extremamente baixo)")
                 continue
+
+            suggested_stake = self._calculate_stake(combined_prob_adjusted, 'multiple')
+            remaining_daily_budget = self.MAX_DAILY_MULTIPLE_STAKE_UNITS - daily_stake_units
+            if suggested_stake > remaining_daily_budget:
+                logger.info(
+                    f"   ⏩ Bilhete {size}x: stake sugerida {suggested_stake:.1f}u "
+                    f"excede orçamento diário restante de {remaining_daily_budget:.1f}u"
+                )
+                continue
             
             # Criar bilhete com tratamento de erro
             try:
@@ -1474,17 +1546,28 @@ class DailyBetGenerator:
                     fair_odd=Decimal(str(round(fair_odd, 2))),
                     combined_probability=combined_prob_adjusted,  # Salvar probabilidade ajustada
                     expected_value=ev_pct,
-                    suggested_stake=self._calculate_stake(combined_prob_adjusted, 'multiple')
+                    suggested_stake=suggested_stake
                 )
                 
                 tickets.append(bet)
-                consumed_fixture_ids = {
-                    selection.get('fixture_id') or selection.get('api_fixture_id')
-                    for selection in selections
-                }
+                daily_stake_units += suggested_stake
+                for selection in selections:
+                    fixture_id = selection.get('fixture_id') or selection.get('api_fixture_id')
+                    market = normalize_market_name(str(selection.get('market', '')))
+                    fixture_appearances[fixture_id] = fixture_appearances.get(fixture_id, 0) + 1
+                    used_fixture_markets.add((fixture_id, market))
+                    used_fixture_market_groups.setdefault(fixture_id, set()).add(
+                        self._market_group(market)
+                    )
+
                 remaining_bets = [
                     candidate for candidate in remaining_bets
-                    if candidate.get('fixture_id') not in consumed_fixture_ids
+                    if (
+                        candidate.get('fixture_id'),
+                        normalize_market_name(str(candidate.get('market', ''))),
+                    ) not in used_fixture_markets
+                    and fixture_appearances.get(candidate.get('fixture_id'), 0)
+                    < self.MAX_FIXTURE_TICKET_APPEARANCES
                 ]
                 
                 logger.info(f"\n   ✅ Bilhete {size}x criado:")
@@ -1492,6 +1575,10 @@ class DailyBetGenerator:
                 logger.info(f"      Odd: {total_odd:.2f} | Prob: {combined_prob_adjusted*100:.1f}% (ajustada) | EV: {ev_pct:+.1f}%")
                 logger.info(f"      Prob bruta (sem penalidade): {combined_prob*100:.1f}%")
                 logger.info(f"      Stake sugerido: {bet.suggested_stake:.1f}u")
+                logger.info(
+                    f"      Exposição diária de múltiplos: {daily_stake_units:.1f}/"
+                    f"{self.MAX_DAILY_MULTIPLE_STAKE_UNITS:.1f}u"
+                )
                 logger.info(f"      Apostas:")
                 for sel in selections[:3]:  # Mostrar primeiras 3
                     logger.info(f"         • {sel['pick']} ({sel['market']}) - {sel['probability']*100:.0f}% @ {sel['odd']:.2f}")

@@ -8,6 +8,7 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from .api_football_service import APIFootballService
+from .match_enricher import MatchDataEnricher
 from .weather_service import WeatherService, STADIUM_COORDINATES
 
 logger = logging.getLogger(__name__)
@@ -221,21 +222,33 @@ class ParallelMatchEnricher:
         
         home_standing = standings_data.get(home_team_id, {})
         away_standing = standings_data.get(away_team_id, {})
-        
-        return {
+        table_context = {
+            'league': MatchDataEnricher._calculate_league_goal_context(
+                standings_data
+            ),
+        }
+
+        table_context.update({
             'home': {
                 'position': home_standing.get('position'),
                 'points': home_standing.get('points'),
                 'form': home_standing.get('form', ''),
+                'games_played': home_standing.get('games_played', 0),
+                'goals_for': home_standing.get('goals_for', 0),
+                'goals_against': home_standing.get('goals_against', 0),
                 'goal_difference': home_standing.get('goal_difference', 0),
             },
             'away': {
                 'position': away_standing.get('position'),
                 'points': away_standing.get('points'),
                 'form': away_standing.get('form', ''),
+                'games_played': away_standing.get('games_played', 0),
+                'goals_for': away_standing.get('goals_for', 0),
+                'goals_against': away_standing.get('goals_against', 0),
                 'goal_difference': away_standing.get('goal_difference', 0),
             }
-        }
+        })
+        return table_context
     
     def _calculate_rest_parallel(self, home_fixtures, away_fixtures, match_date):
         """Calcula rest context usando dados já carregados"""

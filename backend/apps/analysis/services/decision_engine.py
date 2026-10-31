@@ -269,7 +269,11 @@ class DecisionEngine:
         }
 
         # Context-priority optional override of main recommendation
-        if ContextPolicy.CONTEXT_PRIORITY_ENABLED and top_bets:
+        if (
+            ContextPolicy.CONTEXT_PRIORITY_ENABLED
+            and top_bets
+            and self._has_approved_context_support(top_bets[0], context_analysis)
+        ):
             best_ctx = top_bets[0]
             score = best_ctx.get('score', 0)
             final_score = best_ctx.get('final_score', 0)
@@ -304,6 +308,11 @@ class DecisionEngine:
                     result['recommendation_source'] = 'context'
             else:
                 logger.info(f"   ❌ Override NÃO ativado - mantendo recomendação do modelo")
+        elif ContextPolicy.CONTEXT_PRIORITY_ENABLED and top_bets:
+            logger.info(
+                "   ⏭️ Context override skipped: nenhum padrão aprovado sustenta "
+                "o mercado melhor classificado"
+            )
 
         # 8) 🛡️ FILTROS TÁTICOS QUALITATIVOS (Dérbi + Elasticidade de Linhas)
         # Aplicados APÓS a fusão dos modelos e ANTES da entrega final dos bilhetes.
@@ -341,6 +350,23 @@ class DecisionEngine:
                 }
 
         return result
+
+    @staticmethod
+    def _has_approved_context_support(bet, context_analysis):
+        if not isinstance(context_analysis, dict):
+            return False
+
+        approved_patterns = {
+            pattern.get('name')
+            for pattern in context_analysis.get('patterns', [])
+            if pattern.get('name')
+        }
+        supporting_patterns = set(bet.get('supporting_patterns', []))
+        return bool(
+            approved_patterns
+            and approved_patterns.intersection(supporting_patterns)
+            and bet.get('context_score', 0) >= 0.75
+        )
 
     def _apply_tactical_safety_filters(self, validated_selections, match, strategy):
         """
@@ -627,18 +653,41 @@ class DecisionEngine:
         3. Força das features
         """
         poisson_probs = model_predictions.get('poisson', {}).get('probabilities', {})
-        logistic_probs = model_predictions.get('logistic', {})
+        comparison_probs = model_predictions.get('logistic') or model_predictions.get('ml', {})
         consensus = model_predictions.get('consensus', {})
         
         confidence_factors = []
         
-        # 1. CONSENSO entre modelos
-        # Se Poisson e Logística concordam = maior confiança
-        if poisson_probs and logistic_probs:
-            poisson_home = poisson_probs.get('home_win', 0.33)
-            logistic_home = logistic_probs.get('home_win', 0.33)
-            
-            consensus_score = 1 - abs(poisson_home - logistic_home)
+        # 1. CONSENSO entre modelos (suporta o ensemble legado e o ensemble ML)
+        outcome_keys = ('home_win', 'draw', 'away_win')
+        if (
+            poisson_probs
+            and comparison_probs
+            and all(key in poisson_probs and key in comparison_probs for key in outcome_keys)
+        ):
+            try:
+                poisson_outcomes = [float(poisson_probs[key]) for key in outcome_keys]
+                comparison_outcomes = [float(comparison_probs[key]) for key in outcome_keys]
+                poisson_total = sum(poisson_outcomes)
+                comparison_total = sum(comparison_outcomes)
+                valid_probabilities = (
+                    all(np.isfinite(value) and value >= 0 for value in poisson_outcomes + comparison_outcomes)
+                    and poisson_total > 0
+                    and comparison_total > 0
+                )
+            except (TypeError, ValueError):
+                valid_probabilities = False
+
+            if valid_probabilities:
+                poisson_outcomes = [value / poisson_total for value in poisson_outcomes]
+                comparison_outcomes = [value / comparison_total for value in comparison_outcomes]
+                total_variation = sum(
+                    abs(poisson - comparison)
+                    for poisson, comparison in zip(poisson_outcomes, comparison_outcomes)
+                ) / 2
+                consensus_score = 1 - total_variation
+            else:
+                consensus_score = 0.6
             confidence_factors.append(('consensus', consensus_score))
         else:
             confidence_factors.append(('consensus', 0.6))
@@ -677,24 +726,29 @@ class DecisionEngine:
             for factor, score in confidence_factors
         )
         
-        # Converter para estrelas (1-5)
-        stars = max(1, min(5, int(confidence_score * 5) + 1))
-        
         # Nível textual baseado em DecisionThresholds
         # Nota: MIN_CONFIDENCE = 0.75 é para PUBLICAÇÃO, não para classificação de confiança
         # Aqui usamos thresholds diferentes para classificar níveis
         if confidence_score >= 0.80:  # Muito alta
             level = 'very_high'
             level_pt = 'Muito Alta'
+            stars = 5
         elif confidence_score >= 0.65:  # Alta
             level = 'high'
             level_pt = 'Alta'
+            stars = 4
         elif confidence_score >= 0.50:  # Média
             level = 'medium'
             level_pt = 'Média'
+            stars = 3
+        elif confidence_score >= 0.35:
+            level = 'low'
+            level_pt = 'Baixa'
+            stars = 2
         else:  # Baixa
             level = 'low'
             level_pt = 'Baixa'
+            stars = 1
         
         return {
             'score': round(confidence_score, 2),
@@ -1682,7 +1736,7 @@ class DecisionEngine:
                 market_data['market'],
                 context_analysis,
                 model_predictions,
-                strategy
+                strategy,
             )
             market_data['contextual_fit'] = contextual_fit
             
@@ -1746,6 +1800,7 @@ class DecisionEngine:
                 'score': ranking_score,  # Compatibilidade com código existente
                 'reason': market_data['reasoning'],  # Reasoning contextual do MarketSelector
                 'context_score': market_data.get('context_score', 0),
+                'supporting_patterns': market_data.get('supporting_patterns', []),
                 'context_type': market_data.get('context_type', 'NEUTRO'),  # Para frontend exibir corretamente
                 'contextual_fit': market_data.get('contextual_fit', 1.0),  # 🆕 NOVO: adequação contextual
                 'contextual_reasoning': self._explain_contextual_fit(
@@ -1763,25 +1818,14 @@ class DecisionEngine:
     
     def _calculate_contextual_fit(self, market, context_analysis, model_predictions, strategy):
         """
-        Calcula quão bem uma aposta se adequa ao contexto ESPECÍFICO da partida.
-        
-        NOVO 21/02/2026: Sistema de Contextual Fit Inteligente
-        
-        Não é apenas "tem contexto?", mas "QUÃO BEM esta aposta se adequa?"
-        
-        Considera múltiplos fatores contextuais:
-        - Forma recente (momentum)
-        - H2H (histórico direto)
-        - Forças ofensivas/defensivas
-        - Motivação (standings)
-        - Home advantage
-        - Padrões específicos detectados
+        Score approved rule-based context only; model probability is scored
+        separately and must not be presented as contextual evidence.
         
         Args:
             market: Nome do mercado (e.g., 'under_2.5', 'home_win')
             context_analysis: Análise contextual completa
-            model_predictions: Predições dos modelos
-            strategy: 'value' ou 'multiple'
+            model_predictions: Kept for call compatibility.
+            strategy: Kept for call compatibility.
             
         Returns:
             float: Contextual fit score (0.5 a 1.5)
@@ -1792,136 +1836,40 @@ class DecisionEngine:
         # Padrões detectados
         patterns = context_analysis.get('patterns', [])
         pattern_names = {p['name']: p.get('confidence', 0) for p in patterns}
-        
-        # Consensus do modelo
-        consensus = model_predictions.get('consensus', {})
-        poisson = model_predictions.get('poisson', {}).get('probabilities', {})
-        
-        # Score base = 1.0 (neutro)
+
         fit_score = 1.0
-        fit_reasons = []
-        
-        # ============================================================================
-        # REGRA 1: PADRÕES CONTEXTUAIS ESPECÍFICOS
-        # ============================================================================
-        
-        # Jogo defensivo: favorece Under, BTTS No, Clean Sheets
-        if 'defensive_match' in pattern_names:
-            confidence = pattern_names['defensive_match']
-            if any(x in market for x in ['under', 'btts_no', 'clean_sheet']):
-                boost = 1.0 + (confidence * 0.3)  # até +30%
-                fit_score *= boost
-                fit_reasons.append(f"Jogo defensivo ({confidence:.0%}) favorece {market}")
-            elif any(x in market for x in ['over', 'btts_yes']):
-                penalty = 1.0 - (confidence * 0.2)  # até -20%
-                fit_score *= penalty
-                fit_reasons.append(f"Jogo defensivo penaliza {market}")
-        
-        # Jogo ofensivo: favorece Over, BTTS Yes
-        if 'high_scoring' in pattern_names:
-            confidence = pattern_names['high_scoring']
-            if any(x in market for x in ['over', 'btts_yes']):
-                boost = 1.0 + (confidence * 0.3)
-                fit_score *= boost
-                fit_reasons.append(f"Jogo ofensivo ({confidence:.0%}) favorece {market}")
-            elif any(x in market for x in ['under', 'btts_no']):
-                penalty = 1.0 - (confidence * 0.2)
-                fit_score *= penalty
-                fit_reasons.append(f"Jogo ofensivo penaliza {market}")
-        
-        # Vantagem de casa forte: favorece Home Win, 1X, DNB Home
-        if 'home_advantage' in pattern_names:
-            confidence = pattern_names['home_advantage']
-            if any(x in market for x in ['home_win', 'double_chance_1x', 'dnb_home']):
-                boost = 1.0 + (confidence * 0.25)
-                fit_score *= boost
-                fit_reasons.append(f"Vantagem casa ({confidence:.0%}) favorece {market}")
-            elif 'away_win' in market:
-                penalty = 1.0 - (confidence * 0.15)
-                fit_score *= penalty
-        
-        # Visitante forte: favorece Away Win, X2, DNB Away
-        if 'away_strength' in pattern_names:
-            confidence = pattern_names['away_strength']
-            if any(x in market for x in ['away_win', 'double_chance_x2', 'dnb_away']):
-                boost = 1.0 + (confidence * 0.25)
-                fit_score *= boost
-                fit_reasons.append(f"Visitante forte ({confidence:.0%}) favorece {market}")
-            elif 'home_win' in market:
-                penalty = 1.0 - (confidence * 0.15)
-                fit_score *= penalty
-        
-        # ============================================================================
-        # REGRA 2: ALINHAMENTO COM CONSENSUS DO MODELO
-        # ============================================================================
-        
-        # Se a probabilidade do modelo para este mercado é MUITO ALTA,
-        # isso indica forte alinhamento contextual
-        market_prob = poisson.get(market, consensus.get(market, 0))
-        
-        if market_prob >= 0.70:  # Probabilidade muito alta
-            fit_score *= 1.2  # +20% boost
-            fit_reasons.append(f"Modelo muito confiante ({market_prob:.0%})")
-        elif market_prob >= 0.60:  # Probabilidade alta
-            fit_score *= 1.1  # +10% boost
-            fit_reasons.append(f"Modelo confiante ({market_prob:.0%})")
-        elif market_prob < 0.35:  # Probabilidade baixa
-            fit_score *= 0.85  # -15% penalização
-            fit_reasons.append(f"Modelo pouco confiante ({market_prob:.0%})")
-        
-        # ============================================================================
-        # REGRA 3: COERÊNCIA ENTRE MERCADOS (evita apostas contraditórias)
-        # ============================================================================
-        
-        # Se Over 2.5 tem alta prob, Under 2.5 deve ser penalizado
-        if 'under_2.5' in market and poisson.get('over_2.5', 0) > 0.60:
-            fit_score *= 0.7
-            fit_reasons.append("Over 2.5 mais provável - Under incoerente")
-        
-        if 'over_2.5' in market and poisson.get('under_2.5', 0) > 0.60:
-            fit_score *= 0.7
-            fit_reasons.append("Under 2.5 mais provável - Over incoerente")
-        
-        # Se Home Win muito provável, Away Win deve ser fortemente penalizado
-        if 'away_win' in market and consensus.get('home_win', 0) > 0.60:
-            fit_score *= 0.6
-            fit_reasons.append("Casa forte - Away incoerente")
-        
-        if 'home_win' in market and consensus.get('away_win', 0) > 0.60:
-            fit_score *= 0.6
-            fit_reasons.append("Fora forte - Home incoerente")
-        
-        # ============================================================================
-        # REGRA 4: AJUSTE POR ESTRATÉGIA
-        # ============================================================================
-        
-        if strategy == 'multiple':
-            # Bilhetes: penalizar apostas muito arriscadas mesmo com fit alto
-            if market_prob < 0.55:  # Prob < 55% em bilhetes é arriscado
-                fit_score *= 0.8
-                fit_reasons.append("Estratégia múltipla prefere probabilidades altas")
-        else:  # 'value'
-            # Value bets: permitir apostas mais arriscadas se contexto favorece
-            if market_prob < 0.45 and fit_score > 1.15:  # Contexto MUITO favorável compensa prob baixa
-                fit_score *= 1.1
-                fit_reasons.append("Contexto excepcional compensa prob moderada")
-        
-        # ============================================================================
-        # LIMITAR RANGE (0.5 a 1.5)
-        # ============================================================================
-        
+        is_over_market = 'over' in market or market == 'btts_yes'
+        is_under_market = 'under' in market or market == 'btts_no' or 'clean_sheet' in market
+
+        # These names match the actual patterns emitted by ContextAnalyzer.
+        open_game_patterns = {
+            'open_game',
+            'derby_context',
+            'defensive_fatigue_game',
+        }
+        defensive_patterns = {
+            'low_motivation_both',
+            'congested_schedule_both',
+            'must_win_high_importance',
+        }
+        for name, confidence in pattern_names.items():
+            if name in open_game_patterns:
+                if is_over_market:
+                    fit_score *= 1.0 + confidence * 0.3
+                elif is_under_market:
+                    fit_score *= 1.0 - confidence * 0.2
+            elif name in defensive_patterns:
+                if is_under_market:
+                    fit_score *= 1.0 + confidence * 0.3
+                elif is_over_market:
+                    fit_score *= 1.0 - confidence * 0.2
+
         fit_score = max(0.5, min(1.5, fit_score))
-        
-        # Log detalhado
         if fit_score > 1.15:
-            logger.info(f"   💪 FORTE ADEQUAÇÃO: {market} - fit={fit_score:.3f}")
-            for reason in fit_reasons[:3]:
-                logger.info(f"      • {reason}")
+            logger.info(f"   💪 FORTE ADEQUAÇÃO CONTEXTUAL: {market} - fit={fit_score:.3f}")
         elif fit_score < 0.85:
-            logger.info(f"   ⚠️  BAIXA ADEQUAÇÃO: {market} - fit={fit_score:.3f}")
-            for reason in fit_reasons[:3]:
-                logger.info(f"      • {reason}")
-        
+            logger.info(f"   ⚠️ BAIXA ADEQUAÇÃO CONTEXTUAL: {market} - fit={fit_score:.3f}")
+
         return fit_score
     
     def _explain_contextual_fit(self, market, fit_score, context_analysis):
@@ -1938,6 +1886,16 @@ class DecisionEngine:
         """
         patterns = context_analysis.get('patterns', [])
         pattern_names = [p['name'] for p in patterns]
+        open_game_patterns = {
+            'open_game',
+            'derby_context',
+            'defensive_fatigue_game',
+        }
+        defensive_patterns = {
+            'low_motivation_both',
+            'congested_schedule_both',
+            'must_win_high_importance',
+        }
         
         if fit_score >= 1.2:
             base = "Contexto muito favorável"
@@ -1950,10 +1908,18 @@ class DecisionEngine:
         
         # Adicionar padrões específicos
         relevant_patterns = []
-        if 'defensive_match' in pattern_names and any(x in market for x in ['under', 'btts_no']):
-            relevant_patterns.append("jogo defensivo")
-        if 'high_scoring' in pattern_names and any(x in market for x in ['over', 'btts_yes']):
+        if 'open_game' in pattern_names and any(x in market for x in ['over', 'btts_yes']):
             relevant_patterns.append("jogo ofensivo")
+        if (
+            open_game_patterns.intersection(pattern_names)
+            and any(x in market for x in ['under', 'btts_no'])
+        ):
+            relevant_patterns.append("padrão ofensivo em conflito com Under")
+        if (
+            defensive_patterns.intersection(pattern_names)
+            and any(x in market for x in ['under', 'btts_no'])
+        ):
+            relevant_patterns.append("padrão de menor pontuação")
         if 'home_advantage' in pattern_names and 'home' in market:
             relevant_patterns.append("vantagem casa")
         if 'away_strength' in pattern_names and 'away' in market:

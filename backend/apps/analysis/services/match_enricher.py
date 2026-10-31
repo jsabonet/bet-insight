@@ -7,6 +7,7 @@ import time
 from datetime import datetime, timedelta
 from .api_football_service import APIFootballService
 from .weather_service import WeatherService, STADIUM_COORDINATES
+from .form_analysis import FormAnalysisService
 
 logger = logging.getLogger(__name__)
 
@@ -108,6 +109,13 @@ class MatchDataEnricher:
         logger.info(f"   Away Team ID: {away_team_id}, League Stats: {stats_league_id}, Season: {season}")
         away_stats = self._get_team_statistics(away_team_id, stats_league_id, season)
         logger.info(f"   ✅ Away Stats: {away_stats is not None}")
+
+        recent_form = FormAnalysisService().compare_forms(
+            home_team_id,
+            away_team_id,
+            stats_league_id,
+            season,
+        )
         
         enriched = {
             **match_data,
@@ -120,6 +128,7 @@ class MatchDataEnricher:
             'rest_context': self._calculate_rest_context(home_team_id, away_team_id, league_id, season, match_date),
             'motivation': self._assess_motivation(table_context),
             'trends': self._calculate_trends(home_team_id, away_team_id, league_id, season),
+            'recent_form': recent_form,
             'h2h': self._get_h2h(home_team_id, away_team_id),
             'season_context': self._get_season_context(fixture_details),
             'weather': weather_data  # Fase 3
@@ -196,10 +205,14 @@ class MatchDataEnricher:
         away_standing = standings.get(away_team_id, {})
         
         context = {
+            'league': self._calculate_league_goal_context(standings),
             'home': {
                 'position': home_standing.get('position'),
                 'points': home_standing.get('points'),
                 'form': home_standing.get('form', ''),
+                'games_played': home_standing.get('games_played', 0),
+                'goals_for': home_standing.get('goals_for', 0),
+                'goals_against': home_standing.get('goals_against', 0),
                 'goal_difference': home_standing.get('goal_difference', 0),
                 'home_record': home_standing.get('home_record', ''),
                 'away_record': home_standing.get('away_record', '')
@@ -208,6 +221,9 @@ class MatchDataEnricher:
                 'position': away_standing.get('position'),
                 'points': away_standing.get('points'),
                 'form': away_standing.get('form', ''),
+                'games_played': away_standing.get('games_played', 0),
+                'goals_for': away_standing.get('goals_for', 0),
+                'goals_against': away_standing.get('goals_against', 0),
                 'goal_difference': away_standing.get('goal_difference', 0),
                 'home_record': away_standing.get('home_record', ''),
                 'away_record': away_standing.get('away_record', '')
@@ -218,6 +234,32 @@ class MatchDataEnricher:
         logger.info(f"   ✅ Fora: {context['away']['position']}º lugar, {context['away']['points']} pts")
         
         return context
+
+    @staticmethod
+    def _calculate_league_goal_context(standings):
+        total_team_games = sum(
+            team.get('games_played', 0)
+            for team in standings.values()
+            if isinstance(team, dict)
+        )
+        total_goals = sum(
+            team.get('goals_for', 0)
+            for team in standings.values()
+            if isinstance(team, dict)
+        )
+        if total_team_games <= 0:
+            return {
+                'avg_goals_per_match': None,
+                'avg_goals_per_team_game': None,
+                'matches_sampled': 0,
+            }
+
+        matches_sampled = total_team_games / 2
+        return {
+            'avg_goals_per_match': round(total_goals / matches_sampled, 3),
+            'avg_goals_per_team_game': round(total_goals / total_team_games, 3),
+            'matches_sampled': matches_sampled,
+        }
     
     def _get_injuries(self, fixture_id, home_team_id, away_team_id):
         """Busca lesões e suspensões"""
@@ -226,8 +268,8 @@ class MatchDataEnricher:
         
         injuries_data = self.api_service.fetch_injuries(fixture_id)
         
-        if not injuries_data:
-            return {'home': [], 'away': []}
+        if injuries_data is None:
+            return None
         
         home_count = len(injuries_data.get('home', []))
         away_count = len(injuries_data.get('away', []))
@@ -491,8 +533,9 @@ class MatchDataEnricher:
         
         try:
             # Extrair venue e data
-            venue_name = fixture_details.get('venue', {}).get('name', '')
-            venue_city = fixture_details.get('venue', {}).get('city', '')
+            venue = fixture_details.get('venue') or {}
+            venue_name = venue.get('name', '') if isinstance(venue, dict) else str(venue)
+            venue_city = venue.get('city', '') if isinstance(venue, dict) else ''
             match_date_str = fixture_details.get('date', '')
             
             if not venue_name or not match_date_str:
@@ -546,4 +589,3 @@ class MatchDataEnricher:
         except Exception as e:
             logger.error(f"   ❌ Erro ao buscar clima: {str(e)}")
             return None
-

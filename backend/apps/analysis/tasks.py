@@ -365,6 +365,7 @@ def precompute_match_previews(self, max_matches=20):
                 'match_id': match.id,
                 'api_football_id': match.api_football_id,
                 'match_status': 'scheduled',
+                'strategy': 'value',
             },
             format='json',
         )

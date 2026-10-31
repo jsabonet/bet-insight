@@ -724,21 +724,37 @@ class ContextAnalyzer:
         form = features.get('form', {})
         goals_home_avg = form.get('home_goals_scored_avg_l5', 0)
         goals_away_avg = form.get('away_goals_scored_avg_l5', 0)
-        
-        statistics = features.get('statistics', {})
-        btts_percentage = statistics.get('btts_percentage_overall', 0)
+        home_samples = form.get('home_goal_samples_l5', 0)
+        away_samples = form.get('away_goal_samples_l5', 0)
         
         h2h = features.get('h2h', {})
-        h2h_avg_goals = h2h.get('avg_goals_per_match', 0)
-        
-        # Threshold: ambos marcam bem (> 1.5 gols/jogo)
-        if goals_home_avg > 1.5 and goals_away_avg > 1.5:
-            # Confiança aumenta com BTTS histórico e H2H ofensivo
-            base_confidence = ContextConfidence.OPEN_GAME_BASE
-            btts_boost = btts_percentage * ContextConfidence.OPEN_GAME_BTTS_BOOST
-            h2h_boost = min(h2h_avg_goals / 3.5, ContextConfidence.OPEN_GAME_H2H_BOOST_MAX)
-            
-            confidence = min(base_confidence + btts_boost + h2h_boost, 1.0)
+        h2h_btts_rate = h2h.get('h2h_btts_rate', 0)
+        h2h_avg_goals = h2h.get('h2h_avg_goals', 0)
+        h2h_games = h2h.get('h2h_games', 0)
+
+        # Recent form is the primary signal; H2H only reinforces it when
+        # at least three completed meetings are available.
+        if (
+            home_samples >= 3
+            and away_samples >= 3
+            and goals_home_avg > 1.5
+            and goals_away_avg > 1.5
+        ):
+            lower_attack_average = min(goals_home_avg, goals_away_avg)
+            form_confidence = ContextConfidence.OPEN_GAME_BASE + min(
+                max(lower_attack_average - 1.5, 0),
+                1.0,
+            ) * 0.20
+            if h2h_games >= 3:
+                btts_boost = h2h_btts_rate * 0.05
+                h2h_boost = min(h2h_avg_goals / 3.5, 1.0) * 0.05
+            else:
+                btts_boost = 0
+                h2h_boost = 0
+            confidence = round(
+                min(form_confidence + btts_boost + h2h_boost, 0.95),
+                3,
+            )
             
             return {
                 'name': 'open_game',
@@ -762,8 +778,8 @@ class ContextAnalyzer:
         is_derby = context.get('is_derby', False)
         
         h2h = features.get('h2h', {})
-        h2h_btts = h2h.get('btts_percentage', 0)
-        h2h_avg_goals = h2h.get('avg_goals_per_match', 0)
+        h2h_btts = h2h.get('h2h_btts_rate', 0)
+        h2h_avg_goals = h2h.get('h2h_avg_goals', 0)
         
         # Derby explícito OU histórico muito ofensivo
         is_derby_like = is_derby or (h2h_btts > 0.70 and h2h_avg_goals > 2.5)

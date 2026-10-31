@@ -39,15 +39,25 @@ class FeatureEngineer:
         logger.info(f"{'='*80}\n")
         
         # Extrair dados necessários
-        standings = enriched_data.get('table_context', {})
-        home_stats = enriched_data.get('home_stats', {})
-        away_stats = enriched_data.get('away_stats', {})
-        odds = enriched_data.get('odds', {})
-        rest_context = enriched_data.get('rest_context', {})
-        weather = enriched_data.get('weather', {})
-        recent_form = enriched_data.get('recent_form', {})  # Fase 2
-        h2h = enriched_data.get('h2h', [])
-        statistics = enriched_data.get('statistics', {})  # Estatísticas detalhadas da partida
+        standings = enriched_data.get('table_context')
+        standings = standings if isinstance(standings, dict) else {}
+        league_context = standings.get('league', {})
+        home_stats = enriched_data.get('home_stats')
+        home_stats = home_stats if isinstance(home_stats, dict) else {}
+        away_stats = enriched_data.get('away_stats')
+        away_stats = away_stats if isinstance(away_stats, dict) else {}
+        odds = enriched_data.get('odds')
+        odds = odds if isinstance(odds, dict) else {}
+        rest_context = enriched_data.get('rest_context')
+        rest_context = rest_context if isinstance(rest_context, dict) else {}
+        weather = enriched_data.get('weather')
+        weather = weather if isinstance(weather, dict) else {}
+        recent_form = enriched_data.get('recent_form')
+        recent_form = recent_form if isinstance(recent_form, dict) else {}
+        h2h = enriched_data.get('h2h')
+        h2h = h2h if isinstance(h2h, list) else []
+        statistics = enriched_data.get('statistics')
+        statistics = statistics if isinstance(statistics, dict) else {}
         
         logger.info("📥 Dados disponíveis:")
         logger.info(f"   Standings: {bool(standings)}")
@@ -61,6 +71,10 @@ class FeatureEngineer:
         logger.info(f"   Statistics: {bool(statistics)}")
         
         features = {}
+
+        features['league_context'] = self._calculate_league_context_features(
+            league_context
+        )
         
         # 1. FORÇA OFENSIVA/DEFENSIVA RELATIVA (#12-14)
         logger.info("\n1️⃣ Calculando features de FORÇA...")
@@ -140,13 +154,128 @@ class FeatureEngineer:
         if features['competition'].get('is_cup_competition'):
             logger.info(f"      🏆 COPA DETECTADA: {features['competition'].get('competition_name')}")
             logger.info(f"      📉 Fator de ajuste xG: {features['competition'].get('knockout_adjustment_factor')}")
-        
-        total_features = sum(len(v) for v in features.values())
+
+        features['_metadata'] = {
+            'data_availability': {
+                'standings': self._has_team_context(standings),
+                'team_statistics': self._has_team_statistics(home_stats, away_stats),
+                'recent_form': bool(
+                    recent_form.get('home', {}).get('games')
+                    and recent_form.get('away', {}).get('games')
+                ),
+                'h2h': bool(h2h),
+                'market': bool(odds),
+                'rest': self._has_rest_context(rest_context),
+                'weather': bool(weather),
+                'injuries': 'injuries' in enriched_data and enriched_data['injuries'] is not None,
+                'competition': bool(enriched_data.get('fixture_details')),
+                'league_scoring': features['league_context']['available'],
+                'match_statistics': bool(statistics),
+            },
+            'sample_sizes': {
+                'home_standings_games': self._nested_sample_count(
+                    standings.get('home'), 'games_played'
+                ),
+                'away_standings_games': self._nested_sample_count(
+                    standings.get('away'), 'games_played'
+                ),
+                'home_team_statistics_games': self._nested_sample_count(
+                    home_stats, 'games_played'
+                ),
+                'away_team_statistics_games': self._nested_sample_count(
+                    away_stats, 'games_played'
+                ),
+                'home_recent_form_games': features['form']['home_goal_samples_l5'],
+                'away_recent_form_games': features['form']['away_goal_samples_l5'],
+                'h2h_games': features['h2h']['h2h_games'],
+            },
+        }
+
+        total_features = sum(
+            len(values) for category, values in features.items()
+            if not category.startswith('_')
+        )
         logger.info(f"\n{'='*80}")
         logger.info(f"✅ TOTAL: {total_features} features engineered")
         logger.info(f"{'='*80}\n")
         
         return features
+
+    @staticmethod
+    def _has_team_context(standings):
+        if not isinstance(standings, dict):
+            return False
+        return all(
+            isinstance(standings.get(side), dict)
+            and any(
+                standings[side].get(field) not in (None, '', 0)
+                for field in ('position', 'points', 'form')
+            )
+            for side in ('home', 'away')
+        )
+
+    @staticmethod
+    def _sample_count(value):
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return 0
+        return max(0, int(value))
+
+    @classmethod
+    def _nested_sample_count(cls, data, key):
+        if not isinstance(data, dict):
+            return 0
+        return cls._sample_count(data.get(key))
+
+    @staticmethod
+    def _has_team_statistics(home_stats, away_stats):
+        def has_observation(stats):
+            if not isinstance(stats, dict):
+                return False
+            return bool(
+                stats.get('games_played')
+                or stats.get('goals_per_game_avg')
+                or stats.get('goals_conceded_avg')
+            )
+
+        return has_observation(home_stats) and has_observation(away_stats)
+
+    @staticmethod
+    def _has_rest_context(rest_context):
+        return bool(
+            isinstance(rest_context, dict)
+            and rest_context.get('home_rest_days') is not None
+            and rest_context.get('away_rest_days') is not None
+        )
+
+    @staticmethod
+    def _calculate_league_context_features(league_context):
+        if not isinstance(league_context, dict):
+            league_context = {}
+        matches_sampled = float(league_context.get('matches_sampled') or 0)
+        avg_goals_per_team_game = league_context.get(
+            'avg_goals_per_team_game'
+        )
+        if (
+            matches_sampled < 30
+            or not isinstance(avg_goals_per_team_game, (int, float))
+            or avg_goals_per_team_game <= 0
+        ):
+            return {
+                'available': False,
+                'matches_sampled': matches_sampled,
+                'avg_goals_per_match': 0.0,
+                'avg_goals_per_team_game': 0.0,
+            }
+        return {
+            'available': True,
+            'matches_sampled': matches_sampled,
+            'avg_goals_per_match': round(
+                float(league_context.get('avg_goals_per_match') or 0), 3
+            ),
+            'avg_goals_per_team_game': round(
+                float(avg_goals_per_team_game), 3
+            ),
+        }
 
     def _calculate_elo_features(self, standings, recent_form, injuries_features):
         """
@@ -353,6 +482,13 @@ class FeatureEngineer:
         # Calcular forma ponderada e momentum para cada time
         home_form_data = self._process_form_string(home_form)
         away_form_data = self._process_form_string(away_form)
+
+        home_recent_goals = self._recent_goal_averages(
+            recent_form.get('home', {})
+        ) if recent_form else {}
+        away_recent_goals = self._recent_goal_averages(
+            recent_form.get('away', {})
+        ) if recent_form else {}
         
         # VARIÁVEL #21: Strength of Schedule (SoS)
         # Força dos adversários enfrentados nos últimos jogos
@@ -379,16 +515,53 @@ class FeatureEngineer:
             'home_weighted_form': home_form_data['weighted_form'],
             'home_momentum': home_form_data['momentum'],
             'home_recent_points': home_form_data['recent_points'],
+            'home_goals_scored_avg_l5': home_recent_goals.get('goals_scored_avg', 0),
+            'home_goals_conceded_avg_l5': home_recent_goals.get('goals_conceded_avg', 0),
+            'home_goal_samples_l5': home_recent_goals.get('games_analyzed', 0),
             'home_sos': round(home_sos, 2),
             'home_adjusted_form': round(home_adjusted_form, 2),
             'away_weighted_form': away_form_data['weighted_form'],
             'away_momentum': away_form_data['momentum'],
             'away_recent_points': away_form_data['recent_points'],
+            'away_goals_scored_avg_l5': away_recent_goals.get('goals_scored_avg', 0),
+            'away_goals_conceded_avg_l5': away_recent_goals.get('goals_conceded_avg', 0),
+            'away_goal_samples_l5': away_recent_goals.get('games_analyzed', 0),
             'away_sos': round(away_sos, 2),
             'away_adjusted_form': round(away_adjusted_form, 2),
             'form_differential': round(home_form_data['weighted_form'] - away_form_data['weighted_form'], 2),
             'sos_differential': round(sos_differential, 2),
             'adjusted_form_diff': round(home_adjusted_form - away_adjusted_form, 2)
+        }
+
+    @staticmethod
+    def _recent_goal_averages(team_form):
+        games = team_form.get('games', []) if isinstance(team_form, dict) else []
+        valid_games = [
+            game for game in games
+            if isinstance(game, dict)
+            and isinstance(game.get('goals_scored'), (int, float))
+            and isinstance(game.get('goals_conceded'), (int, float))
+            and game['goals_scored'] >= 0
+            and game['goals_conceded'] >= 0
+        ]
+        if not valid_games:
+            return {
+                'goals_scored_avg': 0,
+                'goals_conceded_avg': 0,
+                'games_analyzed': 0,
+            }
+
+        games_analyzed = len(valid_games)
+        return {
+            'goals_scored_avg': round(
+                sum(game['goals_scored'] for game in valid_games) / games_analyzed,
+                2,
+            ),
+            'goals_conceded_avg': round(
+                sum(game['goals_conceded'] for game in valid_games) / games_analyzed,
+                2,
+            ),
+            'games_analyzed': games_analyzed,
         }
     
     def _calculate_time_decay_weight(self, days_ago):
@@ -801,20 +974,47 @@ class FeatureEngineer:
                 'h2h_btts_rate': 0
             }
         
-        total_games = len(h2h_data)
+        valid_matches = []
+        for match in h2h_data:
+            if not isinstance(match, dict):
+                continue
+            home_team = match.get('homeTeam')
+            away_team = match.get('awayTeam')
+            if not isinstance(home_team, dict) or not isinstance(away_team, dict):
+                continue
+            home_goals = home_team.get('score')
+            away_goals = away_team.get('score')
+            if (
+                isinstance(home_goals, bool)
+                or isinstance(away_goals, bool)
+                or not isinstance(home_goals, (int, float))
+                or not isinstance(away_goals, (int, float))
+                or home_goals < 0
+                or away_goals < 0
+                or not float(home_goals).is_integer()
+                or not float(away_goals).is_integer()
+            ):
+                continue
+            valid_matches.append((home_goals, away_goals))
+
+        total_games = len(valid_matches)
+        if not total_games:
+            return {
+                'h2h_games': 0,
+                'h2h_home_wins': 0,
+                'h2h_draws': 0,
+                'h2h_away_wins': 0,
+                'h2h_avg_goals': 0,
+                'h2h_btts_rate': 0,
+            }
+
         home_wins = 0
         draws = 0
         away_wins = 0
         total_goals = 0
         btts_games = 0
         
-        for match in h2h_data:
-            home_goals = match.get('homeTeam', {}).get('score', 0)
-            away_goals = match.get('awayTeam', {}).get('score', 0)
-            
-            if home_goals is None or away_goals is None:
-                continue
-            
+        for home_goals, away_goals in valid_matches:
             total_goals += home_goals + away_goals
             
             if home_goals > away_goals:
@@ -869,7 +1069,7 @@ class FeatureEngineer:
         away_distance_to_top4 = max(0, away_position - 4)
         
         home_distance_to_relegation = max(0, (total_teams - 2) - home_position)
-        away_distance_to_relegation = max(0, (total_teams - 2) - home_position)
+        away_distance_to_relegation = max(0, (total_teams - 2) - away_position)
         
         # Importância baseada em posição (0-10 scale)
         # Times brigando por título ou contra rebaixamento = alta importância
@@ -890,9 +1090,9 @@ class FeatureEngineer:
         match_importance = (home_importance + away_importance) / 2
         
         # Derby detection (se times da mesma cidade/região)
-        fixture_data = enriched_data.get('fixture', {})
-        home_team_name = fixture_data.get('home_team', '').lower()
-        away_team_name = fixture_data.get('away_team', '').lower()
+        fixture_data = enriched_data.get('fixture_details', {})
+        home_team_name = self._fixture_team_name(fixture_data, 'home').lower()
+        away_team_name = self._fixture_team_name(fixture_data, 'away').lower()
         
         # Detectar derbies conhecidos
         is_derby = self._detect_derby(home_team_name, away_team_name)
@@ -902,7 +1102,10 @@ class FeatureEngineer:
             match_importance = min(10, match_importance + 2)
         
         # Fase da competição (rodadas finais = mais importante)
-        league_round = fixture_data.get('round', 'Regular Season - 1')
+        league_round = (
+            fixture_data.get('league', {}).get('round')
+            or fixture_data.get('round', 'Regular Season - 1')
+        )
         try:
             round_number = int(''.join(filter(str.isdigit, league_round)))
         except:
@@ -1041,23 +1244,28 @@ class FeatureEngineer:
         
         Returns 12 variáveis de lesões/suspensões
         """
-        fixture_data = enriched_data.get('fixture', {})
+        fixture_data = enriched_data.get('fixture_details', {})
         
         # Dados de lesões vem do enricher (API-Football)
-        injuries = fixture_data.get('injuries', [])
+        injuries = enriched_data.get('injuries')
+        if injuries is None:
+            injuries = fixture_data.get('injuries', [])
         
-        home_team = fixture_data.get('home_team', '')
-        away_team = fixture_data.get('away_team', '')
+        home_team = self._fixture_team_name(fixture_data, 'home')
+        away_team = self._fixture_team_name(fixture_data, 'away')
         
-        home_injured = []
-        away_injured = []
-        
-        for injury in injuries:
-            player_team = injury.get('team', {}).get('name', '')
-            if home_team.lower() in player_team.lower():
-                home_injured.append(injury)
-            elif away_team.lower() in player_team.lower():
-                away_injured.append(injury)
+        if isinstance(injuries, dict) and ('home' in injuries or 'away' in injuries):
+            home_injured = self._normalize_injury_records(injuries.get('home'), home_team)
+            away_injured = self._normalize_injury_records(injuries.get('away'), away_team)
+        else:
+            home_injured = []
+            away_injured = []
+            for injury in injuries or []:
+                player_team = injury.get('team', {}).get('name', '')
+                if home_team.lower() in player_team.lower():
+                    home_injured.append(injury)
+                elif away_team.lower() in player_team.lower():
+                    away_injured.append(injury)
         
         # Calcular impacto ponderado
         home_impact = self._calculate_injury_impact(home_injured)
@@ -1084,6 +1292,31 @@ class FeatureEngineer:
             'away_strength_adjustment': round(away_strength_adjustment, 2),
             'total_absences': home_impact['count'] + away_impact['count']
         }
+
+    @staticmethod
+    def _normalize_injury_records(records, team_name):
+        normalized = []
+        for record in records or []:
+            if isinstance(record, dict) and isinstance(record.get('player'), dict):
+                normalized.append(record)
+                continue
+
+            if isinstance(record, dict):
+                player_name = record.get('player', '')
+                reason = record.get('reason', '')
+            else:
+                player_name = str(record)
+                reason = ''
+
+            normalized.append({
+                'player': {
+                    'name': player_name,
+                    'type': 'Midfielder',
+                    'reason': reason,
+                },
+                'team': {'name': team_name},
+            })
+        return normalized
     
     def _calculate_injury_impact(self, injuries_list):
         """
@@ -1151,6 +1384,15 @@ class FeatureEngineer:
             'total_impact': total_impact,
             'key_players_out': key_players_out
         }
+
+    @staticmethod
+    def _fixture_team_name(fixture_data, side):
+        team = (fixture_data.get('teams') or {}).get(side)
+        if team is None:
+            team = fixture_data.get(f'{side}_team', '')
+        if isinstance(team, dict):
+            return team.get('name', '')
+        return str(team or '')
     
     def _calculate_motivation_features(self, standings, enriched_data):
         """
@@ -1289,4 +1531,3 @@ class FeatureEngineer:
             'away_objective': away_objective,
             'combined_pressure': round(combined_pressure, 1)
         }
-

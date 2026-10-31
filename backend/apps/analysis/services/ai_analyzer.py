@@ -267,8 +267,8 @@ class AIAnalyzer:
             'fatigue_asymmetric': abs(context_features.get('home_days_rest', 7) - context_features.get('away_days_rest', 7)) >= 3,
             
             # H2H
-            'h2h_high_scoring': h2h.get('avg_total_goals_h2h', 0) > 3.0,
-            'h2h_low_scoring': h2h.get('avg_total_goals_h2h', 0) < 2.0,
+            'h2h_high_scoring': h2h.get('h2h_avg_goals', 0) > 3.0,
+            'h2h_low_scoring': h2h.get('h2h_avg_goals', 0) < 2.0,
             'h2h_home_dominance': h2h.get('home_win_rate_h2h', 0.33) > 0.6,
             'h2h_away_dominance': h2h.get('away_win_rate_h2h', 0.33) > 0.6,
             'h2h_draws_frequent': h2h.get('draw_rate_h2h', 0.25) > 0.4,
@@ -672,7 +672,7 @@ class AIAnalyzer:
             context_parts.append(f"Visitante FATIGADO ({away_rest} dias descanso)")
         
         # 8. H2H patterns
-        h2h_avg_goals = h2h.get('avg_total_goals_h2h', 0)
+        h2h_avg_goals = h2h.get('h2h_avg_goals', 0)
         if h2h_avg_goals > 3.0:
             context_parts.append(f"H2H com MUITOS gols ({h2h_avg_goals:.1f} média)")
         elif h2h_avg_goals > 0 and h2h_avg_goals < 2.0:
@@ -752,6 +752,30 @@ class AIAnalyzer:
         # Gerar análise adaptada à estratégia
         # Obter explicação do contexto
         context_explanation = self._get_context_explanation(enriched_data)
+
+        def explain_market_context(bet):
+            context_analysis = enriched_data.get('context_analysis', {})
+            approved_pattern_names = {
+                pattern.get('name')
+                for pattern in context_analysis.get('patterns', [])
+                if pattern.get('name')
+            }
+            supporting_pattern_names = (
+                set(bet.get('supporting_patterns', [])) & approved_pattern_names
+            )
+            contextual_fit = bet.get('contextual_fit', 1.0)
+            if contextual_fit < 0.95:
+                return "Atenção: o mercado conflita com um padrão contextual aprovado."
+            if contextual_fit > 1.05 and supporting_pattern_names:
+                return (
+                    "Padrão contextual aprovado para este mercado: "
+                    + ", ".join(sorted(supporting_pattern_names))
+                    + "."
+                )
+            return (
+                "Seleção baseada na probabilidade e nas odds; sem suporte contextual "
+                "aprovado específico para este mercado."
+            )
         
         if strategy == 'multiple':
             # MODO BILHETE: Foco em probabilidade e combinação
@@ -787,6 +811,7 @@ class AIAnalyzer:
                 logger.warning("⚠️ Nenhuma aposta atende os critérios de bilhete (odd 1.30-1.50, prob ≥65%). Relatório apontará a melhor disponível.")
                 suitable_bets = [best_bet]
             
+            market_context_explanation = explain_market_context(best_bet)
             market_odd = best_bet.get('market_odd') or 0
             
             analysis = f"""📋 MELHOR PARA BILHETE (SELEÇÃO CONTEXTUAL)
@@ -802,7 +827,7 @@ PORQUE ESTA APOSTA FOI ESCOLHIDA:
 • {best_bet['reason']}
 • Alta probabilidade ({best_bet['probability']*100:.1f}% de chance)
 • Odd moderada (boa para combinar com outras apostas)
-• SE ENCAIXA PERFEITAMENTE no contexto da partida
+• {market_context_explanation}
 
 💡 DICA DE BILHETE:
 Combine com 2-3 apostas similares de outros jogos.
@@ -827,6 +852,7 @@ Use em favoritos consistentes, não underdogs.
         
         else:
             # MODO VALUE: Foco em EV e lucro longo prazo
+            market_context_explanation = explain_market_context(best_bet)
             market_odd = best_bet.get('market_odd') or 0
             analysis = f"""🎯 RECOMENDAÇÃO PRINCIPAL (SELEÇÃO CONTEXTUAL)
 ---------------------------------------
@@ -842,7 +868,7 @@ PORQUE ESTA APOSTA FOI ESCOLHIDA:
 • {best_bet['reason']}
 • Probabilidade calculada: {best_bet['probability']*100:.1f}%
 • Confiança do modelo: {confidence.get('stars', 3)}/5
-• SE ENCAIXA PERFEITAMENTE no contexto da partida
+• {market_context_explanation}
 
 ⚠️ NÃO APOSTE SE:
 • A odd cair abaixo de {best_bet.get('fair_odd') or 0:.2f}
@@ -906,7 +932,7 @@ PORQUE ESTA APOSTA FOI ESCOLHIDA:
         expected_goals = poisson.get('expected_goals', {})
         xg_home = expected_goals.get('home', 1.2)
         xg_away = expected_goals.get('away', 1.0)
-        most_likely = poisson.get('most_likely_score', '1-1')
+        most_likely = poisson.get('most_likely_score') or 'indisponível'
         
         if xg_home == 0 and xg_away == 0:
             logger.warning(f"⚠️ xG zerado! Fallback para 1.2 x 1.0")

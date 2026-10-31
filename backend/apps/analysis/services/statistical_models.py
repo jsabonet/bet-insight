@@ -64,7 +64,8 @@ class PoissonBivariateModel:
             return 0.0
     
     def predict(self, home_strength, away_strength, weather_impact=0.0, league_id=None, 
-                home_defense=None, away_defense=None, knockout_adjustment=1.0):
+                home_defense=None, away_defense=None, knockout_adjustment=1.0,
+                league_avg_goals_per_team=None):
         """
         Prevê distribuição de placares e probabilidades de mercados
         
@@ -76,6 +77,8 @@ class PoissonBivariateModel:
             home_defense (float): Força defensiva casa (gols sofridos/jogo) - NOVO
             away_defense (float): Força defensiva fora (gols sofridos/jogo) - NOVO
             knockout_adjustment (float): Fator de ajuste para copas (0.75-1.0, default=1.0)
+            league_avg_goals_per_team (float): Média de gols por equipe/jogo
+                calculada a partir da classificação atual da liga.
         
         Returns:
             dict: {
@@ -118,11 +121,18 @@ class PoissonBivariateModel:
         # NOVA FÓRMULA: λ_home = (ataque_casa × home_adv) / defesa_fora
         # Se defesa não disponível, usa apenas ataque (backward compatible)
         if home_defense is not None and away_defense is not None:
-            # Normalizar defesa: média da liga ≈ 1.3 gols/jogo
-            league_avg_defense = 1.3
+            league_avg_defense = (
+                float(league_avg_goals_per_team)
+                if isinstance(league_avg_goals_per_team, (int, float))
+                and league_avg_goals_per_team > 0
+                else 1.3
+            )
             lambda_home = (home_strength * home_advantage) * (away_defense / league_avg_defense)
             lambda_away = away_strength * (home_defense / league_avg_defense)
-            logger.info(f"✅ Usando defesa na modelagem (λ ajustado)")
+            logger.info(
+                "✅ Usando defesa na modelagem (λ ajustado; média da liga: %.3f)",
+                league_avg_defense,
+            )
         else:
             # Fallback: modelo antigo (só ataque)
             lambda_home = home_strength * home_advantage
@@ -468,6 +478,7 @@ class PoissonBivariateModel:
                 'even_goals': float(prob_even)
             },
             'score_distribution': top_scores,
+            'total_scenarios': int(score_matrix.size),
             'weather_adjusted': weather_adjusted,
             'knockout_adjusted': knockout_adjusted,
             'model': 'poisson_bivariate'

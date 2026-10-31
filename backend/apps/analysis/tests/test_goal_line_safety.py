@@ -1,5 +1,5 @@
 from django.test import SimpleTestCase
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from apps.analysis.config.market_standards import get_market_category, normalize_market_name
 from apps.analysis.services.api_football_service import APIFootballService
@@ -39,9 +39,29 @@ class ConservativeGoalLineTests(SimpleTestCase):
         probabilities = prediction['probabilities']
 
         self.assertTrue({'over_0.5', 'under_0.5', 'over_2.5', 'under_2.5'}.issubset(probabilities))
+        self.assertEqual(prediction['total_scenarios'], 49)
         self.assertFalse(any(
             line in market for market in probabilities for line in ('1.75', '2.25', '2.75', '3.25')
         ))
+
+    def test_most_likely_score_changes_with_expected_goals(self):
+        calibrator = Mock()
+        calibrator.is_available.return_value = False
+        expectations = ((0.35, 1.9), (1.2, 1.1), (2.4, 0.8), (2.7, 2.1))
+
+        with patch(
+            'apps.analysis.services.statistical_models.get_xg_calibrator',
+            return_value=calibrator,
+        ):
+            predictions = [
+                PoissonBivariateModel().predict(home, away)
+                for home, away in expectations
+            ]
+
+        self.assertEqual(
+            [prediction['most_likely_score'] for prediction in predictions],
+            ['0-1', '1-1', '2-0', '2-2'],
+        )
 
     def test_odds_api_parser_ignores_asian_goal_lines_but_keeps_standard_lines(self):
         service = APIFootballService()

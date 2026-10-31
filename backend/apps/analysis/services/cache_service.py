@@ -39,6 +39,7 @@ class AnalysisCache:
         bucket = bucket - timedelta(minutes=bucket.minute % 5)
         
         key_parts = [
+            'context_pipeline_v2',
             str(match_id),
             strategy,
             'with_ai' if include_ai else 'no_ai',

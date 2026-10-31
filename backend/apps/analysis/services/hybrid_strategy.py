@@ -1,37 +1,61 @@
-"""
-Estrategia Hibrida - Usa contexto SÓ quando realmente forte
-Caso contrario, usa Poisson puro
-
-Author: AI Assistant  
-Date: 2026-02-11
-"""
+"""Evidence gate for rule-based match context signals."""
 
 import logging
-from typing import Dict, List, Optional
+from typing import Dict
+from apps.analysis.config import ContextConfidence
 
 logger = logging.getLogger(__name__)
+
+PATTERN_DATA_REQUIREMENTS = {
+    'low_motivation_both': {'standings'},
+    'knockout_upset': {'competition', 'team_statistics'},
+    'motivated_favorite_vs_defensive_wall': {'standings', 'team_statistics', 'market'},
+    'must_win_high_importance': {'standings'},
+    'congested_schedule_both': {'rest'},
+    'bogey_team_effect': {'h2h'},
+    'bookmaker_margin_high': {'market'},
+    'post_heavy_defeat_volatility': {'recent_form'},
+    'set_pieces_advantage': {'team_statistics', 'match_statistics'},
+    'asymmetric_motivation': {'standings', 'team_statistics'},
+    'asymmetric_fatigue': {'rest'},
+    'defensive_fatigue_game': {'rest', 'injuries'},
+    'open_game': {'recent_form', 'team_statistics'},
+    'derby_context': {'h2h'},
+    'upset_potential': {'team_statistics', 'recent_form'},
+    'critical_injuries': {'injuries'},
+    'balanced_tight_game': {'standings', 'team_statistics'},
+}
+
+SOURCE_SAMPLE_REQUIREMENTS = {
+    'standings': {
+        'home_standings_games': 5,
+        'away_standings_games': 5,
+    },
+    'team_statistics': {
+        'home_team_statistics_games': 5,
+        'away_team_statistics_games': 5,
+    },
+    'recent_form': {
+        'home_recent_form_games': 3,
+        'away_recent_form_games': 3,
+    },
+    'h2h': {
+        'h2h_games': 3,
+    },
+}
 
 
 class HybridStrategy:
     """
-    Decide quando usar contextualizacao vs modelo base.
-    
-    Criterios para USAR contexto:
-    1. Confianca do padrao >= 90% (muito forte)
-    2. Dados contextuais REAIS (nao genericos)
-    3. Padrao com historico comprovado
-    
-    Caso contrario: usa modelo base (Poisson)
+    Enables a detected pattern only when its required inputs are available and
+    its rule score meets the strong-context threshold. The score is not a
+    historically calibrated probability.
     """
     
-    # Padroes com historico validado
-    VALIDATED_PATTERNS = {
-        # Adicionar padroes conforme validacao
-        # 'balanced_tight_game': False,  # Invalidado - 47% low scoring
-    }
-    
-    # Threshold de confianca minima
-    MIN_CONFIDENCE_FOR_CONTEXT = 0.90  # 90%
+    # Rule-based confidence is not a calibrated probability of correctness.
+    MIN_CONFIDENCE_FOR_CONTEXT = ContextConfidence.STRONG_CONTEXT_THRESHOLD
+    INVALIDATED_PATTERNS = frozenset()
+    NON_PREDICTIVE_PATTERNS = frozenset({'bookmaker_margin_high'})
     
     def __init__(self):
         """Inicializa estrategia hibrida."""
@@ -41,11 +65,11 @@ class HybridStrategy:
                           context_result: Dict,
                           match_features: Dict) -> Dict:
         """
-        Decide se deve usar contextualizacao ou modelo base.
+        Decide quais padrões têm evidência suficiente para influenciar a análise.
         
         Args:
             context_result: Output do ContextAnalyzer
-            match_features: Features do jogo (para validar se sao reais)
+            match_features: Features and source-availability metadata from FeatureEngineer
             
         Returns:
             Dict: {
@@ -60,41 +84,57 @@ class HybridStrategy:
         if not patterns:
             return self._reject_context("Nenhum padrao detectado")
         
-        # Verificar se tem dados contextuais REAIS
-        has_real_data = self._has_real_contextual_data(match_features)
-        
-        if not has_real_data:
-            return self._reject_context("Contexto generico - sem dados reais")
-        
-        # Avaliar cada padrao
+        available_data = self._available_data(match_features)
         approved_patterns = []
         max_confidence = 0
-        
+        approved_confidences = []
+
         for pattern in patterns:
-            pattern_name = pattern['name']
-            confidence = pattern['confidence']
-            
+            pattern_name = pattern.get('name')
+            confidence = pattern.get('confidence', 0)
+            required_data = PATTERN_DATA_REQUIREMENTS.get(pattern_name)
+
             max_confidence = max(max_confidence, confidence)
-            
-            # Verificar se padrao foi validado
-            if pattern_name in self.VALIDATED_PATTERNS:
-                if not self.VALIDATED_PATTERNS[pattern_name]:
-                    logger.info(f"   ❌ {pattern_name}: Padrao invalidado historicamente")
-                    continue
-            
-            # Verificar confianca minima
+
+            if pattern_name in self.INVALIDATED_PATTERNS:
+                logger.info(f"   ❌ {pattern_name}: padrão desativado por validação histórica")
+                continue
+            if pattern_name in self.NON_PREDICTIVE_PATTERNS:
+                logger.info(f"   ℹ️ {pattern_name}: sinal de qualidade/risco, não evidência preditiva")
+                continue
+
+            if required_data is None or not required_data.issubset(available_data):
+                logger.info(
+                    "   ⚠️ %s: dados insuficientes (%s)",
+                    pattern_name,
+                    sorted(required_data or ()),
+                )
+                continue
+            insufficient_samples = self._insufficient_samples(
+                required_data,
+                match_features,
+            )
+            if insufficient_samples:
+                logger.info(
+                    "   ⚠️ %s: amostra insuficiente (%s)",
+                    pattern_name,
+                    ', '.join(insufficient_samples),
+                )
+                continue
+
             if confidence < self.MIN_CONFIDENCE_FOR_CONTEXT:
                 logger.info(f"   ⚠️ {pattern_name}: Confianca {confidence:.0%} < {self.MIN_CONFIDENCE_FOR_CONTEXT:.0%}")
                 continue
             
             approved_patterns.append(pattern_name)
+            approved_confidences.append(confidence)
             logger.info(f"   ✅ {pattern_name}: APROVADO (confianca: {confidence:.0%})")
         
         if approved_patterns:
             decision = {
                 'use_context': True,
                 'reason': f"Padroes fortes detectados: {', '.join(approved_patterns)}",
-                'confidence': max_confidence,
+                'confidence': max(approved_confidences),
                 'approved_patterns': approved_patterns
             }
             logger.info(f"\n🎯 DECISAO: USAR CONTEXTO")
@@ -102,11 +142,40 @@ class HybridStrategy:
             logger.info(f"   Confianca: {max_confidence:.0%}")
         else:
             decision = self._reject_context(
-                f"Nenhum padrao forte (max confianca: {max_confidence:.0%} < {self.MIN_CONFIDENCE_FOR_CONTEXT:.0%})"
+                "Nenhum padrão tem simultaneamente dados de origem disponíveis e "
+                f"score de regra >= {self.MIN_CONFIDENCE_FOR_CONTEXT:.0%} "
+                f"(maior score detectado: {max_confidence:.0%})"
             )
         
         self.decisions_log.append(decision)
         return decision
+
+    def apply_context(self, context_result: Dict, match_features: Dict) -> Dict:
+        """Return one consistently gated context payload for every analysis path."""
+        decision = self.should_use_context(context_result, match_features)
+        detected_patterns = context_result.get('patterns', [])
+        approved_names = set(decision['approved_patterns'])
+        approved_patterns = [
+            pattern for pattern in detected_patterns
+            if pattern.get('name') in approved_names
+        ]
+
+        analyzer = self._market_consolidator(approved_patterns)
+        return {
+            'patterns': approved_patterns,
+            'top_markets': analyzer,
+            'context_decision': decision,
+            'detected_patterns': detected_patterns,
+            'confidence_is_calibrated': False,
+        }
+
+    @staticmethod
+    def _market_consolidator(patterns):
+        from .context_analyzer import ContextAnalyzer
+
+        analyzer = ContextAnalyzer()
+        analyzer.patterns_detected = patterns
+        return analyzer._consolidate_favorable_markets()
     
     def _reject_context(self, reason: str) -> Dict:
         """Rejeita uso de contexto e retorna decisao."""
@@ -120,61 +189,34 @@ class HybridStrategy:
             'approved_patterns': []
         }
     
-    def _has_real_contextual_data(self, features: Dict) -> bool:
-        """
-        Verifica se tem dados contextuais REAIS (nao genericos).
-        
-        Dados genericos:
-        - importance: 'medium'
-        - motivation: {'home': 'medium', 'away': 'medium'}
-        - standings: {'home_position': 10, 'away_position': 10}
-        
-        Dados reais tem variacoes significativas.
-        """
+    @staticmethod
+    def _available_data(features: Dict):
         if not features:
-            return False
-        
-        # Verificar importance
-        importance = features.get('importance')
-        if importance and importance != 'medium':
-            return True
-        
-        # Verificar motivation
-        motivation = features.get('motivation', {})
-        if motivation:
-            home_mot = motivation.get('home')
-            away_mot = motivation.get('away')
-            
-            # Se alguma motivacao nao eh 'medium', tem dado real
-            if (home_mot and home_mot != 'medium') or (away_mot and away_mot != 'medium'):
-                return True
-        
-        # Verificar standings
-        standings = features.get('standings', {})
-        if standings:
-            home_pos = standings.get('home_position')
-            away_pos = standings.get('away_position')
-            
-            # Se posicoes diferentes de 10 (generico), tem dado real
-            if (home_pos and home_pos != 10) or (away_pos and away_pos != 10):
-                return True
-        
-        # Verificar rest_context
-        rest_context = features.get('rest_context', {})
-        if rest_context:
-            advantage = rest_context.get('advantage')
-            
-            # Se vantagem nao eh 'equal', tem dado real
-            if advantage and advantage != 'equal':
-                return True
-        
-        # Verificar weather
-        weather = features.get('weather')
-        if weather is not None:  # None eh generico
-            return True
-        
-        # Se chegou aqui, sao todos dados genericos
-        return False
+            return set()
+
+        metadata = features.get('_metadata', {}).get('data_availability')
+        if isinstance(metadata, dict):
+            return {key for key, available in metadata.items() if available}
+        return set()
+
+    @staticmethod
+    def _insufficient_samples(required_data, features):
+        metadata = features.get('_metadata', {})
+        if not isinstance(metadata, dict):
+            metadata = {}
+        sample_sizes = metadata.get('sample_sizes', {})
+        if not isinstance(sample_sizes, dict):
+            sample_sizes = {}
+
+        insufficient = []
+        for source in required_data:
+            for sample_key, minimum in SOURCE_SAMPLE_REQUIREMENTS.get(source, {}).items():
+                observed = sample_sizes.get(sample_key, 0)
+                if not isinstance(observed, (int, float)) or observed < minimum:
+                    insufficient.append(
+                        f'{sample_key}={observed} (mínimo {minimum})'
+                    )
+        return insufficient
     
     def get_stats(self) -> Dict:
         """Retorna estatisticas das decisoes."""

@@ -16,9 +16,42 @@ from .models import League, Match, Team
 from .views import (
 	HOME_MAX_ODDS_CHECKS,
 	MatchViewSet,
+	_extract_goal_averages,
 	_filter_home_matches,
 	_save_quick_analysis_to_history,
 )
+
+
+class GoalAverageExtractionTests(SimpleTestCase):
+	def test_missing_api_statistics_use_engineered_strengths(self):
+		self.assertEqual(
+			_extract_goal_averages(
+				None,
+				None,
+				{
+					'home_goals_per_game': 1.7,
+					'away_goals_per_game': 1.1,
+					'home_conceded_per_game': 1.2,
+					'away_conceded_per_game': 1.6,
+				},
+			),
+			(1.7, 1.1, 1.2, 1.6),
+		)
+
+	def test_api_statistics_use_provider_field_names(self):
+		self.assertEqual(
+			_extract_goal_averages(
+				{'goals_per_game_avg': 1.8, 'goals_conceded_avg': 0.9},
+				{'goals_per_game_avg': 1.2, 'goals_conceded_avg': 1.5},
+				{
+					'home_goals_per_game': 1.0,
+					'away_goals_per_game': 1.0,
+					'home_conceded_per_game': 1.0,
+					'away_conceded_per_game': 1.0,
+				},
+			),
+			(1.8, 1.2, 0.9, 1.5),
+		)
 
 
 class QuickAnalyzeHistoryTests(TestCase):
@@ -211,7 +244,7 @@ class MatchDetailPerformanceTests(SimpleTestCase):
 
 	def test_statistical_preview_returns_cached_fixture_payload(self):
 		cached = {'success': True, 'analysis_data': {'cached': True}}
-		cache.set('statistical_preview:v2:77:pregame', cached, 60)
+		cache.set('statistical_preview:v5:77:pregame:value', cached, 60)
 		request = self.factory.post(
 			'/api/matches/statistical_preview/',
 			{
@@ -229,6 +262,56 @@ class MatchDetailPerformanceTests(SimpleTestCase):
 
 		self.assertEqual(response.status_code, 200)
 		self.assertEqual(response.data, cached)
+
+	def test_statistical_preview_cache_is_separated_by_strategy(self):
+		multiple_cached = {'success': True, 'analysis_data': {'strategy': 'multiple'}}
+		cache.set('statistical_preview:v5:77:pregame:multiple', multiple_cached, 60)
+		request = self.factory.post(
+			'/api/matches/statistical_preview/',
+			{
+				'home_team': 'Home',
+				'away_team': 'Away',
+				'api_football_id': 77,
+				'match_status': 'scheduled',
+				'strategy': 'value',
+			},
+			format='json',
+		)
+
+		with patch(
+			'apps.analysis.services.match_enricher.MatchDataEnricher.enrich',
+			side_effect=RuntimeError('cache miss verified'),
+		) as enrich:
+			response = MatchViewSet.as_view(
+				{'post': 'statistical_preview'}, permission_classes=[AllowAny],
+			)(request)
+
+		self.assertEqual(response.status_code, 502)
+		enrich.assert_called_once()
+
+	def test_statistical_preview_validates_strategy_before_cache_lookup(self):
+		cache.set(
+			'statistical_preview:v5:77:pregame:value',
+			{'success': True},
+			60,
+		)
+		request = self.factory.post(
+			'/api/matches/statistical_preview/',
+			{
+				'home_team': 'Home',
+				'away_team': 'Away',
+				'api_football_id': 77,
+				'match_status': 'scheduled',
+				'strategy': 'unknown',
+			},
+			format='json',
+		)
+
+		response = MatchViewSet.as_view(
+			{'post': 'statistical_preview'}, permission_classes=[AllowAny],
+		)(request)
+
+		self.assertEqual(response.status_code, 400)
 
 	def test_home_only_returns_future_priority_matches_with_1x2_odds(self):
 		future_kickoff = (timezone.now() + timedelta(hours=2)).isoformat()

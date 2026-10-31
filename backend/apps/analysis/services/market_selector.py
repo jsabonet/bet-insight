@@ -764,7 +764,10 @@ class MarketSelector:
                     game_type = "defensivo"
                 else:
                     game_type = "equilibrado"
-                return f"Jogo {game_type} (xG: {xg_total:.1f}) com {probability*100:.0f}% de probabilidade"
+                return (
+                    f"xG total {xg_total:.1f} classifica o jogo como {game_type}; "
+                    f"{market} tem {probability*100:.0f}% segundo o modelo"
+                )
             
             elif any(x in market for x in ['home_win', 'away_win', 'draw']):
                 prob_home = consensus.get('home_win', 0)

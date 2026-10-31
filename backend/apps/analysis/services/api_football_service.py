@@ -98,6 +98,7 @@ class APIFootballService:
                 'position': standing['rank'],
                 'points': standing['points'],
                 'form': standing.get('form', ''),
+                'games_played': standing.get('all', {}).get('played', 0),
                 'goals_for': standing['all']['goals']['for'],
                 'goals_against': standing['all']['goals']['against'],
                 'goal_difference': standing['goalsDiff'],
@@ -122,9 +123,9 @@ class APIFootballService:
         
         data = self._make_request('injuries', {'fixture': fixture_id}, cache_type='injuries')
         
-        if not data:
+        if data is None:
             logger.warning(f"⚠️ Nenhuma lesão encontrada para fixture {fixture_id}")
-            return {'home': [], 'away': []}
+            return None
         
         injuries = {'home': [], 'away': []}
         

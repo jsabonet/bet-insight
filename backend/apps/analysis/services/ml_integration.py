@@ -255,6 +255,8 @@ class MLModel:
         flat = {}
         
         for category, values in features.items():
+            if category.startswith('_') or category == 'league_context':
+                continue
             if isinstance(values, dict):
                 for key, value in values.items():
                     # Converter booleanos para int
@@ -383,12 +385,15 @@ class ModelEnsembleML:
         
         # 1. Previção Poisson (com ajuste de copa)
         poisson_pred = self.poisson.predict(home_strength, away_strength, weather_impact, league_id,
-                                           home_defense, away_defense, knockout_adjustment)
+                                           home_defense, away_defense, knockout_adjustment,
+                                           league_avg_goals_per_team=features.get(
+                                               'league_context', {}
+                                           ).get('avg_goals_per_team_game'))
         
         # 2. Previsão ML (ou Logística se ML não disponível)
         # Detectar se é copa pelas features de competição
         competition_features = features.get('competition', {})
-        is_cup = competition_features.get('is_cup', False)
+        is_cup = competition_features.get('is_cup_competition', False)
         
         # Chamar predict_1x2 com ou sem is_cup baseado no tipo de modelo
         if self.has_ml:
@@ -409,6 +414,11 @@ class ModelEnsembleML:
         # CORREÇÃO DEFINITIVA: Detectar favorito claro TEM PRIORIDADE MÁXIMA
         max_market_prob = max(market_prior.values())
         is_clear_favorite = max_market_prob > 0.55  # Odd < 1.80
+        has_strong_context = bool(
+            isinstance(context_analysis, dict)
+            and context_analysis.get('context_decision', {}).get('use_context')
+            and context_analysis.get('patterns')
+        )
         
         print(f"\n{'='*80}")
         print(f"DEBUG ENSEMBLE - max_market_prob: {max_market_prob:.1%}")
@@ -422,9 +432,14 @@ class ModelEnsembleML:
         
         config_source = "padrão"
         
-        # PRIORIDADE ABSOLUTA: Favorito claro (IGNORA contexto)
-        # Poisson é MUITO melhor em jogos desbalanceados
-        if is_clear_favorite and self.use_market_prior and self.has_ml:
+        # Preserve the clear-favorite weighting unless the shared evidence gate
+        # approved strong context for this fixture.
+        if (
+            is_clear_favorite
+            and self.use_market_prior
+            and self.has_ml
+            and not has_strong_context
+        ):
             # ✅ CORREÇÃO: Para favoritos MUITO claros (>56%), ML pode estar descalibrado
             # Verificar se ML discorda fortemente do mercado
             
@@ -463,15 +478,11 @@ class ModelEnsembleML:
         
         # SE NÃO FOR FAVORITO CLARO: verificar contexto ou usar padrão
         else:
-            # Verificar se há contexto forte
-            has_strong_context = (
-                context_analysis and 
-                isinstance(context_analysis, dict) and 
-                context_analysis.get('patterns') and 
-                len(context_analysis.get('patterns', [])) > 0
-            )
-            
             if has_strong_context:
+                logger.info(
+                    "📊 Contexto forte aprovado: aplicando pesos contextuais "
+                    "mesmo com favorito claro no mercado"
+                )
                 weights = self._adjust_weights_for_context(context_analysis)
                 config_source = "contexto"
                 weight_poisson = weights['poisson']
@@ -591,12 +602,10 @@ class ModelEnsembleML:
         contextual_count = sum(1 for p in patterns if p['name'] in contextual_patterns)
         statistical_count = sum(1 for p in patterns if p['name'] in statistical_patterns)
         
-        # Pegar maior confiança entre padrões motivacionais/contextuais
-        max_context_confidence = 0
-        for pattern in patterns:
-            if pattern['name'] in motivational_patterns + contextual_patterns:
-                if pattern['confidence'] > max_context_confidence:
-                    max_context_confidence = pattern['confidence']
+        max_context_confidence = max(
+            (pattern.get('confidence', 0) for pattern in patterns),
+            default=0,
+        )
         
         # DECISÃO: Ajustar pesos se contexto forte (USANDO CONFIG)
         if max_context_confidence >= ContextConfidence.STRONG_CONTEXT_THRESHOLD:
@@ -642,4 +651,3 @@ class ModelEnsembleML:
                     weights = {'poisson': 0.45, 'ml': 0.55, 'market': 0.0}
         
         return weights
-

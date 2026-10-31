@@ -6,6 +6,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.utils import timezone
 from django.core.cache import cache
 from datetime import timedelta, datetime
+from types import SimpleNamespace
 from .models import League, Team, Match
 from .serializers import LeagueSerializer, TeamSerializer, MatchListSerializer, MatchDetailSerializer
 from .services.football_api import FootballAPIService
@@ -27,6 +28,40 @@ HOME_SECONDARY_LEAGUES = {
     239, 242, 281, 270, 250, 188, 189, 292, 293, 271, 667, 317, 233, 200,
 }
 HOME_MAX_ODDS_CHECKS = 120
+
+
+def _extract_goal_averages(home_stats, away_stats, strength_features):
+    home_stats = home_stats or {}
+    away_stats = away_stats or {}
+    strength_features = strength_features or {}
+
+    return (
+        home_stats.get('goals_per_game_avg')
+        or strength_features.get('home_goals_per_game')
+        or 1.5,
+        away_stats.get('goals_per_game_avg')
+        or strength_features.get('away_goals_per_game')
+        or 1.3,
+        home_stats.get('goals_conceded_avg')
+        or strength_features.get('home_conceded_per_game')
+        or 1.3,
+        away_stats.get('goals_conceded_avg')
+        or strength_features.get('away_conceded_per_game')
+        or 1.3,
+    )
+
+def _fixture_team(fixture_details, api_fixture, side, default_name):
+    team = (fixture_details.get('teams') or {}).get(side)
+    if team is None:
+        team = fixture_details.get(f'{side}_team')
+    if team is None:
+        team = (api_fixture.get('teams') or {}).get(side)
+    if isinstance(team, dict):
+        return {
+            'id': team.get('id'),
+            'name': team.get('name') or default_name,
+        }
+    return {'id': None, 'name': team or default_name}
 
 
 def _save_quick_analysis_to_history(user, data, result):
@@ -1268,7 +1303,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 {'error': 'home_team e away_team são obrigatórios'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         match_data = {
             'home_team': {'name': home_team},
             'away_team': {'name': away_team},
@@ -1283,6 +1318,107 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
         
         # Buscar dados enriquecidos das APIs se api_id fornecido
         api_id = request.data.get('api_id')
+        if not api_id:
+            return Response(
+                {'error': 'api_id é obrigatório para uma análise completa com dados consistentes'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            api_id = int(api_id)
+            from apps.analysis.services.match_enricher import MatchDataEnricher
+
+            enriched = MatchDataEnricher().enrich(match_data)
+            fixture = enriched.get('fixture_details') or {}
+            if not fixture:
+                raise ValueError(f'Fixture {api_id} não retornou detalhes para análise completa')
+            league_data = fixture.get('league') or {}
+            home_fixture_team = _fixture_team(fixture, {}, 'home', home_team)
+            away_fixture_team = _fixture_team(fixture, {}, 'away', away_team)
+            match_for_analysis = SimpleNamespace(
+                api_football_id=api_id,
+                league=SimpleNamespace(
+                    api_football_id=league_data.get('id'),
+                ),
+                home_team=SimpleNamespace(
+                    id=home_fixture_team['id'],
+                    name=home_fixture_team['name'],
+                ),
+                away_team=SimpleNamespace(
+                    id=away_fixture_team['id'],
+                    name=away_fixture_team['name'],
+                ),
+            )
+            skip_ai = bool(request.data.get('skip_ai', False))
+            analysis = HybridAnalysisOrchestrator().run(
+                match_for_analysis,
+                strategy=strategy,
+                enriched_data=enriched,
+                include_ai=not skip_ai,
+            )
+        except Exception as exc:
+            logger.exception('Falha ao executar fluxo comum de análise rápida.')
+            return Response(
+                {'error': 'Não foi possível concluir a análise completa', 'details': str(exc)},
+                status=status.HTTP_502_BAD_GATEWAY
+            )
+
+        analysis_data = analysis['analysis_data']
+        model_predictions = analysis_data['model_predictions']
+        decision_data = analysis_data
+        ai_text = analysis.get('reasoning')
+        result = {'success': bool(ai_text), 'analysis': ai_text}
+        metadata = {
+            'has_predictions': bool(enriched.get('predictions')),
+            'has_statistics': bool(enriched.get('statistics')),
+            'has_h2h': bool(enriched.get('h2h')),
+            'h2h_count': len(enriched.get('h2h') or []),
+            'has_fixture_details': bool(enriched.get('fixture_details')),
+            'has_football_data': bool(enriched.get('football_data_match')),
+        }
+
+        saved = False
+        saved_info = None
+        try:
+            saved_analysis = _save_quick_analysis_to_history(
+                request.user,
+                request.data,
+                result,
+            )
+            if saved_analysis:
+                saved = True
+                saved_info = {
+                    'id': saved_analysis.id,
+                    'created_at': saved_analysis.created_at,
+                }
+        except Exception:
+            logger.exception('Falha ao guardar a análise rápida no histórico.')
+
+        confidence = analysis_data.get('confidence', {})
+        return Response({
+            'analysis': ai_text,
+            'reasoning': ai_text,
+            'confidence': confidence.get('stars', analysis.get('confidence', 3)),
+            'confidence_display': f"{confidence.get('level', 'N/A')} ({confidence.get('stars', 3)}/5)",
+            'prediction_display': analysis_data.get('recommendation', {}).get('pick'),
+            'home_probability': model_predictions.get('consensus', {}).get('home_win', 0) * 100,
+            'draw_probability': model_predictions.get('consensus', {}).get('draw', 0) * 100,
+            'away_probability': model_predictions.get('consensus', {}).get('away_win', 0) * 100,
+            'key_factors': analysis_data.get('key_factors', []),
+            'value_bets': analysis_data.get('value_bets', []),
+            'top_bets': analysis_data.get('top_bets', []),
+            'strategy': strategy,
+            'context_analysis': analysis_data.get('context_analysis', {}),
+            'metadata': metadata,
+            'enriched_data': enriched,
+            'model_predictions': model_predictions,
+            'fair_odds': analysis_data.get('fair_odds', {}),
+            'risk': analysis_data.get('risk', 'medium'),
+            'saved': saved,
+            'saved_analysis': saved_info,
+            'analysis_data': analysis_data,
+        })
+
         football_data_id = request.data.get('football_data_id')  # ID da Football-Data.org
         
         # 🆕 MAPEAR FOOTBALL_DATA_ID automaticamente se não fornecido
@@ -1416,24 +1552,19 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
 
         # 1.1 Context Analyzer (usar padrões contextuais para seleção de mercados)
         try:
-            from apps.analysis.services.context_analyzer import ContextAnalyzer
-            context_analyzer = ContextAnalyzer()
-            context_analysis = context_analyzer.analyze(features)
+            from apps.analysis.services.context_pipeline import analyze_match_context
+            context_analysis = analyze_match_context(features)
             logger.info(f"✅ ContextAnalyzer executado: {len(context_analysis.get('patterns', []))} padrões detectados")
         except Exception as e:
             logger.error(f"❌ Erro ao executar ContextAnalyzer: {e}")
             context_analysis = None
         
         # 2. Calcular força ofensiva e defensiva (para Poisson)
-        home_stats = match_data.get('home_stats', {})
-        away_stats = match_data.get('away_stats', {})
-        
-        home_strength = home_stats.get('goals_per_game_avg', 1.5)  # Default 1.5 gols/jogo
-        away_strength = away_stats.get('goals_per_game_avg', 1.3)
-        
-        # NOVO: Extrair defesa
-        home_defense = home_stats.get('conceded_per_game_avg', 1.3)  # Gols sofridos/jogo
-        away_defense = away_stats.get('conceded_per_game_avg', 1.3)
+        home_strength, away_strength, home_defense, away_defense = _extract_goal_averages(
+            match_data.get('home_stats'),
+            match_data.get('away_stats'),
+            features.get('strength', {}),
+        )
         
         # Ajustar pela forma recente
         form_diff = features.get('form', {}).get('adjusted_form_diff', 0)  # MUDOU: usa forma ajustada
@@ -1751,6 +1882,131 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def statistical_preview(self, request):
         """Preview rápido de estatísticas básicas - SEMPRE recalcula a cada request"""
+        home_team = request.data.get('home_team')
+        away_team = request.data.get('away_team')
+        api_id = request.data.get('api_football_id')
+        if api_id:
+            try:
+                api_id = int(api_id)
+            except (TypeError, ValueError):
+                return Response(
+                    {'error': 'api_football_id deve ser um inteiro'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        if not api_id:
+            match_id = request.data.get('match_id')
+            if match_id:
+                match = Match.objects.filter(id=match_id).only('api_football_id').first()
+                if match is None:
+                    match = Match.objects.filter(api_football_id=match_id).only('api_football_id').first()
+                api_id = match.api_football_id if match else None
+
+        match_status = str(request.data.get('match_status') or '').upper()
+        if match_status in {'LIVE', '1H', '2H', 'HT', 'ET', 'P'}:
+            preview_status, preview_ttl = 'live', 20
+        elif match_status in {'FT', 'AET', 'PEN', 'FINISHED'}:
+            preview_status, preview_ttl = 'finished', 86400
+        else:
+            preview_status, preview_ttl = 'pregame', 43200
+        strategy = request.data.get('strategy', 'value')
+        if strategy not in ('value', 'multiple'):
+            return Response(
+                {'error': 'strategy deve ser value ou multiple'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        preview_cache_key = (
+            f'statistical_preview:v5:{api_id}:{preview_status}:{strategy}' if api_id else None
+        )
+        if preview_cache_key:
+            cached_preview = cache.get(preview_cache_key)
+            if cached_preview is not None:
+                return Response(cached_preview)
+
+        if not home_team or not away_team:
+            return Response(
+                {'error': 'home_team e away_team são obrigatórios'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if not api_id:
+            return Response(
+                {'error': 'api_football_id é obrigatório para um preview completo'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            from apps.analysis.services.match_enricher import MatchDataEnricher
+
+            enriched = MatchDataEnricher().enrich({
+                'home_team': {'name': home_team},
+                'away_team': {'name': away_team},
+                'league': request.data.get('league'),
+                'date': request.data.get('date'),
+                'api_id': api_id,
+            })
+            fixture = enriched.get('fixture_details') or {}
+            league_data = fixture.get('league') or {}
+            if not fixture:
+                raise ValueError(f'Fixture {api_id} não retornou detalhes para análise completa')
+            home_fixture_team = _fixture_team(fixture, {}, 'home', home_team)
+            away_fixture_team = _fixture_team(fixture, {}, 'away', away_team)
+
+            match_for_analysis = SimpleNamespace(
+                api_football_id=api_id,
+                league=SimpleNamespace(api_football_id=league_data.get('id')),
+                home_team=SimpleNamespace(
+                    id=home_fixture_team['id'],
+                    name=home_fixture_team['name'],
+                ),
+                away_team=SimpleNamespace(
+                    id=away_fixture_team['id'],
+                    name=away_fixture_team['name'],
+                ),
+            )
+            analysis = HybridAnalysisOrchestrator().run(
+                match_for_analysis,
+                strategy=strategy,
+                enriched_data=enriched,
+                include_ai=False,
+            )
+        except Exception as exc:
+            logger.exception('Falha ao executar preview pelo fluxo comum de análise.')
+            return Response(
+                {'error': 'Não foi possível calcular o preview completo', 'details': str(exc)},
+                status=status.HTTP_502_BAD_GATEWAY
+            )
+
+        analysis_data = analysis['analysis_data']
+        model_predictions = analysis_data['model_predictions']
+        data_availability = (
+            analysis_data.get('features_summary', {})
+            .get('complete', {})
+            .get('_metadata', {})
+            .get('data_availability', {})
+        )
+        payload = {
+            'success': True,
+            'analysis_data': {
+                'consensus': analysis_data.get('consensus', {}),
+                'poisson': analysis_data.get('poisson', {}),
+                'logistic': model_predictions.get('logistic', {}),
+                'fair_odds': analysis_data.get('fair_odds', {}),
+                'market_odds': analysis_data.get('market_odds', {}),
+                'features_summary': analysis_data.get('features_summary', {}),
+                'recommendation': analysis_data.get('recommendation', {}),
+                'confidence': analysis_data.get('confidence', {}),
+                'risk': analysis_data.get('risk', 'medium'),
+                'top_bets': analysis_data.get('top_bets', []),
+                'context_analysis': analysis_data.get('context_analysis', {}),
+                'is_preview': True,
+                'has_real_data': any(data_availability.values()),
+            },
+            'enriched_data': enriched,
+            'context_decision': analysis_data.get('context_decision', {}),
+        }
+        if preview_cache_key:
+            cache.set(preview_cache_key, payload, preview_ttl)
+        return Response(payload)
+
         from apps.analysis.services.statistical_models import PoissonBivariateModel, LogisticRegressionModel
         from apps.analysis.services.feature_engineer import FeatureEngineer
         from apps.analysis.services.match_enricher import MatchDataEnricher
@@ -1791,7 +2047,7 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             preview_status = 'pregame'
             preview_ttl = 43200
         preview_cache_key = (
-            f'statistical_preview:v2:{api_id}:{preview_status}' if api_id else None
+            f'statistical_preview:v3:{api_id}:{preview_status}' if api_id else None
         )
         if preview_cache_key:
             cached_preview = cache.get(preview_cache_key)
@@ -2070,14 +2326,14 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 logger.info("✅ Usando features_summary real")
             elif enriched_data and (enriched_data.get('home_stats') or enriched_data.get('away_stats')):
                 # Construir a partir das estatísticas básicas
-                home_stats = enriched_data.get('home_stats', {})
-                away_stats = enriched_data.get('away_stats', {})
+                home_stats = enriched_data.get('home_stats') or {}
+                away_stats = enriched_data.get('away_stats') or {}
                 features_summary = {
                     'strength': {
                         'home_goals_per_game': home_stats.get('goals_per_game_avg', home_strength),
                         'away_goals_per_game': away_stats.get('goals_per_game_avg', away_strength),
-                        'home_defensive_rating': home_stats.get('goals_conceded_per_game_avg', 1.2),
-                        'away_defensive_rating': away_stats.get('goals_conceded_per_game_avg', 1.2),
+                        'home_defensive_rating': home_stats.get('goals_conceded_avg', 1.2),
+                        'away_defensive_rating': away_stats.get('goals_conceded_avg', 1.2),
                         'home_defense_strength': home_stats.get('defensive_rating', 1.0),
                         'away_defense_strength': away_stats.get('defensive_rating', 1.0),
                     },
@@ -2124,9 +2380,8 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             context_analysis = None
             if features:
                 try:
-                    from apps.analysis.services.context_analyzer import ContextAnalyzer
-                    context_analyzer = ContextAnalyzer()
-                    context_analysis = context_analyzer.analyze(features)
+                    from apps.analysis.services.context_pipeline import analyze_match_context
+                    context_analysis = analyze_match_context(features)
                     logger.info(f"✅ ContextAnalyzer executado: {len(context_analysis.get('patterns', []))} padrões detectados")
                 except Exception as e:
                     logger.error(f"❌ Erro ao executar ContextAnalyzer: {e}")
@@ -2619,6 +2874,73 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                     # DEBUG: Verificar se odds existem após enrichment
                     logger.info(f"🔍 APÓS ENRICHMENT - match_data.keys(): {list(match_data.keys())}")
                     logger.info(f"🔍 APÓS ENRICHMENT - match_data.get('odds'): {match_data.get('odds')}")
+
+                    fixture_details = match_data.get('fixture_details') or {}
+                    league_details = fixture_details.get('league') or {}
+                    home_fixture_team = _fixture_team(
+                        fixture_details, fixture, 'home', match_data['home_team']['name']
+                    )
+                    away_fixture_team = _fixture_team(
+                        fixture_details, fixture, 'away', match_data['away_team']['name']
+                    )
+                    external_match = SimpleNamespace(
+                        api_football_id=api_id,
+                        league=SimpleNamespace(
+                            api_football_id=league_details.get('id', fixture.get('league', {}).get('id')),
+                        ),
+                        home_team=SimpleNamespace(
+                            id=home_fixture_team['id'],
+                            name=home_fixture_team['name'],
+                        ),
+                        away_team=SimpleNamespace(
+                            id=away_fixture_team['id'],
+                            name=away_fixture_team['name'],
+                        ),
+                    )
+                    common_analysis = HybridAnalysisOrchestrator().run(
+                        external_match,
+                        strategy=strategy,
+                        enriched_data=match_data,
+                        include_ai=include_ai,
+                    )
+                    common_data = common_analysis['analysis_data']
+                    common_predictions = common_data['model_predictions']
+                    return Response({
+                        'phase': 'complete',
+                        'cached': False,
+                        'match_id': api_id,
+                        'strategy': strategy,
+                        'match_info': {
+                            'home_team': {'name': external_match.home_team.name},
+                            'away_team': {'name': external_match.away_team.name},
+                            'league': {'name': match_data.get('league', 'N/A')},
+                            'match_date': match_data.get('date'),
+                        },
+                        'statistical_data': {
+                            'consensus': common_data.get('consensus', {}),
+                            'confidence': common_data.get('confidence', {}),
+                            'poisson': common_data.get('poisson', {}),
+                        },
+                        'decision_data': {
+                            'top_bets': common_data.get('top_bets', []),
+                            'recommendation': common_data.get('recommendation', {}),
+                            'risk': common_data.get('risk', 'medium'),
+                            'has_odds': bool(common_data.get('market_odds')),
+                            'fair_odds': common_data.get('fair_odds', {}),
+                            'value_bets': common_data.get('value_bets', []),
+                            'context_analysis': common_data.get('context_analysis', {}),
+                            'context_decision': common_data.get('context_decision', {}),
+                        },
+                        'ai_analysis': common_analysis.get('reasoning'),
+                        'metadata': {
+                            'enriched_data': match_data,
+                            'model_predictions': common_predictions,
+                            'fair_odds': common_data.get('fair_odds', {}),
+                            'market_odds': common_data.get('market_odds', {}),
+                            'generated_at': timezone.now().isoformat(),
+                        },
+                        'cache_stats': {},
+                    })
                     
                     # Executar análise estatística + decisão
                     from apps.analysis.services.feature_engineer import FeatureEngineer
@@ -2633,19 +2955,19 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                     # 🆕 ContextAnalyzer - Analisar padrões contextuais
                     context_analysis = None
                     try:
-                        from apps.analysis.services.context_analyzer import ContextAnalyzer
-                        context_analyzer = ContextAnalyzer()
-                        context_analysis = context_analyzer.analyze(features)
+                        from apps.analysis.services.context_pipeline import analyze_match_context
+                        context_analysis = analyze_match_context(features)
                         logger.info(f"✅ ContextAnalyzer executado: {len(context_analysis.get('patterns', []))} padrões detectados")
                     except Exception as e:
                         logger.error(f"❌ Erro ao executar ContextAnalyzer: {e}")
                         context_analysis = None
                     
                     # Modelos estatísticos usando ModelEnsemble
-                    home_strength = match_data.get('home_stats', {}).get('goals_per_game_avg', 1.5)
-                    away_strength = match_data.get('away_stats', {}).get('goals_per_game_avg', 1.3)
-                    home_defense = match_data.get('home_stats', {}).get('conceded_per_game_avg', 1.3)
-                    away_defense = match_data.get('away_stats', {}).get('conceded_per_game_avg', 1.3)
+                    home_strength, away_strength, home_defense, away_defense = _extract_goal_averages(
+                        match_data.get('home_stats'),
+                        match_data.get('away_stats'),
+                        features.get('strength', {}),
+                    )
                     
                     # Ajustar pela forma recente
                     form_diff = features.get('form', {}).get('adjusted_form_diff', 0)
@@ -2784,7 +3106,11 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                 
                 # Usar AnalysisOrchestrator existente (método run)
                 orchestrator = HybridAnalysisOrchestrator()
-                analysis_result = orchestrator.run(match, strategy=strategy)
+                analysis_result = orchestrator.run(
+                    match,
+                    strategy=strategy,
+                    include_ai=include_ai,
+                )
                 
                 logger.info(f"🔍 Consensus gerado pelo orchestrator: {analysis_result.get('consensus', {})}")
                 
@@ -2852,6 +3178,8 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
                     'recommendation': analysis_result.get('analysis_data', {}).get('recommendation', {}),
                     'risk': analysis_result.get('analysis_data', {}).get('risk', 'medium'),
                     'has_odds': bool(analysis_result.get('analysis_data', {}).get('market_odds')),  # Flag para frontend
+                    'context_analysis': analysis_result.get('analysis_data', {}).get('context_analysis', {}),
+                    'context_decision': analysis_result.get('analysis_data', {}).get('context_decision', {}),
                 },
                 
                 # Onda 3: Análise IA (se solicitado)
