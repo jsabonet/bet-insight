@@ -442,24 +442,82 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['post'], url_path='admin/generate-now', permission_classes=[IsAdminUser])
     def admin_generate_now(self, request):
         """
-        Executa a geração manual imediatamente e acompanha o progresso pelo registro.
+        Gera imediatamente em desenvolvimento ou enfileira em produção, conforme configuração.
         """
+        from django.conf import settings
         from apps.analysis.services.daily_bet_generator import (
             DailyBetGenerator,
             GenerationCancelledException,
         )
         from apps.analysis.models import TaskExecution
+        from apps.analysis.services.daily_bet_generation_lock import (
+            acquire_generation_lock,
+            get_generation_lock_owner,
+            release_generation_lock,
+        )
         from django.utils import timezone
         import uuid
 
         task_id = str(uuid.uuid4())
         mode = request.data.get('mode', 'hybrid')
-        execution = TaskExecution.objects.create(
-            task_name='generate_daily_bets',
-            task_id=task_id,
-            triggered_by='manual',
-            triggered_by_user=request.user,
-        )
+        try:
+            if not acquire_generation_lock(task_id):
+                return Response({
+                    'status': 'already_running',
+                    'task_id': get_generation_lock_owner(),
+                    'message': 'Já existe uma geração em andamento.',
+                }, status=http_status.HTTP_409_CONFLICT)
+        except Exception as exc:
+            return Response({
+                'status': 'error',
+                'message': f'Não foi possível verificar o lock da geração: {str(exc)}',
+            }, status=http_status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        try:
+            execution = TaskExecution.objects.create(
+                task_name='generate_daily_bets',
+                task_id=task_id,
+                triggered_by='manual',
+                triggered_by_user=request.user,
+            )
+        except Exception as exc:
+            release_generation_lock(task_id)
+            return Response({
+                'status': 'error',
+                'message': f'Não foi possível registrar a geração: {str(exc)}',
+            }, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        if settings.DAILY_BETS_MANUAL_ASYNC:
+            from apps.analysis.tasks import generate_daily_bets
+
+            try:
+                task = generate_daily_bets.apply_async(
+                    kwargs={
+                        'triggered_by': 'manual',
+                        'user_id': request.user.id,
+                        'mode': mode,
+                    },
+                    task_id=task_id,
+                )
+            except Exception as exc:
+                execution.mark_finished(
+                    status='failed',
+                    error_message=str(exc),
+                    result_data={'error': str(exc)},
+                )
+                release_generation_lock(task_id)
+                return Response({
+                    'status': 'error',
+                    'message': f'Erro ao enfileirar geração: {str(exc)}',
+                }, status=http_status.HTTP_503_SERVICE_UNAVAILABLE)
+
+            return Response({
+                'status': 'queued',
+                'task_id': task.id,
+                'execution_id': execution.id,
+                'message': 'Geração enfileirada. Acompanhe o progresso no painel admin.',
+                'mode': mode,
+            }, status=http_status.HTTP_202_ACCEPTED)
 
         try:
             generator = DailyBetGenerator()
@@ -508,6 +566,8 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
                 'status': 'error',
                 'message': f'Erro ao gerar daily bets: {str(exc)}',
             }, status=http_status.HTTP_500_INTERNAL_SERVER_ERROR)
+        finally:
+            release_generation_lock(task_id)
     
     @action(detail=False, methods=['post'], url_path='admin/validate-now', permission_classes=[IsAdminUser])
     def admin_validate_now(self, request):

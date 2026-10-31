@@ -29,6 +29,10 @@ def generate_daily_bets(self, triggered_by='celery', user_id=None, mode='hybrid'
     """
     from apps.analysis.services.daily_bet_generator import DailyBetGenerator
     from apps.analysis.models import TaskExecution
+    from apps.analysis.services.daily_bet_generation_lock import (
+        acquire_generation_lock,
+        release_generation_lock,
+    )
     from django.contrib.auth import get_user_model
     logger.info("=" * 100)
     logger.info("🎯 TASK: GENERATE DAILY BETS - INICIANDO")
@@ -36,16 +40,28 @@ def generate_daily_bets(self, triggered_by='celery', user_id=None, mode='hybrid'
     logger.info(f"Task ID: {self.request.id}")
     logger.info(f"Timestamp: {timezone.now().strftime('%d/%m/%Y %H:%M:%S')}")
     
-    # Criar registro de execução
-    User = get_user_model()
-    execution = TaskExecution.objects.create(
-        task_name='generate_daily_bets',
-        task_id=self.request.id,
-        triggered_by=triggered_by,
-        triggered_by_user=User.objects.get(id=user_id) if user_id else None
-    )
+    task_id = self.request.id
+    if not acquire_generation_lock(task_id):
+        logger.warning("Geração ignorada: já existe outra execução ativa")
+        return {
+            'status': 'skipped',
+            'task_id': task_id,
+            'reason': 'generation_already_running',
+        }
+
+    execution = None
     
     try:
+        execution = TaskExecution.objects.filter(task_id=task_id).first()
+        if execution is None:
+            User = get_user_model()
+            execution = TaskExecution.objects.create(
+                task_name='generate_daily_bets',
+                task_id=task_id,
+                triggered_by=triggered_by,
+                triggered_by_user=User.objects.get(id=user_id) if user_id else None,
+            )
+
         generator = DailyBetGenerator()
         
         # Gerar bilhetes e value bets
@@ -87,10 +103,13 @@ def generate_daily_bets(self, triggered_by='celery', user_id=None, mode='hybrid'
         logger.error(f"{'=' * 100}\n")
         
         # Atualizar registro de execução
-        execution.mark_finished(status='failed', error_message=str(e))
+        if execution is not None:
+            execution.mark_finished(status='failed', error_message=str(e))
         
         # Re-raise para Celery marcar como falha
         raise
+    finally:
+        release_generation_lock(task_id)
 
 
 @shared_task(bind=True, name='analysis.validate_daily_bets')

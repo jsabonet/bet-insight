@@ -13,6 +13,7 @@ import json
 import time
 import hashlib
 from .ai_helpers import parse_and_validate_response, format_analysis_for_frontend
+from .multiple_selection import rank_multiple_candidates
 
 logger = logging.getLogger(__name__)
 
@@ -734,9 +735,7 @@ class AIAnalyzer:
                 'fallback': True
             }
         
-        # 🛡️ SINCRONIZAÇÃO COM O BILHETE (fix): o best_bet é definido dentro de cada
-        # estratégia replicando a MESMA regra de seleção do DailyBetGenerator, para que o
-        # texto espelhe exatamente o que o bilhete (ou a value bet) contém.
+        # A seleção principal de multiple vem do DecisionEngine; o fallback só a explica.
         best_bet = top_bets[0] if top_bets else None
 
         if not best_bet:
@@ -778,55 +777,50 @@ class AIAnalyzer:
             )
         
         if strategy == 'multiple':
-            # MODO BILHETE: Foco em probabilidade e combinação
-            # 🛡️ SINCRONIZAÇÃO COM O BILHETE (fix): replicar EXATAMENTE a seleção do
-            # DailyBetGenerator._generate_multiple_tickets:
-            #   elegível = prob >= 65% AND 1.30 <= odd <= 1.50 (MAX_ODD_MULTIPLE do gerador)
-            #   escolha  = max(contextual_fit, score, probability)
-            # Antes usava-se MAX_ODD_MULTIPLE=2.00 e best_bet=top_bets[0], o que divergia
-            # do bilhete e podia exibir uma seleção diferente da efetivamente recomendada.
-            MIN_ODD_MULTIPLE = 1.30
-            MAX_ODD_MULTIPLE = 1.50
-            MIN_PROB_MULTIPLE = 0.65
-            
-            eligible_bets = [
-                bet for bet in top_bets 
-                if (bet.get('market_odd') or 0) >= MIN_ODD_MULTIPLE 
-                and (bet.get('market_odd') or 0) <= MAX_ODD_MULTIPLE
-                and bet.get('probability', 0) >= MIN_PROB_MULTIPLE
-            ]
-            
-            if eligible_bets:
-                # Mesma chave de ordenação do gerador de bilhetes (contextual_fit → score → prob)
-                eligible_bets.sort(key=lambda b: (
-                    b.get('contextual_fit', 1.0),
-                    b.get('score', 0),
-                    b.get('probability', 0),
-                ), reverse=True)
-                best_bet = eligible_bets[0]
-                suitable_bets = eligible_bets
+            selection = decision_data.get('multiple_selection')
+            if selection:
+                best_bet = next(
+                    (
+                        bet for bet in top_bets
+                        if bet.get('market') == selection.get('market')
+                        and bet.get('pick') == selection.get('pick')
+                    ),
+                    selection,
+                )
             else:
-                # Nenhuma aposta atende os critérios de bilhete — o gerador PULARIA este jogo.
-                # Mantém a melhor disponível apenas para não deixar o relatório vazio.
-                logger.warning("⚠️ Nenhuma aposta atende os critérios de bilhete (odd 1.30-1.50, prob ≥65%). Relatório apontará a melhor disponível.")
-                suitable_bets = [best_bet]
+                best_bet = rank_multiple_candidates(top_bets)[0]
+
+            suitable_bets = [
+                bet for bet in rank_multiple_candidates(top_bets)
+                if bet.get('market') != best_bet.get('market')
+            ][:2]
+            selection_is_eligible = (
+                selection.get('selection_eligible', False)
+                if selection
+                else False
+            )
             
             market_context_explanation = explain_market_context(best_bet)
             market_odd = best_bet.get('market_odd') or 0
+            eligibility_message = (
+                'Esta seleção passou pelos critérios atuais de elegibilidade.'
+                if selection_is_eligible
+                else 'Nenhuma candidata passou por todos os critérios; esta é a melhor disponível pelo score integrado e pode não entrar no bilhete automático.'
+            )
             
             analysis = f"""📋 MELHOR PARA BILHETE (SELEÇÃO CONTEXTUAL)
 ---------------------------------------
 🎯 CONTEXTO: {context_explanation}
 
 Aposta: {best_bet['market_display']}
-Odd: {market_odd:.2f} (ideal para bilhetes: 1.30-1.50)
-Probabilidade: {best_bet['probability']*100:.1f}% (mínimo 65%)
+Odd: {market_odd:.2f}
+Probabilidade: {best_bet['probability']*100:.1f}%
 Stake: {best_bet['stake_units']:.1f} unidades
+Elegibilidade: {eligibility_message}
 
 PORQUE ESTA APOSTA FOI ESCOLHIDA:
 • {best_bet['reason']}
-• Alta probabilidade ({best_bet['probability']*100:.1f}% de chance)
-• Odd moderada (boa para combinar com outras apostas)
+• Score integrado: {best_bet.get('ranking_score', best_bet.get('score', 0)):.3f}
 • {market_context_explanation}
 
 💡 DICA DE BILHETE:
@@ -835,11 +829,10 @@ Odd total esperada: 3.00-8.00
 Probabilidade combinada: 15-30%
 
 ---------------------------------------
-OUTRAS OPÇÕES PARA BILHETE:
+OUTRAS OPÇÕES NAS TOP 3:
 ---------------------------------------
 """
-            # Adicionar alternativas adequadas para bilhetes
-            for bet in suitable_bets[1:3]:  # Máximo 2 alternativas
+            for bet in suitable_bets:
                 analysis += f"• {bet['market_display']} (Prob: {bet['probability']*100:.0f}%, Odd: {bet.get('market_odd', 0):.2f})\n"
             
             analysis += """

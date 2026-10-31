@@ -68,9 +68,11 @@ quote_env_value() {
 DB_NAME_VAL=$(read_env_value DB_NAME "$ENV_FILE")
 DB_USER_VAL=$(read_env_value DB_USER "$ENV_FILE")
 DB_PASSWORD_VAL=$(read_env_value DB_PASSWORD "$ENV_FILE")
+DAILY_BETS_MANUAL_ASYNC_VAL=$(read_env_value DAILY_BETS_MANUAL_ASYNC "$ENV_FILE")
 
 DB_NAME_VAL=${DB_NAME_VAL:-betinsight_db}
 DB_USER_VAL=${DB_USER_VAL:-postgres}
+DAILY_BETS_MANUAL_ASYNC_VAL=${DAILY_BETS_MANUAL_ASYNC_VAL:-True}
 
 if [ -z "$DB_PASSWORD_VAL" ]; then
     echo -e "${RED}Erro: DB_PASSWORD nao definido em $ENV_FILE${NC}"
@@ -95,11 +97,12 @@ echo -e "${YELLOW}Sincronizando credenciais de banco para $ROOT_ENV...${NC}"
 umask 077
 cat > "$ROOT_ENV" <<EOF
 # Gerado automaticamente por scripts/deploy.sh - NAO EDITAR A MAO.
-# Fonte de verdade: $ENV_FILE (campos DB_NAME, DB_USER, DB_PASSWORD).
+# Fonte de verdade: $ENV_FILE (credenciais DB e DAILY_BETS_MANUAL_ASYNC).
 # O Compose usa estes valores tanto no servico db como no backend/celery.
 DB_NAME=$(quote_env_value "$DB_NAME_VAL")
 DB_USER=$(quote_env_value "$DB_USER_VAL")
 DB_PASSWORD=$(quote_env_value "$DB_PASSWORD_VAL")
+DAILY_BETS_MANUAL_ASYNC=$(quote_env_value "$DAILY_BETS_MANUAL_ASYNC_VAL")
 # URL da API lida pelo frontend em runtime (/config.js). /api e relativo.
 VITE_API_URL=$(quote_env_value "$API_URL_VAL")
 EOF

@@ -35,6 +35,10 @@ DAILY_BETS_VALUE_ENABLED = os.getenv(
     'DAILY_BETS_VALUE_ENABLED',
     'False',
 ).lower() == 'true'
+DAILY_BETS_MANUAL_ASYNC = os.getenv(
+    'DAILY_BETS_MANUAL_ASYNC',
+    'false',
+).strip().lower() in {'1', 'true', 'yes', 'on'}
 
 ALLOWED_HOSTS = [
     host.strip()

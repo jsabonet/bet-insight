@@ -616,6 +616,10 @@ class TaskExecution(models.Model):
             })
         
         self.save(update_fields=['current_stage', 'matches_found', 'matches_processed', 'bets_created', 'last_updated', 'progress_log'])
+
+        if self.task_name == 'generate_daily_bets':
+            from apps.analysis.services.daily_bet_generation_lock import renew_generation_lock
+            renew_generation_lock(self.task_id)
     
     def get_progress_percentage(self):
         """Calcula a porcentagem de progresso baseada nas partidas processadas"""

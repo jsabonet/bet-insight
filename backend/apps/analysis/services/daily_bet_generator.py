@@ -19,11 +19,9 @@ from django.conf import settings
 from apps.matches.models import Match
 from apps.analysis.models import DailyBet
 from apps.analysis.config.market_standards import normalize_market_name
-from apps.analysis.config.supergiants import (
-    is_home_over_market,
-    is_protective_supergiant_market,
-    is_supergiant_away,
-    is_supergiant_match,
+from apps.analysis.services.multiple_selection import (
+    eligible_multiple_candidates,
+    rank_multiple_candidates,
 )
 from .analysis_orchestrator import HybridAnalysisOrchestrator
 from .api_football_service import APIFootballService
@@ -1216,7 +1214,6 @@ class DailyBetGenerator:
             away_team = analysis['away_team']
             league_name = analysis['league_name']
             match_date = analysis['match_date']
-            supergiant_fixture = is_supergiant_match(match)
             result = analysis.get('multiple_result')
             
             if result is None:
@@ -1284,37 +1281,13 @@ class DailyBetGenerator:
                     logger.debug(f"   ⏩ Pulando {home_team} vs {away_team}: risco alto ({risk})")
                     continue
                 
-                # 🆕 CORREÇÃO CRÍTICA 21/02: Selecionar a MELHOR aposta contextual, não a primeira
-                # top_bets já vem ordenado por contextual_fit (DecisionEngine)
-                # Filtrar apostas elegíveis e escolher a com MAIOR contextual_fit
-                eligible_bets = []
-                for bet in top_bets:
-                    prob = bet.get('probability', 0)
-                    odd = bet.get('market_odd', 0)
-                    market = bet.get('market', '')
-                    protective_market = is_protective_supergiant_market(market)
-
-                    if supergiant_fixture and not protective_market:
-                        continue
-                    if (
-                        is_supergiant_away(match)
-                        and is_home_over_market(market)
-                    ):
-                        continue
-
-                    min_odd = (
-                        1.15
-                        if supergiant_fixture and protective_market
-                        else self.MIN_ODD_MULTIPLE
-                    )
-                    
-                    # A seleção vem da análise MULTIPLE; os filtros do bilhete
-                    # aplicam o piso de probabilidade e a faixa de odds.
-                    # Jogos com supergigante permitem odd mínima protetiva de 1.15.
-                    if (prob >= 0.65 and  # Mínimo 65% (pragmático)
-                        odd >= min_odd and  # Odd mínima padrão 1.30 ou protetiva 1.15
-                        odd <= self.MAX_ODD_MULTIPLE):  # Odd máxima 1.50
-                        eligible_bets.append(bet)
+                eligible_bets = eligible_multiple_candidates(
+                    top_bets,
+                    match=match,
+                    min_probability=0.65,
+                    min_odd=self.MIN_ODD_MULTIPLE,
+                    max_odd=self.MAX_ODD_MULTIPLE,
+                )
                 
                 if not eligible_bets:
                     logger.debug(f"   ⏩ Pulando {home_team} vs {away_team}: nenhuma aposta atende critérios de bilhete")
@@ -1322,11 +1295,7 @@ class DailyBetGenerator:
                 
                 # Uma partida pode cobrir até dois bilhetes, usando mercados distintos.
                 # A primeira opção é a principal; a segunda fica como alternativa.
-                eligible_bets.sort(key=lambda bet: (
-                    bet.get('contextual_fit', 1.0),
-                    bet.get('score', 0),
-                    bet.get('probability', 0),
-                ), reverse=True)
+                eligible_bets = rank_multiple_candidates(eligible_bets)
                 distinct_market_bets = []
                 seen_markets = set()
                 seen_market_groups = set()
@@ -1350,10 +1319,12 @@ class DailyBetGenerator:
                 
                 best_bet = distinct_market_bets[0]
                 contextual_fit = best_bet.get('contextual_fit', 1.0)
-                if contextual_fit > 1.1:
-                    logger.info(f"   🎯 Selecionado por CONTEXTO: {best_bet['market']} (fit={contextual_fit:.2f})")
-                elif len(distinct_market_bets) > 1:
-                    logger.info(f"   🎯 Selecionado principal entre {len(eligible_bets)} elegíveis: {best_bet['market']}")
+                logger.info(
+                    "   🎯 Selecionado por score integrado: %s (score=%.3f, fit=%.2f)",
+                    best_bet['market'],
+                    best_bet.get('ranking_score', best_bet.get('score', 0)),
+                    contextual_fit,
+                )
 
                 logger.info(f"   🎯 Seleção Bilhete: {best_bet['market']} ({best_bet['pick']}) - {best_bet['probability']*100:.0f}% @ {best_bet['market_odd']:.2f}")
                 if 'post_reason' in best_bet:

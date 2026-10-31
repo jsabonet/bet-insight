@@ -1,6 +1,8 @@
 from datetime import timedelta
+from types import SimpleNamespace
 from unittest.mock import patch
 
+from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APITestCase
 
@@ -101,3 +103,82 @@ class AdminExecutionHistoryTests(APITestCase):
             mode='hybrid',
             execution=execution,
         )
+
+    @override_settings(DAILY_BETS_MANUAL_ASYNC=True)
+    @patch('apps.analysis.services.daily_bet_generator.DailyBetGenerator')
+    @patch('apps.analysis.tasks.generate_daily_bets.apply_async')
+    def test_admin_generate_now_queues_when_async_mode_is_enabled(
+        self,
+        enqueue_task,
+        generator_class,
+    ):
+        enqueue_task.side_effect = lambda *, kwargs, task_id: SimpleNamespace(id=task_id)
+
+        response = self.client.post(
+            '/api/daily-bets/admin/generate-now/',
+            {'mode': 'hybrid'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.data['status'], 'queued')
+        self.assertEqual(response.data['task_id'], enqueue_task.call_args.kwargs['task_id'])
+        enqueue_task.assert_called_once_with(
+            kwargs={
+                'triggered_by': 'manual',
+                'user_id': self.admin.id,
+                'mode': 'hybrid',
+            },
+            task_id=response.data['task_id'],
+        )
+        generator_class.assert_not_called()
+        TaskExecution.objects.get(task_id=response.data['task_id'])
+
+        from apps.analysis.services.daily_bet_generation_lock import release_generation_lock
+        release_generation_lock(response.data['task_id'])
+
+    @override_settings(DAILY_BETS_MANUAL_ASYNC=True)
+    @patch(
+        'apps.analysis.tasks.generate_daily_bets.apply_async',
+        side_effect=RuntimeError('broker unavailable'),
+    )
+    def test_admin_generate_now_marks_failed_and_releases_lock_if_enqueue_fails(
+        self,
+        enqueue_task,
+    ):
+        response = self.client.post(
+            '/api/daily-bets/admin/generate-now/',
+            {'mode': 'hybrid'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 503)
+        task_id = enqueue_task.call_args.kwargs['task_id']
+        execution = TaskExecution.objects.get(task_id=task_id)
+        self.assertEqual(execution.status, 'failed')
+
+        from apps.analysis.services.daily_bet_generation_lock import get_generation_lock_owner
+        self.assertIsNone(get_generation_lock_owner())
+        enqueue_task.assert_called_once()
+
+    @override_settings(DAILY_BETS_MANUAL_ASYNC=True)
+    @patch('apps.analysis.services.daily_bet_generation_lock.acquire_generation_lock', return_value=False)
+    @patch('apps.analysis.services.daily_bet_generation_lock.get_generation_lock_owner', return_value='active-task')
+    @patch('apps.analysis.tasks.generate_daily_bets.apply_async')
+    def test_admin_generate_now_rejects_overlapping_generation(
+        self,
+        enqueue_task,
+        get_lock_owner,
+        acquire_lock,
+    ):
+        response = self.client.post(
+            '/api/daily-bets/admin/generate-now/',
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data['status'], 'already_running')
+        self.assertEqual(response.data['task_id'], 'active-task')
+        enqueue_task.assert_not_called()
+        acquire_lock.assert_called_once()
+        get_lock_owner.assert_called_once()

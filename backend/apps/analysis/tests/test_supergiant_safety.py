@@ -227,8 +227,9 @@ class SupergiantSafetyTests(SimpleTestCase):
                                 'pick': 'Under 3.5',
                                 'probability': 0.90,
                                 'market_odd': 1.40,
-                                'score': 0.90,
-                                'contextual_fit': 1.2,
+                                'score': 0.70,
+                                'ranking_score': 0.70,
+                                'contextual_fit': 1.4,
                             },
                             {
                                 'market': 'under_2.5',
@@ -264,6 +265,12 @@ class SupergiantSafetyTests(SimpleTestCase):
             tickets = generator._generate_multiple_tickets(analyses, date(2026, 6, 1))
 
         self.assertEqual([len(ticket['selections']) for ticket in created], [3, 5])
+        first_fixture_pick = next(
+            selection
+            for selection in created[0]['selections']
+            if selection['fixture_id'] == 20000
+        )
+        self.assertEqual(first_fixture_pick['market'], 'under_2.5')
         fixture_sets = [
             [selection['fixture_id'] for selection in ticket['selections']]
             for ticket in created

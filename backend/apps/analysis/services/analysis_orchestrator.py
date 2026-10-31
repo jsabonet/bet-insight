@@ -316,6 +316,8 @@ class HybridAnalysisOrchestrator:
             'model_predictions': ensemble_result,
             'fair_odds': fair_odds,
             'recommendation': recommendation,
+            'strategy': strategy,
+            'multiple_selection': decision_result.get('multiple_selection'),
             'confidence': confidence,
             'risk': risk,
             'key_factors': key_factors,

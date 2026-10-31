@@ -21,6 +21,10 @@ from .goal_line_safety import (
     line_adjustment_label,
     normalized_probabilities,
 )
+from .multiple_selection import (
+    eligible_multiple_candidates,
+    rank_multiple_candidates,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -322,21 +326,41 @@ class DecisionEngine:
         result['value_bets'] = self._apply_tactical_safety_filters(
             result.get('value_bets', []), match, strategy
         )
-        if strategy == 'multiple' and is_supergiant_match(match):
-            safe_bet = next(iter(result['top_bets']), None)
-            if safe_bet:
-                result['recommendation'] = {
-                    'market': safe_bet['market'],
-                    'market_display': safe_bet['market_display'],
-                    'pick': safe_bet['pick'],
-                    'probability': safe_bet['probability'],
-                    'odd': safe_bet['market_odd'],
-                    'fair_odd': safe_bet.get('fair_odd'),
-                    'value_pct': safe_bet.get('ev_pct'),
-                    'reason': 'supergiant_protective_market',
-                    'reason_pt': 'Mercado protetivo selecionado para jogo com supergigante',
+        if strategy == 'multiple':
+            safe_candidates = eligible_multiple_candidates(
+                result.get('top_bets', []),
+                match=match,
+            )
+            ranked_candidates = rank_multiple_candidates(
+                safe_candidates or result.get('top_bets', [])
+            )
+            selected_bet = ranked_candidates[0] if ranked_candidates else None
+            selection_is_eligible = bool(safe_candidates)
+            result['multiple_selection'] = None
+
+            if selected_bet:
+                result['multiple_selection'] = {
+                    **selected_bet,
+                    'selection_eligible': selection_is_eligible,
                 }
-            else:
+                result['recommendation'] = {
+                    'market': selected_bet['market'],
+                    'market_display': selected_bet['market_display'],
+                    'pick': selected_bet['pick'],
+                    'probability': selected_bet['probability'],
+                    'odd': selected_bet['market_odd'],
+                    'fair_odd': selected_bet.get('fair_odd'),
+                    'value_pct': selected_bet.get('ev_pct'),
+                    'score': selected_bet.get('score'),
+                    'selection_eligible': selection_is_eligible,
+                    'reason': 'multiple_integrated_score',
+                    'reason_pt': (
+                        'Maior score integrado entre as candidatas elegíveis'
+                        if selection_is_eligible
+                        else 'Melhor score integrado disponível; fora dos critérios de bilhete'
+                    ),
+                }
+            elif is_supergiant_match(match):
                 result['recommendation'] = {
                     'market': 'no_safe_selection',
                     'market_display': 'Sem recomendação protetiva',
@@ -347,6 +371,18 @@ class DecisionEngine:
                     'value_pct': None,
                     'reason': 'supergiant_no_protective_market',
                     'reason_pt': 'Não foi encontrado mercado protetivo elegível',
+                }
+            else:
+                result['recommendation'] = {
+                    'market': 'no_selection',
+                    'market_display': 'Sem seleção disponível',
+                    'pick': 'Sem seleção',
+                    'probability': 0,
+                    'odd': None,
+                    'fair_odd': None,
+                    'value_pct': None,
+                    'reason': 'multiple_no_candidates',
+                    'reason_pt': 'Não há candidatas disponíveis para a estratégia multiple',
                 }
 
         return result
