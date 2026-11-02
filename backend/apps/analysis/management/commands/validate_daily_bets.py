@@ -11,6 +11,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
 from apps.analysis.models import DailyBet
+from apps.analysis.services.daily_bet_evidence import settle_shadow_candidates
 
 
 class Command(BaseCommand):
@@ -25,6 +26,8 @@ class Command(BaseCommand):
         try:
             # Buscar apostas pendentes dos últimos 7 dias
             cutoff_date = timezone.now().date() - timedelta(days=7)
+            shadow_settled = settle_shadow_candidates(since_date=cutoff_date)
+            self.stdout.write(f"📚 Previsões shadow liquidadas: {shadow_settled}\n")
             
             pending_bets = DailyBet.objects.filter(
                 status='pending',

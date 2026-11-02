@@ -17,10 +17,6 @@ from apps.analysis.config.market_standards import (
     get_market_category,
     is_derived_market
 )
-from apps.analysis.config.supergiants import (
-    is_protective_supergiant_market,
-    is_supergiant_match,
-)
 from apps.analysis.services.odds_calculator import OddsCalculator
 from apps.analysis.services.goal_line_safety import (
     conservative_total_market,
@@ -225,19 +221,7 @@ class MarketSelector:
                 'context_type': context_type  # Para debug
             })
 
-        supergiant_fixture = is_supergiant_match(match)
-        if supergiant_fixture:
-            candidates = [
-                candidate for candidate in candidates
-                if is_protective_supergiant_market(candidate['market'])
-            ]
-            logger.info(
-                "🛡️ Supergigante detectado: restringindo candidatos a Dupla Chance "
-                "e Under 3.5/4.5"
-            )
-            
         logger.info(f"   ✅ {len(candidates)} mercados candidatos criados\n")
-        
         # Processar cada candidato e aplicar filtros
         approved_candidates = []
             
@@ -291,17 +275,6 @@ class MarketSelector:
                 logger.info(f"      ❌ Rejeitado: sem odd disponível no mercado")
                 continue
 
-            if (
-                supergiant_fixture
-                and is_protective_supergiant_market(normalized_market)
-                and market_odd < 1.15
-            ):
-                logger.info(
-                    f"      ❌ Rejeitado: odd {market_odd:.2f} < 1.15 "
-                    "no mercado protetivo de jogo com supergigante"
-                )
-                continue
-            
             # Filtros baseados em estratégia
             if strategy == 'value':
                 # VALUE BET: EV positivo preferencial, mas aceita até -2% se contexto+prob fortes
@@ -326,14 +299,13 @@ class MarketSelector:
                         logger.info(f"      ❌ Rejeitado: contexto {context_score:.0%} < {min_context_score:.0%}")
                         continue
             else:
-                # MULTIPLE: Foco em PROBABILIDADE ALTA (acumuladores dependem disso)
-                # EV é irrelevante - importa a chance de acertar todas as apostas
+                # MULTIPLE: prioriza probabilidade alta e exige EV não-negativo
                 # NOTA: Com nova lógica, context_score neutro = 1.0 (passa automaticamente)
                 allow_override = (context_score >= 0.80 and 0.40 <= probability < min_probability)
                 if probability < min_probability and not allow_override:
                     logger.info(f"      ❌ Rejeitado: probabilidade {probability:.0%} < {min_probability:.0%} (múltiplo exige alta prob)")
                     continue
-                    
+
                 # Context score: neutros (1.0) passam; fortes (≥0.75) verificados contra 0.65
                 if context_score < min_context_score:
                     logger.info(f"      ❌ Rejeitado: contexto {context_score:.0%} < {min_context_score:.0%}")
@@ -342,30 +314,19 @@ class MarketSelector:
                 if selection_score < min_selection_score:
                     logger.info(f"      ❌ Rejeitado: selection score {selection_score:.3f} < {min_selection_score:.3f}")
                     continue
-                
-                # ✅ CORREÇÃO 21/02: Para múltiplas, aceitar até EV -5% (será filtrado no gerador por EV 0%)
-                # Market selector é mais permissivo; filtro final é no daily_bet_generator
-                if ev_pct < -15.0:
-                    logger.info(f"      ❌ Rejeitado: EV {ev_pct:+.1f}% muito negativo (threshold: -15%)")
-                    continue
-                elif ev_pct < 0:
-                    logger.info(f"      ⚠️ Aviso: EV {ev_pct:+.1f}% negativo (aprovado por probabilidade alta)")
-                
-                # ✅ CORREÇÃO 24/02: Filtrar odds fora da faixa 1.30-2.00 para bilhetes múltiplos
-                # Alinha com gerador automático (1.30-1.50) e AI Analyzer (1.30-2.00)
-                # Odds muito baixas (<1.30): retorno péssimo mesmo com prob alta
-                # Odds muito altas (>2.00): risco alto para combinações
-                minimum_odd = 1.15 if supergiant_fixture else 1.30
-                if market_odd < minimum_odd:
+
+                if ev_pct < 0:
                     logger.info(
-                        f"      ❌ Rejeitado: odd {market_odd:.2f} < {minimum_odd:.2f} "
-                        f"(limite para jogo com supergigante)"
+                        f"      ❌ Rejeitado: EV {ev_pct:+.1f}% < 0% "
+                        "(múltipla exige valor esperado não-negativo)"
                     )
                     continue
-                elif market_odd > 2.00:
-                    logger.info(f"      ❌ Rejeitado: odd {market_odd:.2f} > 2.00 (bilhetes requerem odds ≤ 2.00)")
-                    continue
-            
+
+                logger.info(
+                    "      ✅ EV não-negativo; a odd individual será avaliada "
+                    "pelo valor esperado, não por uma faixa fixa"
+                )
+
             # Gerar reasoning contextualizado
             reasoning = self._generate_reasoning(
                 normalized_market,

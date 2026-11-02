@@ -10,15 +10,18 @@ _GOAL_LINES = ('0.5', '1.5', '2.5', '3.5', '4.5')
 
 
 def conservative_total_market(market):
-    """Return the adjacent safer full-match goals line, or None for other markets."""
+    """Return a safer adjacent Over line; preserve Under lines as requested."""
     normalized = normalize_market_name(str(market)) or str(market).lower()
     match = _TOTAL_MARKET_PATTERN.fullmatch(normalized)
     if not match:
         return None
 
     direction, line = match.groups()
+    if direction == 'under':
+        return normalized
+
     index = _GOAL_LINES.index(line)
-    adjusted_index = index - 1 if direction == 'over' else index + 1
+    adjusted_index = index - 1
     if adjusted_index < 0 or adjusted_index >= len(_GOAL_LINES):
         return normalized
     return f'{direction}_{_GOAL_LINES[adjusted_index]}'

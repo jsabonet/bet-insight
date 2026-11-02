@@ -242,35 +242,17 @@ class PoissonBivariateModel:
         logger.info(f"      Empate: {prob_draw*100:.1f}%")
         logger.info(f"      Fora: {prob_away_win*100:.1f}%")
         
-        # 4. Over/Under (múltiplas linhas: 1.5, 2.5, 3.5)
-        prob_over_15 = 0
-        prob_under_15 = 0
-        prob_over_25 = 0
-        prob_under_25 = 0
-        prob_over_35 = 0
-        prob_under_35 = 0
-        
-        for h in range(7):
-            for a in range(7):
-                total_goals = h + a
-                
-                # Over/Under 1.5
-                if total_goals > 1.5:
-                    prob_over_15 += score_matrix[h, a]
-                else:
-                    prob_under_15 += score_matrix[h, a]
-                
-                # Over/Under 2.5
-                if total_goals > 2.5:
-                    prob_over_25 += score_matrix[h, a]
-                else:
-                    prob_under_25 += score_matrix[h, a]
-                
-                # Over/Under 3.5
-                if total_goals > 3.5:
-                    prob_over_35 += score_matrix[h, a]
-                else:
-                    prob_under_35 += score_matrix[h, a]
+        # Use the full total-goals distribution rather than the truncated 0-6 score grid.
+        prob_under_05 = self._under_total_probability(0, lambda_home, lambda_away)
+        prob_under_15 = self._under_total_probability(1, lambda_home, lambda_away)
+        prob_under_25 = self._under_total_probability(2, lambda_home, lambda_away)
+        prob_under_35 = self._under_total_probability(3, lambda_home, lambda_away)
+        prob_under_45 = self._under_total_probability(4, lambda_home, lambda_away)
+        prob_over_05 = 1.0 - prob_under_05
+        prob_over_15 = 1.0 - prob_under_15
+        prob_over_25 = 1.0 - prob_under_25
+        prob_over_35 = 1.0 - prob_under_35
+        prob_over_45 = 1.0 - prob_under_45
         
         logger.info(f"   Over/Under 1.5:")
         logger.info(f"      Over: {prob_over_15*100:.1f}%")
@@ -359,12 +341,6 @@ class PoissonBivariateModel:
         logger.info(f"      Par: {prob_even*100:.1f}%")
         
         # 8. Over/Under 0.5 e 4.5
-        prob_over_05 = 1 - score_matrix[0, 0]  # Qualquer placar exceto 0-0
-        prob_under_05 = score_matrix[0, 0]  # Apenas 0-0
-        
-        prob_over_45 = sum(score_matrix[h, a] for h in range(7) for a in range(7) if h + a > 4.5)
-        prob_under_45 = sum(score_matrix[h, a] for h in range(7) for a in range(7) if h + a <= 4.5)
-        
         logger.info(f"   Over/Under 0.5:")
         logger.info(f"      Over: {prob_over_05*100:.1f}%")
         logger.info(f"      Under (0-0): {prob_under_05*100:.1f}%")
@@ -499,6 +475,29 @@ class PoissonBivariateModel:
             return 1 - self.RHO
         else:
             return 1.0
+
+    def _under_total_probability(self, max_total_goals, lambda_home, lambda_away):
+        """Calculate an Under probability without truncating the Poisson tail."""
+        total_lambda = lambda_home + lambda_away
+        probability = poisson.cdf(max_total_goals, total_lambda)
+
+        # Dixon-Coles only changes 0-0, 0-1, 1-0, and 1-1 score probabilities.
+        for home_goals, away_goals in ((0, 0), (0, 1), (1, 0), (1, 1)):
+            if home_goals + away_goals > max_total_goals:
+                continue
+            base_score_probability = (
+                poisson.pmf(home_goals, lambda_home)
+                * poisson.pmf(away_goals, lambda_away)
+            )
+            correction = self._dixon_coles_correction(
+                home_goals,
+                away_goals,
+                lambda_home,
+                lambda_away,
+            )
+            probability += base_score_probability * (correction - 1.0)
+
+        return float(np.clip(probability, 0.0, 1.0))
 
 
 class LogisticRegressionModel:

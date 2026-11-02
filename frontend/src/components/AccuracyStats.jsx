@@ -4,8 +4,10 @@ export default function AccuracyStats({ stats }) {
   const {
     all_time = {},
     last_7_days = {},
-    by_bet_type = {}
+    by_bet_type = {},
+    shadow_validation = {}
   } = stats;
+  const shadowGroups = shadow_validation.groups || [];
 
   return (
     <div className="space-y-6">
@@ -18,6 +20,61 @@ export default function AccuracyStats({ stats }) {
           Transparência total. Todos os resultados validados automaticamente.
         </p>
       </div>
+
+        <section className="rounded-xl border border-blue-200 bg-blue-50 p-5 dark:border-blue-900/60 dark:bg-blue-950/20">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+            Validação shadow — previsões não publicadas
+          </h3>
+          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+            Desempenho observado por mercado e liga. Brier menor é melhor; a probabilidade da odd é uma referência bruta que inclui a margem da casa.
+          </p>
+          {shadowGroups.length === 0 ? (
+            <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
+              Ainda não há previsões shadow liquidadas.
+            </p>
+          ) : (
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-full text-left text-xs">
+                <thead className="text-gray-500 dark:text-gray-400">
+                  <tr>
+                    <th className="px-2 py-2">Mercado / Liga</th>
+                    <th className="px-2 py-2">Amostra</th>
+                    <th className="px-2 py-2">Acerto</th>
+                    <th className="px-2 py-2">Modelo médio</th>
+                    <th className="px-2 py-2">ROI shadow</th>
+                    <th className="px-2 py-2">Brier modelo / odd</th>
+                    <th className="px-2 py-2">Evidência</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {shadowGroups.slice(0, 100).map((group) => (
+                    <tr
+                      key={`${group.market}-${group.league_id || 'all'}`}
+                      className="border-t border-blue-100 text-gray-800 dark:border-blue-900/40 dark:text-gray-200"
+                    >
+                      <td className="px-2 py-2">
+                        <span className="font-semibold">{group.market}</span>
+                        <span className="block text-gray-500 dark:text-gray-400">{group.league || 'Todas as ligas'}</span>
+                      </td>
+                      <td className="px-2 py-2">{group.sample_size}</td>
+                      <td className="px-2 py-2">{(group.win_rate * 100).toFixed(1)}%</td>
+                      <td className="px-2 py-2">{(group.mean_model_probability * 100).toFixed(1)}%</td>
+                      <td className="px-2 py-2">{group.roi_pct == null ? '—' : `${group.roi_pct.toFixed(1)}%`}</td>
+                      <td className="px-2 py-2">
+                        {group.model_brier_score.toFixed(3)} / {group.market_brier_score.toFixed(3)}
+                      </td>
+                      <td className="px-2 py-2">
+                        {group.evidence_sufficient
+                          ? 'Amostra mínima atingida'
+                          : `${group.evidence_minimum - group.sample_size} para mínimo`}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
 
       {/* Últimos 7 Dias - Destaque */}
       <div className="bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/20 dark:to-primary-800/20 rounded-xl p-6 border border-primary-200 dark:border-primary-800">

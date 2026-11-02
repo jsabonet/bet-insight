@@ -126,6 +126,7 @@ def validate_daily_bets(self, triggered_by='celery', user_id=None):
     - Atualiza status (won/lost/partial/cancelled)
     """
     from apps.analysis.models import DailyBet, TaskExecution
+    from apps.analysis.services.daily_bet_evidence import settle_shadow_candidates
     from django.contrib.auth import get_user_model
     
     logger.info("=" * 100)
@@ -154,6 +155,8 @@ def validate_daily_bets(self, triggered_by='celery', user_id=None):
         ).order_by('date')
         
         logger.info(f"\n📊 Apostas pendentes encontradas: {pending_bets.count()}")
+        shadow_settled_count = settle_shadow_candidates(since_date=cutoff_date)
+        logger.info("📚 Previsões shadow liquidadas: %s", shadow_settled_count)
         
         if pending_bets.count() == 0:
             logger.info("   ℹ️  Nenhuma aposta pendente para validar")
@@ -162,7 +165,8 @@ def validate_daily_bets(self, triggered_by='celery', user_id=None):
                 'status': 'success',
                 'task_id': self.request.id,
                 'validated_count': 0,
-                'pending_count': 0
+                'pending_count': 0,
+                'shadow_settled_count': shadow_settled_count,
             }
         
         validated_count = 0
@@ -213,7 +217,8 @@ def validate_daily_bets(self, triggered_by='celery', user_id=None):
             'task_id': self.request.id,
             'timestamp': timezone.now().isoformat(),
             'validated_count': validated_count,
-            'pending_count': still_pending_count
+            'pending_count': still_pending_count,
+            'shadow_settled_count': shadow_settled_count,
         }
         
         # Atualizar registro de execução

@@ -21,6 +21,12 @@ class SupergiantSafetyTests(SimpleTestCase):
             home_team=SimpleNamespace(id=42),
             away_team=SimpleNamespace(id=157),
         )
+        shadow_table_patcher = patch(
+            'apps.analysis.services.daily_bet_generator.shadow_table_available',
+            return_value=True,
+        )
+        shadow_table_patcher.start()
+        self.addCleanup(shadow_table_patcher.stop)
 
     def test_supergiant_ids_and_protective_markets(self):
         self.assertTrue(is_supergiant_match(self.match))
@@ -30,7 +36,7 @@ class SupergiantSafetyTests(SimpleTestCase):
         self.assertFalse(is_protective_supergiant_market('12'))
         self.assertFalse(is_protective_supergiant_market('home_over_0.5'))
 
-    def test_market_selector_keeps_only_protective_markets_at_1_15_or_more(self):
+    def test_market_selector_evaluates_goal_markets_for_supergiant_matches(self):
         selector = MarketSelector()
         selections = selector.select_top_markets(
             context_analysis={'patterns': [], 'top_markets': []},
@@ -54,12 +60,12 @@ class SupergiantSafetyTests(SimpleTestCase):
         )
 
         markets = {selection['market'] for selection in selections}
-        self.assertIn('1x', markets)
+        self.assertIn('12', markets)
+        self.assertIn('home_over_0.5', markets)
+        self.assertNotIn('1x', markets)
         self.assertNotIn('x2', markets)
-        self.assertNotIn('12', markets)
-        self.assertNotIn('home_over_0.5', markets)
 
-    def test_decision_filter_vetoes_home_over_against_away_supergiant(self):
+    def test_decision_filter_does_not_remove_markets_for_supergiant_matches(self):
         engine = DecisionEngine()
         selections = [
             {'market': 'home_over_0.5'},
@@ -72,10 +78,7 @@ class SupergiantSafetyTests(SimpleTestCase):
             selections, self.match, 'multiple'
         )
 
-        self.assertEqual(
-            {selection['market'] for selection in filtered},
-            {'x2', 'under_4.5'},
-        )
+        self.assertEqual(filtered, selections)
 
     def test_multiple_tickets_do_not_reuse_fixtures(self):
         generator = DailyBetGenerator.__new__(DailyBetGenerator)
@@ -102,6 +105,7 @@ class SupergiantSafetyTests(SimpleTestCase):
                             'pick': 'Under 4.5',
                             'probability': 0.90,
                             'market_odd': 1.40,
+                            'ev_pct': 26.0,
                             'score': 0.90,
                         }],
                         'consensus': {'draw': 0.10},
@@ -124,6 +128,7 @@ class SupergiantSafetyTests(SimpleTestCase):
                             'pick': 'Under 3.5',
                             'probability': 0.90,
                             'market_odd': 1.40,
+                            'ev_pct': 26.0,
                             'score': 0.90,
                         }],
                         'consensus': {'draw': 0.10},
@@ -147,7 +152,22 @@ class SupergiantSafetyTests(SimpleTestCase):
             created.append(kwargs)
             return SimpleNamespace(suggested_stake=1.0)
 
-        with patch.object(DailyBet.objects, 'create', side_effect=create_bet):
+        with (
+            patch(
+                'apps.analysis.services.daily_bet_generator.market_evidence',
+                return_value={
+                    'sample_size': 100,
+                    'win_rate': 0.90,
+                    'win_rate_lower_95': 0.85,
+                    'roi_pct': 10.0,
+                    'break_even_probability': 0.70,
+                    'probability_bucket': '0.85-0.90',
+                    'evidence_passed': True,
+                    'reason': 'evidence passed',
+                },
+            ),
+            patch.object(DailyBet.objects, 'create', side_effect=create_bet),
+        ):
             tickets = generator._generate_multiple_tickets(analyses, date(2026, 6, 1))
 
         self.assertEqual(len(tickets), 3)
@@ -185,6 +205,7 @@ class SupergiantSafetyTests(SimpleTestCase):
                         'pick': 'Under 3.5',
                         'probability': 0.90,
                         'market_odd': 1.40,
+                        'ev_pct': 26.0,
                         'score': 0.90,
                     }],
                     'consensus': {'draw': 0.10},
@@ -200,6 +221,79 @@ class SupergiantSafetyTests(SimpleTestCase):
         tickets = generator._generate_multiple_tickets(analyses, date(2026, 6, 1))
 
         self.assertEqual(tickets, [])
+
+    def test_shadow_evidence_does_not_block_operationally_qualified_ticket(self):
+        generator = DailyBetGenerator.__new__(DailyBetGenerator)
+        analyses = []
+        for fixture_id in range(123, 126):
+            analyses.append({
+                'match': SimpleNamespace(
+                    home_team=SimpleNamespace(id=fixture_id * 2),
+                    away_team=SimpleNamespace(id=fixture_id * 2 + 1),
+                ),
+                'fixture_id': fixture_id,
+                'home_team': f'Home {fixture_id}',
+                'away_team': f'Away {fixture_id}',
+                'league_name': f'League {fixture_id}',
+                'league_id': fixture_id,
+                'match_date': '2026-06-01T12:00:00+00:00',
+                'multiple_result': {
+                    'analysis_data': {
+                        'top_bets': [{
+                            'market': 'under_4.5',
+                            'pick': 'Under 4.5',
+                            'probability': 0.90,
+                            'market_odd': 1.40,
+                            'ev_pct': 26.0,
+                            'score': 0.90,
+                        }],
+                        'consensus': {'draw': 0.10},
+                        'confidence': {'stars': 5},
+                        'risk': 'low',
+                        'features_summary': {
+                            'form': {
+                                'home_weighted_form': 2.0,
+                                'away_weighted_form': 2.0,
+                            },
+                        },
+                    },
+                },
+            })
+
+        created = []
+
+        def create_bet(**kwargs):
+            created.append(kwargs)
+            return SimpleNamespace(suggested_stake=1.0)
+
+        with (
+            patch(
+                'apps.analysis.services.daily_bet_generator.market_evidence',
+                return_value={
+                    'sample_size': 12,
+                    'win_rate': 0.90,
+                    'win_rate_lower_95': 0.65,
+                    'roi_pct': 20.0,
+                    'break_even_probability': 0.70,
+                    'probability_bucket': '0.90-0.95',
+                    'evidence_passed': False,
+                    'reason': 'Evidência insuficiente',
+                },
+            ),
+            patch.object(DailyBet.objects, 'create', side_effect=create_bet),
+        ):
+            tickets = generator._generate_multiple_tickets(
+                analyses, date(2026, 6, 1)
+            )
+
+        self.assertEqual(len(tickets), 1)
+        self.assertEqual(len(created[0]['selections']), 3)
+        self.assertTrue(all(
+            selection['historical_sample_size'] == 12
+            and not selection['historical_evidence_passed']
+            and selection['selection_reason'] == 'Critérios operacionais do DailyBet aprovados'
+            for selection in created[0]['selections']
+        ))
 
     def test_multiple_tickets_reuse_fixture_only_with_a_different_market(self):
         generator = DailyBetGenerator.__new__(DailyBetGenerator)
@@ -227,6 +321,7 @@ class SupergiantSafetyTests(SimpleTestCase):
                                 'pick': 'Under 3.5',
                                 'probability': 0.90,
                                 'market_odd': 1.40,
+                                'ev_pct': 26.0,
                                 'score': 0.70,
                                 'ranking_score': 0.70,
                                 'contextual_fit': 1.4,
@@ -236,6 +331,7 @@ class SupergiantSafetyTests(SimpleTestCase):
                                 'pick': 'Under 2.5',
                                 'probability': 0.89,
                                 'market_odd': 1.45,
+                                'ev_pct': 29.05,
                                 'score': 0.88,
                                 'contextual_fit': 1.1,
                             },
@@ -244,6 +340,7 @@ class SupergiantSafetyTests(SimpleTestCase):
                                 'pick': '1X',
                                 'probability': 0.88,
                                 'market_odd': 1.45,
+                                'ev_pct': 27.6,
                                 'score': 0.85,
                                 'contextual_fit': 1.0,
                             },
@@ -261,7 +358,22 @@ class SupergiantSafetyTests(SimpleTestCase):
             created.append(kwargs)
             return SimpleNamespace(suggested_stake=1.0)
 
-        with patch.object(DailyBet.objects, 'create', side_effect=create_bet):
+        with (
+            patch(
+                'apps.analysis.services.daily_bet_generator.market_evidence',
+                return_value={
+                    'sample_size': 100,
+                    'win_rate': 0.90,
+                    'win_rate_lower_95': 0.85,
+                    'roi_pct': 10.0,
+                    'break_even_probability': 0.70,
+                    'probability_bucket': '0.85-0.90',
+                    'evidence_passed': True,
+                    'reason': 'evidence passed',
+                },
+            ),
+            patch.object(DailyBet.objects, 'create', side_effect=create_bet),
+        ):
             tickets = generator._generate_multiple_tickets(analyses, date(2026, 6, 1))
 
         self.assertEqual([len(ticket['selections']) for ticket in created], [3, 5])
@@ -319,6 +431,18 @@ class SupergiantSafetyTests(SimpleTestCase):
             'MAX_DAILY_MULTIPLE_STAKE_UNITS',
             2.5,
             create=True,
+        ), patch(
+            'apps.analysis.services.daily_bet_generator.market_evidence',
+            return_value={
+                'sample_size': 100,
+                'win_rate': 0.90,
+                'win_rate_lower_95': 0.85,
+                'roi_pct': 10.0,
+                'break_even_probability': 0.70,
+                'probability_bucket': '0.85-0.90',
+                'evidence_passed': True,
+                'reason': 'evidence passed',
+            },
         ), patch.object(DailyBet.objects, 'create', side_effect=create_bet):
             generator._generate_multiple_tickets(analyses, date(2026, 6, 1))
 
@@ -345,6 +469,7 @@ class SupergiantSafetyTests(SimpleTestCase):
                         'pick': 'Under 3.5',
                         'probability': 0.90,
                         'market_odd': 1.40,
+                        'ev_pct': 26.0,
                         'score': 0.90,
                     }],
                     'consensus': {'draw': 0.10},

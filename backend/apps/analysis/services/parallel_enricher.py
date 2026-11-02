@@ -73,6 +73,8 @@ class ParallelMatchEnricher:
         league_id = fixture_details['league']['id']
         season = fixture_details['league']['season']
         match_date = fixture_details.get('date', '')
+        match_datetime = MatchDataEnricher._parse_fixture_datetime(match_date)
+        rest_date_limit = match_datetime.date().isoformat() if match_datetime else None
         
         logger.info(f"📊 Partida: {fixture_details['home_team']['name']} vs {fixture_details['away_team']['name']}")
         logger.info(f"⚡ Iniciando 9 chamadas paralelas...")
@@ -117,16 +119,22 @@ class ParallelMatchEnricher:
             # 6. Home recent fixtures (para rest context)
             loop.run_in_executor(
                 self.executor,
-                self.api_service.fetch_recent_fixtures,
+                self.api_service.fetch_team_fixtures,
                 home_team_id,
-                1
+                league_id,
+                season,
+                10,
+                rest_date_limit
             ),
             # 7. Away recent fixtures (para rest context)
             loop.run_in_executor(
                 self.executor,
-                self.api_service.fetch_recent_fixtures,
+                self.api_service.fetch_team_fixtures,
                 away_team_id,
-                1
+                league_id,
+                season,
+                10,
+                rest_date_limit
             ),
             # 8. Home last 10 (para trends)
             loop.run_in_executor(
@@ -154,8 +162,8 @@ class ParallelMatchEnricher:
             away_stats,
             injuries_data,
             odds_data,
-            home_last_1,
-            away_last_1,
+            home_prior_fixtures,
+            away_prior_fixtures,
             home_last_10,
             away_last_10
         ) = results
@@ -169,8 +177,8 @@ class ParallelMatchEnricher:
         
         # Calcular rest context (já temos os dados)
         rest_context = self._calculate_rest_parallel(
-            home_last_1 if not isinstance(home_last_1, Exception) else [],
-            away_last_1 if not isinstance(away_last_1, Exception) else [],
+            home_prior_fixtures if not isinstance(home_prior_fixtures, Exception) else [],
+            away_prior_fixtures if not isinstance(away_prior_fixtures, Exception) else [],
             match_date
         )
         
@@ -251,35 +259,44 @@ class ParallelMatchEnricher:
         return table_context
     
     def _calculate_rest_parallel(self, home_fixtures, away_fixtures, match_date):
-        """Calcula rest context usando dados já carregados"""
-        try:
-            from datetime import datetime
-            match_dt = datetime.fromisoformat(match_date.replace('Z', '+00:00'))
-            
-            home_days = 7
-            away_days = 7
-            
-            if home_fixtures and len(home_fixtures) > 0:
-                last_home = home_fixtures[0]
-                last_date = datetime.fromisoformat(last_home['fixture']['date'].replace('Z', '+00:00'))
-                home_days = (match_dt - last_date).days
-            
-            if away_fixtures and len(away_fixtures) > 0:
-                last_away = away_fixtures[0]
-                last_date = datetime.fromisoformat(last_away['fixture']['date'].replace('Z', '+00:00'))
-                away_days = (match_dt - last_date).days
-            
-            advantage = 'balanced'
+        """Calcula descanso apenas a partir de fixtures anteriores à partida."""
+        match_dt = MatchDataEnricher._parse_fixture_datetime(match_date)
+        if match_dt is None:
+            logger.warning("Data da partida inválida; descanso não calculado")
+            return {
+                'home_days_rest': None,
+                'away_days_rest': None,
+                'advantage': 'balanced',
+            }
+
+        def days_since_previous_fixture(fixtures):
+            previous_dates = []
+            for fixture in fixtures or []:
+                if not isinstance(fixture, dict):
+                    continue
+                fixture_date = fixture.get('date')
+                if fixture_date is None:
+                    fixture_date = fixture.get('fixture', {}).get('date')
+                parsed_date = MatchDataEnricher._parse_fixture_datetime(fixture_date)
+                if parsed_date is not None and parsed_date < match_dt:
+                    previous_dates.append(parsed_date)
+            if not previous_dates:
+                return None
+            return (match_dt - max(previous_dates)).days
+
+        home_days = days_since_previous_fixture(home_fixtures)
+        away_days = days_since_previous_fixture(away_fixtures)
+
+        advantage = 'balanced'
+        if home_days is not None and away_days is not None:
             if abs(home_days - away_days) >= 2:
                 advantage = 'home' if home_days > away_days else 'away'
-            
-            return {
-                'home_days_rest': home_days,
-                'away_days_rest': away_days,
-                'advantage': advantage
-            }
-        except:
-            return {'home_days_rest': 7, 'away_days_rest': 7, 'advantage': 'balanced'}
+
+        return {
+            'home_days_rest': home_days,
+            'away_days_rest': away_days,
+            'advantage': advantage
+        }
     
     def _calculate_trends_parallel(self, home_fixtures, away_fixtures):
         """Calcula trends usando dados já carregados"""

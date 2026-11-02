@@ -7,7 +7,7 @@ django.setup()
 from apps.analysis.services.daily_bet_generator import DailyBetGenerator
 
 print("\n" + "="*80)
-print("TESTE: NOVOS THRESHOLDS DE ACERTIVIDADE")
+print("TESTE: FILTROS ATUAIS PARA BILHETES")
 print("="*80 + "\n")
 
 generator = DailyBetGenerator()
@@ -26,11 +26,11 @@ print("      ❌ Sem filtro de confidence")
 print("      ❌ Sem filtro de risco")
 print("   Ordenação:")
 print("      Por probabilidade apenas (sem contexto)")
-print("   Range de Odds Individuais:")
-print("      1.30 - 2.10")
+print("   EV por seleção:")
+print("      EV ≥ 0%; sem faixa fixa de odds individuais")
 
 print("\n" + "="*80)
-print("📊 CONFIGURAÇÕES ATUALIZADAS (17/02/2026):")
+print("📊 CONFIGURAÇÕES ATUAIS:")
 print("─"*80)
 print("   Probabilidades Mínimas Individuais:")
 print(f"      3X: ≥{generator.MIN_MULTIPLE_PROBABILITY_3X*100:.0f}% (era 50%)")
@@ -46,8 +46,8 @@ print(f"      ✅ Confidence mínima: {generator.MIN_CONFIDENCE_STARS} estrelas"
 print(f"      ✅ Risco permitido: {', '.join(generator.ALLOWED_RISK_LEVELS)}")
 print("   Ordenação:")
 print("      ✅ Por SCORE contextual (prob × contexto × EV × conf × risco)")
-print("   Range de Odds Individuais:")
-print(f"      {generator.MIN_ODD_MULTIPLE:.2f} - {generator.MAX_ODD_MULTIPLE:.2f}")
+print("   EV por seleção:")
+print(f"      ≥{generator.MIN_MULTIPLE_EV:.0f}%; odd total do bilhete: {generator.MIN_TICKET_ODD:.2f}-{generator.MAX_TICKET_ODD:.2f}")
 
 print("\n" + "="*80)
 print("🧮 MATEMÁTICA DOS BILHETES:")
@@ -66,7 +66,8 @@ for size in [3, 5, 7]:
         combined_target = generator.MIN_COMBINED_PROBABILITY_7X
     
     # Calcular prob combinada se todas as apostas tiverem prob mínima
-    combined_actual = min_prob ** size
+    correlation_penalty = {3: 0.95, 5: 0.90, 7: 0.85}[size]
+    combined_actual = min_prob ** size * correlation_penalty
     
     print(f"\n   Bilhete {size}X:")
     print(f"      Prob Individual Mínima: {min_prob*100:.1f}%")
@@ -122,25 +123,26 @@ for i, bet in enumerate(old_bets, 1):
     else:
         fails.append(f"7X (≥{generator.MIN_MULTIPLE_PROBABILITY_7X*100:.0f}%)")
     
-    # Check odds range
-    in_range = generator.MIN_ODD_MULTIPLE <= bet['odd'] <= generator.MAX_ODD_MULTIPLE
+    ev_pct = (bet['prob'] * bet['odd'] - 1) * 100
+    if ev_pct >= generator.MIN_MULTIPLE_EV:
+        passes.append(f"EV ≥{generator.MIN_MULTIPLE_EV:.0f}% ({ev_pct:+.1f}%)")
+    else:
+        fails.append(f"EV <{generator.MIN_MULTIPLE_EV:.0f}% ({ev_pct:+.1f}%)")
     
     if passes:
         print(f"      ✅ Passa em: {', '.join(passes)}")
     if fails:
         print(f"      ❌ Falha em: {', '.join(fails)}")
-    if not in_range:
-        print(f"      ⚠️  Odd fora do range ({generator.MIN_ODD_MULTIPLE:.2f}-{generator.MAX_ODD_MULTIPLE:.2f})")
     print()
 
 print("="*80)
 print("💡 CONCLUSÕES:")
 print("─"*80)
-print("   • Bilhetes 3X: Mantém alta qualidade (prob ≥80%)")
-print("   • Bilhetes 5X: Requer apostas mais seguras (prob ≥87%)")
-print("   • Bilhetes 7X: Requer apostas muito seguras (prob ≥91%)")
+print("   • Bilhetes 3X: cada seleção exige probabilidade ≥65%")
+print("   • Bilhetes 5X: cada seleção exige probabilidade ≥68%")
+print("   • Bilhetes 7X: cada seleção exige probabilidade ≥70%")
 print("   • Filtros de contexto excluem jogos arriscados (empate, baixa conf)")
 print("   • Ordenação por score prioriza qualidade total, não só probabilidade")
-print("   • Range de odds reduzido (1.10-1.50) foca em alta probabilidade")
-print("\n   🎯 Meta: Probabilidade combinada ≥50% em TODOS os bilhetes")
+print("   • Odds individuais avaliadas pelo EV; limites de odds aplicam-se ao bilhete")
+print("\n   🎯 Meta: probabilidade combinada e EV do bilhete respeitam os limites configurados")
 print("="*80 + "\n")

@@ -430,6 +430,10 @@ class MultiMarketCupTrainer:
             
             # 2. Extrair labels para todos os mercados
             datasets, feature_names = self.extract_labels_all_markets(matches)
+            feature_names_path = self.output_dir / 'cup_feature_names.json'
+            with feature_names_path.open('w', encoding='utf-8') as features_file:
+                json.dump(feature_names, features_file, indent=2)
+            logger.info(f"📋 Esquema compartilhado de features salvo: {feature_names_path}")
             
             # 3. Treinar cada mercado
             all_metrics = {}

@@ -3,7 +3,10 @@ from unittest.mock import Mock
 
 from django.test import SimpleTestCase
 
-from apps.analysis.services.analysis_orchestrator import HybridAnalysisOrchestrator
+from apps.analysis.services.analysis_orchestrator import (
+    FixtureDetailsUnavailableError,
+    HybridAnalysisOrchestrator,
+)
 
 
 class StopAfterEnsemble(Exception):
@@ -11,6 +14,15 @@ class StopAfterEnsemble(Exception):
 
 
 class OrchestratorDefensiveInputTests(SimpleTestCase):
+    def test_missing_fixture_details_raise_specific_unavailable_error(self):
+        orchestrator = HybridAnalysisOrchestrator.__new__(HybridAnalysisOrchestrator)
+        orchestrator.enricher = Mock()
+        orchestrator.enricher.enrich.return_value = {'api_id': 123}
+        match = SimpleNamespace(api_football_id=123)
+
+        with self.assertRaises(FixtureDetailsUnavailableError):
+            orchestrator.run(match, include_ai=False)
+
     def test_returns_form_features_for_daily_bet_generator(self):
         orchestrator = HybridAnalysisOrchestrator.__new__(HybridAnalysisOrchestrator)
         form_features = {

@@ -11,6 +11,7 @@ ARQUITETURA DUAL-MODEL (SEGURA) - MULTI-MARKET:
 - Fallback: Se modelo de copas falhar, usa Poisson
 """
 import logging
+import json
 import joblib
 import numpy as np
 from pathlib import Path
@@ -58,6 +59,8 @@ class MLModel:
         
         self.league_models = {}
         self.cup_models = {}
+        self.league_feature_names = {}
+        self.cup_feature_names = None
         self.xgboost_optimized = None  # DESABILITADO: Exagera empates (48% vs 25% real)
         
         logger.info(f"🔧 Carregando modelos ML...")
@@ -82,17 +85,45 @@ class MLModel:
             league_path = league_dir / f'xgboost_{market}.pkl'
             if league_path.exists():
                 try:
-                    self.league_models[market] = joblib.load(league_path)
+                    model = joblib.load(league_path)
+                    schema_path = league_dir / f'{market}_feature_names.json'
+                    with schema_path.open(encoding='utf-8') as schema_file:
+                        feature_names = json.load(schema_file)
+                    self._validate_feature_schema(
+                        model,
+                        feature_names,
+                        f'league_{market}',
+                    )
+                    self.league_models[market] = model
+                    self.league_feature_names[market] = feature_names
                     logger.info(f"✅ Liga  {market.upper()}: {league_path.name}")
                 except Exception as e:
                     logger.warning(f"⚠️ Erro ao carregar liga {market}: {e}")
         
+        cup_schema_path = cup_dir / 'cup_feature_names.json'
+        if cup_schema_path.exists():
+            try:
+                with cup_schema_path.open(encoding='utf-8') as schema_file:
+                    self.cup_feature_names = json.load(schema_file)
+            except (OSError, json.JSONDecodeError) as e:
+                logger.warning(f"⚠️ Erro ao carregar esquema de features das copas: {e}")
+
         # CARREGAR MODELOS DE COPAS (9 mercados treinados)
         for market in markets:
             cup_path = cup_dir / f'xgboost_{market}_cups.pkl'
             if cup_path.exists():
                 try:
-                    self.cup_models[market] = joblib.load(cup_path)
+                    if self.cup_feature_names is None:
+                        raise FileNotFoundError(
+                            f"Esquema ausente: {cup_schema_path}"
+                        )
+                    model = joblib.load(cup_path)
+                    self._validate_feature_schema(
+                        model,
+                        self.cup_feature_names,
+                        f'cup_{market}',
+                    )
+                    self.cup_models[market] = model
                     logger.info(f"✅ Copa  {market.upper()}: {cup_path.name}")
                 except Exception as e:
                     logger.warning(f"⚠️ Erro ao carregar copa {market}: {e}")
@@ -104,6 +135,23 @@ class MLModel:
         
         if not self.xgboost_optimized and not self.league_models and not self.cup_models:
             raise FileNotFoundError("Nenhum modelo ML encontrado!")
+
+    @staticmethod
+    def _validate_feature_schema(model, feature_names, model_name):
+        if (
+            not isinstance(feature_names, list)
+            or not feature_names
+            or any(not isinstance(name, str) for name in feature_names)
+            or len(feature_names) != len(set(feature_names))
+        ):
+            raise ValueError(f"Esquema de features inválido para {model_name}")
+
+        expected_count = getattr(model, 'n_features_in_', None)
+        if expected_count is not None and expected_count != len(feature_names):
+            raise ValueError(
+                f"{model_name} espera {expected_count} features, "
+                f"mas o esquema contém {len(feature_names)}"
+            )
     
     def _select_model(self, market, is_cup=False):
         """
@@ -169,7 +217,11 @@ class MLModel:
         
         try:
             flat_features = self._flatten_features(features)
-            X = self._prepare_features(flat_features)
+            feature_names = (
+                self.cup_feature_names if is_cup
+                else self.league_feature_names.get('1x2')
+            )
+            X = self._prepare_features(flat_features, feature_names, '1x2')
             
             probs = model.predict_proba(X)[0] if hasattr(model, 'predict_proba') else np.ones(3) / 3
             
@@ -196,10 +248,15 @@ class MLModel:
         
         try:
             flat_features = self._flatten_features(features)
-            X = self._prepare_features(flat_features)
+            feature_names = (
+                self.cup_feature_names if is_cup
+                else self.league_feature_names.get('btts')
+            )
+            X = self._prepare_features(flat_features, feature_names, 'btts')
             probs = model.predict_proba(X)[0] if hasattr(model, 'predict_proba') else [0.5, 0.5]
             return {'no': float(probs[0]), 'yes': float(probs[1])}
-        except:
+        except Exception as e:
+            logger.exception("Falha na predição ML BTTS: %s", e)
             return None
     
     def predict_over_under(self, features, threshold, is_cup=False):
@@ -216,35 +273,48 @@ class MLModel:
         
         try:
             flat_features = self._flatten_features(features)
-            X = self._prepare_features(flat_features)
+            feature_names = (
+                self.cup_feature_names if is_cup
+                else self.league_feature_names.get(market)
+            )
+            X = self._prepare_features(flat_features, feature_names, market)
             probs = model.predict_proba(X)[0] if hasattr(model, 'predict_proba') else [0.5, 0.5]
             return {'under': float(probs[0]), 'over': float(probs[1])}
-        except:
+        except Exception as e:
+            logger.exception("Falha na predição ML %s: %s", market, e)
             return None
     
-    def _prepare_features(self, flat_features):
-        """Prepara vetor de features para predição (preenche com zeros para features faltando)"""
-        # Converter valores para numéricos
-        values = [v if not isinstance(v, (str, bool, type(None))) else (1 if v is True else 0) 
-                 for v in flat_features.values()]
-        
-        # PROTEÇÃO: Se modelo espera menos features, truncar
-        # Isso permite funcionar enquanto modelo não é retreinado
-        X = np.array([values])
-        
-        expected_features = 98  # Modelo atual foi treinado com 98 features
-        actual_features = X.shape[1]
-        
-        if actual_features != expected_features:
-            logger.warning(f"⚠️ Feature mismatch: modelo espera {expected_features}, recebeu {actual_features}")
-            if actual_features > expected_features:
-                logger.info(f"   Truncando features extras ({actual_features - expected_features} removidas)")
-                X = X[:, :expected_features]
-            else:
-                logger.warning(f"   ❌ Features insuficientes! Modelo não funcionará corretamente")
-                logger.warning(f"   ⚠️ Recomendação: Retreine o modelo com as novas {actual_features} features")
-        
-        return X
+    def _prepare_features(self, flat_features, feature_names, model_name):
+        """Ordena features pelo esquema de treino, sem truncamento posicional."""
+        if not feature_names:
+            raise ValueError(f"Esquema de features não carregado para {model_name}")
+
+        missing = [name for name in feature_names if name not in flat_features]
+        if missing:
+            logger.warning(
+                "Modelo %s: %d features ausentes preenchidas com zero: %s",
+                model_name,
+                len(missing),
+                ', '.join(missing),
+            )
+
+        values = []
+        for name in feature_names:
+            value = flat_features.get(name, 0.0)
+            if value is None:
+                value = 0.0
+            elif isinstance(value, bool):
+                value = int(value)
+            elif isinstance(value, str):
+                try:
+                    value = float(value)
+                except ValueError as exc:
+                    raise ValueError(
+                        f"Feature {name} não numérica para {model_name}"
+                    ) from exc
+            values.append(value)
+
+        return np.asarray(values, dtype=np.float32).reshape(1, -1)
     
     def _flatten_features(self, features):
         """
@@ -274,8 +344,8 @@ class MLModel:
                         try:
                             value = float(value)
                         except (ValueError, TypeError):
-                            # String não numérica - usar 0 (será ignorada se não estiver em expected_features)
-                            continue
+                            # O treino de copas codifica valores categóricos textuais como zero.
+                            value = 0
                     
                     flat[f"{category}.{key}"] = value
             else:
@@ -288,7 +358,7 @@ class MLModel:
                     try:
                         values = float(values)
                     except (ValueError, TypeError):
-                        continue
+                        values = 0
                 
                 flat[category] = values
         

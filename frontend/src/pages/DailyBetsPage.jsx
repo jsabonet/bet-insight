@@ -25,6 +25,7 @@ export default function DailyBetsPage() {
   const [error, setError] = useState(null);
   const [selectedDate, setSelectedDate] = useState('');
   const [displayedDate, setDisplayedDate] = useState('');
+  const [shadow, setShadow] = useState(null);
 
   // Data máxima permitida para o seletor (hoje, no fuso local)
   const now = new Date();
@@ -36,6 +37,7 @@ export default function DailyBetsPage() {
     } else {
       setLoading(false);
       setMultipleTickets([]);
+      setShadow(null);
       setDisplayedDate('');
     }
     loadStats();
@@ -60,6 +62,7 @@ export default function DailyBetsPage() {
           !currentUser.is_superuser
         ) {
           setMultipleTickets([]);
+          setShadow(null);
           setDisplayedDate('');
           setError(null);
         }
@@ -89,10 +92,14 @@ export default function DailyBetsPage() {
         (ticket) => !(ticket.selections || []).some(isUnsupportedAsianGoalMarket)
       ));
       setDisplayedDate(data.date || '');
+      setShadow(data.shadow
+        ? { ...data.shadow, recommendation_status: data.recommendation_status }
+        : null);
     } catch (err) {
       console.error('Erro ao carregar seleções:', err);
       if (err.response?.status === 403) {
         setMultipleTickets([]);
+        setShadow(null);
         setDisplayedDate('');
         setError(null);
         await refreshProfile();
@@ -315,20 +322,86 @@ export default function DailyBetsPage() {
                 }
               />
             ) : totalBets === 0 ? (
-              <EmptyState
-                variant="no-data"
-                title="Nenhuma Seleção Disponível"
-                description={
-                  selectedDate
-                    ? `Nenhuma seleção foi gerada em ${displayedDate || selectedDate}.`
-                    : 'As seleções de hoje ainda não foram geradas. Volte mais tarde!'
-                }
-                action={
-                  <button onClick={handleRefresh} className="btn-primary">
-                    Atualizar
-                  </button>
-                }
-              />
+                <div className="space-y-5">
+                  <EmptyState
+                    variant="no-data"
+                    title={
+                      shadow?.recommendation_status === 'no_qualified_ticket'
+                        ? 'Nenhuma combinação passou os filtros operacionais'
+                        : shadow?.candidate_count
+                          ? 'Candidatas analisadas, sem bilhete publicado'
+                        : 'Nenhuma Seleção Disponível'
+                    }
+                    description={
+                      shadow?.message || (
+                        selectedDate
+                          ? `Nenhuma seleção foi gerada em ${displayedDate || selectedDate}.`
+                          : 'As seleções de hoje ainda não foram geradas. Volte mais tarde!'
+                      )
+                    }
+                    action={
+                      <button onClick={handleRefresh} className="btn-primary">
+                        Atualizar
+                      </button>
+                    }
+                  />
+                  {shadow?.candidates?.length > 0 && (
+                    <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/60 dark:bg-amber-950/20">
+                      <h2 className="mb-1 font-bold text-gray-900 dark:text-gray-100">
+                        Candidatas analisadas — não são necessariamente selecionadas
+                      </h2>
+                      <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+                        Probabilidades do modelo, observações shadow e motivos operacionais de não inclusão.
+                      </p>
+                      <div className="space-y-3">
+                        {shadow.candidates.slice(0, 10).map((candidate) => (
+                          <div
+                            key={`${candidate.fixture_id}-${candidate.market}`}
+                            className="rounded-xl bg-white p-3 dark:bg-gray-900"
+                          >
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                              <div>
+                                <p className="font-semibold text-gray-900 dark:text-gray-100">
+                                  {candidate.match}
+                                </p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  {candidate.market} · {candidate.pick}
+                                </p>
+                              </div>
+                              <div className="text-right text-sm">
+                                <p>Modelo: {(candidate.model_probability * 100).toFixed(1)}%</p>
+                                <p>Odd: {candidate.odd ? Number(candidate.odd).toFixed(2) : 'indisponível'}</p>
+                              </div>
+                            </div>
+                            <p className="mt-2 text-xs text-amber-800 dark:text-amber-300">
+                              {candidate.exclusion_reason
+                                ? `Motivo de não inclusão: ${candidate.exclusion_reason}`
+                                : 'Incluída numa combinação publicada.'}
+                            </p>
+                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                              Observação shadow (não é critério de publicação): {candidate.historical_evidence.sample_size} previsões ·
+                              {' '}acerto observado {candidate.historical_evidence.win_rate == null
+                                ? 'indisponível'
+                                : `${(candidate.historical_evidence.win_rate * 100).toFixed(1)}%`}
+                              {' '}· limite inferior 95% {candidate.historical_evidence.win_rate_lower_95 == null
+                                ? 'indisponível'
+                                : `${(candidate.historical_evidence.win_rate_lower_95 * 100).toFixed(1)}%`}
+                              {' '}· break-even {candidate.historical_evidence.break_even_probability == null
+                                ? 'indisponível'
+                                : `${(candidate.historical_evidence.break_even_probability * 100).toFixed(1)}%`}
+                              {' '}ROI {candidate.historical_evidence.roi_pct == null
+                                ? 'indisponível'
+                                : `${candidate.historical_evidence.roi_pct.toFixed(1)}%`}
+                              {' '}· Completude dos dados {candidate.data_completeness_pct == null
+                                ? 'indisponível'
+                                : `${candidate.data_completeness_pct.toFixed(0)}%`}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+                </div>
             ) : (
               <div className="space-y-6">
                 {/* Bilhetes Múltiplos */}

@@ -10,7 +10,7 @@ from django.db.models import Count, Q, Avg, Sum
 from datetime import datetime, timedelta
 import logging
 
-from .models import Analysis, DailyBet, SocialProofTicket
+from .models import Analysis, DailyBet, DailyBetCandidate, SocialProofTicket
 from .serializers import (
     AnalysisSerializer, 
     AnalysisRequestSerializer,
@@ -19,7 +19,13 @@ from .serializers import (
     SocialProofTicketSerializer,
     SocialProofTicketListSerializer,
 )
-from .services.match_result_sync import sync_results_for_date
+from .services.match_result_sync import normalize_market, sync_results_for_date
+from .services.daily_bet_evidence import (
+    MIN_EVIDENCE_SAMPLES,
+    market_evidence,
+    shadow_table_available,
+    shadow_performance_report,
+)
 from .services.social_proof_builder import SocialProofBuilder, VALID_KINDS
 from apps.matches.models import Match
 
@@ -256,12 +262,114 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
             stats['avg_multiple_prob'] = round(
                 multiple_tickets.aggregate(avg=Avg('combined_probability'))['avg'] or 0, 4
             )
+
+        shadow_available = shadow_table_available()
+        candidates = list(
+            DailyBetCandidate.objects.filter(date=target_date).order_by(
+                '-selection_eligible', '-probability', 'market'
+            )[:100]
+        ) if shadow_available else []
+        selected_markets = {
+            (
+                str(selection.get('fixture_id') or selection.get('api_fixture_id') or selection.get('match_id')),
+                normalize_market(selection.get('market')),
+            )
+            for ticket in multiple_tickets
+            for selection in ticket.selections or []
+        }
+        evidence_cache = {}
+        candidate_report = []
+        for candidate in candidates:
+            evidence_key = (candidate.market, candidate.probability_bucket)
+            if evidence_key not in evidence_cache:
+                evidence_cache[evidence_key] = market_evidence(
+                    candidate.market,
+                    candidate.probability,
+                    before_date=target_date,
+                    shadow_available=shadow_available,
+                )
+            evidence = evidence_cache[evidence_key]
+            market_evidence_passed = (
+                candidate.selection_eligible and evidence['evidence_passed']
+            )
+            included_in_ticket = (
+                str(candidate.fixture_id), candidate.market
+            ) in selected_markets
+            if not candidate.selection_eligible:
+                exclusion_reason = candidate.exclusion_reason
+            elif not included_in_ticket:
+                exclusion_reason = (
+                    'Não entrou numa combinação que passou os filtros operacionais do bilhete'
+                )
+            else:
+                exclusion_reason = ''
+            candidate_report.append({
+                'fixture_id': candidate.fixture_id,
+                'league': candidate.league_name,
+                'match': candidate.match_name,
+                'market': candidate.market,
+                'pick': candidate.pick,
+                'model_probability': candidate.probability,
+                'probability_bucket': candidate.probability_bucket,
+                'odd': candidate.odd,
+                'model_ev_pct': candidate.ev_pct,
+                'data_quality_score': candidate.data_quality_score,
+                'data_completeness_pct': candidate.data_completeness_pct,
+                'selection_eligible': candidate.selection_eligible,
+                'market_evidence_passed': market_evidence_passed,
+                'included_in_ticket': included_in_ticket,
+                'exclusion_reason': exclusion_reason,
+                'outcome': candidate.outcome,
+                'historical_evidence': evidence,
+            })
+
+        shadow_candidate_count = (
+            DailyBetCandidate.objects.filter(date=target_date).count()
+            if shadow_available else 0
+        )
+        recommendation_status = (
+            'published' if multiple_tickets.exists()
+            else 'shadow_unavailable' if not shadow_available
+            else 'no_qualified_ticket' if shadow_candidate_count
+            else 'no_candidates'
+        )
         
         return Response({
             'date': target_date.isoformat(),
             'multiple_tickets': DailyBetSerializer(multiple_tickets, many=True).data,
             'value_bets': [],
-            'stats': stats
+            'stats': stats,
+            'recommendation_status': recommendation_status,
+            'shadow': {
+                'mode': 'observation' if shadow_available else 'unavailable',
+                'minimum_sample_size': MIN_EVIDENCE_SAMPLES,
+                'confidence_level': 0.95,
+                'message': (
+                    'O armazenamento shadow está indisponível porque a migration '
+                    'analysis.0010_dailybetcandidate não foi aplicada. A geração e '
+                    'a leitura de bilhetes continuam disponíveis.'
+                    if not shadow_available
+                    else
+                    'Há candidatas analisadas, mas nenhuma combinação passou os filtros operacionais atuais. '
+                    'O histórico shadow é informativo e não bloqueia a publicação.'
+                    if recommendation_status == 'no_qualified_ticket'
+                    else 'Nenhuma candidata foi gerada para esta data.'
+                    if recommendation_status == 'no_candidates'
+                    else 'Bilhetes publicados após os filtros operacionais. O histórico shadow é informativo, '
+                    'não constitui validação retrospetiva nem condiciona a publicação.'
+                ),
+                'candidate_count': shadow_candidate_count,
+                'eligible_candidate_count': (
+                    DailyBetCandidate.objects.filter(
+                        date=target_date, selection_eligible=True
+                    ).count()
+                    if shadow_available else 0
+                ),
+                'settled_candidate_count': DailyBetCandidate.objects.filter(
+                    date=target_date, outcome__in=('won', 'lost')
+                ).count() if shadow_available else 0,
+                'candidates': candidate_report,
+            }
         })
     
     @action(detail=False, methods=['get'], url_path='history')
@@ -351,6 +459,12 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
             'all_time': self._calculate_stats(all_bets, 'all_time'),
             'last_7_days': self._calculate_stats(last_7_days, '7_days'),
             'last_30_days': self._calculate_stats(last_30_days, '30_days'),
+            'shadow_validation': {
+                'mode': 'observation',
+                'minimum_sample_size': MIN_EVIDENCE_SAMPLES,
+                'confidence_level': 0.95,
+                'groups': shadow_performance_report(),
+            },
             'by_bet_type': {
                 'multiple': self._calculate_stats(
                     all_bets.filter(bet_type='multiple'),
@@ -585,6 +699,7 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
         from apps.analysis.models import TaskExecution, DailyBet
         import uuid
         from apps.analysis.services.api_football_service import APIFootballService
+        from apps.analysis.services.daily_bet_evidence import settle_shadow_candidates
         from django.utils import timezone
         from datetime import timedelta
         import uuid
@@ -607,6 +722,7 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
             
             # Buscar apostas pendentes dos últimos 3 dias
             three_days_ago = timezone.now().date() - timedelta(days=3)
+            shadow_settled_count = settle_shadow_candidates(since_date=three_days_ago)
             pending_bets = DailyBet.objects.filter(
                 date__gte=three_days_ago,
                 status='pending',
@@ -685,6 +801,7 @@ class DailyBetViewSet(viewsets.ReadOnlyModelViewSet):
                 'pending_count': pending_bets.count() - validated_count,
                 'finished_matches': finished_matches,
                 'ongoing_matches': ongoing_matches,
+                'shadow_settled_count': shadow_settled_count,
                 'total_bets_checked': pending_bets.count()
             }
             execution.mark_finished(status='success', result_data=result_data)

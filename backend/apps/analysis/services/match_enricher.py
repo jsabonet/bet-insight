@@ -4,7 +4,7 @@ Adiciona contexto completo para análises mais precisas
 """
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from .api_football_service import APIFootballService
 from .weather_service import WeatherService, STADIUM_COORDINATES
 from .form_analysis import FormAnalysisService
@@ -129,7 +129,7 @@ class MatchDataEnricher:
             'motivation': self._assess_motivation(table_context),
             'trends': self._calculate_trends(home_team_id, away_team_id, league_id, season),
             'recent_form': recent_form,
-            'h2h': self._get_h2h(home_team_id, away_team_id),
+            'h2h': self._get_h2h(home_team_id, away_team_id, fixture_details),
             'season_context': self._get_season_context(fixture_details),
             'weather': weather_data  # Fase 3
         }
@@ -324,41 +324,53 @@ class MatchDataEnricher:
             return None
     
     def _calculate_rest_context(self, home_team_id, away_team_id, league_id, season, match_date):
-        """Calcula dias de descanso real"""
+        """Calcula o descanso desde o jogo concluído mais recente antes da partida."""
         logger.info("\n⏱️ Calculando contexto de descanso...")
         time.sleep(0.5)  # Delay para respeitar rate limit
         
-        from datetime import datetime
-        
-        # Buscar última fixture de cada time
-        home_fixtures = self.api_service.fetch_team_fixtures(home_team_id, league_id, season, last=1)
+        match_datetime = self._parse_fixture_datetime(match_date)
+        if match_datetime is None:
+            logger.warning("   ⚠️ Data da partida indisponível; descanso não calculado")
+            return {
+                'home_days_rest': None,
+                'away_days_rest': None,
+                'advantage': 'equal',
+            }
+
+        # A API inclui fixtures concluídas na data limite; o filtro abaixo exclui a própria partida.
+        match_date_limit = match_datetime.date().isoformat()
+        home_fixtures = self.api_service.fetch_team_fixtures(
+            home_team_id, league_id, season, before=match_date_limit
+        )
         time.sleep(0.5)
-        away_fixtures = self.api_service.fetch_team_fixtures(away_team_id, league_id, season, last=1)
+        away_fixtures = self.api_service.fetch_team_fixtures(
+            away_team_id, league_id, season, before=match_date_limit
+        )
         
         home_days = None
         away_days = None
         advantage = 'equal'
         
-        try:
-            match_datetime = datetime.fromisoformat(match_date.replace('Z', '+00:00'))
-            
-            if home_fixtures and len(home_fixtures) > 0:
-                last_home = datetime.fromisoformat(home_fixtures[0]['date'].replace('Z', '+00:00'))
-                home_days = (match_datetime - last_home).days
-            
-            if away_fixtures and len(away_fixtures) > 0:
-                last_away = datetime.fromisoformat(away_fixtures[0]['date'].replace('Z', '+00:00'))
-                away_days = (match_datetime - last_away).days
-            
-            # Determinar vantagem
-            if home_days and away_days:
-                if home_days > away_days + 1:
-                    advantage = 'home'
-                elif away_days > home_days + 1:
-                    advantage = 'away'
-                    
-        except Exception as e:
-            logger.warning(f"   ⚠️ Erro ao calcular descanso: {e}")
+        def days_since_previous_fixture(fixtures):
+            previous_dates = []
+            for fixture in fixtures or []:
+                if not isinstance(fixture, dict):
+                    continue
+                fixture_date = self._parse_fixture_datetime(fixture.get('date'))
+                if fixture_date is not None and fixture_date < match_datetime:
+                    previous_dates.append(fixture_date)
+            if not previous_dates:
+                return None
+            return (match_datetime - max(previous_dates)).days
+
+        home_days = days_since_previous_fixture(home_fixtures)
+        away_days = days_since_previous_fixture(away_fixtures)
+
+        if home_days is not None and away_days is not None:
+            if home_days > away_days + 1:
+                advantage = 'home'
+            elif away_days > home_days + 1:
+                advantage = 'away'
         
         context = {
             'home_days_rest': home_days,
@@ -366,7 +378,7 @@ class MatchDataEnricher:
             'advantage': advantage
         }
         
-        if home_days and away_days:
+        if home_days is not None and away_days is not None:
             logger.info(f"   ✅ Descanso: Casa {home_days} dias, Fora {away_days} dias (Vantagem: {advantage})")
             logger.info(f"   📊 CONSOLE LOG - REST_CONTEXT: {context}")
         else:
@@ -505,19 +517,52 @@ class MatchDataEnricher:
         
         return context
     
-    def _get_h2h(self, home_team_id, away_team_id):
+    def _get_h2h(self, home_team_id, away_team_id, fixture_details=None):
         """Busca histórico de confrontos diretos (H2H)"""
         logger.info("\n⚔️ Buscando histórico H2H...")
         time.sleep(0.5)  # Delay para respeitar rate limit
         
         h2h_data = self.api_service.fetch_h2h(home_team_id, away_team_id, last=10)
-        
-        if h2h_data and len(h2h_data) > 0:
-            logger.info(f"   ✅ {len(h2h_data)} confrontos diretos encontrados")
+        fixture_details = fixture_details if isinstance(fixture_details, dict) else {}
+        fixture_id = fixture_details.get('fixture_id')
+        match_date = self._parse_fixture_datetime(fixture_details.get('date'))
+
+        if match_date is None:
+            logger.warning("   ⚠️ Data da partida indisponível; H2H não será usado")
+            return []
+
+        prior_matches = []
+        for match in h2h_data or []:
+            if not isinstance(match, dict):
+                continue
+            if (
+                fixture_id is not None
+                and str(match.get('fixture_id')) == str(fixture_id)
+            ):
+                continue
+
+            h2h_date = self._parse_fixture_datetime(match.get('date'))
+            if h2h_date is not None and h2h_date < match_date:
+                prior_matches.append(match)
+
+        if prior_matches:
+            logger.info(f"   ✅ {len(prior_matches)} confrontos anteriores encontrados")
         else:
-            logger.info("   ⚠️ Sem histórico H2H disponível")
+            logger.info("   ⚠️ Sem histórico H2H anterior disponível")
         
-        return h2h_data
+        return prior_matches
+
+    @staticmethod
+    def _parse_fixture_datetime(value):
+        if not isinstance(value, str) or not value:
+            return None
+        try:
+            parsed = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        except ValueError:
+            return None
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
     
     def _get_weather_data(self, fixture_details):
         """

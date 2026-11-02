@@ -49,6 +49,7 @@ SUPERGIANT_TEAM_IDS = frozenset({
 })
 
 SUPERGIANT_PROTECTIVE_MARKETS = frozenset({
+    # Legacy classification only; this list does not control market eligibility.
     '1x',
     'x2',
     'double_chance_1x',

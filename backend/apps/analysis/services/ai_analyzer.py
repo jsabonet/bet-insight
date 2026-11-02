@@ -46,6 +46,26 @@ class AIAnalyzer:
         
         logger.info(f"AI Analyzer inicializado com modelo: {model_name}")
     
+    @staticmethod
+    def _normalized_form_momentum(form: Dict, side: str) -> float:
+        legacy_value = form.get(f'{side}_momentum_last_5')
+        try:
+            if legacy_value is not None:
+                return max(0.0, min(1.0, float(legacy_value)))
+            momentum = float(form.get(f'{side}_momentum', 0.0))
+        except (TypeError, ValueError):
+            return 0.5
+        return max(0.0, min(1.0, 0.5 + momentum / 6.0))
+
+    @staticmethod
+    def _normalized_motivation(motivation: Dict, side: str) -> float:
+        legacy_value = motivation.get(f'{side}_motivation_score')
+        value = motivation.get(f'{side}_motivation', 5.0)
+        try:
+            score = float(legacy_value) if legacy_value is not None else float(value) / 10.0
+        except (TypeError, ValueError):
+            return 0.5
+        return max(0.0, min(1.0, score))
     
     def explain_decision(self, decision_data: Dict, enriched_data: Dict, strategy: str = 'value') -> Dict:
         """
@@ -224,6 +244,18 @@ class AIAnalyzer:
         motivation = features_summary.get('motivation', {})
         elo = features_summary.get('elo', {})
         competition = features_summary.get('competition', {})
+        home_momentum = self._normalized_form_momentum(form, 'home')
+        away_momentum = self._normalized_form_momentum(form, 'away')
+        home_motivation_score = self._normalized_motivation(motivation, 'home')
+        away_motivation_score = self._normalized_motivation(motivation, 'away')
+        home_key_players_out = injuries.get(
+            'home_key_players_missing',
+            injuries.get('home_key_players_out', 0),
+        )
+        away_key_players_out = injuries.get(
+            'away_key_players_missing',
+            injuries.get('away_key_players_out', 0),
+        )
         
         # 3. CONTEXT ANALYZER PATTERNS (padrões detectados)
         context_analysis = enriched_data.get('context_analysis', {})
@@ -242,23 +274,26 @@ class AIAnalyzer:
             'dominancia_away': xg_away > xg_home + 0.5,
             
             # FORMA/MOMENTUM (crítico!)
-            'home_hot_streak': form.get('home_momentum_last_5', 0) > 0.6,
-            'away_hot_streak': form.get('away_momentum_last_5', 0) > 0.6,
-            'home_cold_streak': form.get('home_momentum_last_5', 0) < 0.3,
-            'away_cold_streak': form.get('away_momentum_last_5', 0) < 0.3,
-            'form_assymetric': abs(form.get('home_momentum_last_5', 0.5) - form.get('away_momentum_last_5', 0.5)) > 0.4,
+            'home_hot_streak': home_momentum > 0.6,
+            'away_hot_streak': away_momentum > 0.6,
+            'home_cold_streak': home_momentum < 0.3,
+            'away_cold_streak': away_momentum < 0.3,
+            'form_assymetric': abs(home_momentum - away_momentum) > 0.4,
             
             # LESÕES (afeta mercados)
-            'home_critical_injuries': injuries.get('home_key_players_missing', 0) >= 2,
-            'away_critical_injuries': injuries.get('away_key_players_missing', 0) >= 2,
-            'both_weakened': injuries.get('home_key_players_missing', 0) >= 1 and injuries.get('away_key_players_missing', 0) >= 1,
+            'home_critical_injuries': home_key_players_out >= 2,
+            'away_critical_injuries': away_key_players_out >= 2,
+            'both_weakened': home_key_players_out >= 1 and away_key_players_out >= 1,
             
             # MOTIVAÇÃO
             'six_pointer': 'six_pointer' in pattern_names or match_importance.get('is_six_pointer', False),
-            'home_must_win': motivation.get('home_motivation_score', 0.5) > 0.8,
-            'away_must_win': motivation.get('away_motivation_score', 0.5) > 0.8,
+            'home_must_win': home_motivation_score > 0.8,
+            'away_must_win': away_motivation_score > 0.8,
             'motivation_assymetric': 'asymmetric_motivation' in pattern_names,
-            'low_motivation_both': 'low_motivation_both' in pattern_names,
+            'low_motivation_both': (
+                'low_motivation_both' in pattern_names
+                or (home_motivation_score < 0.5 and away_motivation_score < 0.5)
+            ),
             
             # FADIGA
             'home_fatigued': context_features.get('home_days_rest', 7) < 3,
@@ -270,9 +305,18 @@ class AIAnalyzer:
             # H2H
             'h2h_high_scoring': h2h.get('h2h_avg_goals', 0) > 3.0,
             'h2h_low_scoring': h2h.get('h2h_avg_goals', 0) < 2.0,
-            'h2h_home_dominance': h2h.get('home_win_rate_h2h', 0.33) > 0.6,
-            'h2h_away_dominance': h2h.get('away_win_rate_h2h', 0.33) > 0.6,
-            'h2h_draws_frequent': h2h.get('draw_rate_h2h', 0.25) > 0.4,
+            'h2h_home_dominance': h2h.get(
+                'h2h_home_win_rate',
+                h2h.get('home_win_rate_h2h', 0.33),
+            ) > 0.6,
+            'h2h_away_dominance': h2h.get(
+                'h2h_away_win_rate',
+                h2h.get('away_win_rate_h2h', 0.33),
+            ) > 0.6,
+            'h2h_draws_frequent': h2h.get(
+                'h2h_draw_rate',
+                h2h.get('draw_rate_h2h', 0.25),
+            ) > 0.4,
             
             # TIPO DE COMPETIÇÃO
             'is_cup': competition.get('is_cup_competition', False),
@@ -283,13 +327,28 @@ class AIAnalyzer:
             'good_weather': weather.get('goal_impact', 0) > 0.1,  # Clima aumenta gols
             
             # STATISTICS AVANÇADAS
-            'home_set_pieces_strong': statistics.get('home_corner_advantage', 0) > 2.0,
-            'away_set_pieces_strong': statistics.get('away_corner_advantage', 0) > 2.0,
-            'high_cards_expected': statistics.get('cards_per_game_both', 0) > 4.0,
+            'home_set_pieces_strong': (
+                statistics.get('home_corners_per_game', 0)
+                - statistics.get('away_corners_per_game', 0)
+            ) > 2.0,
+            'away_set_pieces_strong': (
+                statistics.get('away_corners_per_game', 0)
+                - statistics.get('home_corners_per_game', 0)
+            ) > 2.0,
+            'high_cards_expected': (
+                statistics.get('home_cards_per_game', 0)
+                + statistics.get('away_cards_per_game', 0)
+            ) > 4.0,
             
             # ELO (força real)
-            'elo_gap_large': elo.get('elo_diff_home_minus_away', 0) > 200,  # Home muito mais forte
-            'elo_gap_negative': elo.get('elo_diff_home_minus_away', 0) < -200,  # Away muito mais forte
+            'elo_gap_large': elo.get(
+                'elo_diff_home_minus_away',
+                elo.get('elo_differential', 0),
+            ) > 200,
+            'elo_gap_negative': elo.get(
+                'elo_diff_home_minus_away',
+                elo.get('elo_differential', 0),
+            ) < -200,
             
             # CONTEXT PATTERNS
             'derby': 'derby_context' in pattern_names,
@@ -630,28 +689,34 @@ class AIAnalyzer:
             context_parts.append(f"Jogo DEFENSIVO ({xg_total:.1f} gols esperados)")
         
         # 3. Forma/Momentum (CRÍTICO)
-        home_momentum = form.get('home_momentum_last_5', 0.5)
-        away_momentum = form.get('away_momentum_last_5', 0.5)
+        home_momentum = self._normalized_form_momentum(form, 'home')
+        away_momentum = self._normalized_form_momentum(form, 'away')
         if home_momentum > 0.65:
-            context_parts.append(f"Casa em ÓTIMA forma ({home_momentum*100:.0f}%)")
+            context_parts.append("Casa em ÓTIMA forma")
         elif home_momentum < 0.35:
-            context_parts.append(f"Casa em MÁ forma ({home_momentum*100:.0f}%)")
+            context_parts.append("Casa em MÁ forma")
         if away_momentum > 0.65:
-            context_parts.append(f"Visitante em ÓTIMA forma ({away_momentum*100:.0f}%)")
+            context_parts.append("Visitante em ÓTIMA forma")
         elif away_momentum < 0.35:
-            context_parts.append(f"Visitante em MÁ forma ({away_momentum*100:.0f}%)")
+            context_parts.append("Visitante em MÁ forma")
         
         # 4. Lesões críticas
-        home_injuries = injuries.get('home_key_players_missing', 0)
-        away_injuries = injuries.get('away_key_players_missing', 0)
+        home_injuries = injuries.get(
+            'home_key_players_missing',
+            injuries.get('home_key_players_out', 0),
+        )
+        away_injuries = injuries.get(
+            'away_key_players_missing',
+            injuries.get('away_key_players_out', 0),
+        )
         if home_injuries >= 2:
             context_parts.append(f"Casa com {home_injuries} lesões CRÍTICAS")
         if away_injuries >= 2:
             context_parts.append(f"Visitante com {away_injuries} lesões CRÍTICAS")
         
         # 5. Motivação
-        home_motivation = motivation.get('home_motivation_score', 0.5)
-        away_motivation = motivation.get('away_motivation_score', 0.5)
+        home_motivation = self._normalized_motivation(motivation, 'home')
+        away_motivation = self._normalized_motivation(motivation, 'away')
         if abs(home_motivation - away_motivation) > 0.3:
             if home_motivation > away_motivation:
                 context_parts.append(f"Casa MUITO mais motivada")
@@ -661,7 +726,7 @@ class AIAnalyzer:
         # 6. Six-pointer ou jogo decisivo
         if 'six_pointer' in pattern_names:
             context_parts.append("Jogo DECISIVO (six-pointer)")
-        elif motivation.get('home_motivation_score', 0.5) > 0.8 or motivation.get('away_motivation_score', 0.5) > 0.8:
+        elif home_motivation > 0.8 or away_motivation > 0.8:
             context_parts.append("Jogo de ALTA importância")
         
         # 7. Fadiga
@@ -977,9 +1042,10 @@ SEU PAPEL:
 IMPORTANTE: NÃO GERE CABEÇALHO/HEADER - o sistema já vai adicionar. Comece DIRETO com a recomendação.
 
 CRITÉRIOS DO MODO BILHETE:
-- Probabilidade mínima: 50%
+- Probabilidade mínima por seleção: 65% (o gerador aplica pisos maiores em bilhetes longos)
 - EV mínimo: 0% (não-negativo, aceita favoritos)
-- Odds ideais para bilhetes: 1.30-2.50
+- Não existe uma faixa fixa de odd individual; avalie probabilidade versus preço (EV).
+- Os limites de odd aplicam-se à odd total do bilhete, não a cada seleção.
 
 CONTEXTO DA PARTIDA:
 - {home_team} vs {away_team}
@@ -1021,7 +1087,7 @@ FORMATO DE RESPOSTA (OBRIGATÓRIO):
 
 Aposta: [Nome da aposta escolhida - a que MELHOR se encaixa no contexto]
 Mercado: [Tipo de mercado]
-Odd: [Valor] (ideal para bilhetes: 1.30-2.00)
+Odd: [Valor] (avaliada pelo EV individual; sem faixa fixa)
 Probabilidade: [XX%] (mínimo 50%)
 Stake: [X unidades]
 
@@ -1029,7 +1095,7 @@ PORQUE ESTA APOSTA FOI ESCOLHIDA:
 • [Explicação de por que SE ENCAIXA no contexto específico desta partida]
 • Alta probabilidade (50% ou mais)
 • EV não-negativo (não perde value)
-• Odd moderada (boa para combinar 1.30-2.50)
+• A odd total do bilhete deve respeitar os limites de composição
 
 💡 DICA DE BILHETE:
 Combine com 2-3 apostas similares de outros jogos.
@@ -1053,7 +1119,7 @@ REGRAS CRÍTICAS:
 2. ESCOLHA a aposta que MELHOR se encaixa no contexto (não apenas a primeira da lista)
 3. Só recomende apostas com probabilidade >= 50%
 4. Aceite EV >= 0% (favoritos com odds justas são OK)
-5. Mencione odds ideais para combinar (1.30-2.50)
+5. Não trate uma faixa fixa de odd individual como critério de qualidade
 6. Sempre alerte sobre risco de bilhetes
 7. Favoritos absolutos (70%+) são IDEAIS para bilhetes
 """

@@ -54,6 +54,36 @@ Data: 30/01/2026
 
 ---
 
+## Validação Shadow e Publicação
+
+O DailyBet regista previsões pré-jogo em `DailyBetCandidate`, incluindo mercado,
+probabilidade do modelo, odd, EV, qualidade/completude dos dados e snapshot dos
+inputs usados. Os resultados são liquidados pela mesma sincronização oficial
+usada para validar bilhetes. Este registo é uma medição prospectiva e leve; não
+é um dataset histórico completo.
+
+As estatísticas shadow são informativas e **não bloqueiam a publicação**. Os
+bilhetes continuam sujeitos aos filtros operacionais existentes do gerador.
+Uma amostra local ainda pequena não deve ser interpretada como prova de
+desempenho, mas também não deve deixar o DailyBet sem publicar seleções.
+
+A conta API-Football fornece fixtures e resultados antigos, mas as sondagens
+realizadas para esta implementação não encontraram odds para uma partida de
+2024, enquanto encontraram odds para uma partida recente. Por isso, não usamos
+resultados antigos sem cotações como evidência de rentabilidade nem alegamos
+um backtest retrospectivo de ROI. A validação shadow acumulará observações
+reais a partir da ativação e reportará taxa de acerto/ROI separadamente por
+mercado e liga, sem afirmar que o histórico prospectivo já valida a estratégia.
+O benchmark Brier existente compara as previsões com a probabilidade implícita
+bruta das odds e inclui a margem da casa.
+
+Se a tabela shadow ainda não existir, a geração e a leitura de bilhetes continuam
+disponíveis; o sistema regista um erro explícito e desativa apenas a observação
+shadow até a migration ser aplicada. Aplicar a migration com
+`python manage.py migrate analysis` para ativar o registo e os relatórios shadow.
+
+---
+
 ## 🚀 Como Usar
 
 ### 1. Aplicar Migration

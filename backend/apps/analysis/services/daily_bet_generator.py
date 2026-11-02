@@ -23,6 +23,13 @@ from apps.analysis.services.multiple_selection import (
     eligible_multiple_candidates,
     rank_multiple_candidates,
 )
+from apps.analysis.services.daily_bet_evidence import (
+    market_evidence,
+    prediction_date,
+    probability_bucket,
+    record_shadow_candidates,
+    shadow_table_available,
+)
 from .analysis_orchestrator import HybridAnalysisOrchestrator
 from .api_football_service import APIFootballService
 from apps.matches.services.football_api import FootballAPIService
@@ -41,35 +48,19 @@ class DailyBetGenerator:
     # Configurações de filtros
     MIN_VALUE_EV = 5.0  # EV mínimo para value bets (+5%)
     MIN_VALUE_PROBABILITY = 0.25  # Probabilidade mínima para value bets (25%)
-    MIN_MULTIPLE_EV = -100.0  # ✅ IGNORAR EV individual (pode ser negativo) - apenas odd total e prob importam
+    MIN_MULTIPLE_EV = 0.0  # Exigir EV não-negativo por seleção e pelo bilhete
     
-    # ✅ CORRIGIDO 21/02: Configuração PRAGMÁTICA - Cobertura + Retorno
-    # ✅ CORREÇÃO CRÍTICA 21/02: Prob INDIVIDUAL 65-70% (mais cobertura)
-    # Bilhetes viáveis: prob individual 65%+, odd total >2.5, cobertura adequada
-    # Odd 1.30-1.54 → prob fair 65-77% | Pragmático
-    MIN_MULTIPLE_PROBABILITY_3X = 0.65  # 3x: cada aposta ≥65% @ 1.30-1.54 → odd total 2.20-3.65
-    MIN_MULTIPLE_PROBABILITY_5X = 0.68  # 5x: cada aposta ≥68% @ 1.30-1.47 → odd total 3.71-5.86
-    MIN_MULTIPLE_PROBABILITY_7X = 0.70  # 7x: cada aposta ≥70% @ 1.30-1.43 → odd total 6.28-13.00
+    # Probability floors scale with ticket size; individual prices are assessed by EV.
+    MIN_MULTIPLE_PROBABILITY_3X = 0.65
+    MIN_MULTIPLE_PROBABILITY_5X = 0.68
+    MIN_MULTIPLE_PROBABILITY_7X = 0.70
     
-    # Probabilidades combinadas mínimas (matemática real com penalidade)
-    # ✅ CORREÇÃO CRÍTICA 21/02: Prob INDIVIDUAL 65-70% → prob combinada 25-35% (PRAGMÁTICO)
-    # 3X: 65%³ × 0.95 = 26.0% → 1 acerto a cada 3.8 tentativas @ odd 2.20-3.65 ✓✓
-    # 5X: 68%⁵ × 0.90 = 14.0% → 1 acerto a cada 7.1 tentativas @ odd 3.71-5.86 ✓
-    # 7X: 70%⁷ × 0.85 = 8.2% → 1 acerto a cada 12.2 tentativas @ odd 6.28-13.00 ✓
+    # Correlation-adjusted minimum probability for each ticket size.
     MIN_COMBINED_PROBABILITY_3X = 0.25  # 25% ajustado (pragmático: cobertura + odd >2.5)
     MIN_COMBINED_PROBABILITY_5X = 0.13  # 13% ajustado (conservador)
     MIN_COMBINED_PROBABILITY_7X = 0.08  # 8% ajustado (muito conservador)
     
-    # ✅ CORREÇÃO CRÍTICA 21/02: Odds para prob 70% + odd total >2.5 (com cobertura)
-    # Objetivo: 3-5 apostas (odds 1.30-1.50) → odd combinada 2.20-7.59
-    # Probabilidade: 67-77% cada → prob combinada 27-45% (equilibrado)
-    MIN_ODD_MULTIPLE = 1.30  # Odd mínima individual (prob ~77%)
-    MAX_ODD_MULTIPLE = 1.50  # Odd máxima individual (prob ~67%) - garante prob alta
-    
-    # ✅ CORREÇÃO CRÍTICA 21/02: Limites de odd total equilibrados
-    # 3X @ 1.30-1.50: odd total 2.20-3.38
-    # 5X @ 1.30-1.50: odd total 3.71-7.59
-    # 7X @ 1.30-1.50: odd total 6.28-17.09
+    # Limites aplicam-se à odd combinada do bilhete, não à odd de cada seleção.
     MIN_TICKET_ODD = 2.50   # Mínimo para odd combinada atrativa
     MAX_TICKET_ODD = 25.0   # Máximo realista (evita odds absurdas)
     
@@ -1012,6 +1003,23 @@ class DailyBetGenerator:
                 except Exception as e:
                     logger.error(f"    ❌ Erro na análise MULTIPLE: {e}")
                     result_multiple = None
+
+                multiple_analysis_data = (
+                    result_multiple.get('analysis_data', {})
+                    if isinstance(result_multiple, dict) else {}
+                )
+                complete_features = (
+                    multiple_analysis_data.get('features_summary', {}).get('complete', {})
+                    if isinstance(multiple_analysis_data.get('features_summary'), dict) else {}
+                )
+                availability = (
+                    complete_features.get('_metadata', {}).get('data_availability', {})
+                    if isinstance(complete_features, dict) else {}
+                )
+                data_completeness_pct = (
+                    sum(bool(value) for value in availability.values()) / len(availability) * 100
+                    if availability else None
+                )
                 
                 # Pular se ambas análises falharam
                 if not result_value and not result_multiple:
@@ -1026,6 +1034,9 @@ class DailyBetGenerator:
                     'league_name': league_name,
                     'league_id': league_id,
                     'match_date': fixture_data.get('date'),
+                    'prediction_date': prediction_date(fixture_data.get('date')),
+                    'quality_score': validation['quality_score'],
+                    'data_completeness_pct': data_completeness_pct,
                     'value_result': result_value,
                     'multiple_result': result_multiple
                 })
@@ -1084,6 +1095,12 @@ class DailyBetGenerator:
             )
         
         # Gerar bilhetes e value bets
+        shadow_candidates_created = record_shadow_candidates(analyses)
+        logger.info(
+            "📚 Previsões guardadas em shadow: %s novas candidatas",
+            shadow_candidates_created,
+        )
+
         with transaction.atomic():
             # Deletar apenas apostas ainda não iniciadas. Bilhetes validados,
             # com jogos já a decorrer ou usados em prova social são preservados.
@@ -1206,6 +1223,8 @@ class DailyBetGenerator:
         # Extrair todas as top_bets de MULTIPLE
         all_bets = []
         seen_fixture_ids = set()
+        evidence_cache = {}
+        shadow_available = shadow_table_available()
         
         for analysis in analyses:
             match = analysis['match']
@@ -1251,7 +1270,7 @@ class DailyBetGenerator:
                 
                 # Filtrar por critérios de bilhete:
                 # 1. Probabilidade dinâmica baseada no tamanho (será verificada depois)
-                # 2. Odd na faixa conservadora (1.30 - 1.50)
+                # 2. Odd individual válida e EV não-negativo
                 # 3. A análise MULTIPLE prioriza probabilidade; filtros finais do bilhete
                 #    validam probabilidade combinada, odd total e EV do acumulador.
                 # 4. Confidence ≥ 4 estrelas
@@ -1285,8 +1304,7 @@ class DailyBetGenerator:
                     top_bets,
                     match=match,
                     min_probability=0.65,
-                    min_odd=self.MIN_ODD_MULTIPLE,
-                    max_odd=self.MAX_ODD_MULTIPLE,
+                    min_ev_pct=self.MIN_MULTIPLE_EV,
                 )
                 
                 if not eligible_bets:
@@ -1300,6 +1318,19 @@ class DailyBetGenerator:
                 seen_markets = set()
                 seen_market_groups = set()
                 for bet in eligible_bets:
+                    evidence_key = (
+                        bet.get('market'),
+                        probability_bucket(bet.get('probability')),
+                        analysis.get('prediction_date') or date,
+                    )
+                    if evidence_key not in evidence_cache:
+                        evidence_cache[evidence_key] = market_evidence(
+                            bet.get('market'),
+                            bet.get('probability'),
+                            before_date=analysis.get('prediction_date') or date,
+                            shadow_available=shadow_available,
+                        )
+                    evidence = evidence_cache[evidence_key]
                     market = normalize_market_name(str(bet.get('market', '')))
                     market_group = self._market_group(market)
                     if (
@@ -1310,7 +1341,16 @@ class DailyBetGenerator:
                         continue
                     seen_markets.add(market)
                     seen_market_groups.add(market_group)
-                    distinct_market_bets.append(bet)
+                    distinct_market_bets.append({
+                        **bet,
+                        'historical_sample_size': evidence['sample_size'],
+                        'historical_win_rate': evidence['win_rate'],
+                        'historical_win_rate_lower_95': evidence['win_rate_lower_95'],
+                        'historical_roi_pct': evidence['roi_pct'],
+                        'historical_break_even_probability': evidence['break_even_probability'],
+                        'historical_probability_bucket': evidence['probability_bucket'],
+                        'historical_evidence_passed': evidence['evidence_passed'],
+                    })
                     if len(distinct_market_bets) >= self.MAX_FIXTURE_TICKET_APPEARANCES:
                         break
 
@@ -1344,9 +1384,20 @@ class DailyBetGenerator:
                         'line_adjustment': bet_candidate.get('line_adjustment', ''),
                         'pick': bet_candidate['pick'],
                         'probability': bet_candidate['probability'],
+                        'model_probability': bet_candidate['probability'],
                         'odd': bet_candidate['market_odd'],
                         'fair_odd': bet_candidate.get('fair_odd'),
                         'ev_pct': bet_candidate.get('ev_pct', 0),
+                        'historical_sample_size': bet_candidate['historical_sample_size'],
+                        'historical_win_rate': bet_candidate['historical_win_rate'],
+                        'historical_win_rate_lower_95': bet_candidate['historical_win_rate_lower_95'],
+                        'historical_roi_pct': bet_candidate['historical_roi_pct'],
+                        'historical_break_even_probability': bet_candidate['historical_break_even_probability'],
+                        'historical_probability_bucket': bet_candidate['historical_probability_bucket'],
+                        'historical_evidence_passed': bet_candidate['historical_evidence_passed'],
+                        'data_quality_score': analysis.get('quality_score'),
+                        'data_completeness_pct': analysis.get('data_completeness_pct'),
+                        'selection_reason': 'Critérios operacionais do DailyBet aprovados',
                         'score': bet_candidate.get('post_score', bet_candidate['score']),
                         'result': None,  # Será preenchido após validação
                         '_candidate_rank': market_rank,
@@ -1370,8 +1421,10 @@ class DailyBetGenerator:
         coverage_pct = eligible_fixture_count / len(analyses) * 100 if analyses else 0
         if coverage_pct < 30:
             logger.warning(f"   ⚠️  COBERTURA BAIXA: {eligible_fixture_count}/{len(analyses)} jogos geraram pick elegível ({coverage_pct:.1f}%)")
-            logger.warning(f"       Filtros de retorno (prob ≥65%, odd ≥{self.MIN_ODD_MULTIPLE}, EV ≥{self.MIN_MULTIPLE_EV}%) descartam picks arriscados")
-            logger.warning(f"       Mercados sistematicamente rejeitados: Away Win, Over 2.5, BTTS Yes, Dupla Chance")
+            logger.warning(
+                "       Filtros de retorno (probabilidade individual, EV não-negativo "
+                "e composição da odd total) descartam picks"
+            )
         
         # ✅ CORRIGIDO 17/02/2026: Ordenar por SCORE (contexto) ao invés de apenas probabilidade
         # Score já inclui: probabilidade × contexto × EV × confiança × risco
@@ -1490,12 +1543,12 @@ class DailyBetGenerator:
             fair_odd = 1.0 / combined_prob_adjusted
             ev_pct = ((combined_prob_adjusted * total_odd) - 1.0) * 100
 
-            # ✅ CORREÇÃO 21/02: EV individual pode ser negativo - focamos em prob alta + odd total >2.5
-            # MIN_MULTIPLE_EV = -100 (efetivamente ignora EV individual)
-            # Lógica: Se cada aposta tem 70-75% prob, odd total >2.5 garante valor a longo prazo
-            # mesmo com EV individual negativo (margem das casas)
+            # Use the correlation-adjusted probability for ticket-level EV.
             if ev_pct < self.MIN_MULTIPLE_EV:
-                logger.info(f"   ⏩ Bilhete {size}x: EV {ev_pct:+.1f}% < {self.MIN_MULTIPLE_EV:+.0f}% (extremamente baixo)")
+                logger.info(
+                    f"   ⏩ Bilhete {size}x: EV {ev_pct:+.1f}% "
+                    f"< {self.MIN_MULTIPLE_EV:+.0f}%"
+                )
                 continue
 
             suggested_stake = self._calculate_stake(combined_prob_adjusted, 'multiple')

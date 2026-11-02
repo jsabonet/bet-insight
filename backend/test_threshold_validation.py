@@ -39,7 +39,8 @@ stats = {
         'high_draw': 0,
         'low_confidence': 0,
         'high_risk': 0,
-        'odd_out_of_range': 0
+        'negative_ev': 0,
+        'ticket_odd': 0,
     }
 }
 
@@ -50,16 +51,16 @@ for ticket in all_tickets:
     
     # Determinar thresholds baseado no número de seleções
     if num_selections == 3:
-        min_individual_prob = 0.80
-        min_combined_prob = 0.50
+        min_individual_prob = 0.65
+        min_combined_prob = 0.25
         ticket_name = '3X'
     elif num_selections == 5:
-        min_individual_prob = 0.87
-        min_combined_prob = 0.50
+        min_individual_prob = 0.68
+        min_combined_prob = 0.13
         ticket_name = '5X'
     elif num_selections == 7:
-        min_individual_prob = 0.91
-        min_combined_prob = 0.50
+        min_individual_prob = 0.70
+        min_combined_prob = 0.08
         ticket_name = '7X'
     else:
         # Skip tickets que não são 3X, 5X ou 7X
@@ -102,16 +103,21 @@ for ticket in all_tickets:
                 fail_reasons.append(f"risk_high")
                 stats['fail_reasons']['high_risk'] += 1
         
-        # Check odd range
-        odd = selection.get('odd', 0)
-        if odd < 1.10 or odd > 1.50:
-            fail_reasons.append(f"odd_range")
-            stats['fail_reasons']['odd_out_of_range'] += 1
+        if selection.get('ev_pct', 0) < 0:
+            fail_reasons.append("negative_ev")
+            stats['fail_reasons']['negative_ev'] += 1
     
     # Check combined probability
     if combined_prob < min_combined_prob:
         fail_reasons.append(f"prob_combined")
         stats['fail_reasons']['low_combined_prob'] += 1
+
+    if ticket.expected_value < 0:
+        fail_reasons.append("negative_ev")
+        stats['fail_reasons']['negative_ev'] += 1
+    if ticket.total_odd < 2.50 or ticket.total_odd > 25.0:
+        fail_reasons.append("ticket_odd")
+        stats['fail_reasons']['ticket_odd'] += 1
     
     would_pass = len(fail_reasons) == 0
     
@@ -144,8 +150,10 @@ for ticket in all_tickets:
             print(f"      • Pelo menos 1 aposta com confidence < 4 estrelas")
         if 'risk_high' in unique_reasons:
             print(f"      • Pelo menos 1 aposta com risco alto")
-        if 'odd_range' in unique_reasons:
-            print(f"      • Pelo menos 1 aposta com odd fora do range (1.10-1.50)")
+        if 'negative_ev' in unique_reasons:
+            print("      • EV negativo na seleção ou no bilhete")
+        if 'ticket_odd' in unique_reasons:
+            print("      • Odd total fora do intervalo permitido (2.50-25.00)")
     
     print()
 
@@ -163,7 +171,8 @@ print(f"      • Probabilidade combinada baixa: {stats['fail_reasons']['low_com
 print(f"      • Empate alto (>35%): {stats['fail_reasons']['high_draw']}")
 print(f"      • Confidence baixa (<4 estrelas): {stats['fail_reasons']['low_confidence']}")
 print(f"      • Risco alto: {stats['fail_reasons']['high_risk']}")
-print(f"      • Odd fora do range (1.10-1.50): {stats['fail_reasons']['odd_out_of_range']}")
+print(f"      • EV negativo: {stats['fail_reasons']['negative_ev']}")
+print(f"      • Odd total fora do intervalo (2.50-25.00): {stats['fail_reasons']['ticket_odd']}")
 
 print("\n" + "="*80)
 print("💡 INTERPRETAÇÃO:")

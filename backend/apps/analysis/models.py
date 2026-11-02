@@ -306,6 +306,70 @@ class DailyBet(models.Model):
             return None
 
 
+class DailyBetCandidate(models.Model):
+    """Pre-match shadow prediction used to validate DailyBet selection rules."""
+
+    OUTCOME_CHOICES = [
+        ('pending', 'Pending'),
+        ('won', 'Won'),
+        ('lost', 'Lost'),
+        ('cancelled', 'Cancelled'),
+        ('unsupported', 'Unsupported'),
+    ]
+
+    date = models.DateField(db_index=True)
+    fixture_id = models.PositiveBigIntegerField()
+    league_id = models.PositiveIntegerField(null=True, blank=True)
+    league_name = models.CharField(max_length=120, blank=True)
+    match_name = models.CharField(max_length=240, blank=True)
+    market = models.CharField(max_length=80)
+    pick = models.CharField(max_length=160, blank=True)
+    probability = models.FloatField()
+    probability_bucket = models.CharField(max_length=16, db_index=True)
+    odd = models.FloatField(null=True, blank=True)
+    ev_pct = models.FloatField(null=True, blank=True)
+    ranking_score = models.FloatField(null=True, blank=True)
+    data_quality_score = models.FloatField(null=True, blank=True)
+    data_completeness_pct = models.FloatField(null=True, blank=True)
+    selection_eligible = models.BooleanField(default=False, db_index=True)
+    exclusion_reason = models.CharField(max_length=240, blank=True)
+    outcome = models.CharField(
+        max_length=16, choices=OUTCOME_CHOICES, default='pending', db_index=True
+    )
+    actual_result = models.CharField(max_length=32, blank=True)
+    home_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    away_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    model_version = models.CharField(max_length=32, default='dailybet-shadow-v1')
+    source_snapshot = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    settled_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'DailyBet Shadow Prediction'
+        verbose_name_plural = 'DailyBet Shadow Predictions'
+        ordering = ['-date', '-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['date', 'fixture_id', 'market'],
+                name='unique_dailybet_shadow_fixture_market',
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=['market', 'probability_bucket', 'outcome'],
+                name='analysis_db_market_7bf1da_idx',
+            ),
+            models.Index(
+                fields=['league_id', 'market', 'outcome'],
+                name='analysis_db_league__dc3f6b_idx',
+            ),
+            models.Index(
+                fields=['date', 'selection_eligible'],
+                name='analysis_db_date_b08f9a_idx',
+            ),
+        ]
+
+
 class SocialProofTicket(models.Model):
     """
     Snapshot imutável de um bilhete usado para prova social (apenas admin).

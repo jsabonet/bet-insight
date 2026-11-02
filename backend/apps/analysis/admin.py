@@ -4,7 +4,13 @@ from django.urls import path
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.utils import timezone
-from .models import Analysis, DailyBet, SocialProofTicket, TaskExecution
+from .models import (
+    Analysis,
+    DailyBet,
+    DailyBetCandidate,
+    SocialProofTicket,
+    TaskExecution,
+)
 from config.admin import admin_site
 
 
@@ -414,6 +420,28 @@ class TaskExecutionAdmin(admin.ModelAdmin):
         return redirect('admin:daily_bets_dashboard')
 
 
+@admin.register(DailyBetCandidate, site=admin_site)
+class DailyBetCandidateAdmin(admin.ModelAdmin):
+    list_display = [
+        'date', 'match_name', 'market', 'probability', 'odd',
+        'selection_eligible', 'outcome', 'league_name',
+    ]
+    list_filter = ['selection_eligible', 'outcome', 'market', 'league_name', 'date']
+    search_fields = ['match_name', 'market', 'pick', 'league_name']
+    date_hierarchy = 'date'
+    ordering = ['-date', '-created_at']
+    readonly_fields = [field.name for field in DailyBetCandidate._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
 @admin.register(SocialProofTicket, site=admin_site)
 class SocialProofTicketAdmin(admin.ModelAdmin):
     """Snapshots de prova social usados nas redes sociais (somente leitura + ações)"""
@@ -471,4 +499,3 @@ class SocialProofTicketAdmin(admin.ModelAdmin):
     def mark_discarded(self, request, queryset):
         updated = queryset.update(status='discarded')
         self.message_user(request, f'{updated} bilhete(s) descartado(s).', messages.SUCCESS)
-

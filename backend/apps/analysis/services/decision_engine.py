@@ -7,12 +7,9 @@ import numpy as np
 from typing import Dict
 from .market_selector import MarketSelector  # NOVO
 from apps.analysis.config import DecisionThresholds, ContextPolicy
-from apps.analysis.config.market_standards import get_market_display_name
-from apps.analysis.config.supergiants import (
-    is_home_over_market,
-    is_protective_supergiant_market,
-    is_supergiant_away,
-    is_supergiant_match,
+from apps.analysis.config.market_standards import (
+    get_market_display_name,
+    normalize_market_name,
 )
 from .goal_line_safety import (
     conservative_total_market,
@@ -331,17 +328,15 @@ class DecisionEngine:
                 result.get('top_bets', []),
                 match=match,
             )
-            ranked_candidates = rank_multiple_candidates(
-                safe_candidates or result.get('top_bets', [])
-            )
+            result['top_bets'] = safe_candidates
+            ranked_candidates = rank_multiple_candidates(safe_candidates)
             selected_bet = ranked_candidates[0] if ranked_candidates else None
-            selection_is_eligible = bool(safe_candidates)
             result['multiple_selection'] = None
 
             if selected_bet:
                 result['multiple_selection'] = {
                     **selected_bet,
-                    'selection_eligible': selection_is_eligible,
+                    'selection_eligible': True,
                 }
                 result['recommendation'] = {
                     'market': selected_bet['market'],
@@ -352,25 +347,9 @@ class DecisionEngine:
                     'fair_odd': selected_bet.get('fair_odd'),
                     'value_pct': selected_bet.get('ev_pct'),
                     'score': selected_bet.get('score'),
-                    'selection_eligible': selection_is_eligible,
+                    'selection_eligible': True,
                     'reason': 'multiple_integrated_score',
-                    'reason_pt': (
-                        'Maior score integrado entre as candidatas elegíveis'
-                        if selection_is_eligible
-                        else 'Melhor score integrado disponível; fora dos critérios de bilhete'
-                    ),
-                }
-            elif is_supergiant_match(match):
-                result['recommendation'] = {
-                    'market': 'no_safe_selection',
-                    'market_display': 'Sem recomendação protetiva',
-                    'pick': 'Sem seleção',
-                    'probability': 0,
-                    'odd': None,
-                    'fair_odd': None,
-                    'value_pct': None,
-                    'reason': 'supergiant_no_protective_market',
-                    'reason_pt': 'Não foi encontrado mercado protetivo elegível',
+                    'reason_pt': 'Melhor score integrado entre as candidatas elegíveis',
                 }
             else:
                 result['recommendation'] = {
@@ -382,7 +361,7 @@ class DecisionEngine:
                     'fair_odd': None,
                     'value_pct': None,
                     'reason': 'multiple_no_candidates',
-                    'reason_pt': 'Não há candidatas disponíveis para a estratégia multiple',
+                    'reason_pt': 'Nenhum mercado cumpriu os critérios da estratégia multiple',
                 }
 
         return result
@@ -413,9 +392,7 @@ class DecisionEngine:
         (ModelEnsembleML / FeatureEngineer permanecem intactos).
 
         Regras (apenas para strategy == 'multiple'):
-        1. Supergigante -> mantém apenas Dupla Chance (1X/X2) e Under 3.5/4.5;
-           veta golos da equipa da casa contra supergigante visitante.
-        2. Dérbi/Rivalidade emocional extrema -> remove mercados de golos
+        1. Dérbi/Rivalidade emocional extrema -> remove mercados de golos
            agressivos (Over/Under 2.5), mantendo apenas mercados de proteção.
         As linhas de golos já são ajustadas pelo MarketSelector com probabilidades
         e odds da linha de destino; não aplicar descontos estimados nesta fase.
@@ -433,26 +410,6 @@ class DecisionEngine:
 
         selections = list(validated_selections)
 
-        if is_supergiant_match(match):
-            away_is_supergiant = is_supergiant_away(match)
-            filtered = []
-            for selection in selections:
-                market = selection.get('market', selection.get('market_display', ''))
-                if away_is_supergiant and is_home_over_market(market):
-                    logger.info(
-                        "   ❌ [Supergigante] Veto de golos da equipa da casa contra visitante de elite: %s",
-                        market,
-                    )
-                    continue
-                if not is_protective_supergiant_market(market):
-                    logger.info(
-                        "   ❌ [Supergigante] Removido mercado fora da lista protetiva: %s",
-                        market,
-                    )
-                    continue
-                filtered.append(selection)
-            selections = filtered
-
         try:
             if self._is_derby_match(match):
                 logger.info(
@@ -465,7 +422,7 @@ class DecisionEngine:
         except Exception as e:
             logger.warning(
                 f"⚠️ [Filtros Táticos] Erro ao aplicar filtros ({e}) - "
-                "mantendo filtros de supergigante já aplicados"
+                "mantendo seleções existentes"
             )
             return selections
 
@@ -980,7 +937,7 @@ class DecisionEngine:
         
         Critérios (em ordem de prioridade):
         - VALUE: #1 = mais provável 1X2, #2 e #3 = melhor score (priorizando EV)
-        - MULTIPLE: Top 3 por score (priorizando probabilidade >= 50%), SEM forçar 1X2
+        - MULTIPLE: Top 3 elegíveis por score (probabilidade e EV mínimos), SEM forçar 1X2
         
         Returns:
             list: [
@@ -1001,10 +958,10 @@ class DecisionEngine:
             ]
         """
         logger.info(f"\n📊 SELECT_TOP_BETS - Estratégia: {strategy.upper()}")
-        logger.info(f"   🎯 Filtro de Odds: Mínimo {MIN_ODD_THRESHOLD} (odds abaixo são descartadas)")
         if strategy == 'multiple':
-            logger.info(f"   🎯 Modo: BILHETES - prob² domina, filtro progressivo (70%: -15%, 60%: -10%, 50%: -5%)")
+            logger.info("   🎯 Modo: BILHETES - sem faixa fixa de odds individuais; EV não-negativo")
         else:
+            logger.info(f"   🎯 Filtro de Odds: Mínimo {MIN_ODD_THRESHOLD} (odds abaixo são descartadas)")
             logger.info(f"   ⚡ Modo: APOSTAS SIMPLES - EV domina, aceita qualquer prob com EV ≥ -5%")
         
         consensus = model_predictions.get('consensus', {})
@@ -1021,6 +978,16 @@ class DecisionEngine:
         
         # Preparar candidatos
         candidates = []
+
+        def _has_acceptable_odd(odd):
+            if strategy == 'multiple':
+                return odd is not None and odd > 1.0
+            return odd is not None and odd >= MIN_ODD_THRESHOLD
+
+        def _market_odd_or_fair(market_odd, fair_odd):
+            if market_odd == 0 and strategy != 'multiple':
+                return fair_odd
+            return market_odd
         
         # Helper to fetch odds with fallback keys (suporta dict enriquecido)
         def _get_odd(odds_dict, keys):
@@ -1057,7 +1024,7 @@ class DecisionEngine:
             logger.info(f"🔍 Candidato {market}: prob={prob:.3f}, market_odd={market_odd}, fair_odd={fair_odd:.2f}")
             
             # ✅ Verificar odds mínimas (1.10) para evitar apostas sem value
-            if prob >= 0.15 and market_odd is not None and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:  # Reduzido de 30% para 15%
+            if prob >= 0.15 and _has_acceptable_odd(market_odd) and fair_odd > 0:  # Reduzido de 30% para 15%
                 ev_pct = ((market_odd / fair_odd) - 1) * 100
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 
@@ -1087,7 +1054,7 @@ class DecisionEngine:
             logger.info(f"DEBUG Over/Under 2.5: market={market}, prob={prob:.2f}, market_odd={market_odd}, fair_odd={fair_odd}")
             
             # ✅ Verificar odds mínimas (1.10) para evitar apostas sem value
-            if prob >= 0.30 and market_odd is not None and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:
+            if prob >= 0.30 and _has_acceptable_odd(market_odd) and fair_odd > 0:
                 ev_pct = ((market_odd / fair_odd) - 1) * 100
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 
@@ -1110,7 +1077,7 @@ class DecisionEngine:
             prob = poisson_probs.get(prob_key, 0)
             market_odd = _get_odd(market_odds, alt_keys)
             fair_odd = fair_odds.get(market, 0)
-            if prob >= 0.85 and market_odd is not None and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:  # Muito provável
+            if prob >= 0.85 and _has_acceptable_odd(market_odd) and fair_odd > 0:  # Muito provável
                 ev_pct = ((market_odd / fair_odd) - 1) * 100
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 candidates.append({
@@ -1130,7 +1097,7 @@ class DecisionEngine:
             prob = poisson_probs.get(prob_key, 0)
             market_odd = _get_odd(market_odds, alt_keys)
             fair_odd = fair_odds.get(market, 0)
-            if prob >= 0.15 and market_odd is not None and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:  # Threshold baixo
+            if prob >= 0.15 and _has_acceptable_odd(market_odd) and fair_odd > 0:  # Threshold baixo
                 ev_pct = ((market_odd / fair_odd) - 1) * 100
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 candidates.append({
@@ -1150,7 +1117,7 @@ class DecisionEngine:
         btts_odd = _get_odd(market_odds, ['btts_yes', 'btts'])  # ✅ Usar helper com fallback
         btts_fair = fair_odds.get('btts', 0)
         
-        if btts_prob >= 0.30 and btts_odd >= MIN_ODD_THRESHOLD and btts_fair > 0:
+        if btts_prob >= 0.30 and _has_acceptable_odd(btts_odd) and btts_fair > 0:
             ev_pct = ((btts_odd / btts_fair) - 1) * 100
             score = self._calculate_bet_score(btts_prob, ev_pct, confidence, risk, strategy)
             
@@ -1172,10 +1139,9 @@ class DecisionEngine:
         btts_no_prob = poisson_probs.get('btts_no', 1 - btts_prob)  # Inverso de BTTS
         btts_no_odd = _get_odd(market_odds, ['btts_no'])
         btts_no_fair = (1 / btts_no_prob) * 1.05 if btts_no_prob > 0 else 0
-        if btts_no_odd == 0:  # Fallback
-            btts_no_odd = btts_no_fair
+        btts_no_odd = _market_odd_or_fair(btts_no_odd, btts_no_fair)
         
-        if btts_no_prob >= 0.30 and btts_no_odd >= MIN_ODD_THRESHOLD and btts_no_fair > 0:
+        if btts_no_prob >= 0.30 and _has_acceptable_odd(btts_no_odd) and btts_no_fair > 0:
             ev_pct = ((btts_no_odd / btts_no_fair) - 1) * 100
             score = self._calculate_bet_score(btts_no_prob, ev_pct, confidence, risk, strategy)
             candidates.append({
@@ -1198,10 +1164,9 @@ class DecisionEngine:
             prob = poisson_probs.get(prob_key, 0)
             fair_odd = (1 / prob) * 1.05 if prob > 0 else 0
             market_odd = _get_odd(market_odds, [market_key])
-            if market_odd == 0:
-                market_odd = fair_odd
+            market_odd = _market_odd_or_fair(market_odd, fair_odd)
             
-            if prob >= 0.25 and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:  # Clean sheets com 25%+
+            if prob >= 0.25 and _has_acceptable_odd(market_odd) and fair_odd > 0:  # Clean sheets com 25%+
                 ev_pct = ((market_odd / fair_odd) - 1) * 100 if market_odd > 0 else 0
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 candidates.append({
@@ -1209,7 +1174,7 @@ class DecisionEngine:
                     'market_display': display,
                     'pick': 'Sim',
                     'probability': prob,
-                    'market_odd': market_odd if market_odd > 0 else fair_odd,
+                    'market_odd': market_odd,
                     'fair_odd': fair_odd,
                     'ev_pct': ev_pct,
                     'score': score,
@@ -1226,10 +1191,9 @@ class DecisionEngine:
             prob = poisson_probs.get(prob_key, 0)
             fair_odd = (1 / prob) * 1.05 if prob > 0 else 0
             market_odd = _get_odd(market_odds, [market_key])
-            if market_odd == 0:
-                market_odd = fair_odd
+            market_odd = _market_odd_or_fair(market_odd, fair_odd)
             
-            if prob >= 0.15 and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:  # Margens com 15%+
+            if prob >= 0.15 and _has_acceptable_odd(market_odd) and fair_odd > 0:  # Margens com 15%+
                 ev_pct = ((market_odd / fair_odd) - 1) * 100 if market_odd > 0 else 0
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 candidates.append({
@@ -1237,7 +1201,7 @@ class DecisionEngine:
                     'market_display': display,
                     'pick': 'Sim',
                     'probability': prob,
-                    'market_odd': market_odd if market_odd > 0 else fair_odd,
+                    'market_odd': market_odd,
                     'fair_odd': fair_odd,
                     'ev_pct': ev_pct,
                     'score': score,
@@ -1252,10 +1216,9 @@ class DecisionEngine:
             prob = poisson_probs.get(prob_key, 0)
             fair_odd = (1 / prob) * 1.05 if prob > 0 else 0
             market_odd = _get_odd(market_odds, [market_key])
-            if market_odd == 0:
-                market_odd = fair_odd
+            market_odd = _market_odd_or_fair(market_odd, fair_odd)
             
-            if prob >= 0.40 and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:  # Só incluir se razoavelmente provável
+            if prob >= 0.40 and _has_acceptable_odd(market_odd) and fair_odd > 0:  # Só incluir se razoavelmente provável
                 ev_pct = ((market_odd / fair_odd) - 1) * 100 if market_odd > 0 else 0
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 candidates.append({
@@ -1263,7 +1226,7 @@ class DecisionEngine:
                     'market_display': display,
                     'pick': 'Sim',
                     'probability': prob,
-                    'market_odd': market_odd if market_odd > 0 else fair_odd,
+                    'market_odd': market_odd,
                     'fair_odd': fair_odd,
                     'ev_pct': ev_pct,
                     'score': score,
@@ -1278,7 +1241,7 @@ class DecisionEngine:
             fair_odd = fair_odds.get(market, 0)
             
             # Threshold 25% para VALUE, 35% seria rejeitado por MULTIPLE de qualquer forma
-            if prob >= 0.25 and market_odd is not None and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:
+            if prob >= 0.25 and _has_acceptable_odd(market_odd) and fair_odd > 0:
                 ev_pct = ((market_odd / fair_odd) - 1) * 100
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 
@@ -1303,7 +1266,7 @@ class DecisionEngine:
             fair_odd = fair_odds.get(market, 0)
             
             # Threshold 20% para VALUE (jogos ofensivos), MULTIPLE vai filtrar naturalmente
-            if prob >= 0.20 and market_odd is not None and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:
+            if prob >= 0.20 and _has_acceptable_odd(market_odd) and fair_odd > 0:
                 ev_pct = ((market_odd / fair_odd) - 1) * 100
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 
@@ -1343,8 +1306,7 @@ class DecisionEngine:
                 # Tentar buscar odd usando chaves alternativas (compatível com OddsCalculator)
                 alt_keys = dc_alt_keys.get(market_key, [market_key])
                 market_odd = _get_odd(market_odds, alt_keys)
-                if market_odd == 0:  # Fallback para fair_odd se não tiver no mercado
-                    market_odd = fair_odd
+                market_odd = _market_odd_or_fair(market_odd, fair_odd)
                 
                 if fair_odd > 0:
                     ev_pct = ((market_odd / fair_odd) - 1) * 100
@@ -1376,12 +1338,11 @@ class DecisionEngine:
             prob = poisson_probs.get(prob_key, 0)
             fair_odd = fair_odds.get(market_key, 0)
             market_odd = _get_odd(market_odds, [market_key])  # ✅ Usar helper
-            if market_odd == 0:  # Fallback para fair_odd
-                market_odd = fair_odd if fair_odd > 0 else 0
+            market_odd = _market_odd_or_fair(market_odd, fair_odd)
             
             # Threshold ajustado: Over 0.5 >= 50%, Over 1.5/2.5 >= 30%
             min_prob = 0.50 if '0.5' in prob_key else 0.30
-            if prob >= min_prob and market_odd >= MIN_ODD_THRESHOLD and fair_odd > 0:
+            if prob >= min_prob and _has_acceptable_odd(market_odd) and fair_odd > 0:
                 ev_pct = ((market_odd / fair_odd) - 1) * 100 if market_odd > 0 else 0
                 score = self._calculate_bet_score(prob, ev_pct, confidence, risk, strategy)
                 
@@ -1392,7 +1353,7 @@ class DecisionEngine:
                     'market_display': display,
                     'pick': 'Sim',
                     'probability': prob,
-                    'market_odd': market_odd if market_odd > 0 else fair_odd,
+                    'market_odd': market_odd,
                     'fair_odd': fair_odd,
                     'ev_pct': ev_pct,
                     'score': score,
@@ -1422,41 +1383,26 @@ class DecisionEngine:
         logger.info(f"      Team Goals: {len(only_team)} candidatos" + (f" (avg prob: {sum(c['probability'] for c in only_team) / len(only_team) * 100:.1f}%)" if only_team else ""))
         logger.info(f"   Total de candidatos: {len(candidates)}")
         
-        # ✅ CORREÇÃO 24/02: Ajustes para estratégia MULTIPLE - filtrar odds 1.30-2.00 para TODAS as categorias
-        # Alinha análise individual (frontend) com gerador automático (backend: 1.30-1.50)
-        # Limite 2.00 é intermediário: mais permissivo que gerador (1.50) mas mantém qualidade
         if strategy == 'multiple':
-            logger.info(f"\n   🎯 APLICANDO FILTRO DE ODDS (estratégia: multiple)")
-            logger.info(f"      Faixa aceita: 1.30 - 2.00")
+            logger.info("\n   🎯 MODO MÚLTIPLAS: odds individuais avaliadas por EV")
             away_favored = consensus.get('away_win', 0) > consensus.get('home_win', 0)
-            rejected_odds = []
-            accepted_count = 0
-            
             for c in candidates:
-                odd_value = c.get('market_odd', 0)
-                
-                # ✅ CORREÇÃO: Filtrar odds fora da faixa 1.30-2.00 para TODAS as categorias
-                # Anteriormente só filtrava 'totals' e 'btts', causando inconsistência
-                # Odds muito baixas (<1.30): retorno péssimo para bilhetes
-                # Odds muito altas (>2.00): prob baixa, risco alto para combinações
-                if odd_value is None or odd_value == 0 or odd_value < 1.30 or odd_value > 2.00:
-                    rejected_odds.append(f"{c['market_display']} @ {odd_value} (cat: {c['category']})")
-                    logger.debug(f"      ❌ Rejeitado: {c['market_display']} @ {odd_value}")
-                    c['score'] = 0
-                else:
-                    accepted_count += 1
-                    # Boost para X2 quando fora é favorito
-                    if c['category'] == 'double_chance' and c['market'] == 'double_chance_x2' and away_favored:
-                        c['score'] *= 1.15
-            
-            logger.info(f"   📊 Resultado filtro: {accepted_count} aceitos, {len(rejected_odds)} rejeitados")
-            if rejected_odds:
-                logger.info(f"   🚫 Primeiros rejeitados:")
-                for r in rejected_odds[:5]:
-                    logger.info(f"      ❌ {r}")
+                if (
+                    c['category'] == 'double_chance'
+                    and c['market'] == 'double_chance_x2'
+                    and away_favored
+                ):
+                    c['score'] *= 1.15
 
         # Filtrar candidatos com score > 0 (já aplica filtro do strategy)
-        valid_candidates = [c for c in candidates if c['score'] > 0]
+        valid_candidates = [
+            c for c in candidates
+            if c['score'] > 0
+            and (
+                strategy != 'multiple'
+                or (c['probability'] >= 0.65 and c['ev_pct'] >= 0)
+            )
+        ]
         
         # Log candidatos rejeitados para debug
         rejected = [c for c in candidates if c['score'] == 0]
@@ -1509,8 +1455,8 @@ class DecisionEngine:
                 logger.info(f"      {i}. [{c['category']}] {c['market_display']} - Prob: {c['probability']*100:.1f}%, EV: {c['ev_pct']:+.1f}%, Score: {c['score']:.3f}")
             
         else:
-            # MODO MULTIPLE: Top 3 por score (prob^1.5 domina), SEM forçar 1X2
-            logger.info("   📋 Aplicando lógica MULTIPLE: puro ranking por score (prob^1.5 + EV)")
+            # MODO MULTIPLE: Top 3 elegíveis por score (prob^1.5 domina), SEM forçar 1X2
+            logger.info("   📋 Aplicando lógica MULTIPLE: ranking por probabilidade e contexto")
             
             # Ordenar TODOS os candidatos válidos por score
             others = sorted(valid_candidates, key=lambda x: x['score'], reverse=True)
@@ -1569,7 +1515,7 @@ class DecisionEngine:
         - VALUE: prob × ev_weight × conf × risk
           * EV < 0: ev_weight = max(0.3, 1 + EV/20) - penalização severa
           * EV ≥ 0: ev_weight = 1 + EV/30 - amplificação forte
-        - MULTIPLE: prob^1.5 × (1 + EV/200) × conf × risk
+        - MULTIPLE: prob^1.5 × conf × risk, after the EV eligibility check
         
         Modo VALUE:
         - Probabilidade linear (sem penalização)
@@ -1579,9 +1525,9 @@ class DecisionEngine:
         - Objetivo: Apostas com EV +20% superam favoritos 85% com EV -2%
         
         Modo MULTIPLE:
-        - Probabilidade QUADRÁTICA elevada a 1.5 (65%→52%, 30%→16%)
-        - EV tem metade do peso (dividido por 200)
-        - Objetivo: Favoritos 70% superam underdogs 40% mesmo com EV maior
+        - Ranking prioriza probabilidade elevada a 1.5 e contexto
+        - A elegibilidade exige probabilidade >= 65% e EV não-negativo
+        - EV não altera o ranking entre seleções elegíveis
         
         Exemplos MODE VALUE (conf=1.0, risk=1.0):
         - Under 2.5: prob=52.3%, EV=+23% → score = 0.523 × 1.767 = 0.924 ✅
@@ -1599,19 +1545,16 @@ class DecisionEngine:
         }.get(risk, 1.0)
         
         if strategy == 'multiple':
-            # MODO BILHETE: Prioriza APENAS probabilidade (EV é irrelevante para acumuladores)
+            # Candidate eligibility enforces non-negative EV; ranking then prioritizes hit probability.
             # Quanto maior a probabilidade, maior o peso (prob^1.5)
             prob_weight = probability ** 1.5  
             
-            # EV não é usado como filtro - apenas como informação
-            # Acumuladores dependem de acertar TODAS as apostas, não de maximizar valor individual
-            ev_weight = 1.0  # EV não afeta o score
+            ev_weight = 1.0
             
-            # Apenas logar warning se EV muito negativo (informativo)
-            if ev_pct < -15:
-                logger.debug(f"   ⚠️ MULTIPLE: EV={ev_pct:.1f}% muito negativo (mas aprovado por probabilidade)")
-            
-            logger.debug(f"   ✅ MULTIPLE: prob={probability:.2f}^1.5 = {prob_weight:.3f}, EV IGNORADO (irrelevante para múltiplos)")
+            logger.debug(
+                f"   ✅ MULTIPLE: prob={probability:.2f}^1.5 = "
+                f"{prob_weight:.3f}; EV já validado na elegibilidade"
+            )
         else:
             # MODO VALUE: EV DOMINA - penaliza drasticamente EV negativo
             prob_weight = probability
@@ -1654,13 +1597,13 @@ class DecisionEngine:
         - ranking_score = selection_score × ev_weight × confidence × risk
         - ev_weight depende de strategy:
           * VALUE: EV dominante (penaliza -EV 5x, amplifica +EV 3x)
-          * MULTIPLE: EV ignorado (ev_weight = 1.0) - irrelevante para acumuladores
+          * MULTIPLE: elegibilidade exige EV não-negativo; o EV não altera o ranking
         
         Exemplo:
         - selection_score = 0.60 (MarketSelector: context 80% × prob 75% = 0.60)
         - ev_pct = +10%
         - VALUE: ev_weight = 1.33 → ranking = 0.60 × 1.33 = 0.80
-        - MULTIPLE: ev_weight = 1.0 → ranking = 0.60 × 1.0 = 0.60 (EV ignorado)
+        - MULTIPLE: ev_weight = 1.0 → ranking = 0.60 × 1.0 = 0.60 (EV sem efeito no ranking)
         """
         conf_factor = confidence.get('score', 0.5)
         risk_factor = {
@@ -1671,7 +1614,7 @@ class DecisionEngine:
         
         # Calcular ev_weight baseado na estratégia
         if strategy == 'multiple':
-            # BILHETE: EV é IRRELEVANTE - foco apenas na probabilidade
+            # Candidate eligibility enforces non-negative EV before this ranking step.
             ev_weight = 1.0  # EV não afeta o ranking
         else:
             # VALUE: EV domina
@@ -1683,7 +1626,7 @@ class DecisionEngine:
         ranking_score = selection_score * ev_weight * conf_factor * risk_factor
         
         prob_display = f" (prob={probability:.0%})" if probability else ""
-        ev_display = " (EV ignorado)" if strategy == 'multiple' else f" × ev_weight={ev_weight:.3f}"
+        ev_display = " (EV elegibilidade validada)" if strategy == 'multiple' else f" × ev_weight={ev_weight:.3f}"
         logger.debug(f"   📊 Ranking: selection={selection_score:.3f}{prob_display}{ev_display} × conf={conf_factor:.3f} × risk={risk_factor:.3f} = {ranking_score:.3f}")
         
         return round(ranking_score, 3)
@@ -1869,36 +1812,43 @@ class DecisionEngine:
                    > 1.0 = contexto favorece esta aposta
                    < 1.0 = contexto não favorece esta aposta
         """
-        # Padrões detectados
-        patterns = context_analysis.get('patterns', [])
-        pattern_names = {p['name']: p.get('confidence', 0) for p in patterns}
-
         fit_score = 1.0
-        is_over_market = 'over' in market or market == 'btts_yes'
-        is_under_market = 'under' in market or market == 'btts_no' or 'clean_sheet' in market
+        market = normalize_market_name(market) or market
+        target_direction = self._goal_market_direction(market)
 
-        # These names match the actual patterns emitted by ContextAnalyzer.
-        open_game_patterns = {
-            'open_game',
-            'derby_context',
-            'defensive_fatigue_game',
-        }
-        defensive_patterns = {
-            'low_motivation_both',
-            'congested_schedule_both',
-            'must_win_high_importance',
-        }
-        for name, confidence in pattern_names.items():
-            if name in open_game_patterns:
-                if is_over_market:
-                    fit_score *= 1.0 + confidence * 0.3
-                elif is_under_market:
-                    fit_score *= 1.0 - confidence * 0.2
-            elif name in defensive_patterns:
-                if is_under_market:
-                    fit_score *= 1.0 + confidence * 0.3
-                elif is_over_market:
-                    fit_score *= 1.0 - confidence * 0.2
+        for pattern in context_analysis.get('patterns', []):
+            confidence = pattern.get('confidence', 0)
+            weights = pattern.get('market_weights') or {}
+            supported_markets = {
+                normalize_market_name(name) or name
+                for name in (
+                    list(weights)
+                    + (pattern.get('favorable_markets') or [])
+                )
+            }
+
+            if market in supported_markets:
+                weight = next(
+                    (
+                        value
+                        for name, value in weights.items()
+                        if (normalize_market_name(name) or name) == market
+                    ),
+                    1.0,
+                )
+                fit_score *= 1.0 + confidence * weight * 0.3
+                continue
+
+            if not target_direction:
+                continue
+
+            supported_directions = {
+                direction
+                for supported_market in supported_markets
+                if (direction := self._goal_market_direction(supported_market))
+            }
+            if supported_directions and target_direction not in supported_directions:
+                fit_score *= 1.0 - confidence * 0.2
 
         fit_score = max(0.5, min(1.5, fit_score))
         if fit_score > 1.15:
@@ -1907,6 +1857,14 @@ class DecisionEngine:
             logger.info(f"   ⚠️ BAIXA ADEQUAÇÃO CONTEXTUAL: {market} - fit={fit_score:.3f}")
 
         return fit_score
+
+    @staticmethod
+    def _goal_market_direction(market):
+        if 'over' in market or market == 'btts_yes':
+            return 'over'
+        if 'under' in market or market in {'btts_no', 'home_clean_sheet', 'away_clean_sheet'}:
+            return 'under'
+        return None
     
     def _explain_contextual_fit(self, market, fit_score, context_analysis):
         """
@@ -1942,20 +1900,35 @@ class DecisionEngine:
         else:
             base = "Contexto desfavorável"
         
-        # Adicionar padrões específicos
+        # Adicionar apenas padrões que sustentam este mercado ou o contradizem.
         relevant_patterns = []
-        if 'open_game' in pattern_names and any(x in market for x in ['over', 'btts_yes']):
-            relevant_patterns.append("jogo ofensivo")
-        if (
-            open_game_patterns.intersection(pattern_names)
-            and any(x in market for x in ['under', 'btts_no'])
-        ):
-            relevant_patterns.append("padrão ofensivo em conflito com Under")
-        if (
-            defensive_patterns.intersection(pattern_names)
-            and any(x in market for x in ['under', 'btts_no'])
-        ):
-            relevant_patterns.append("padrão de menor pontuação")
+        normalized_market = normalize_market_name(market) or market
+        target_direction = self._goal_market_direction(normalized_market)
+        for pattern in patterns:
+            name = pattern.get('name')
+            weights = pattern.get('market_weights') or {}
+            supported_markets = {
+                normalize_market_name(supported) or supported
+                for supported in (
+                    list(weights) + (pattern.get('favorable_markets') or [])
+                )
+            }
+            supported_directions = {
+                direction
+                for supported in supported_markets
+                if (direction := self._goal_market_direction(supported))
+            }
+
+            if normalized_market in supported_markets:
+                if name in open_game_patterns and target_direction == 'over':
+                    relevant_patterns.append("jogo ofensivo")
+                elif name in defensive_patterns and target_direction == 'under':
+                    relevant_patterns.append("padrão de menor pontuação")
+            elif target_direction == 'under' and 'over' in supported_directions:
+                relevant_patterns.append("padrão ofensivo em conflito com Under")
+            elif target_direction == 'over' and 'under' in supported_directions:
+                relevant_patterns.append("padrão defensivo em conflito com Over")
+
         if 'home_advantage' in pattern_names and 'home' in market:
             relevant_patterns.append("vantagem casa")
         if 'away_strength' in pattern_names and 'away' in market:

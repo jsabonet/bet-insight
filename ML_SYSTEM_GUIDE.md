@@ -3,6 +3,52 @@
 **Data:** 25 de Janeiro de 2026  
 **Objetivo:** Substituir pesos fixos por modelos ML treinados com 5000+ partidas reais
 
+> **Estado real do repositório (verificado em novembro de 2026):** este guia descreve a
+> arquitetura pretendida, não o estado atual dos dados. O checkpoint disponível contém
+> 850 partidas (500 da Premier League e 350 da La Liga, temporada 2023/24); os datasets
+> `training_dataset.json` e `training_dataset_full.json` estão vazios. As métricas
+> gravadas usam holdout aleatório e não comprovam desempenho temporal ou rentabilidade.
+> O coletor histórico não aplica corte temporal por partida ao buscar forma, classificação
+> e estatísticas da temporada, criando risco de vazamento de dados futuros.
+> Não há classificador ML para Under 4.5: essa probabilidade é gerada pelo Poisson.
+> O Under 4.5 agora usa a distribuição completa de gols e as linhas Under não são mais
+> elevadas automaticamente durante a seleção.
+> A inferência dos modelos por liga usa os sidecars `*_feature_names.json`; os modelos
+> de copas usam `ml_models/cup_feature_names.json` (107 colunas). As features são
+> alinhadas pelo nome, não pela ordem incidental do dicionário.
+
+## Auditoria do pipeline — fixture 1561958
+
+O fixture auditado é Red Bull Salzburg vs Austria Lustenau, Bundesliga (API league 218),
+em 1 de novembro de 2026. A coleta de forma recente retornou cinco jogos por equipa;
+os dados de tabela/estatísticas tinham amostras de dez jogos por equipa e o contexto de
+gols da liga usou 63 partidas. Odds estavam disponíveis; o endpoint de lesões retornou
+listas vazias; clima e estatísticas detalhadas do fixture não estavam disponíveis.
+
+Correções aplicadas ao fluxo:
+
+- H2H agora exclui o próprio fixture, partidas futuras e partidas sem data comparável.
+  Vitórias/empates são orientados pelos IDs dos clubes atuais, não pelo mando histórico.
+  Os seis confrontos anteriores deste fixture representam seis vitórias do Salzburg,
+  média de 4,5 gols e BTTS de 0%.
+- O enriquecedor publica `home_days_rest`/`away_days_rest`; as features normalizam para
+  `home_rest_days`/`away_rest_days` e mantêm os aliases usados pelo analisador explicativo.
+- Modelos por liga (98 features no 1X2) e por copa (107) são validados contra seus
+  esquemas. Features faltantes são preenchidas por nome e registradas; o vetor deixa
+  de ser truncado silenciosamente.
+- O analisador explicativo agora mapeia momentum, lesões, motivação, H2H, descanso,
+  estatísticas e ELO para os nomes e escalas realmente produzidos pela engenharia.
+
+**Limitação da previsão anterior:** os valores de consenso e probabilidades da execução
+anterior foram calculados antes de corrigir o alinhamento de features e não devem ser
+tratados como previsão validada. O Under 4.5 de 75,1% vinha do Poisson, não de um
+classificador ML. Além disso, a feature `strength_differential` tem uma fórmula que
+inverte a interação entre ataque e defesa; corrigi-la exige retreinar os modelos para
+evitar mudar silenciosamente a semântica de uma feature já treinada. A orientação
+corrigida do H2H também muda a semântica em relação aos datasets/modelos antigos; para
+usar esse sinal no ML com confiança, é necessário reconstruir o histórico com corte
+temporal e IDs de equipa corretos, depois retreinar e validar temporalmente.
+
 ---
 
 ## 📋 OVERVIEW DO SISTEMA
@@ -313,13 +359,14 @@ python ml_training/train_ml_model.py
 
 ### Erro: "Feature mismatch"
 ```
-⚠️ 15 features faltando (preenchidas com 0)
+⚠️ Features esperadas ausentes (preenchidas com 0 por nome)
 ```
-**Causa:** Dataset de treino tinha features diferentes da produção
+**Causa:** O esquema de treino contém features que não foram produzidas para a partida.
 
 **Solução:**
-1. Re-coletar dataset com versão atual do `feature_engineer.py`
-2. Re-treinar modelo
+1. Verificar os nomes reportados e a disponibilidade dos dados de origem.
+2. Se o esquema estiver ausente ou tiver quantidade diferente do modelo, gerar o sidecar
+   durante o treino e re-treinar; não restaurar truncamento posicional.
 
 ### Acurácia baixa (<50%)
 **Causas possíveis:**

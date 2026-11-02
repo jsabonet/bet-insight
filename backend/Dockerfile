@@ -10,7 +10,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # Não instalamos toolchain (gcc/python3-dev/libpq-dev/musl-dev): todas as
 # dependências do requirements.txt têm wheels manylinux prontos
-# (psycopg2-binary, numpy, pandas, scipy, scikit-learn, pillow, grpcio).
+# (psycopg2-binary, numpy, pandas, scipy, scikit-learn, xgboost, pillow, grpcio).
 # curl é obrigatório para o healthcheck definido no docker-compose.yml.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \

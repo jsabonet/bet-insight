@@ -12,7 +12,10 @@ from .serializers import LeagueSerializer, TeamSerializer, MatchListSerializer, 
 from .services.football_api import FootballAPIService
 from .services.id_mapper import APIIDMapper
 from apps.analysis.services.ai_analyzer import AIAnalyzer
-from apps.analysis.services.analysis_orchestrator import HybridAnalysisOrchestrator
+from apps.analysis.services.analysis_orchestrator import (
+    FixtureDetailsUnavailableError,
+    HybridAnalysisOrchestrator,
+)
 from apps.analysis.models import Analysis
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -3311,6 +3314,17 @@ class MatchViewSet(viewsets.ReadOnlyModelViewSet):
             
             return Response(unified_response)
             
+        except FixtureDetailsUnavailableError as e:
+            logger.warning(f"⚠️ Análise indisponível: {str(e)}")
+            return Response(
+                {
+                    'error': 'Detalhes da partida indisponíveis na API de futebol.',
+                    'details': str(e),
+                    'type': type(e).__name__,
+                    'match_id': self.kwargs.get('pk')
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
         except Exception as e:
             import traceback
             error_traceback = traceback.format_exc()

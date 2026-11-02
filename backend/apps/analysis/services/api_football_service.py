@@ -434,7 +434,15 @@ class APIFootballService:
             dict: Informações detalhadas incluindo times, horário, venue, etc
         """
         logger.info(f"🏟️ Buscando detalhes - Fixture: {fixture_id}")
-        
+
+        cache_key = self._get_cache_key('fixtures', {'id': fixture_id})
+        if cache.get(cache_key) == []:
+            logger.warning(
+                "⚠️ Cache vazio para fixture %s; removendo entrada e tentando novamente",
+                fixture_id,
+            )
+            cache.delete(cache_key)
+
         data = self._make_request('fixtures', {'id': fixture_id}, cache_type='fixture_details')
         
         if not data:
@@ -518,26 +526,34 @@ class APIFootballService:
         logger.info(f"✅ {len(h2h_matches)} confrontos H2H encontrados")
         return h2h_matches
     
-    def fetch_team_fixtures(self, team_id, league_id=None, season=None, last=10):
+    def fetch_team_fixtures(self, team_id, league_id=None, season=None, last=10, before=None):
         """
-        Busca últimas fixtures de um time
+        Busca fixtures de um time, opcionalmente limitadas a uma data.
         
         Args:
             team_id: ID do time
             league_id: ID da liga (opcional)
             season: Temporada (opcional)
             last: Número de fixtures (padrão: 10)
+            before: Data limite inclusiva no formato YYYY-MM-DD (opcional)
         
         Returns:
             list: Lista de fixtures com placares e resultados
         """
-        logger.info(f"📅 Buscando últimas {last} fixtures do time {team_id}")
+        logger.info(
+            "📅 Buscando fixtures do time %s%s",
+            team_id,
+            f" até {before}" if before else f" (últimas {last})",
+        )
         
         params = {
             'team': team_id,
-            'last': last,
             'status': 'FT'  # Apenas jogos finalizados
         }
+        if before:
+            params['to'] = before
+        else:
+            params['last'] = last
         
         if league_id:
             params['league'] = league_id

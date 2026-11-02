@@ -15,6 +15,10 @@ from .context_pipeline import analyze_match_context
 logger = logging.getLogger(__name__)
 
 
+class FixtureDetailsUnavailableError(Exception):
+    """Raised when API-Football cannot provide fixture details for analysis."""
+
+
 class HybridAnalysisOrchestrator:
     """Coordena o fluxo híbrido: enriquecimento → features → contexto → modelos ML → seleção contextual → decisão → IA."""
 
@@ -51,7 +55,7 @@ class HybridAnalysisOrchestrator:
         else:
             enriched = dict(enriched_data)
         if not enriched.get('fixture_details'):
-            raise ValueError(
+            raise FixtureDetailsUnavailableError(
                 f"Fixture details unavailable for API Football ID {match.api_football_id}."
             )
 
@@ -206,14 +210,21 @@ class HybridAnalysisOrchestrator:
             logger.info(f"      Probability: {bet.get('probability', 0)*100:.1f}%")
             market_odd = bet.get('market_odd', 0) or 0  # Tratar None como 0
             logger.info(f"      Market Odd: {market_odd:.2f}")
-            logger.info(f"      Fair Odd: {bet.get('fair_odd', 0):.2f}")
-            logger.info(f"      EV: {bet.get('ev_pct', 0):+.1f}%")
-            logger.info(f"      Stake: {bet.get('stake', 0):.1f}u")
+            fair_odd = bet.get('fair_odd')
+            ev_pct = bet.get('ev_pct')
+            stake = bet.get('stake')
+            logger.info(f"      Fair Odd: {fair_odd if fair_odd is not None else 0:.2f}")
+            logger.info(f"      EV: {ev_pct if ev_pct is not None else 0:+.1f}%")
+            logger.info(f"      Stake: {stake if stake is not None else 0:.1f}u")
         
         recommendation = decision_result.get('recommendation', {})
         logger.info(f"\n   Recomendação Principal: {recommendation.get('market_display', 'N/A')}")
         logger.info(f"      Probability: {recommendation.get('probability', 0)*100:.1f}%")
-        logger.info(f"      Fair Odd: {recommendation.get('fair_odd', 0):.2f}")
+        recommendation_fair_odd = recommendation.get('fair_odd')
+        logger.info(
+            "      Fair Odd: "
+            f"{recommendation_fair_odd if recommendation_fair_odd is not None else 0:.2f}"
+        )
         
         publish_filter = decision_result.get('publish_filter', {})
         logger.info(f"\n   Filtro de Publicação:")

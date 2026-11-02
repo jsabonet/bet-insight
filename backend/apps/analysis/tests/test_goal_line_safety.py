@@ -1,5 +1,6 @@
 from django.test import SimpleTestCase
 from unittest.mock import Mock, patch
+from scipy.stats import poisson
 
 from apps.analysis.config.market_standards import get_market_category, normalize_market_name
 from apps.analysis.services.api_football_service import APIFootballService
@@ -44,6 +45,33 @@ class ConservativeGoalLineTests(SimpleTestCase):
             line in market for market in probabilities for line in ('1.75', '2.25', '2.75', '3.25')
         ))
 
+    def test_under_45_uses_full_poisson_tail(self):
+        calibrator = Mock()
+        calibrator.is_available.return_value = False
+
+        with patch(
+            'apps.analysis.services.statistical_models.get_xg_calibrator',
+            return_value=calibrator,
+        ):
+            prediction = PoissonBivariateModel().predict(
+                home_strength=3.2,
+                away_strength=3.2,
+            )
+
+        expected_goals = prediction['expected_goals']
+        total_lambda = expected_goals['home'] + expected_goals['away']
+        probabilities = prediction['probabilities']
+        self.assertAlmostEqual(
+            probabilities['under_4.5'],
+            poisson.cdf(4, total_lambda),
+            places=10,
+        )
+        self.assertAlmostEqual(
+            probabilities['under_4.5'] + probabilities['over_4.5'],
+            1.0,
+            places=10,
+        )
+
     def test_most_likely_score_changes_with_expected_goals(self):
         calibrator = Mock()
         calibrator.is_available.return_value = False
@@ -87,11 +115,55 @@ class ConservativeGoalLineTests(SimpleTestCase):
         self.assertEqual(odds['under_2.5'], 1.8)
         self.assertFalse(any('2.25' in market or '2.75' in market for market in odds))
 
-    def test_over_moves_down_and_under_moves_up_one_line(self):
+    @patch('apps.analysis.services.api_football_service.requests.get')
+    @patch('apps.analysis.services.api_football_service.cache.delete')
+    @patch('apps.analysis.services.api_football_service.cache.get', side_effect=[[], None])
+    def test_fixture_details_retries_after_empty_cached_response(
+        self,
+        cache_get,
+        cache_delete,
+        requests_get,
+    ):
+        service = APIFootballService()
+        fixture = {
+            'fixture': {
+                'id': 123,
+                'date': '2026-11-01T18:00:00+00:00',
+                'venue': {'name': 'Stadium'},
+                'referee': None,
+                'status': {'short': 'NS'},
+            },
+            'teams': {
+                'home': {'id': 1, 'name': 'Home', 'logo': ''},
+                'away': {'id': 2, 'name': 'Away', 'logo': ''},
+            },
+            'league': {
+                'id': 39,
+                'name': 'League',
+                'season': 2026,
+                'round': 'Regular Season - 1',
+            },
+            'goals': {'home': None, 'away': None},
+            'score': {},
+        }
+        response = Mock()
+        response.json.return_value = {'response': [fixture]}
+        requests_get.return_value = response
+
+        details = service.fetch_fixture_details(123)
+
+        self.assertEqual(details['fixture_id'], 123)
+        self.assertEqual(details['home_team']['id'], 1)
+        cache_delete.assert_called_once_with(
+            service._get_cache_key('fixtures', {'id': 123})
+        )
+        requests_get.assert_called_once()
+
+    def test_only_over_lines_move_down(self):
         self.assertEqual(conservative_total_market('over_1_5'), 'over_0.5')
         self.assertEqual(conservative_total_market('over_2.5'), 'over_1.5')
-        self.assertEqual(conservative_total_market('under_1.5'), 'under_2.5')
-        self.assertEqual(conservative_total_market('under_3.5'), 'under_4.5')
+        self.assertEqual(conservative_total_market('under_1.5'), 'under_1.5')
+        self.assertEqual(conservative_total_market('under_3.5'), 'under_3.5')
 
     def test_boundaries_and_non_total_markets_are_unchanged_or_ignored(self):
         self.assertEqual(conservative_total_market('over_0.5'), 'over_0.5')
@@ -99,7 +171,7 @@ class ConservativeGoalLineTests(SimpleTestCase):
         self.assertIsNone(conservative_total_market('home_over_1.5'))
         self.assertIsNone(conservative_total_market('btts_yes'))
 
-    def test_market_selector_uses_adjusted_line_probability_and_actual_odd(self):
+    def test_market_selector_preserves_under_line_and_uses_its_probability_and_odd(self):
         selector = MarketSelector()
         probabilities = {
             'over_0.5': 0.90,
@@ -131,7 +203,7 @@ class ConservativeGoalLineTests(SimpleTestCase):
         self.assertEqual(over['original_market'], 'over_1.5')
         self.assertEqual(over['probability'], 0.90)
         self.assertEqual(over['market_odd'], 1.40)
-        self.assertEqual(under['original_market'], 'under_1.5')
+        self.assertIsNone(under['original_market'])
         self.assertEqual(under['probability'], 0.70)
         self.assertEqual(under['market_odd'], 1.50)
 
@@ -206,7 +278,7 @@ class ConservativeGoalLineTests(SimpleTestCase):
         self.assertEqual(by_market['over_0.5']['original_market'], 'over_1.5')
         self.assertIn('under_1.5', by_market)
         self.assertEqual(by_market['under_1.5']['model_probability'], 0.30)
-        self.assertEqual(by_market['under_1.5']['original_market'], 'under_0.5')
+        self.assertIsNone(by_market['under_1.5']['original_market'])
 
         simulated_value_bets = engine._find_value_bets(
             predictions,

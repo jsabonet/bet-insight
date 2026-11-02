@@ -54,13 +54,13 @@ export default function MultipleTicketCard({ ticket, onViewDetails }) {
           </p>
         </div>
         <div className="border-x border-gray-200 dark:border-gray-700 px-3">
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Probabilidade</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">Prob. combinada estimada</p>
           <p className="font-bold text-gray-900 dark:text-gray-100">
             {(parseFloat(combined_probability) * 100).toFixed(0)}%
           </p>
         </div>
         <div>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">EV</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">EV estimado</p>
           <p className={`font-bold ${parseFloat(expected_value) >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
             {parseFloat(expected_value) >= 0 ? '+' : ''}{parseFloat(expected_value).toFixed(1)}%
           </p>
@@ -96,6 +96,23 @@ export default function MultipleTicketCard({ ticket, onViewDetails }) {
                     Linha ajustada: {formatMarketLabel(selection.original_market)} → {formatMarketLabel(selection.market)}
                   </p>
                 )}
+                {Number(selection.historical_sample_size) > 0 ? (
+                  <p className="mt-1 text-[10px] text-gray-600 dark:text-gray-400">
+                    Observação shadow: {selection.historical_sample_size} ·
+                    {' '}acerto {(Number(selection.historical_win_rate) * 100).toFixed(1)}%
+                    {' '}· ROI {Number(selection.historical_roi_pct).toFixed(1)}%
+                    {' '}· limite 95% {(Number(selection.historical_win_rate_lower_95) * 100).toFixed(1)}%
+                  </p>
+                ) : (
+                  <p className="mt-1 text-[10px] text-amber-700 dark:text-amber-400">
+                    Sem amostra shadow suficiente; histórico não foi usado para bloquear esta seleção.
+                  </p>
+                )}
+                {selection.data_completeness_pct != null && (
+                  <p className="text-[10px] text-gray-500 dark:text-gray-500">
+                    Completude dos dados: {Number(selection.data_completeness_pct).toFixed(0)}%
+                  </p>
+                )}
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <div className="text-right">
@@ -103,7 +120,7 @@ export default function MultipleTicketCard({ ticket, onViewDetails }) {
                     {parseFloat(selection.odd).toFixed(2)}
                   </p>
                   <p className="text-[10px] text-gray-500 dark:text-gray-400">
-                    {(parseFloat(selection.probability) * 100).toFixed(0)}%
+                    Modelo {(parseFloat(selection.model_probability ?? selection.probability) * 100).toFixed(0)}%
                   </p>
                 </div>
                 {isClickable && (

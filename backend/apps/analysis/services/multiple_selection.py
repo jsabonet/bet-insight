@@ -1,46 +1,33 @@
-"""Shared ordering for eligible candidates in the multiple strategy."""
+"""Shared eligibility and ordering for multiple-strategy candidates."""
 
 import math
-
-from apps.analysis.config.supergiants import (
-    is_home_over_market,
-    is_protective_supergiant_market,
-    is_supergiant_away,
-    is_supergiant_match,
-)
 
 
 def eligible_multiple_candidates(
     candidates,
     match=None,
     min_probability=0.65,
-    min_odd=1.30,
-    max_odd=1.50,
-    protective_min_odd=1.15,
+    min_ev_pct=0.0,
 ):
-    """Apply existing multiple candidate thresholds without changing candidates."""
-    supergiant_match = is_supergiant_match(match)
-    supergiant_away = is_supergiant_away(match)
+    """Require a valid price, minimum hit probability, and non-negative EV.
+
+    ``match`` remains accepted for compatibility; club classification does not
+    change market eligibility.
+    """
     eligible = []
 
     for candidate in candidates or []:
-        market = candidate.get('market', '')
-        protective_market = is_protective_supergiant_market(market)
-        if supergiant_match and not protective_market:
-            continue
-        if supergiant_away and is_home_over_market(market):
-            continue
-
-        probability = _number(candidate.get('probability'), 0.0)
-        odd = _number(candidate.get('market_odd'), 0.0)
-        candidate_min_odd = (
-            protective_min_odd
-            if supergiant_match and protective_market
-            else min_odd
-        )
+        probability = _number(candidate.get('probability'))
+        odd = _number(candidate.get('market_odd'))
+        ev_pct = _number(candidate.get('ev_pct'))
         if (
-            probability >= min_probability
-            and candidate_min_odd <= odd <= max_odd
+            probability is not None
+            and 0.0 < probability <= 1.0
+            and odd is not None
+            and odd > 1.0
+            and ev_pct is not None
+            and probability >= min_probability
+            and ev_pct >= min_ev_pct
         ):
             eligible.append(candidate)
 

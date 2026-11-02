@@ -112,7 +112,10 @@ class FeatureEngineer:
         
         # 7. H2H (Histórico direto)
         logger.info("\n7️⃣ Calculando features de H2H...")
-        features['h2h'] = self._calculate_h2h_features(h2h)
+        features['h2h'] = self._calculate_h2h_features(
+            h2h,
+            enriched_data.get('fixture_details'),
+        )
         logger.info(f"   ✅ {len(features['h2h'])} features de H2H")
         
         # 8. MATCH IMPORTANCE (Nova implementação)
@@ -163,7 +166,7 @@ class FeatureEngineer:
                     recent_form.get('home', {}).get('games')
                     and recent_form.get('away', {}).get('games')
                 ),
-                'h2h': bool(h2h),
+                'h2h': features['h2h']['h2h_games'] > 0,
                 'market': bool(odds),
                 'rest': self._has_rest_context(rest_context),
                 'weather': bool(weather),
@@ -243,8 +246,14 @@ class FeatureEngineer:
     def _has_rest_context(rest_context):
         return bool(
             isinstance(rest_context, dict)
-            and rest_context.get('home_rest_days') is not None
-            and rest_context.get('away_rest_days') is not None
+            and rest_context.get(
+                'home_rest_days',
+                rest_context.get('home_days_rest'),
+            ) is not None
+            and rest_context.get(
+                'away_rest_days',
+                rest_context.get('away_days_rest'),
+            ) is not None
         )
 
     @staticmethod
@@ -728,8 +737,18 @@ class FeatureEngineer:
         
         Dias desde último jogo e diferencial de descanso
         """
-        home_rest_days = rest_context.get('home_rest_days', 7)
-        away_rest_days = rest_context.get('away_rest_days', 7)
+        home_rest_days = rest_context.get(
+            'home_rest_days',
+            rest_context.get('home_days_rest', 7),
+        )
+        away_rest_days = rest_context.get(
+            'away_rest_days',
+            rest_context.get('away_days_rest', 7),
+        )
+        if home_rest_days is None:
+            home_rest_days = 7
+        if away_rest_days is None:
+            away_rest_days = 7
         
         # Fadiga (jogos com menos de 3 dias = fadiga)
         home_is_fatigued = home_rest_days < 3
@@ -741,6 +760,8 @@ class FeatureEngineer:
         return {
             'home_rest_days': home_rest_days,
             'away_rest_days': away_rest_days,
+            'home_days_rest': home_rest_days,
+            'away_days_rest': away_rest_days,
             'home_is_fatigued': home_is_fatigued,
             'away_is_fatigued': away_is_fatigued,
             'rest_advantage': rest_advantage,
@@ -958,7 +979,7 @@ class FeatureEngineer:
         # Retorna % de gols no 1º tempo
         return goals_1st_half / total_goals
     
-    def _calculate_h2h_features(self, h2h_data):
+    def _calculate_h2h_features(self, h2h_data, fixture_details=None):
         """
         Features de histórico direto (H2H)
         
@@ -970,10 +991,18 @@ class FeatureEngineer:
                 'h2h_home_wins': 0,
                 'h2h_draws': 0,
                 'h2h_away_wins': 0,
+                'h2h_home_win_rate': 0,
+                'h2h_away_win_rate': 0,
+                'h2h_draw_rate': 0,
                 'h2h_avg_goals': 0,
                 'h2h_btts_rate': 0
             }
         
+        fixture_details = fixture_details if isinstance(fixture_details, dict) else {}
+        current_home_id = (fixture_details.get('home_team') or {}).get('id')
+        current_away_id = (fixture_details.get('away_team') or {}).get('id')
+        has_current_teams = current_home_id is not None and current_away_id is not None
+
         valid_matches = []
         for match in h2h_data:
             if not isinstance(match, dict):
@@ -995,6 +1024,23 @@ class FeatureEngineer:
                 or not float(away_goals).is_integer()
             ):
                 continue
+
+            if has_current_teams:
+                historical_home_id = home_team.get('id')
+                historical_away_id = away_team.get('id')
+                if (
+                    str(historical_home_id) == str(current_home_id)
+                    and str(historical_away_id) == str(current_away_id)
+                ):
+                    pass
+                elif (
+                    str(historical_home_id) == str(current_away_id)
+                    and str(historical_away_id) == str(current_home_id)
+                ):
+                    home_goals, away_goals = away_goals, home_goals
+                else:
+                    continue
+
             valid_matches.append((home_goals, away_goals))
 
         total_games = len(valid_matches)
@@ -1004,6 +1050,9 @@ class FeatureEngineer:
                 'h2h_home_wins': 0,
                 'h2h_draws': 0,
                 'h2h_away_wins': 0,
+                'h2h_home_win_rate': 0,
+                'h2h_away_win_rate': 0,
+                'h2h_draw_rate': 0,
                 'h2h_avg_goals': 0,
                 'h2h_btts_rate': 0,
             }
@@ -1036,6 +1085,8 @@ class FeatureEngineer:
             'h2h_draws': draws,
             'h2h_away_wins': away_wins,
             'h2h_home_win_rate': round(home_wins / total_games, 2) if total_games > 0 else 0,
+            'h2h_away_win_rate': round(away_wins / total_games, 2),
+            'h2h_draw_rate': round(draws / total_games, 2),
             'h2h_avg_goals': round(avg_goals, 2),
             'h2h_btts_rate': round(btts_rate, 2)
         }
